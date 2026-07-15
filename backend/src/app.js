@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 
 const authRoutes = require("./routes/authRoutes");
 const valuesRoutes = require("./routes/valuesRoutes");
+const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
 
@@ -17,4 +18,8 @@ app.get("/", (req, res) => {
 app.use("/values", valuesRoutes);
 app.use("/auth", authRoutes);
 
+// Global Error Handler Middleware (must be registered last)
+app.use(errorHandler);
+
 module.exports = app;
+

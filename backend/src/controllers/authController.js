@@ -1,17 +1,10 @@
-const { randomBytes, scryptSync } = require("crypto");
-
-const db = require("../config/db");
+const userModel = require("../models/userModel");
+const { hashPassword } = require("../utils/password");
+const { successResponse, errorResponse } = require("../utils/response");
 
 const normalizeEmail = email => email.trim().toLowerCase();
 
-const hashPassword = password => {
-  const salt = randomBytes(16).toString("hex");
-  const derivedKey = scryptSync(password, salt, 64).toString("hex");
-
-  return `${salt}:${derivedKey}`;
-};
-
-const createAccount = async (req, res) => {
+const createAccount = async (req, res, next) => {
   try {
     const fullName = (req.body.fullName || req.body.name || "").trim();
     const email = (req.body.email || "").trim();
@@ -19,60 +12,35 @@ const createAccount = async (req, res) => {
     const confirmPassword = req.body.confirmPassword || req.body.confirm_password || password;
 
     if (!fullName || !email || !password) {
-      return res.status(400).send({
-        working: false,
-        message: "Full name, email, and password are required.",
-      });
+      return errorResponse(res, "Full name, email, and password are required.", 400);
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).send({
-        working: false,
-        message: "Password and confirmation do not match.",
-      });
+      return errorResponse(res, "Password and confirmation do not match.", 400);
     }
 
     if (password.length < 8) {
-      return res.status(400).send({
-        working: false,
-        message: "Password must be at least 8 characters long.",
-      });
+      return errorResponse(res, "Password must be at least 8 characters long.", 400);
     }
 
     const emailAddress = normalizeEmail(email);
 
-    const existingUser = await db.query("SELECT id FROM users WHERE email = $1", [emailAddress]);
+    const existingUser = await userModel.findUserByEmail(emailAddress);
 
-    if (existingUser.rows.length > 0) {
-      return res.status(409).send({
-        working: false,
-        message: "An account with that email already exists.",
-      });
+    if (existingUser) {
+      return errorResponse(res, "An account with that email already exists.", 409);
     }
 
     const passwordHash = hashPassword(password);
 
-    const createdUser = await db.query(
-      `INSERT INTO users (full_name, email, password_hash, created_at)
-       VALUES ($1, $2, $3, NOW())
-       RETURNING id, full_name, email, created_at`,
-      [fullName, emailAddress, passwordHash]
-    );
+    const createdUser = await userModel.createUser(fullName, emailAddress, passwordHash);
 
-    return res.status(201).send({
-      working: true,
-      message: "Account created successfully.",
-      user: createdUser.rows[0],
-    });
+    return successResponse(res, "Account created successfully.", { user: createdUser }, 201);
   } catch (error) {
-    console.error("Create account error:", error);
-    return res.status(500).send({
-      working: false,
-      message: "Unable to create account.",
-    });
+    next(error);
   }
 };
 
 module.exports = {
   createAccount,
-};
+};
