@@ -1,9 +1,14 @@
-import { useState } from 'react';
-import axios from 'axios';
-import '../App.css';
-import logo from '../logo.png';
-import SignupField from '../components/SignupField';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import InputField from '../../components/common/InputField';
+import Button from '../../components/common/Button';
+import Layout from '../../components/common/Layout';
+import '../../App.css';
 
+/**
+ * Refactored signup page component utilizando standard common components and useAuth context.
+ */
 function SignupPage() {
   const [formData, setFormData] = useState({
     fullName: '',
@@ -14,6 +19,8 @@ function SignupPage() {
   });
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState('');
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = event => {
     const { name, value, type, checked } = event.target;
@@ -36,15 +43,15 @@ function SignupPage() {
     }
 
     try {
-      const response = await axios.post('/api/auth/create-account', {
-        fullName: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-      });
+      const data = await signup(
+        formData.fullName,
+        formData.email,
+        formData.password,
+        formData.confirmPassword
+      );
 
       setStatusType('success');
-      setStatusMessage(response.data?.message || 'Account created successfully.');
+      setStatusMessage(data.message || 'Account created successfully.');
       setFormData({
         fullName: '',
         email: '',
@@ -52,25 +59,25 @@ function SignupPage() {
         confirmPassword: '',
         agreeTerms: false,
       });
+      // Redirect to sign in after successful sign up
+      setTimeout(() => {
+        navigate('/signin');
+      }, 1500);
     } catch (error) {
-      const message = error.response?.data?.message || 'Unable to create account.';
+      const message = error.response?.data?.message || error.message || 'Unable to create account.';
       setStatusType('error');
       setStatusMessage(message);
     }
   };
 
   return (
-    <div className="signup-shell">
-      <header className="topbar" aria-label="IntelliHire brand">
-        <img className="brand-logo" src={logo} alt="IntelliHire" />
-      </header>
-
+    <Layout>
       <main className="signup-main">
         <section className="signup-card" aria-labelledby="signup-title">
           <h1 id="signup-title">Create Your Account</h1>
 
           <form className="signup-form" onSubmit={handleSubmit}>
-            <SignupField
+            <InputField
               label="Full Name"
               name="fullName"
               value={formData.fullName}
@@ -81,7 +88,7 @@ function SignupPage() {
               required
             />
 
-            <SignupField
+            <InputField
               label="Email Address"
               type="email"
               name="email"
@@ -94,7 +101,7 @@ function SignupPage() {
               required
             />
 
-            <SignupField
+            <InputField
               label="Password"
               type="password"
               name="password"
@@ -107,7 +114,7 @@ function SignupPage() {
               required
             />
 
-            <SignupField
+            <InputField
               label="Confirm Password"
               type="password"
               name="confirmPassword"
@@ -127,7 +134,7 @@ function SignupPage() {
                 onChange={handleChange}
               />
               <span>
-                I agree to the <a href="/">Terms &amp; Conditions</a>
+                I agree to the <Link to="/">Terms &amp; Conditions</Link>
               </span>
             </label>
             <p className="terms-note">By clicking this, you accept our data privacy policy.</p>
@@ -138,38 +145,29 @@ function SignupPage() {
               </p>
             ) : null}
 
-            <button className="primary-button" type="submit">
+            <Button type="submit" variant="primary">
               Create Account
-            </button>
+            </Button>
 
             <p className="auth-switch">
-              Already have an account? <a href="/">Log In</a>
+              Already have an account? <Link to="/signin">Log In</Link>
             </p>
 
             <div className="divider"><span>OR</span></div>
 
-            <button className="social-button" type="button">
+            <Button variant="social" type="button">
               <span className="social-icon google">◎</span>
               Continue with Google
-            </button>
+            </Button>
 
-            <button className="social-button" type="button">
+            <Button variant="social" type="button">
               <span className="social-icon linkedin">in</span>
               Continue with LinkedIn
-            </button>
+            </Button>
           </form>
         </section>
       </main>
-
-      <footer className="footer">
-        <p>© 2026 Applicant Gateway. All rights reserved.</p>
-        <nav aria-label="Footer links">
-          <a href="/">Terms of Service</a>
-          <a href="/">Privacy Policy</a>
-          <a href="/">Cookie Policy</a>
-        </nav>
-      </footer>
-    </div>
+    </Layout>
   );
 }
 

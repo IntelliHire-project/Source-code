@@ -1,7 +1,14 @@
-import SignupPage from './pages/SignupPage';
+import React from 'react';
+import { AuthProvider } from './context/AuthContext';
+import AppRoutes from './routes/AppRoutes';
 
 function App() {
-  return <SignupPage />;
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
 }
 
 export default App;
+
