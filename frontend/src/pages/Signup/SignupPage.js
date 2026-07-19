@@ -1,4 +1,4 @@
-
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import InputField from '../../components/common/InputField';
@@ -7,7 +7,7 @@ import Layout from '../../components/common/Layout';
 import '../../App.css';
 
 /**
- * Refactored signup page component utilizando standard common components and useAuth context.
+ * Refactored signup page component utilizing standard common components and useAuth context.
  */
 function SignupPage() {
   const [formData, setFormData] = useState({
