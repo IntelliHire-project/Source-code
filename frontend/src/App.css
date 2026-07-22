@@ -241,6 +241,14 @@
   font-size: 10px;
 }
 
+.footer-logo {
+  width: min(128px, 36vw);
+  height: 22px;
+  display: block;
+  object-fit: contain;
+  margin: 0 auto 8px;
+}
+
 .footer p {
   margin: 0 0 10px;
 }

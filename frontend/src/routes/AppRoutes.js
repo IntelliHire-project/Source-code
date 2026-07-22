@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from '../features/landing/LandingPage';
 import SignupPage from '../pages/Signup/SignupPage';
 import SignInPage from '../pages/SignIn/SignInPage';
 import ProtectedRoute from './ProtectedRoute';
@@ -18,6 +19,7 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signin" element={<SignInPage />} />
         <Route
@@ -28,8 +30,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        {/* Default route redirects to /signup */}
-        <Route path="*" element={<Navigate to="/signup" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
