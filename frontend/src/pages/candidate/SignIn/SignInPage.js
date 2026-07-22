@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
-import Layout from '../../components/common/Layout';
-import '../../App.css';
+import useAuth from '../../../hooks/useAuth';
+import Layout from '../../../components/common/Layout';
+import '../../../App.css';
 
 /**
  * Re-designed Premium Sign In Page component matching the signup design
