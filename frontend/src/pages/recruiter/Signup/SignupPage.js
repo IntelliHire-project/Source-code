@@ -103,9 +103,9 @@ function RecruiterSignupPage() {
         agreeTerms: false,
       });
 
-      // Redirect to dashboard after successful registration
+      // Redirect to pending approval after successful registration
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/recruiter/pending-approval');
       }, 1500);
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Unable to register company.';
