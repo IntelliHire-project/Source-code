@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SignupPage from '../pages/candidate/Signup/SignupPage';
 import SignInPage from '../pages/candidate/SignIn/SignInPage';
+import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple Dashboard template for authenticated users
@@ -20,6 +21,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signin" element={<SignInPage />} />
+        <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
         <Route
           path="/dashboard"
           element={
