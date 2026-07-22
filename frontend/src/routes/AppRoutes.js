@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import SignupPage from '../pages/Signup/SignupPage';
-import SignInPage from '../pages/SignIn/SignInPage';
+import SignupPage from '../pages/candidate/Signup/SignupPage';
+import SignInPage from '../pages/candidate/SignIn/SignInPage';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple Dashboard template for authenticated users
