@@ -17,10 +17,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const signup = async (fullName, email, password, confirmPassword) => {
+  const signup = async (fullName, email, phone, password, confirmPassword) => {
     setLoading(true);
     try {
-      const data = await apiSignup(fullName, email, password, confirmPassword);
+      const data = await apiSignup(fullName, email, phone, password, confirmPassword);
       // Auto session storage if token returned
       if (data.token) {
         setToken(data.token);

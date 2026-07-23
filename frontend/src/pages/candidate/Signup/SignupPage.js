@@ -12,6 +12,7 @@ function SignupPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false,
@@ -130,6 +131,7 @@ function SignupPage() {
       const data = await signup(
         formData.fullName,
         formData.email,
+        formData.phone,
         formData.password,
         formData.confirmPassword
       );
@@ -140,6 +142,7 @@ function SignupPage() {
       setFormData({
         fullName: '',
         email: '',
+        phone: '',
         password: '',
         confirmPassword: '',
         agreeTerms: false,
@@ -159,10 +162,10 @@ function SignupPage() {
 
   return (
     <Layout theme="dark">
-      <main className="auth-main">
-        <div className="auth-wrapper">
-
-          {/* Logo Header */}
+      <main className="auth-split-layout">
+        
+        {/* Left Hero Side */}
+        <section className="auth-hero-side">
           <Link to="/" className="auth-brand" aria-label="IntelliHire Home">
             <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -171,117 +174,263 @@ function SignupPage() {
             <span className="auth-brand-text">IntelliHire</span>
           </Link>
 
-          {/* Form Header */}
-          <div className="auth-header">
-            <h1 className="auth-title">Create Your Account</h1>
-            <p className="auth-subtitle">Join thousands of elite candidates discovering premium opportunities.</p>
+          <div className="auth-hero-content">
+            <h1 className="auth-hero-title">Launch Your Career <br /> with <span className="text-accent">Confidence</span></h1>
+            <p className="auth-hero-subtitle">
+              IntelliHire is a smart recruitment and career guidance system that helps candidates showcase their skills, discover suitable opportunities, and get AI-powered insights to grow in their careers.
+            </p>
+
+            <div className="auth-features-list">
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">AI Resume Analysis</span>
+                  <span className="auth-feature-desc">Get AI-powered feedback to improve your resume.</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Intelligent Job Matching</span>
+                  <span className="auth-feature-desc">Find roles that match your skills and career goals.</span>
+                </div>
+              </div>
+
+
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Personalized Career Guidance</span>
+                  <span className="auth-feature-desc">Receive tailored recommendations for your career.</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Application Tracking</span>
+                  <span className="auth-feature-desc">Track and manage your job applications in one place.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="auth-hero-footer-features">
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>Secure Platform</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Your data is encrypted<br/>and fully protected.</span>
+                </div>
+              </div>
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <circle cx="12" cy="12" r="4"></circle>
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>AI Powered</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Smart algorithms for<br/>better career decisions.</span>
+                </div>
+              </div>
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>Recruiter Verified</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Opportunities from<br/>trusted employers.</span>
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
+
+        {/* Right Form Side */}
+        <section className="auth-form-side">
+          <div className="auth-wrapper">
+            
+            {/* Mobile Logo Header */}
+            <Link to="/" className="auth-brand auth-mobile-brand" aria-label="IntelliHire Home">
+              <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 11 2 2 4-4" />
+              </svg>
+              <span className="auth-brand-text">IntelliHire</span>
+            </Link>
 
           {/* Form Container */}
           <section className="auth-card" aria-labelledby="signup-card-title">
-            <h2 id="signup-card-title" className="sr-only">Sign up form</h2>
+            <div className="auth-card-header">
+              <div className="auth-card-icon-wrapper">
+                <svg className="auth-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h2 id="signup-card-title" className="auth-title">Create Your Account</h2>
+            </div>
+
+            {/* Role Toggle Switch */}
+            <div className="auth-role-toggle">
+              <span className="auth-role-tab active">Candidate</span>
+              <Link to="/recruiter/signup" className="auth-role-tab">Recruiter</Link>
+            </div>
 
             <form className="auth-form" onSubmit={handleSubmit}>
 
-              {/* Full Name Field */}
-              <div className="auth-field">
-                <div className="auth-label-row">
-                  <label className="auth-label" htmlFor="fullName">Full Name</label>
+              {/* Row 1: Name and Email */}
+              <div className="auth-row">
+                <div className="auth-field">
+                  <div className="auth-label-row">
+                    <label className="auth-label" htmlFor="fullName">Full Name</label>
+                  </div>
+                  <div className="auth-input-container">
+                    <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <input
+                      id="fullName"
+                      className="auth-input"
+                      type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      placeholder="e.g. Alexander Pierce"
+                      autoComplete="name"
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="auth-input-container">
-                  <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <input
-                    id="fullName"
-                    className="auth-input"
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    placeholder="e.g. Alexander Pierce"
-                    autoComplete="name"
-                    required
-                  />
+
+                <div className="auth-field">
+                  <div className="auth-label-row">
+                    <label className="auth-label" htmlFor="email">Email Address</label>
+                  </div>
+                  <div className="auth-input-container">
+                    <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    <input
+                      id="email"
+                      className="auth-input"
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="name@company.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Email Field */}
-              <div className="auth-field">
-                <div className="auth-label-row">
-                  <label className="auth-label" htmlFor="email">Email Address</label>
+              {/* Row 2: Passwords */}
+              <div className="auth-row">
+                <div className="auth-field">
+                  <div className="auth-label-row">
+                    <label className="auth-label" htmlFor="password">Password</label>
+                  </div>
+                  <div className="auth-input-container">
+                    <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="password"
+                      className="auth-input"
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Enter your password"
+                      autoComplete="new-password"
+                      required
+                    />
+                    <svg className="auth-input-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </div>
                 </div>
-                <div className="auth-input-container">
-                  <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2" />
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                  </svg>
-                  <input
-                    id="email"
-                    className="auth-input"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="name@company.com"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-                <div className="auth-helper">
-                  <span className="auth-helper-asterisk">*</span>
-                  <span>We'll send a verification link to this email.</span>
+
+                <div className="auth-field">
+                  <div className="auth-label-row">
+                    <label className="auth-label" htmlFor="confirmPassword">Confirm Password</label>
+                  </div>
+                  <div className="auth-input-container">
+                    <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="confirmPassword"
+                      className="auth-input"
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm your password"
+                      autoComplete="new-password"
+                      required
+                    />
+                    <svg className="auth-input-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </div>
                 </div>
               </div>
 
-              {/* Password Field */}
+              {/* Row 3: Phone */}
               <div className="auth-field">
                 <div className="auth-label-row">
-                  <label className="auth-label" htmlFor="password">Password</label>
+                  <label className="auth-label" htmlFor="phone">Phone Number</label>
                 </div>
                 <div className="auth-input-container">
                   <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                   </svg>
                   <input
-                    id="password"
+                    id="phone"
                     className="auth-input"
-                    type="password"
-                    name="password"
-                    value={formData.password}
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
                     onChange={handleChange}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    required
-                  />
-                </div>
-                <div className="auth-helper">
-                  <span className="auth-helper-asterisk">*</span>
-                  <span>Must be at least 8 characters with one special symbol.</span>
-                </div>
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="auth-field">
-                <div className="auth-label-row">
-                  <label className="auth-label" htmlFor="confirmPassword">Confirm Password</label>
-                </div>
-                <div className="auth-input-container">
-                  <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    <path d="m9 11 2 2 4-4" />
-                  </svg>
-                  <input
-                    id="confirmPassword"
-                    className="auth-input"
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
+                    placeholder="+1 (555) 000-0000"
+                    autoComplete="tel"
                     required
                   />
                 </div>
@@ -317,8 +466,8 @@ function SignupPage() {
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" x2="12" y1="3" y2="15" />
                     </svg>
-                    <p className="auth-upload-title">Click or drag to upload CV</p>
-                    <p className="auth-upload-subtitle">PDF, DOC up to 5MB</p>
+                    <p className="auth-upload-title">Drag & drop your CV here</p>
+                    <p className="auth-upload-subtitle">PDF, DOC, DOCX up to 5MB</p>
                   </div>
                 ) : (
                   <div className="auth-file-selected">
@@ -375,19 +524,13 @@ function SignupPage() {
               <button type="submit" className="auth-submit-btn">
                 <span>Create Account</span>
                 <svg className="auth-submit-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
+                  <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </button>
 
-              {/* Switch to login */}
-              <p className="auth-switch">
-                Already have an account? <Link to="/signin" className="auth-link">Log in here</Link>
-              </p>
-
               {/* Social authentication divider */}
               <div className="auth-divider">
-                <span className="auth-divider-text">Or Continue With</span>
+                <span className="auth-divider-text">OR CONTINUE WITH</span>
               </div>
 
               {/* Social Login buttons */}
@@ -414,24 +557,18 @@ function SignupPage() {
                 </button>
               </div>
 
+              {/* Switch to login */}
+              <p className="auth-switch" style={{ marginTop: '24px' }}>
+                Already have an account? <Link to="/signin" className="auth-link">Log in here</Link>
+              </p>
+
             </form>
           </section>
 
-          {/* Secure Footer area */}
-          <footer className="auth-footer">
-            <div className="auth-secure-tag">
-              <svg className="auth-secure-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-              <span>Secure Enterprise-Grade Encryption Active</span>
-            </div>
-            <div className="auth-version-pill">
-              v1.0.4-wireframe-candidate-portal
-            </div>
-          </footer>
 
-        </div>
+
+          </div>
+        </section>
       </main>
     </Layout>
   );
