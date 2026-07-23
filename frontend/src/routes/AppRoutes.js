@@ -54,7 +54,7 @@ function AppRoutes() {
           }
         />
         {/* Public preview route (no auth required — for visual QA) */}
-        <Route path="/community-preview" element={<CommunityPage />} />
+        <Route path="/community" element={<CommunityPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
