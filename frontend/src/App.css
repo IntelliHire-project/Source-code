@@ -1,16 +1,17 @@
 /* Premium Dark Theme for IntelliHire Auth Flow */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* Use design variables matching system_design.md  /* IntelliHire Color Palette - Mockup specific */
   --primary: #16171F;
   --primary-dark: #0c0a09;
   --primary-light: #2A2C38;
-  --accent: #FACC15; /* Replaced older #ffd35c with brighter mockup yellow */
+  --accent: #FACC15;
+  /* Replaced older #ffd35c with brighter mockup yellow */
   --accent-dark: #EAB308;
   --accent-light: #FEF08A;
   --accent-success: #22C55E;
 
+  /* Auth-specific dark theme variables (shared tokens come from tokens.css) */
   --bg-page-dark: #07080B;
   --surface-dark: #0F1016;
   --border-dark-subtle: rgba(255, 255, 255, 0.08);
@@ -116,8 +117,8 @@
   border: 1px solid rgba(232, 179, 57, 0.15);
   border-radius: 24px;
   padding: 24px;
-  box-shadow: 
-    0 0 40px rgba(212, 160, 23, 0.08), 
+  box-shadow:
+    0 0 40px rgba(212, 160, 23, 0.08),
     0 24px 60px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
@@ -134,7 +135,7 @@
   gap: 12px;
 }
 
-.auth-row > .auth-field {
+.auth-row>.auth-field {
   flex: 1;
 }
 
@@ -191,7 +192,8 @@
 .auth-input {
   width: 100%;
   height: 38px;
-  padding: 0 40px 0 44px; /* Space for right icon if present */
+  padding: 0 40px 0 44px;
+  /* Space for right icon if present */
   background-color: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-sm);
@@ -537,6 +539,31 @@
   height: 100%;
 }
 
+.footer {
+  padding: 10px 20px 18px;
+  text-align: center;
+  color: #d8d0bf;
+  font-size: 10px;
+}
+
+.footer-logo {
+  width: min(128px, 36vw);
+  height: 22px;
+  display: block;
+  object-fit: contain;
+  margin: 0 auto 8px;
+}
+
+.footer p {
+  margin: 0 0 10px;
+}
+
+.footer nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
 /* Footer elements */
 .auth-footer {
   margin-top: 36px;
@@ -623,7 +650,7 @@
   width: 100%;
   background-color: #0B0B0F;
   /* Cinematic Glows and Vignette */
-  background-image: 
+  background-image:
     radial-gradient(circle at 25% 45%, rgba(212, 160, 23, 0.12) 0%, transparent 45%),
     radial-gradient(circle at 75% 50%, rgba(232, 179, 57, 0.12) 0%, transparent 45%),
     radial-gradient(ellipse at 50% 50%, rgba(184, 134, 11, 0.08) 0%, transparent 60%),
@@ -637,10 +664,13 @@
 .auth-split-layout::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   pointer-events: none;
   z-index: -1;
-  background-image: 
+  background-image:
     radial-gradient(2px 2px at 15% 20%, rgba(232, 179, 57, 0.3) 50%, transparent),
     radial-gradient(1px 1px at 85% 30%, rgba(246, 195, 67, 0.4) 50%, transparent),
     radial-gradient(2px 2px at 35% 80%, rgba(212, 160, 23, 0.3) 50%, transparent),
@@ -656,9 +686,11 @@
 .auth-split-layout::after {
   content: '';
   position: absolute;
-  bottom: -20%; left: -10%; right: -10%;
+  bottom: -20%;
+  left: -10%;
+  right: -10%;
   height: 50%;
-  background: 
+  background:
     radial-gradient(ellipse at 50% 100%, rgba(232, 179, 57, 0.08) 0%, transparent 50%),
     conic-gradient(from 180deg at 50% 100%, transparent 0deg, rgba(212, 160, 23, 0.05) 90deg, transparent 180deg);
   border-radius: 50% 50% 0 0;
@@ -676,7 +708,8 @@
 
 /* Hero Side (Left) */
 .auth-hero-side {
-  display: none; /* Hide on mobile by default */
+  display: none;
+  /* Hide on mobile by default */
   flex-direction: column;
   padding: 40px;
   position: relative;
@@ -863,62 +896,63 @@
 }
 
 @media (min-width: 1024px) {
+
   /* Prevent scrolling on desktop */
   .auth-split-layout {
     height: 100vh;
     overflow: hidden;
   }
-  
+
   .auth-hero-side {
     padding: 24px 32px;
   }
-  
+
   .auth-hero-content {
     margin-top: 16px;
   }
-  
+
   .auth-hero-title {
     font-size: 32px;
     margin-bottom: 12px;
   }
-  
+
   .auth-hero-subtitle {
     font-size: 14px;
     margin-bottom: 20px;
   }
-  
+
   .auth-features-list {
     gap: 8px;
     margin-bottom: 20px;
   }
-  
+
   .auth-feature-item {
     padding: 10px 14px;
   }
-  
+
   .auth-feature-icon-wrapper {
     width: 32px;
     height: 32px;
   }
-  
+
   .auth-feature-icon {
     width: 16px;
     height: 16px;
   }
-  
+
   .auth-feature-text {
     font-size: 13px;
   }
-  
+
   .auth-feature-desc {
     font-size: 11px;
   }
-  
+
   .auth-hero-footer-features {
     padding: 12px;
     margin-top: 16px;
   }
-  
+
   .auth-footer-feature-icon {
     width: 16px;
     height: 16px;
@@ -931,90 +965,90 @@
     height: 100%;
     justify-content: center;
   }
-  
+
   .auth-card {
     padding: 20px 24px;
     border-radius: 20px;
   }
-  
+
   .auth-card-header {
     margin-bottom: 12px;
   }
-  
+
   .auth-card-icon-wrapper {
     width: 36px;
     height: 36px;
     margin-bottom: 8px;
   }
-  
+
   .auth-card-icon {
     width: 20px;
     height: 20px;
   }
-  
+
   .auth-card-header h2 {
     font-size: 20px;
   }
-  
+
   .auth-card-header p {
     font-size: 12px;
   }
-  
+
   .auth-form {
     gap: 8px;
   }
-  
+
   .auth-label-row {
     margin-bottom: 2px;
   }
-  
+
   .auth-label {
     font-size: 12px;
   }
-  
+
   .auth-input {
     height: 38px;
     font-size: 12px;
   }
-  
+
   .auth-upload-zone {
     min-height: 48px;
     padding: 8px;
   }
-  
+
   .auth-upload-icon {
     width: 14px;
     height: 14px;
     margin-bottom: 2px;
   }
-  
+
   .auth-upload-title {
     font-size: 12px;
     margin-bottom: 2px;
   }
-  
+
   .auth-upload-subtitle {
     font-size: 10px;
   }
-  
+
   .auth-submit-btn {
     height: 40px;
     font-size: 13px;
   }
-  
+
   .auth-divider {
     margin: 2px 0;
   }
-  
+
   .auth-divider-text {
     font-size: 9px;
   }
-  
+
   .auth-social-btn {
     height: 38px;
     font-size: 12px;
   }
-  
+
   .auth-switch {
     font-size: 12px;
     margin-top: 4px;
