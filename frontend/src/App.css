@@ -1,16 +1,7 @@
 /* Premium Dark Theme for IntelliHire Auth Flow */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Use design variables matching system_design.md */
-  --primary: #16171F;
-  --primary-dark: #0D0E13;
-  --primary-light: #2A2C38;
-  --accent: #F0B90B;
-  --accent-dark: #C99A08;
-  --accent-light: #FDF3D0;
-  --accent-success: #22C55E;
-
+  /* Auth-specific dark theme variables (shared tokens come from tokens.css) */
   --bg-page-dark: #07080B;
   --surface-dark: #0F1016;
   --border-dark-subtle: rgba(255, 255, 255, 0.08);
@@ -500,6 +491,31 @@
 .auth-social-icon-svg {
   width: 100%;
   height: 100%;
+}
+
+.footer {
+  padding: 10px 20px 18px;
+  text-align: center;
+  color: #d8d0bf;
+  font-size: 10px;
+}
+
+.footer-logo {
+  width: min(128px, 36vw);
+  height: 22px;
+  display: block;
+  object-fit: contain;
+  margin: 0 auto 8px;
+}
+
+.footer p {
+  margin: 0 0 10px;
+}
+
+.footer nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
 }
 
 /* Footer elements */

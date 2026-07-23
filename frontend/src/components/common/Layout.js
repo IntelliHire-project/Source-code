@@ -24,6 +24,7 @@ function Layout({ children, theme }) {
       {children}
 
       <footer className="footer">
+        <img className="footer-logo" src={logo} alt="IntelliHire" />
         <p>© 2026 Applicant Gateway. All rights reserved.</p>
         <nav aria-label="Footer links">
           <a href="/">Terms of Service</a>
