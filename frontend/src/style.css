@@ -118,8 +118,8 @@ img {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 220px;
-  background: var(--bg-sidebar);
+  width: 260px;
+  background: var(--primary-dark);
   color: var(--text-on-dark);
   padding: 24px 16px;
   display: flex;
@@ -127,6 +127,12 @@ img {
   flex-shrink: 0;
   overflow-y: auto;
   z-index: 40;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
+}
+
+.app-sidebar::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Chrome/Safari/Webkit */
 }
 
 .app-content {
@@ -141,7 +147,7 @@ img {
 
 .create-vacancy__main {
   flex: 1;
-  margin-left: 220px;
+  margin-left: 260px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -561,6 +567,7 @@ img {
   color: var(--text-on-dark-muted);
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap; /* Ensure labels do not wrap */
 }
 
 .nav-item:hover {
@@ -637,6 +644,7 @@ img {
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
   cursor: pointer;
+  white-space: nowrap; /* Ensure sub-labels do not wrap */
 }
 
 .sidebar-sub-item:hover {

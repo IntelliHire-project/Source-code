@@ -16,8 +16,8 @@
   justify-content: space-between;
   height: 64px;
   padding: 0 24px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: #16171F; /* Matches --comm-topbar-bg */
+  border-bottom: 1px solid #2A2C38; /* Matches --comm-border */
 }
 
 /* ── Breadcrumb (left region) ── */
@@ -44,7 +44,7 @@
 }
 
 .topbar__breadcrumb-item--active {
-  color: var(--text-primary);
+  color: #FFFFFF;
   font-weight: 600;
   pointer-events: none;
 }
@@ -86,12 +86,12 @@
 .topbar__search-input {
   width: 220px;
   padding: 8px 16px 8px 36px;
-  background: var(--bg-page);
-  border: 1px solid var(--border);
+  background: #13141C; /* Matches --comm-bg */
+  border: 1px solid #2A2C38; /* Matches --comm-border */
   border-radius: var(--radius-full);
   font-family: inherit;
   font-size: 0.85rem;
-  color: var(--text-primary);
+  color: #FFFFFF;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, width 0.25s ease;
 }
 
@@ -122,14 +122,14 @@
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-secondary);
+  color: #9599A6;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .topbar__icon-btn:hover {
-  background: var(--bg-page);
-  color: var(--text-primary);
+  background: #1A1B27; /* Matches --comm-surface */
+  color: #FFFFFF;
 }
 
 .topbar__icon-btn svg {
@@ -167,7 +167,7 @@
 .topbar__divider {
   width: 1px;
   height: 28px;
-  background: var(--border);
+  background: #2A2C38; /* Matches --comm-border */
   margin: 0 4px;
   flex-shrink: 0;
 }
@@ -187,7 +187,7 @@
 }
 
 .topbar__profile:hover {
-  background: var(--bg-page);
+  background: #1A1B27; /* Matches --comm-surface */
 }
 
 .topbar__avatar {
@@ -234,7 +234,7 @@
 .topbar__user-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #FFFFFF;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -242,7 +242,7 @@
 
 .topbar__user-role {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: #9599A6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
