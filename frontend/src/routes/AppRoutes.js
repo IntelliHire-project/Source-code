@@ -6,6 +6,8 @@ import SignInPage from '../pages/candidate/SignIn/SignInPage';
 import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterSignInPage from '../pages/recruiter/SignIn/SignInPage';
+import CommunityPage from '../pages/community/CommunityPage';
+import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -31,6 +33,10 @@ function AppRoutes() {
         <Route path="/recruiter/signin" element={<RecruiterSignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route
+          path="/recruiter/dashboard"
+          element={<RecruiterDashboard />}
+        />
+        <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
@@ -38,6 +44,17 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        {/* Community Forum — shared for both recruiters and candidates */}
+        <Route
+          path="/community"
+          element={
+            <ProtectedRoute>
+              <CommunityPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Public preview route (no auth required — for visual QA) */}
+        <Route path="/community-preview" element={<CommunityPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
