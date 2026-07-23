@@ -22,9 +22,7 @@ const NAV_ITEMS = [
     label: 'Applicants',
     icon: Users,
     subItems: [
-      { label: 'All Applicants', path: '/recruiter/applicants/all' },
       { label: 'Ranked Applicants', path: '/recruiter/applicants/ranked' },
-      { label: 'Shortlisted', path: '/recruiter/applicants/shortlisted' },
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
