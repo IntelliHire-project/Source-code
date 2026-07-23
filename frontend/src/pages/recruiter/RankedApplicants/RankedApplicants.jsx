@@ -36,6 +36,7 @@ const MOCK_CANDIDATES = [
     bio: 'Senior Frontend Engineer with deep expertise in building cloud-native React architectures. Passionate about performance tuning and UI design systems.',
     education: 'B.S. in Computer Science - Stanford University',
     matchReason: 'Exceptional match. Over 5 years of industry React experience, verified AWS certification, and strong full-stack skills matching job description.',
+    shortlisted: true,
   },
   {
     rank: '#2',
@@ -81,6 +82,7 @@ const MOCK_CANDIDATES = [
     bio: 'Frontend Specialist focused on responsive web design and real-time databases. Deeply experienced in JavaScript frameworks and CSS modules.',
     education: 'B.A. in Web Design & Dev - UT Austin',
     matchReason: 'Partial core skills. Exceptional JavaScript and frontend developer, but core skills are Vue-heavy instead of React. Quick transferability expected.',
+    shortlisted: true,
   },
   {
     rank: '#5',
@@ -152,6 +154,9 @@ function RankedApplicants() {
   const [toastMessage, setToastMessage] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   
+  // Tab State: 'All Applicants', 'Ranked Candidates', 'Shortlisted'
+  const [activeTab, setActiveTab] = useState('Ranked Candidates');
+  
   // Filtering & Sorting State
   const [sortBy, setSortBy] = useState('Highest Match');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -179,6 +184,10 @@ function RankedApplicants() {
 
   // Perform Sorting and Filtering
   const filteredCandidates = candidates.filter((c) => {
+    // Tab filtering
+    if (activeTab === 'Shortlisted' && !c.shortlisted) return false;
+    
+    // Experience matching filtering
     if (activeFilter === 'All') return true;
     return c.expMatch === activeFilter;
   });
@@ -317,10 +326,31 @@ function RankedApplicants() {
             )}
 
             <div className="candidates-header">
-              <div>
-                <h3 className="candidates-header__title">Ranked Candidates</h3>
+              <div className="candidates-header__left-group">
+                <div className="candidates-tabs">
+                  <button 
+                    className={`tab-btn ${activeTab === 'All Applicants' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('All Applicants'); setCurrentPage(1); }}
+                  >
+                    All Applicants
+                  </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'Ranked Candidates' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('Ranked Candidates'); setCurrentPage(1); }}
+                  >
+                    Ranked Candidates
+                  </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'Shortlisted' ? 'active' : ''}`}
+                    onClick={() => { setActiveTab('Shortlisted'); setCurrentPage(1); }}
+                  >
+                    Shortlisted
+                  </button>
+                </div>
                 <p className="candidates-header__subtitle">
-                  Automated matching results based on CV parsing and job requirements.
+                  {activeTab === 'All Applicants' && 'Showing all applied candidate profiles for this vacancy.'}
+                  {activeTab === 'Ranked Candidates' && 'Automated matching results based on CV parsing and job requirements.'}
+                  {activeTab === 'Shortlisted' && 'Selected candidates marked for shortlisting board.'}
                 </p>
               </div>
               
@@ -457,8 +487,14 @@ function RankedApplicants() {
                   </div>
                 ))
               ) : (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-on-dark-muted)' }}>
-                  No candidates found matching the selected filters.
+                <div className="empty-state-container">
+                  <Users size={32} className="empty-state-icon" />
+                  <h4 className="empty-state-title">No candidates found</h4>
+                  <p className="empty-state-text">
+                    {activeTab === 'Shortlisted' 
+                      ? 'No candidates have been shortlisted yet. Open candidate details to shortlist them.' 
+                      : 'No candidates match the selected filters.'}
+                  </p>
                 </div>
               )}
             </div>
@@ -646,14 +682,25 @@ function RankedApplicants() {
               </button>
               <button 
                 className="btn btn-shortlist" 
+                style={{
+                  backgroundColor: selectedCandidate.shortlisted ? 'var(--crisis)' : 'var(--success)'
+                }}
                 onClick={() => {
+                  const isCurrentlyShortlisted = !!selectedCandidate.shortlisted;
+                  setCandidates(prev => 
+                    prev.map(c => c.name === selectedCandidate.name ? { ...c, shortlisted: !isCurrentlyShortlisted } : c)
+                  );
                   setSelectedCandidate(null);
-                  setToastMessage(`${selectedCandidate.name} has been added to the shortlisted board.`);
+                  setToastMessage(
+                    isCurrentlyShortlisted 
+                      ? `${selectedCandidate.name} has been removed from the shortlisted board.`
+                      : `${selectedCandidate.name} has been added to the shortlisted board.`
+                  );
                   setShowToast(true);
                   setTimeout(() => setShowToast(false), 4000);
                 }}
               >
-                Shortlist Candidate
+                {selectedCandidate.shortlisted ? 'Remove from Shortlist' : 'Shortlist Candidate'}
               </button>
             </div>
           </div>
