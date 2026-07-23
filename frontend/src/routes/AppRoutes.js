@@ -12,6 +12,7 @@ import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplican
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
+import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple placeholder page for other applicant categories
@@ -87,6 +88,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute>
+              <ManageUsers />
             </ProtectedRoute>
           }
         />
