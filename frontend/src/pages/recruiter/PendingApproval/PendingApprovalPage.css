@@ -1,11 +1,29 @@
 /* Recruiter Pending Approval UI Stylesheet */
 
 .recruiter-pending-shell {
+  --recruiter-bg: #000000;
+  --recruiter-text: #ffffff;
+  --recruiter-card-bg: #0c0e12;
+  --recruiter-card-border: #1c1e26;
+  --recruiter-border-subtle: #232630;
+  --recruiter-border-hover: #383c4b;
+  --recruiter-text-muted: #8c8f96;
+  --recruiter-text-muted-dark: #6a6c75;
+  --recruiter-copyright-text: #45474f;
+  
+  --recruiter-accent: #a38753;
+  --recruiter-accent-hover: #b3935d;
+  --recruiter-accent-active: #c0a46d;
+  --recruiter-accent-btn: #9c8052;
+  --recruiter-accent-required: #b5985a;
+  
+  --recruiter-border-dark: #14151b;
+
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #000000;
-  color: #ffffff;
+  background-color: var(--recruiter-bg);
+  color: var(--recruiter-text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
@@ -13,8 +31,8 @@
 /* Header / Top Bar */
 .recruiter-topbar {
   height: 64px;
-  background-color: #000000;
-  border-bottom: 1px solid #14151b;
+  background-color: var(--recruiter-bg);
+  border-bottom: 1px solid var(--recruiter-border-dark);
   display: flex;
   align-items: center;
   padding: 0 40px;
@@ -31,13 +49,13 @@
 .recruiter-brand-logo {
   width: 24px;
   height: 24px;
-  color: #ffffff;
+  color: var(--recruiter-text);
 }
 
 .recruiter-brand-text {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--recruiter-text);
   letter-spacing: -0.3px;
 }
 
@@ -62,9 +80,9 @@
 /* Card Styling */
 .recruiter-card {
   width: 100%;
-  background-color: #0c0e12;
-  border: 1px solid #1c1e26;
-  border-radius: 16px;
+  background-color: var(--recruiter-card-bg);
+  border: 1px solid var(--recruiter-card-border);
+  border-radius: var(--radius-xl, 16px);
   padding: 40px 32px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.05);
 }
@@ -80,7 +98,7 @@
 .recruiter-icon-circle {
   width: 56px;
   height: 56px;
-  background-color: #ffffff;
+  background-color: var(--recruiter-text);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -92,13 +110,13 @@
 .recruiter-card-logo {
   width: 24px;
   height: 24px;
-  color: #000000;
+  color: var(--recruiter-bg);
 }
 
 .recruiter-title {
   font-size: 24px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--recruiter-text);
   margin: 0 0 8px 0;
   letter-spacing: -0.5px;
 }
@@ -127,14 +145,14 @@
 .recruiter-clock-icon {
   width: 32px;
   height: 32px;
-  color: #a38753;
+  color: var(--recruiter-accent);
 }
 
 /* Text Block */
 .recruiter-review-header {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--recruiter-text);
   margin: 0 0 8px 0;
   text-align: center;
 }
@@ -142,15 +160,15 @@
 .recruiter-review-text {
   font-size: 13px;
   line-height: 1.5;
-  color: #8c8f96;
+  color: var(--recruiter-text-muted);
   text-align: center;
   margin: 0 0 24px 0;
 }
 
 /* Status Info Box */
 .recruiter-status-box {
-  border-top: 1px solid #1c1e26;
-  border-bottom: 1px solid #1c1e26;
+  border-top: 1px solid var(--recruiter-card-border);
+  border-bottom: 1px solid var(--recruiter-card-border);
   padding: 20px 0;
   display: flex;
   flex-direction: column;
@@ -179,7 +197,7 @@
 .recruiter-status-icon {
   width: 15px;
   height: 15px;
-  color: #a38753;
+  color: var(--recruiter-accent);
 }
 
 .recruiter-status-content {
@@ -191,13 +209,13 @@
 .recruiter-status-title {
   font-size: 13px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--recruiter-text);
 }
 
 .recruiter-status-desc {
   font-size: 12px;
   line-height: 1.4;
-  color: #8c8f96;
+  color: var(--recruiter-text-muted);
 }
 
 /* Back to Login Outline Button */
@@ -208,9 +226,9 @@
   width: 100%;
   height: 46px;
   background-color: transparent;
-  border: 1px solid #9c8052;
-  border-radius: 8px;
-  color: #a38753;
+  border: 1px solid var(--recruiter-accent-btn);
+  border-radius: var(--radius-sm, 8px);
+  color: var(--recruiter-accent);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -221,8 +239,8 @@
 
 .recruiter-outline-btn:hover {
   background-color: rgba(163, 135, 83, 0.08);
-  border-color: #b5985a;
-  color: #b5985a;
+  border-color: var(--recruiter-accent-required);
+  color: var(--recruiter-accent-required);
 }
 
 .recruiter-outline-btn:active {
@@ -233,12 +251,12 @@
 .recruiter-support-prompt {
   text-align: center;
   font-size: 12px;
-  color: #6a6c75;
+  color: var(--recruiter-text-muted-dark);
   margin: 0;
 }
 
 .recruiter-support-link {
-  color: #a38753;
+  color: var(--recruiter-accent);
   text-decoration: none;
   font-weight: 500;
   margin-left: 4px;
@@ -246,7 +264,7 @@
 }
 
 .recruiter-support-link:hover {
-  color: #c0a46d;
+  color: var(--recruiter-accent-active);
   text-decoration: underline;
 }
 
@@ -267,18 +285,18 @@
 
 .recruiter-footer-link {
   font-size: 12px;
-  color: #6a6c75;
+  color: var(--recruiter-text-muted-dark);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .recruiter-footer-link:hover {
-  color: #a38753;
+  color: var(--recruiter-accent);
 }
 
 .recruiter-copyright {
   font-size: 11px;
-  color: #45474f;
+  color: var(--recruiter-copyright-text);
   margin: 0;
 }
 
@@ -302,7 +320,7 @@
   
   .recruiter-card {
     padding: 28px 20px;
-    border-radius: 12px;
+    border-radius: var(--radius-md, 12px);
   }
   
   .recruiter-main {

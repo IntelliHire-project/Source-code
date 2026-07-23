@@ -7,6 +7,8 @@ import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterSignInPage from '../pages/recruiter/SignIn/SignInPage';
 import CommunityPage from '../pages/community/CommunityPage';
+import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
+import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple Dashboard template for authenticated users
@@ -29,6 +31,11 @@ function AppRoutes() {
         <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
         <Route path="/recruiter/signin" element={<RecruiterSignInPage />} />
+        <Route path="/admin/signin" element={<AdminSignInPage />} />
+        <Route
+          path="/recruiter/dashboard"
+          element={<RecruiterDashboard />}
+        />
         <Route
           path="/dashboard"
           element={
