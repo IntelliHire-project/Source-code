@@ -6,6 +6,7 @@ import SignInPage from '../pages/candidate/SignIn/SignInPage';
 import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterSignInPage from '../pages/recruiter/SignIn/SignInPage';
+import CommunityPage from '../pages/community/CommunityPage';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple Dashboard template for authenticated users
@@ -36,6 +37,17 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        {/* Community Forum — shared for both recruiters and candidates */}
+        <Route
+          path="/community"
+          element={
+            <ProtectedRoute>
+              <CommunityPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Public preview route (no auth required — for visual QA) */}
+        <Route path="/community-preview" element={<CommunityPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
