@@ -250,7 +250,12 @@ function RecruiterSignupPage() {
                   </svg>
                 </div>
                 <h2 id="register-card-title" className="auth-title">Register Your Company</h2>
-                <p className="auth-subtitle">Create an account to start posting jobs and finding top talent.</p>
+              </div>
+
+              {/* Role Toggle Switch */}
+              <div className="auth-role-toggle">
+                <Link to="/signup" className="auth-role-tab">Candidate</Link>
+                <span className="auth-role-tab active">Recruiter</span>
               </div>
 
               <form className="auth-form" onSubmit={handleSubmit}>
@@ -437,7 +442,7 @@ function RecruiterSignupPage() {
 
                 {/* Switch to Login */}
                 <p className="auth-switch">
-                  Already have an account? <Link to="/recruiter/signin" className="auth-link">Log in here</Link>
+                  Already have an account? <Link to="/signin" className="auth-link">Log in here</Link>
                 </p>
               </form>
             </section>
