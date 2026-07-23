@@ -1,7 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import SignupPage from '../pages/Signup/SignupPage';
-import SignInPage from '../pages/SignIn/SignInPage';
+import LandingPage from '../pages/landingpage/LandingPage';
+import SignupPage from '../pages/candidate/Signup/SignupPage';
+import SignInPage from '../pages/candidate/SignIn/SignInPage';
+import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
+import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
+import RecruiterSignInPage from '../pages/recruiter/SignIn/SignInPage';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple Dashboard template for authenticated users
@@ -18,8 +22,12 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signin" element={<SignInPage />} />
+        <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
+        <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
+        <Route path="/recruiter/signin" element={<RecruiterSignInPage />} />
         <Route
           path="/dashboard"
           element={
@@ -28,8 +36,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        {/* Default route redirects to /signup */}
-        <Route path="*" element={<Navigate to="/signup" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

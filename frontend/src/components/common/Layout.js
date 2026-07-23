@@ -4,8 +4,17 @@ import '../../App.css';
 
 /**
  * Common application layout container (includes Header and Footer).
+ * Supports theme="dark" for the premium wireframe signup/signin page shell.
  */
-function Layout({ children }) {
+function Layout({ children, theme }) {
+  if (theme === 'dark') {
+    return (
+      <div className="auth-page-shell">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="signup-shell">
       <header className="topbar" aria-label="IntelliHire brand">
@@ -15,6 +24,7 @@ function Layout({ children }) {
       {children}
 
       <footer className="footer">
+        <img className="footer-logo" src={logo} alt="IntelliHire" />
         <p>© 2026 Applicant Gateway. All rights reserved.</p>
         <nav aria-label="Footer links">
           <a href="/">Terms of Service</a>
