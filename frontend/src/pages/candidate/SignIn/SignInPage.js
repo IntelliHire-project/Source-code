@@ -49,10 +49,10 @@ function SignInPage() {
 
   return (
     <Layout theme="dark">
-      <main className="auth-main">
-        <div className="auth-wrapper">
-          
-          {/* Logo Header */}
+      <main className="auth-split-layout">
+        
+        {/* Left Hero Side */}
+        <section className="auth-hero-side">
           <Link to="/" className="auth-brand" aria-label="IntelliHire Home">
             <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -61,15 +61,129 @@ function SignInPage() {
             <span className="auth-brand-text">IntelliHire</span>
           </Link>
 
-          {/* Form Header */}
-          <div className="auth-header">
-            <h1 className="auth-title">Sign In to Your Account</h1>
-            <p className="auth-subtitle">Welcome back! Please enter your details to access your dashboard.</p>
+          <div className="auth-hero-content">
+            <h1 className="auth-hero-title">Launch Your Career <br /> with <span className="text-accent">Confidence</span></h1>
+            <p className="auth-hero-subtitle">
+              IntelliHire is a smart recruitment and career guidance system that helps candidates showcase their skills, discover suitable opportunities, and get AI-powered insights to grow in their careers.
+            </p>
+
+            <div className="auth-features-list">
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">AI Resume Analysis</span>
+                  <span className="auth-feature-desc">Get AI-powered feedback to improve your resume.</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Intelligent Job Matching</span>
+                  <span className="auth-feature-desc">Find roles that match your skills and career goals.</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Personalized Career Guidance</span>
+                  <span className="auth-feature-desc">Receive tailored recommendations for your career.</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Application Tracking</span>
+                  <span className="auth-feature-desc">Track and manage your job applications in one place.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="auth-hero-footer-features">
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>Secure Platform</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Your data is encrypted<br/>and fully protected.</span>
+                </div>
+              </div>
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <circle cx="12" cy="12" r="4"></circle>
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>AI Powered</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Smart algorithms for<br/>better career decisions.</span>
+                </div>
+              </div>
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>Recruiter Verified</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Opportunities from<br/>trusted employers.</span>
+                </div>
+              </div>
+            </div>
           </div>
+        </section>
+
+        {/* Right Form Side */}
+        <section className="auth-form-side">
+          <div className="auth-wrapper">
+            
+            {/* Mobile Logo Header */}
+            <Link to="/" className="auth-brand auth-mobile-brand" aria-label="IntelliHire Home">
+              <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 11 2 2 4-4" />
+              </svg>
+              <span className="auth-brand-text">IntelliHire</span>
+            </Link>
 
           {/* Form Container */}
           <section className="auth-card" aria-labelledby="signin-card-title">
-            <h2 id="signin-card-title" className="sr-only">Sign in form</h2>
+            <div className="auth-card-header">
+              <div className="auth-card-icon-wrapper">
+                <svg className="auth-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h2 id="signin-card-title" className="auth-title">Sign In to Your Account</h2>
+              <p className="auth-subtitle">Welcome back! Please enter your details to access your dashboard.</p>
+            </div>
             
             <form className="auth-form" onSubmit={handleSubmit}>
               
@@ -114,10 +228,14 @@ function SignInPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder="Enter your password"
                     autoComplete="current-password"
                     required
                   />
+                  <svg className="auth-input-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
                 </div>
               </div>
 
@@ -132,19 +250,13 @@ function SignInPage() {
               <button type="submit" className="auth-submit-btn">
                 <span>Sign In</span>
                 <svg className="auth-submit-btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
+                  <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </button>
 
-              {/* Switch to signup */}
-              <p className="auth-switch">
-                Don't have an account? <Link to="/signup" className="auth-link">Sign up here</Link>
-              </p>
-
               {/* Social authentication divider */}
               <div className="auth-divider">
-                <span className="auth-divider-text">Or Continue With</span>
+                <span className="auth-divider-text">OR CONTINUE WITH</span>
               </div>
 
               {/* Social Login buttons */}
@@ -171,24 +283,18 @@ function SignInPage() {
                 </button>
               </div>
 
+              {/* Switch to signup */}
+              <p className="auth-switch" style={{ marginTop: '24px' }}>
+                Don't have an account? <Link to="/signup" className="auth-link">Sign up here</Link>
+              </p>
+
             </form>
           </section>
 
-          {/* Secure Footer area */}
-          <footer className="auth-footer">
-            <div className="auth-secure-tag">
-              <svg className="auth-secure-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-              <span>Secure Enterprise-Grade Encryption Active</span>
-            </div>
-            <div className="auth-version-pill">
-              v1.0.4-wireframe-candidate-portal
-            </div>
-          </footer>
 
-        </div>
+
+          </div>
+        </section>
       </main>
     </Layout>
   );
