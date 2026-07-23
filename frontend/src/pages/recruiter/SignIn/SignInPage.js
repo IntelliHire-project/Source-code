@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../../hooks/useAuth';
-import './SignInPage.css';
+import Layout from '../../../components/common/Layout';
+import '../../../App.css';
 
 /**
- * Premium Recruiter Sign In Page component matching the exact wireframe design
- * and visual standards.
+ * Premium Recruiter Sign In Page component matching the exact visual standards
+ * of the candidate authentication flow.
  */
 function RecruiterSignInPage() {
   const [formData, setFormData] = useState({
@@ -65,172 +66,235 @@ function RecruiterSignInPage() {
   };
 
   return (
-    <div className="recruiter-signin-shell">
-      {/* Top Header Bar */}
-      <header className="recruiter-topbar">
-        <Link to="/" className="recruiter-brand" aria-label="Recruiter Connect Home">
-          {/* Briefcase Icon Logo */}
-          <svg className="recruiter-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
-          <span className="recruiter-brand-text">Recruiter Connect</span>
-        </Link>
-      </header>
+    <Layout theme="dark">
+      <main className="auth-split-layout">
+        
+        {/* Left Hero Side */}
+        <section className="auth-hero-side">
+          <Link to="/" className="auth-brand" aria-label="IntelliHire Home">
+            {/* Shield Icon Logo */}
+            <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="m9 11 2 2 4-4" />
+            </svg>
+            <span className="auth-brand-text">IntelliHire</span>
+          </Link>
 
-      {/* Main Content Area */}
-      <main className="recruiter-main">
-        <div className="recruiter-wrapper">
-          <section className="recruiter-card" aria-labelledby="login-card-title">
-            <div className="recruiter-card-header">
-              <div className="recruiter-icon-circle">
-                {/* Center Card Briefcase Icon */}
-                <svg className="recruiter-card-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
+          <div className="auth-hero-content">
+            <h1 className="auth-hero-title">Hire the Best Talent <br /> with <span className="text-accent">Confidence</span></h1>
+            <p className="auth-hero-subtitle">
+              IntelliHire is a smart recruitment portal that helps employers post jobs, manage applicants, and find top talent with AI-powered hiring insights.
+            </p>
+
+            <div className="auth-features-list">
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Easy Job Posting</span>
+                  <span className="auth-feature-desc">Create and publish job postings in minutes.</span>
+                </div>
               </div>
-              <h1 id="login-card-title" className="recruiter-title">Recruiter Login</h1>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <circle cx="12" cy="12" r="4"></circle>
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">AI Candidate Matching</span>
+                  <span className="auth-feature-desc">Match positions automatically to the best candidates.</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Advanced Filtering</span>
+                  <span className="auth-feature-desc">Filter applicants by skills, experience, and custom questions.</span>
+                </div>
+              </div>
+
+              <div className="auth-feature-item">
+                <div className="auth-feature-icon-wrapper">
+                  <svg className="auth-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text">Dynamic Tracking</span>
+                  <span className="auth-feature-desc">Track candidate stages in a pipeline easily.</span>
+                </div>
+              </div>
             </div>
 
-            <form className="recruiter-form" onSubmit={handleSubmit}>
-              {/* Email Address */}
-              <div className="recruiter-field">
-                <div className="recruiter-label-row">
-                  <label className="recruiter-label" htmlFor="email">
-                    Email Address
-                  </label>
+            <div className="auth-hero-footer-features">
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>Secure Platform</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Your corporate data<br/>is fully encrypted.</span>
                 </div>
-                <div className="recruiter-input-container">
-                  {/* Mail Icon */}
-                  <svg className="recruiter-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2" />
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+              </div>
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <circle cx="12" cy="12" r="4"></circle>
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>AI Powered</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Smart algorithms to<br/>rank candidates.</span>
+                </div>
+              </div>
+              <div className="auth-footer-feature">
+                <svg className="auth-footer-feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                <div className="auth-feature-text-block">
+                  <span className="auth-feature-text" style={{fontSize: '13px'}}>Global Reach</span>
+                  <span className="auth-feature-desc" style={{fontSize: '11px'}}>Connect with elite<br/>talent worldwide.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Right Form Side */}
+        <section className="auth-form-side">
+          <div className="auth-wrapper">
+            
+            {/* Mobile Logo Header */}
+            <Link to="/" className="auth-brand auth-mobile-brand" aria-label="IntelliHire Home">
+              <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 11 2 2 4-4" />
+              </svg>
+              <span className="auth-brand-text">IntelliHire</span>
+            </Link>
+
+            {/* Form Container */}
+            <section className="auth-card" aria-labelledby="login-card-title">
+              <div className="auth-card-header">
+                <div className="auth-card-icon-wrapper">
+                  {/* Briefcase Icon */}
+                  <svg className="auth-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                   </svg>
+                </div>
+                <h2 id="login-card-title" className="auth-title">Recruiter Login</h2>
+                <p className="auth-subtitle">Welcome back! Please enter your details to access your dashboard.</p>
+              </div>
+
+              <form className="auth-form" onSubmit={handleSubmit}>
+                {/* Email Address */}
+                <div className="auth-field">
+                  <div className="auth-label-row">
+                    <label className="auth-label" htmlFor="email">Email Address</label>
+                  </div>
+                  <div className="auth-input-container">
+                    <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    <input
+                      id="email"
+                      className="auth-input"
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="name@company.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div className="auth-field">
+                  <div className="auth-label-row">
+                    <label className="auth-label" htmlFor="password">Password</label>
+                    <Link to="/forgot-password" style={{ fontSize: '11px', color: 'var(--text-secondary-dark)', textDecoration: 'none' }}>
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="auth-input-container">
+                    <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="password"
+                      className="auth-input"
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                    />
+                    <svg className="auth-input-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" onClick={togglePasswordVisibility}>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Remember device Checkbox */}
+                <div className="auth-checkbox-row" onClick={() => setFormData(c => ({ ...c, rememberDevice: !c.rememberDevice }))}>
                   <input
-                    id="email"
-                    className="recruiter-input"
-                    type="email"
-                    name="email"
-                    value={formData.email}
+                    type="checkbox"
+                    name="rememberDevice"
+                    checked={formData.rememberDevice}
                     onChange={handleChange}
-                    placeholder="name@company.com"
-                    autoComplete="email"
-                    required
+                    className="auth-checkbox-input"
+                    onClick={e => e.stopPropagation()} // Prevent double toggle
                   />
+                  <span className="auth-checkbox-label">
+                    Remember this device for 30 days
+                  </span>
                 </div>
-              </div>
 
-              {/* Password */}
-              <div className="recruiter-field">
-                <div className="recruiter-label-row">
-                  <label className="recruiter-label" htmlFor="password">
-                    Password
-                  </label>
-                  <Link to="/forgot-password" className="recruiter-forgot-link">
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="recruiter-input-container">
-                  {/* Lock Icon */}
-                  <svg className="recruiter-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                  <input
-                    id="password"
-                    className="recruiter-input"
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    required
-                  />
-                  {/* Toggle password eye icon button */}
-                  <button
-                    type="button"
-                    className="recruiter-input-eye"
-                    onClick={togglePasswordVisibility}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? (
-                      /* Eye Off Icon */
-                      <svg className="recruiter-input-eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                      </svg>
-                    ) : (
-                      /* Eye Icon */
-                      <svg className="recruiter-input-eye-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
+                {/* Status Message Display */}
+                {statusMessage && (
+                  <p className={`form-status ${statusType}`} role="status" aria-live="polite">
+                    {statusMessage}
+                  </p>
+                )}
 
-              {/* Remember device Checkbox */}
-              <div className="recruiter-checkbox-row" onClick={() => setFormData(c => ({ ...c, rememberDevice: !c.rememberDevice }))}>
-                <input
-                  type="checkbox"
-                  name="rememberDevice"
-                  checked={formData.rememberDevice}
-                  onChange={handleChange}
-                  className="recruiter-checkbox-input"
-                  onClick={e => e.stopPropagation()} // Prevent double toggle
-                />
-                <span className="recruiter-checkbox-label">
-                  Remember this device for 30 days
-                </span>
-              </div>
+                {/* Submit Button */}
+                <button type="submit" className="auth-submit-btn" disabled={loading}>
+                  {loading ? 'Logging in...' : 'Log In'}
+                </button>
 
-              {/* Status Message Display */}
-              {statusMessage && (
-                <p className={`recruiter-status ${statusType}`} role="status" aria-live="polite">
-                  {statusMessage}
+                {/* Register Redirect */}
+                <p className="auth-switch">
+                  Don't have an account? <Link to="/recruiter/signup" className="auth-link">Register your company</Link>
                 </p>
-              )}
+              </form>
+            </section>
+          </div>
+        </section>
 
-              {/* Submit Button */}
-              <button type="submit" className="recruiter-submit-btn-gold" disabled={loading}>
-                {loading ? 'Logging in...' : 'Log In'}
-              </button>
-
-              {/* Divider */}
-              <div className="recruiter-divider">
-                <span className="recruiter-divider-text">OR</span>
-              </div>
-
-              {/* Register Redirect */}
-              <p className="recruiter-register-link-row">
-                <Link to="/recruiter/signup" className="recruiter-register-link">
-                  Don't have an account? Register your company
-                </Link>
-              </p>
-            </form>
-          </section>
-
-          {/* Trusted Subtext below card */}
-          <p className="recruiter-trusted-text">
-            Trusted by over 10,000+ talent acquisition leaders worldwide. Secure SSL encrypted authentication.
-          </p>
-        </div>
       </main>
-
-      {/* Footer Section */}
-      <footer className="recruiter-footer">
-        <div className="recruiter-footer-links">
-          <Link to="/privacy" className="recruiter-footer-link">Privacy Policy</Link>
-          <Link to="/terms" className="recruiter-footer-link">Terms of Service</Link>
-          <Link to="/support" className="recruiter-footer-link">Support</Link>
-        </div>
-        <p className="recruiter-copyright">
-          © 2026 Recruiter Connect. All rights reserved.
-        </p>
-      </footer>
-    </div>
+    </Layout>
   );
 }
 
