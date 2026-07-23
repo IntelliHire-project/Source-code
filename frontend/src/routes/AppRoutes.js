@@ -5,12 +5,40 @@ import SignupPage from '../pages/candidate/Signup/SignupPage';
 import SignInPage from '../pages/candidate/SignIn/SignInPage';
 import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
-import RecruiterSignInPage from '../pages/recruiter/SignIn/SignInPage';
 import RecruiterInterviewTimeSlotManagementPage from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagementPage';
 import CommunityPage from '../pages/community/CommunityPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
+import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
+import RecruiterSidebar from '../components/common/RecruiterSidebar';
+import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import ProtectedRoute from './ProtectedRoute';
+
+// Simple placeholder page for other applicant categories
+function PlaceholderApplicants({ title }) {
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  return (
+    <div className="create-vacancy">
+      <RecruiterSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem={title}
+      />
+      <div className="create-vacancy__main">
+        <TopBar
+          user={{ name: 'Recruiter', role: 'Recruiter Account' }}
+          notificationsCount={3}
+          searchPlaceholder="Search..."
+          onHamburgerClick={() => setSidebarOpen(true)}
+        />
+        <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', background: 'var(--primary-dark)', minHeight: 'calc(100vh - 64px)' }}>
+          <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>{title}</h1>
+          <p style={{ color: '#a79e8c' }}>This page is currently under construction.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Simple Dashboard template for authenticated users
 function Dashboard() {
@@ -31,13 +59,28 @@ function AppRoutes() {
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
-        <Route path="/recruiter/signin" element={<RecruiterSignInPage />} />
         <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagementPage />} />
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route
           path="/recruiter/dashboard"
           element={<RecruiterDashboard />}
+        />
+        <Route
+          path="/recruiter/applicants/ranked"
+          element={<RankedApplicants />}
+        />
+        <Route
+          path="/recruiter/applicants/all"
+          element={<PlaceholderApplicants title="All Applicants" />}
+        />
+        <Route
+          path="/recruiter/applicants/shortlisted"
+          element={<PlaceholderApplicants title="Shortlisted" />}
+        />
+        <Route
+          path="/recruiter/applicants/interviewed"
+          element={<PlaceholderApplicants title="Interviewed" />}
         />
         <Route
           path="/dashboard"
