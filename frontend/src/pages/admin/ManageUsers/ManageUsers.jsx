@@ -1,0 +1,692 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Users,
+  Activity,
+  Shield,
+  Settings,
+  Plus,
+  Search,
+  ChevronDown,
+  Edit2,
+  UserPlus,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  AlertTriangle
+} from 'lucide-react';
+import AdminSidebar from '../../../components/common/AdminSidebar';
+import TopBar from '../../../components/TopBar/TopBar';
+import './ManageUsers.css';
+
+// Initial Mock Users data matching mockup + some pagination filler
+const INITIAL_USERS = [
+  { id: 1, name: 'Alexander Sterling', email: 'a.sterling@nexuscorp.com', role: 'Super Admin', status: 'Active', createdDate: '2023-10-12', avatarColor: '#6B8CFF' },
+  { id: 2, name: 'Elena Varkov', email: 'e.varkov@nexuscorp.com', role: 'Moderator', status: 'Active', createdDate: '2023-11-05', avatarColor: '#22C55E' },
+  { id: 3, name: 'Marcus Thorne', email: 'm.thorne@recruits.io', role: 'Recruiter', status: 'Inactive', createdDate: '2023-11-20', avatarColor: '#F0B90B' },
+  { id: 4, name: 'Sarah Jenkins', email: 's.jenkins@system.net', role: 'Analyst', status: 'Pending', createdDate: '2023-12-01', avatarColor: '#E63946' },
+  { id: 5, name: 'Julian Rossi', email: 'j.rossi@nexuscorp.com', role: 'Moderator', status: 'Active', createdDate: '2023-12-15', avatarColor: '#A79E8C' },
+  { id: 6, name: 'Amelia Chen', email: 'a.chen@recruiters.org', role: 'Recruiter', status: 'Active', createdDate: '2024-01-10', avatarColor: '#6B8CFF' },
+  { id: 7, name: 'David Vance', email: 'd.vance@nexuscorp.com', role: 'Analyst', status: 'Inactive', createdDate: '2024-02-18', avatarColor: '#22C55E' },
+  { id: 8, name: 'Sophia Martinez', email: 's.martinez@recruits.io', role: 'Recruiter', status: 'Pending', createdDate: '2024-03-05', avatarColor: '#F0B90B' },
+];
+
+function ManageUsers() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [users, setUsers] = useState(INITIAL_USERS);
+  
+  // Search, Filter, Sort and Pagination State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Add/Edit Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('add'); // 'add', 'edit', 'assign'
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'Recruiter',
+    status: 'Active',
+  });
+  const [formErrors, setFormErrors] = useState({});
+
+  // Delete Dialog State
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
+  // Status Filter options
+  const statusOptions = ['All Status', 'Active', 'Inactive', 'Pending'];
+
+  // Handle Input Changes in Add/Edit Form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Clear validation error when typing
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [name]: '',
+      }));
+    }
+  };
+
+  // Open Modal for Adding User
+  const handleOpenAddModal = () => {
+    setModalMode('add');
+    setFormData({
+      name: '',
+      email: '',
+      role: 'Recruiter',
+      status: 'Active',
+    });
+    setFormErrors({});
+    setModalOpen(true);
+  };
+
+  // Open Modal for Editing User
+  const handleOpenEditModal = (user) => {
+    setModalMode('edit');
+    setSelectedUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    });
+    setFormErrors({});
+    setModalOpen(true);
+  };
+
+  // Open Modal for Quick Role Assignment
+  const handleOpenAssignModal = (user) => {
+    setModalMode('assign');
+    setSelectedUser(user);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    });
+    setFormErrors({});
+    setModalOpen(true);
+  };
+
+  // Form Validation
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.name.trim()) errors.name = 'Name is required.';
+    if (!formData.email.trim()) {
+      errors.email = 'Email address is required.';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = 'Please provide a valid email address.';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle Form Submission (Add/Edit)
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (modalMode === 'add') {
+      const colors = ['#6B8CFF', '#22C55E', '#F0B90B', '#E63946', '#A79E8C'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      const newUser = {
+        id: Date.now(),
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        role: formData.role,
+        status: formData.status,
+        createdDate: new Date().toISOString().split('T')[0],
+        avatarColor: randomColor,
+      };
+      setUsers((prev) => [newUser, ...prev]);
+    } else {
+      // Edit mode or quick role assign mode
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === selectedUser.id
+            ? { ...u, name: formData.name.trim(), email: formData.email.trim(), role: formData.role, status: formData.status }
+            : u
+        )
+      );
+    }
+    setModalOpen(false);
+  };
+
+  // Trigger Delete confirmation
+  const handleOpenDeleteConfirm = (user) => {
+    setUserToDelete(user);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (userToDelete) {
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
+      // Reset page if it exceeds total pages
+      const totalPagesAfterDelete = Math.ceil((users.length - 1) / itemsPerPage);
+      if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
+        setCurrentPage(totalPagesAfterDelete);
+      }
+    }
+  };
+
+  // Handle Column Header Sorting Click
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  // Filtered & Sorted Users
+  const filteredUsers = useMemo(() => {
+    return users
+      .filter((user) => {
+        const matchesSearch =
+          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus =
+          statusFilter === 'All Status' || user.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        let valueA = a[sortField]?.toString().toLowerCase() || '';
+        let valueB = b[sortField]?.toString().toLowerCase() || '';
+        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+  }, [users, searchQuery, statusFilter, sortField, sortDirection]);
+
+  // Paginated Users
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredUsers, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+
+  // Initials for avatar
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  return (
+    <div className="admin-theme admin-dashboard">
+      <AdminSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem="Users"
+      />
+
+      <div className="admin-dashboard__main">
+        <TopBar
+          user={{ name: 'Admin User', role: 'System Controller' }}
+          notificationsCount={5}
+          searchPlaceholder="Search across system..."
+          onSearch={(q) => console.log('Global search:', q)}
+          onHamburgerClick={() => setSidebarOpen(true)}
+        />
+
+        <main className="admin-content">
+          {/* Header */}
+          <div className="admin-content__header">
+            <div>
+              <h1 className="admin-content__title">User Management</h1>
+              <p className="admin-content__subtitle">
+                Manage global access control and user lifecycle across the organization.
+              </p>
+            </div>
+            <button className="admin-btn admin-btn--primary" onClick={handleOpenAddModal}>
+              <Plus size={18} />
+              <span>Add New User</span>
+            </button>
+          </div>
+
+          {/* Stat Cards */}
+          <div className="admin-stats-grid">
+            <div className="admin-stat-card">
+              <div className="admin-stat-card__info">
+                <span className="admin-stat-card__label">Total Users</span>
+                <span className="admin-stat-card__value">2,543</span>
+                <span className="admin-stat-card__trend admin-stat-card__trend--up">+12% from last month</span>
+              </div>
+              <div className="admin-stat-card__icon-box admin-stat-card__icon-box--yellow">
+                <Users size={20} />
+              </div>
+            </div>
+
+            <div className="admin-stat-card">
+              <div className="admin-stat-card__info">
+                <span className="admin-stat-card__label">Active Now</span>
+                <span className="admin-stat-card__value">184</span>
+                <span className="admin-stat-card__trend">Live connection pulse</span>
+              </div>
+              <div className="admin-stat-card__icon-box admin-stat-card__icon-box--yellow">
+                <Activity size={20} className="pulse-icon" />
+              </div>
+            </div>
+
+            <div className="admin-stat-card">
+              <div className="admin-stat-card__info">
+                <span className="admin-stat-card__label">Moderators</span>
+                <span className="admin-stat-card__value">12</span>
+                <span className="admin-stat-card__trend">Access console auth</span>
+              </div>
+              <div className="admin-stat-card__icon-box admin-stat-card__icon-box--yellow">
+                <Shield size={20} />
+              </div>
+            </div>
+
+            <div className="admin-stat-card">
+              <div className="admin-stat-card__info">
+                <span className="admin-stat-card__label">System Load</span>
+                <span className="admin-stat-card__value">24%</span>
+                <span className="admin-stat-card__trend">Balanced cluster node</span>
+              </div>
+              <div className="admin-stat-card__icon-box admin-stat-card__icon-box--yellow">
+                <Settings size={20} />
+              </div>
+            </div>
+          </div>
+
+          {/* User Registry Panel */}
+          <div className="admin-registry-card">
+            <div className="admin-registry-card__header">
+              <div className="admin-registry-card__title-row">
+                <Users size={18} className="admin-registry-card__title-icon" />
+                <h2 className="admin-registry-card__title">User Registry</h2>
+              </div>
+              
+              <div className="admin-registry-card__actions">
+                {/* Search */}
+                <div className="admin-table-search">
+                  <Search className="admin-table-search__icon" size={16} />
+                  <input
+                    type="text"
+                    className="admin-table-search__input"
+                    placeholder="Filter by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                {/* Dropdown Filter */}
+                <div className="admin-dropdown-filter">
+                  <select
+                    className="admin-dropdown-filter__select"
+                    value={statusFilter}
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {statusOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt === 'All Status' ? 'All Status' : opt}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="admin-dropdown-filter__chevron" size={14} />
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th onClick={() => handleSort('name')} className="sortable-header">
+                      NAME {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('email')} className="sortable-header">
+                      EMAIL ADDRESS {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('role')} className="sortable-header">
+                      ROLE {sortField === 'role' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('status')} className="sortable-header">
+                      STATUS {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th onClick={() => handleSort('createdDate')} className="sortable-header">
+                      CREATED DATE {sortField === 'createdDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="text-right">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedUsers.length > 0 ? (
+                    paginatedUsers.map((user) => (
+                      <tr key={user.id}>
+                        <td>
+                          <div className="admin-table__name-cell">
+                            <div
+                              className="admin-table__avatar"
+                              style={{ backgroundColor: user.avatarColor || '#6B8CFF' }}
+                            >
+                              {getInitials(user.name)}
+                            </div>
+                            <span className="admin-table__name-text">{user.name}</span>
+                          </div>
+                        </td>
+                        <td className="admin-table__email-text">{user.email}</td>
+                        <td>
+                          <span className="admin-table__role-badge">{user.role}</span>
+                        </td>
+                        <td>
+                          <span className={`admin-table__status-badge admin-table__status-badge--${user.status.toLowerCase()}`}>
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="admin-table__date-text">{user.createdDate}</td>
+                        <td className="admin-table__actions-cell text-right">
+                          <button
+                            className="admin-table__action-btn"
+                            onClick={() => handleOpenEditModal(user)}
+                            title="Edit User"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            className="admin-table__action-btn"
+                            onClick={() => handleOpenAssignModal(user)}
+                            title="Assign Role"
+                          >
+                            <UserPlus size={16} />
+                          </button>
+                          <button
+                            className="admin-table__action-btn admin-table__action-btn--danger"
+                            onClick={() => handleOpenDeleteConfirm(user)}
+                            title="Delete User"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="admin-table__empty-state">
+                        No users match the search criteria.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Table Footer / Pagination */}
+            <div className="admin-registry-card__footer">
+              <div className="admin-registry-card__footer-info">
+                Showing{' '}
+                <span className="bold-count">
+                  {filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
+                </span>{' '}
+                to{' '}
+                <span className="bold-count">
+                  {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+                </span>{' '}
+                of <span className="bold-count">{filteredUsers.length}</span> users
+              </div>
+
+              <div className="admin-pagination">
+                <button
+                  className="admin-pagination__btn"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft size={16} />
+                  <span>Previous</span>
+                </button>
+
+                <div className="admin-pagination__pages">
+                  {Array.from({ length: totalPages }).map((_, idx) => {
+                    const pageNum = idx + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`admin-pagination__page-num ${
+                          currentPage === pageNum ? 'is-active' : ''
+                        }`}
+                        onClick={() => setCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  className="admin-pagination__btn"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <span>Next</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Global Footer */}
+        <footer className="admin-footer-bar">
+          <div className="admin-footer-bar__left">
+            © 2024 Nexus Intelligence Systems. All rights reserved.
+          </div>
+          <div className="admin-footer-bar__right">
+            <span>System Status</span>
+            <span className="footer-dot">•</span>
+            <span>Security Protocols</span>
+            <span className="footer-dot">•</span>
+            <span>Admin Support</span>
+          </div>
+        </footer>
+      </div>
+
+      {/* Form Dialog Modal (Add/Edit/Assign Role) */}
+      {modalOpen && (
+        <div className="admin-modal-overlay" onClick={() => setModalOpen(false)}>
+          <div
+            className="admin-modal-container"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">
+                {modalMode === 'add' && 'Create System User'}
+                {modalMode === 'edit' && 'Modify System User'}
+                {modalMode === 'assign' && 'Assign Security Role'}
+              </h3>
+              <button className="admin-modal-close" onClick={() => setModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleFormSubmit}>
+              <div className="admin-modal-body">
+                {modalMode !== 'assign' && (
+                  <>
+                    {/* Full Name */}
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" htmlFor="form-name">
+                        Full Name
+                      </label>
+                      <input
+                        id="form-name"
+                        type="text"
+                        name="name"
+                        className={`admin-form-input ${formErrors.name ? 'is-invalid' : ''}`}
+                        placeholder="e.g. Alexander Sterling"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        disabled={modalMode === 'assign'}
+                      />
+                      {formErrors.name && (
+                        <p className="admin-form-error">{formErrors.name}</p>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div className="admin-form-group">
+                      <label className="admin-form-label" htmlFor="form-email">
+                        Email Address
+                      </label>
+                      <input
+                        id="form-email"
+                        type="email"
+                        name="email"
+                        className={`admin-form-input ${formErrors.email ? 'is-invalid' : ''}`}
+                        placeholder="username@nexuscorp.com"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        disabled={modalMode === 'assign'}
+                      />
+                      {formErrors.email && (
+                        <p className="admin-form-error">{formErrors.email}</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Role */}
+                <div className="admin-form-group">
+                  <label className="admin-form-label" htmlFor="form-role">
+                    Role Category
+                  </label>
+                  <div className="admin-form-select-wrapper">
+                    <select
+                      id="form-role"
+                      name="role"
+                      className="admin-form-select"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                    >
+                      <option value="Super Admin">Super Admin</option>
+                      <option value="Moderator">Moderator</option>
+                      <option value="Recruiter">Recruiter</option>
+                      <option value="Analyst">Analyst</option>
+                    </select>
+                    <ChevronDown className="select-chevron" size={16} />
+                  </div>
+                </div>
+
+                {/* Status */}
+                {modalMode !== 'assign' && (
+                  <div className="admin-form-group">
+                    <label className="admin-form-label" htmlFor="form-status">
+                      Account Status
+                    </label>
+                    <div className="admin-form-select-wrapper">
+                      <select
+                        id="form-status"
+                        name="status"
+                        className="admin-form-select"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                      <ChevronDown className="select-chevron" size={16} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="admin-modal-footer">
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--secondary"
+                  onClick={() => setModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="admin-btn admin-btn--primary">
+                  {modalMode === 'add' ? 'Confirm Addition' : 'Apply Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Alert Modal */}
+      {deleteConfirmOpen && (
+        <div className="admin-modal-overlay" onClick={() => setDeleteConfirmOpen(false)}>
+          <div
+            className="admin-modal-container admin-modal-container--alert"
+            onClick={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <div className="alert-title-row">
+                <AlertTriangle className="alert-icon" size={20} />
+                <h3 className="admin-modal-title">Revoke Access Permission?</h3>
+              </div>
+              <button className="admin-modal-close" onClick={() => setDeleteConfirmOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="admin-modal-body alert-body">
+              <p>
+                Are you sure you want to permanently delete the administrator account for{' '}
+                <strong className="alert-strong">{userToDelete?.name}</strong>?
+              </p>
+              <p className="alert-warning-sub">
+                This action is irreversible. The user will immediately lose access credentials to the system console.
+              </p>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn admin-btn--secondary"
+                onClick={() => setDeleteConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn admin-btn--danger"
+                onClick={handleConfirmDelete}
+              >
+                Confirm Revocation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ManageUsers;
