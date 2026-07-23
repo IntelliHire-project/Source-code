@@ -9,6 +9,7 @@ import RecruiterSignInPage from '../pages/recruiter/SignIn/SignInPage';
 import CommunityPage from '../pages/community/CommunityPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
+import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple Dashboard template for authenticated users
@@ -41,6 +42,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute>
+              <ManageUsers />
             </ProtectedRoute>
           }
         />
