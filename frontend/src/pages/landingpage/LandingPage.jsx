@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bell, Menu, X,
   Briefcase, Target, TrendingUp, FileText, Search, Zap, Calendar, Users,
@@ -13,7 +14,7 @@ import logo from '../../logo.png';
    Shared Components
    ────────────────────────────────────────────── */
 
-function Button({ children, variant = 'primary', size = 'md', className = '', ...props }) {
+function Button({ children, variant = 'primary', size = 'md', className = '', to, ...props }) {
   const base = 'inline-flex items-center justify-center gap-2 rounded-full font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap';
 
   const variants = {
@@ -28,11 +29,18 @@ function Button({ children, variant = 'primary', size = 'md', className = '', ..
     lg: 'px-7 py-3 text-base',
   };
 
+  const classes = `${base} ${variants[variant]} ${sizes[size]} ${className}`;
+
+  if (to) {
+    return (
+      <Link to={to} className={classes} {...props}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <button
-      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
-      {...props}
-    >
+    <button className={classes} {...props}>
       {children}
     </button>
   );
@@ -151,8 +159,8 @@ function Navbar() {
           <button className="text-text-on-dark-muted hover:text-text-on-dark transition-colors relative">
             <Bell size={20} />
           </button>
-          <a href="/signin" className="text-text-on-dark text-sm font-medium hover:text-accent transition-colors">Login</a>
-          <Button variant="primary" size="sm">Sign Up</Button>
+          <Link to="/signin" className="text-text-on-dark text-sm font-medium hover:text-accent transition-colors">Login</Link>
+          <Button variant="primary" size="sm" to="/signup">Sign Up</Button>
         </div>
 
         <button
@@ -168,8 +176,8 @@ function Navbar() {
           <a href="#matched-roles" className="text-text-on-dark-muted text-sm font-medium hover:text-text-on-dark">Find Jobs</a>
           <a href="#how-recruiters-hire" className="text-text-on-dark-muted text-sm font-medium hover:text-text-on-dark">Recruiters</a>
           <div className="flex items-center gap-4 pt-2 border-t border-border-dark">
-            <a href="/signin" className="text-text-on-dark text-sm font-medium hover:text-accent">Login</a>
-            <Button variant="primary" size="sm">Sign Up</Button>
+            <Link to="/signin" className="text-text-on-dark text-sm font-medium hover:text-accent">Login</Link>
+            <Button variant="primary" size="sm" to="/signup">Sign Up</Button>
           </div>
         </div>
       )}
@@ -194,8 +202,8 @@ function Hero() {
         </p>
 
         <div className="flex flex-wrap gap-3 mt-2">
-          <Button variant="primary" size="lg">Get Started as a Candidate</Button>
-          <Button variant="secondary" size="lg">Hire Better as a Recruiter</Button>
+          <Button variant="primary" size="lg" to="/signup">Get Started as a Candidate</Button>
+          <Button variant="secondary" size="lg" to="/recruiter/signup">Hire Better as a Recruiter</Button>
         </div>
       </div>
     </section>
@@ -444,8 +452,8 @@ function CTASection() {
               Join thousands of candidates and recruiters already using IntelliHire to find the perfect match.
             </p>
             <div className="flex flex-wrap gap-3 mt-2">
-              <Button variant="primary" size="lg">Sign Up as Candidate</Button>
-              <Button variant="secondary" size="lg">Register as Recruiter</Button>
+              <Button variant="primary" size="lg" to="/signup">Sign Up as Candidate</Button>
+              <Button variant="secondary" size="lg" to="/recruiter/signup">Register as Recruiter</Button>
             </div>
           </div>
         </div>

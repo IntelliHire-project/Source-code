@@ -17,7 +17,6 @@ const initializeDatabase = async () => {
   const client = await pool.connect();
 
   try {
-    await client.query("CREATE TABLE IF NOT EXISTS numbers (number INT)");
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
