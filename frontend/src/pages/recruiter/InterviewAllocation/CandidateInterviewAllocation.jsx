@@ -253,7 +253,7 @@ export default function CandidateInterviewAllocationPage() {
         {/* Content Container */}
         <div className="recruiter-content">
 
-          {/* ── Sub-navigation Tabs (Time Slot Management vs Candidate Allocation) ── */}
+          {/* ── Sub-navigation Tabs (Time Slot Management vs Candidate Allocation vs Invitations) ── */}
           <div className="interview-subnav-tabs">
             <button
               className={`subnav-tab-btn ${activeSubTab === 'management' ? 'is-active' : ''}`}
@@ -268,6 +268,13 @@ export default function CandidateInterviewAllocationPage() {
               type="button"
             >
               Candidate Allocation
+            </button>
+            <button
+              className={`subnav-tab-btn ${activeSubTab === 'invitations' ? 'is-active' : ''}`}
+              onClick={() => navigate('/recruiter/interviews/invitations')}
+              type="button"
+            >
+              Invitations & Communication
             </button>
           </div>
 
