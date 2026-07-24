@@ -371,7 +371,7 @@ function VerifyRecruiters() {
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Verifications"
+        activeItem="Companies"
       />
 
       <div className="admin-dashboard__main">

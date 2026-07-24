@@ -2,24 +2,32 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  CheckSquare,
   Users,
+  Building,
+  Briefcase,
+  CreditCard,
+  MessageSquare,
   FileText,
+  Activity,
+  Bell,
   Settings,
-  HelpCircle,
   LogOut,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-  { label: 'Verifications', icon: CheckSquare, path: '/admin/verifications' },
-  { label: 'Recruiters List', icon: Users, path: '/admin/users' },
-  { label: 'Audit Logs', icon: FileText, path: '/admin/audit-logs' },
+  { label: 'Users', icon: Users, path: '/admin/users' },
+  { label: 'Companies', icon: Building, path: '/admin/companies' },
+  { label: 'Job moderation', icon: Briefcase, path: '/admin/job-moderation' },
+  { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
+  { label: 'Community mod.', icon: MessageSquare, path: '/admin/community-mod' },
+  { label: 'Reports', icon: FileText, path: '/admin/reports' },
+  { label: 'System health', icon: Activity, path: '/admin/system-health' },
 ];
 
 const BOTTOM_ITEMS = [
-  { label: 'System Settings', icon: Settings, path: '/admin/settings' },
-  { label: 'Help Center', icon: HelpCircle, path: '/admin/help-center' },
+  { label: 'Notifications', icon: Bell, path: '/admin/notifications' },
+  { label: 'System settings', icon: Settings, path: '/admin/settings' },
 ];
 
 function AdminSidebar({ isOpen = false, onClose, activeItem }) {
