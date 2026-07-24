@@ -5,19 +5,24 @@ import SignupPage from '../pages/candidate/Signup/SignupPage';
 import SignInPage from '../pages/candidate/SignIn/SignInPage';
 import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
-import RecruiterInterviewTimeSlotManagementPage from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagementPage';
+import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
+import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
 import CommunityPage from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
 import CandidateDashboard from '../pages/candidate/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
+import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
+import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
 import ModerateContent from '../pages/admin/ModerateContent/ModerateContent';
+import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
+import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import ProtectedRoute from './ProtectedRoute';
 import AdminSidebar from '../components/common/AdminSidebar';
 import { Menu } from 'lucide-react';
@@ -32,7 +37,6 @@ function PlaceholderApplicants({ title }) {
       <RecruiterSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem={title}
       />
       <div className="create-vacancy__main">
         <TopBar
@@ -102,7 +106,8 @@ function AppRoutes() {
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
-        <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagementPage />} />
+        <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagement />} />
+        <Route path="/recruiter/interviews/allocation" element={<CandidateInterviewAllocation />} />
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
@@ -114,6 +119,14 @@ function AppRoutes() {
         <Route
           path="/recruiter/dashboard"
           element={<RecruiterDashboard />}
+        />
+        <Route
+          path="/recruiter/create-vacancy"
+          element={<CreateVacancyPage />}
+        />
+        <Route
+          path="/recruiter/vacancy-preview"
+          element={<PreviewVacancyPage />}
         />
         <Route
           path="/recruiter/applicants/ranked"
@@ -199,7 +212,7 @@ function AppRoutes() {
           path="/admin/reports"
           element={
             <ProtectedRoute>
-              <AdminPlaceholder title="Reports" />
+              <ViewAuditLogs />
             </ProtectedRoute>
           }
         />
@@ -207,7 +220,7 @@ function AppRoutes() {
           path="/admin/system-health"
           element={
             <ProtectedRoute>
-              <AdminPlaceholder title="System health" />
+              <MonitorSystem />
             </ProtectedRoute>
           }
         />
@@ -228,15 +241,6 @@ function AppRoutes() {
           }
         />
         {/* Community Forum — shared for both recruiters and candidates */}
-        <Route
-          path="/community"
-          element={
-            <ProtectedRoute>
-              <CommunityPage />
-            </ProtectedRoute>
-          }
-        />
-        {/* Public preview route (no auth required — for visual QA) */}
         <Route path="/community" element={<CommunityPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
