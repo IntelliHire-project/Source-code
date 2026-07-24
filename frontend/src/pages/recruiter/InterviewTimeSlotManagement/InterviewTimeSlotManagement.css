@@ -899,7 +899,10 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .page-nav-btn {
-  padding: 6px 14px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: var(--primary-dark, #0D0E13);
   border: 1px solid var(--border-dark, #2A2C38);
   border-radius: 6px;
@@ -1112,4 +1115,65 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ── Table Pagination & Footer ── */
+.table-pagination-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-dark, #2A2C38);
+  background-color: var(--bg-sidebar, #16171F);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #9CA0A8);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-nav-btn,
+.page-num-btn {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-dark, #2A2C38);
+  background-color: var(--primary-dark, #0D0E13);
+  color: #FFFFFF;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.page-nav-btn:hover:not(:disabled),
+.page-num-btn:hover {
+  background-color: var(--border-dark, #2A2C38);
+  color: var(--accent, #F0B90B);
+}
+
+.page-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-num-btn.active-page {
+  background-color: var(--accent, #F0B90B);
+  color: #000000;
+  border-color: var(--accent, #F0B90B);
+  font-weight: 700;
 }

@@ -8,6 +8,7 @@ import {
   CreditCard,
   Settings,
   Users,
+  Calendar,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
@@ -26,6 +27,14 @@ const NAV_ITEMS = [
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
+  {
+    label: 'Interviews',
+    icon: Calendar,
+    subItems: [
+      { label: 'Time Slots', path: '/recruiter/interviews' },
+      { label: 'Candidate Allocation', path: '/recruiter/interviews/allocation' },
+    ],
+  },
   { label: 'Payment History', icon: CreditCard, path: '/recruiter/payments' },
 ];
 
@@ -37,6 +46,7 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState({
     Applicants: true,
+    Interviews: true,
   });
 
   useEffect(() => {
