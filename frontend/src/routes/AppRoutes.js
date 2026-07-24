@@ -13,6 +13,7 @@ import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
+import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
 import ProtectedRoute from './ProtectedRoute';
 
 // Simple placeholder page for other applicant categories
@@ -96,6 +97,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <ManageUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/verifications"
+          element={
+            <ProtectedRoute>
+              <VerifyRecruiters />
             </ProtectedRoute>
           }
         />
