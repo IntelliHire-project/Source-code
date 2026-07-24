@@ -9,6 +9,7 @@ import RecruiterInterviewTimeSlotManagementPage from '../pages/recruiter/Intervi
 import CommunityPage from '../pages/community/CommunityPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
+import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
@@ -105,6 +106,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/dashboard"
           element={<RecruiterDashboard />}
+        />
+        <Route
+          path="/recruiter/create-vacancy"
+          element={<CreateVacancyPage />}
         />
         <Route
           path="/recruiter/applicants/ranked"
@@ -219,15 +224,6 @@ function AppRoutes() {
           }
         />
         {/* Community Forum — shared for both recruiters and candidates */}
-        <Route
-          path="/community"
-          element={
-            <ProtectedRoute>
-              <CommunityPage />
-            </ProtectedRoute>
-          }
-        />
-        {/* Public preview route (no auth required — for visual QA) */}
         <Route path="/community" element={<CommunityPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
