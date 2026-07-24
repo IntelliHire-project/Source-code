@@ -143,6 +143,38 @@
   gap: 20px;
 }
 
+/* ── Sub-navigation Tabs ── */
+.interview-subnav-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-dark, #2A2C38);
+  padding-bottom: 8px;
+}
+
+.subnav-tab-btn {
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary, #9CA0A8);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subnav-tab-btn:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.subnav-tab-btn.is-active {
+  background: var(--bg-sidebar, #16171F);
+  color: var(--accent, #F0B90B);
+  border-color: var(--border-dark, #2A2C38);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
 /* ── Clean Page Heading Block ── */
 .page-heading-block {
   padding-bottom: 4px;
