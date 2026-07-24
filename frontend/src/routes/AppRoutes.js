@@ -7,6 +7,9 @@ import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterInterviewTimeSlotManagementPage from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagementPage';
 import CommunityPage from '../pages/community/CommunityPage';
+import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
+import CandidateDashboard from '../pages/candidate/CandidateDashboard';
+import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
@@ -102,6 +105,12 @@ function AppRoutes() {
         <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagementPage />} />
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
+        <Route path="/candidate" element={<CandidateDashboard />}>
+          <Route index element={<Navigate to="/candidate/profile" replace />} />
+          <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
+          <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
+          <Route path="cv-management" element={<CvManagementPage />} />
+        </Route>
         <Route
           path="/recruiter/dashboard"
           element={<RecruiterDashboard />}
