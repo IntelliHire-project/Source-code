@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   FileText,
@@ -27,6 +28,7 @@ const INITIAL_SKILLS = ['React', 'TypeScript', 'REST APIs'];
 
 function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   /* ── Form state ── */
   const [jobTitle, setJobTitle] = useState('');
@@ -59,7 +61,6 @@ function CreateVacancyPage() {
       <RecruiterSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Create Vacancy"
       />
 
       <div className="create-vacancy__main">
@@ -91,6 +92,13 @@ function CreateVacancyPage() {
             <div className="cv-header__actions">
               <button type="button" className="comm-btn comm-btn--outline">
                 View More Details
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate('/recruiter/vacancy-preview')}
+              >
+                Preview Vacancy
               </button>
             </div>
           </div>
@@ -270,9 +278,12 @@ function CreateVacancyPage() {
               <button type="button" className="comm-btn comm-btn--outline">
                 Save Draft
               </button>
-              <button type="button" className="btn btn-primary">
-                <AlertCircle size={16} />
-                Preview &amp; Post
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate('/recruiter/vacancy-preview')}
+              >
+                Preview Vacancy
               </button>
             </div>
           </footer>

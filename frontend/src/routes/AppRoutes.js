@@ -11,6 +11,7 @@ import CommunityPage from '../pages/community/CommunityPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
+import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
@@ -33,7 +34,6 @@ function PlaceholderApplicants({ title }) {
       <RecruiterSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem={title}
       />
       <div className="create-vacancy__main">
         <TopBar
@@ -114,6 +114,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/create-vacancy"
           element={<CreateVacancyPage />}
+        />
+        <Route
+          path="/recruiter/vacancy-preview"
+          element={<PreviewVacancyPage />}
         />
         <Route
           path="/recruiter/applicants/ranked"

@@ -26,7 +26,6 @@ function RecruiterDashboard() {
       <RecruiterSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Dashboard"
       />
 
       <div className="create-vacancy__main">
