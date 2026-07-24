@@ -2,25 +2,24 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
+  CheckSquare,
   Users,
-  Shield,
-  Activity,
   FileText,
   Settings,
-  UserCheck,
+  HelpCircle,
+  LogOut,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
-  { label: 'Users', icon: Users, path: '/admin/users' },
-  { label: 'Recruiters', icon: UserCheck, path: '/admin/recruiters' },
-  { label: 'Moderation', icon: Shield, path: '/admin/moderation' },
-  { label: 'System Monitoring', icon: Activity, path: '/admin/monitoring' },
+  { label: 'Verifications', icon: CheckSquare, path: '/admin/verifications' },
+  { label: 'Recruiters List', icon: Users, path: '/admin/users' },
   { label: 'Audit Logs', icon: FileText, path: '/admin/audit-logs' },
 ];
 
 const BOTTOM_ITEMS = [
-  { label: 'Settings', icon: Settings, path: '/admin/settings' },
+  { label: 'System Settings', icon: Settings, path: '/admin/settings' },
+  { label: 'Help Center', icon: HelpCircle, path: '/admin/help-center' },
 ];
 
 function AdminSidebar({ isOpen = false, onClose, activeItem }) {
@@ -93,6 +92,24 @@ function AdminSidebar({ isOpen = false, onClose, activeItem }) {
             );
           })}
         </ul>
+
+        <div className="admin-sidebar__divider" />
+
+        <div className="admin-sidebar__user-card">
+          <div className="admin-sidebar__user-info">
+            <div className="admin-sidebar__user-avatar">
+              <div className="admin-sidebar__avatar-placeholder">JT</div>
+            </div>
+            <div className="admin-sidebar__user-details">
+              <span className="admin-sidebar__user-name">Julian Thorne</span>
+              <span className="admin-sidebar__user-role">Senior Moderator</span>
+            </div>
+          </div>
+          <button className="admin-sidebar__signout-btn" onClick={() => console.log('Sign Out clicked')}>
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </aside>
     </>
   );
