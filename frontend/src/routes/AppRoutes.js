@@ -17,6 +17,7 @@ import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
 import ModerateContent from '../pages/admin/ModerateContent/ModerateContent';
 import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
+import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import ProtectedRoute from './ProtectedRoute';
 import AdminSidebar from '../components/common/AdminSidebar';
 import { Menu } from 'lucide-react';
@@ -196,7 +197,7 @@ function AppRoutes() {
           path="/admin/reports"
           element={
             <ProtectedRoute>
-              <AdminPlaceholder title="Reports" />
+              <ViewAuditLogs />
             </ProtectedRoute>
           }
         />
