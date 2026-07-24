@@ -17,6 +17,7 @@ import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplican
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
+import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
@@ -135,6 +136,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/vacancy-preview"
           element={<PreviewVacancyPage />}
+        />
+        <Route
+          path="/recruiter/payments"
+          element={<PaymentBillingPage />}
         />
         <Route
           path="/recruiter/applicants/ranked"
