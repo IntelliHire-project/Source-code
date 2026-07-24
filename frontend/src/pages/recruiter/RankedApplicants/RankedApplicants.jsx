@@ -20,9 +20,57 @@ import TopBar from '../../../components/TopBar/TopBar';
 import './RankedApplicants.css';
 import '../../../style.css';
 
+// Mock Vacancies Data
+const MOCK_VACANCIES = [
+  {
+    id: 1,
+    title: 'Software Engineer',
+    code: '#1023',
+    status: 'Active',
+    postedTime: 'Posted 12 days ago',
+    totalApplicants: 48,
+    avgScore: '72%',
+    lastMatched: '2 mins ago',
+    lastMatchedBy: 'By Admin Recruiter',
+    applicantsCountSubtext: '+12 since last run',
+    engineConfidence: 'Engine Confidence: High',
+    insightText: 'The matching engine has prioritised React and AWS for this role. Check the Job Parsing preview to adjust weighted skill importance.',
+  },
+  {
+    id: 2,
+    title: 'Product Manager',
+    code: '#1024',
+    status: 'Active',
+    postedTime: 'Posted 5 days ago',
+    totalApplicants: 14,
+    avgScore: '81%',
+    lastMatched: '1 hour ago',
+    lastMatchedBy: 'By Senior Recruiter',
+    applicantsCountSubtext: '+3 since last run',
+    engineConfidence: 'Engine Confidence: Very High',
+    insightText: 'The matching engine has prioritised Product Strategy and Agile Roadmap for this role. Check the Job Parsing preview to adjust weighted skill importance.',
+  },
+  {
+    id: 3,
+    title: 'UX Designer',
+    code: '#1025',
+    status: 'Closed',
+    postedTime: 'Posted 20 days ago',
+    totalApplicants: 35,
+    avgScore: '79%',
+    lastMatched: '2 days ago',
+    lastMatchedBy: 'By HR Assistant',
+    applicantsCountSubtext: 'Finalized',
+    engineConfidence: 'Engine Confidence: High',
+    insightText: 'The matching engine has prioritised Figma prototyping and User Research for this role. Check the Job Parsing preview to adjust weighted skill importance.',
+  }
+];
+
 // Rich Mock Candidates Data
 const MOCK_CANDIDATES = [
+  // Vacancy 1: Software Engineer
   {
+    vacancyId: 1,
     rank: '#1',
     name: 'Alex Sterling',
     activeTime: 'ACTIVE 2H AGO',
@@ -39,6 +87,7 @@ const MOCK_CANDIDATES = [
     shortlisted: true,
   },
   {
+    vacancyId: 1,
     rank: '#2',
     name: 'Sarah Jenkins',
     activeTime: 'ACTIVE 5H AGO',
@@ -54,6 +103,7 @@ const MOCK_CANDIDATES = [
     matchReason: 'Strong match. Has React and databases, but lacks professional AWS deployment experience. Recommended for a quick technical interview.',
   },
   {
+    vacancyId: 1,
     rank: '#3',
     name: 'Michael Chen',
     activeTime: 'ACTIVE 1D AGO',
@@ -69,6 +119,7 @@ const MOCK_CANDIDATES = [
     matchReason: 'Underqualified. Candidate has solid backend foundation but lacks modern JavaScript framework experience (React) and cloud skills (AWS).',
   },
   {
+    vacancyId: 1,
     rank: '#4',
     name: 'Elena Rodriguez',
     activeTime: 'ACTIVE 3H AGO',
@@ -85,6 +136,7 @@ const MOCK_CANDIDATES = [
     shortlisted: true,
   },
   {
+    vacancyId: 1,
     rank: '#5',
     name: 'Jordan Smith',
     activeTime: 'ACTIVE 1W AGO',
@@ -100,6 +152,7 @@ const MOCK_CANDIDATES = [
     matchReason: 'Mismatch. Experience is centered around server-side PHP/Laravel and legacy jQuery. Missing modern React, TypeScript, and AWS cloud competencies.',
   },
   {
+    vacancyId: 1,
     rank: '#6',
     name: 'Priya Patel',
     activeTime: 'ACTIVE 4D AGO',
@@ -115,6 +168,7 @@ const MOCK_CANDIDATES = [
     matchReason: 'Mismatch. Specialized in mobile applications; lacks web application architecture, system design, and AWS environment expertise.',
   },
   {
+    vacancyId: 1,
     rank: '#7',
     name: 'Lucas Dubois',
     activeTime: 'ACTIVE 6D AGO',
@@ -130,6 +184,7 @@ const MOCK_CANDIDATES = [
     matchReason: 'Mismatch. High proficiency in backend Ruby on Rails, but missing required React and AWS cloud experience.',
   },
   {
+    vacancyId: 1,
     rank: '#8',
     name: 'Emily Wong',
     activeTime: 'ACTIVE 2W AGO',
@@ -144,11 +199,147 @@ const MOCK_CANDIDATES = [
     education: 'Web Design Bootcamp Graduate',
     matchReason: 'Mismatch. Lacks required professional programming depth, framework knowledge, and cloud computing infrastructure experience.',
   },
+  
+  // Vacancy 2: Product Manager
+  {
+    vacancyId: 2,
+    rank: '#1',
+    name: 'Diana Prince',
+    activeTime: 'ACTIVE 1H AGO',
+    score: 96,
+    skills: ['Product Strategy', 'Agile', 'Roadmapping', 'User Analytics'],
+    expMatch: 'Matched',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'diana.prince@example.com',
+    phone: '+1 (555) 321-4321',
+    experience: '8 Years',
+    bio: 'Senior Product Manager with a track record of driving cross-functional engineering and design teams to deliver high-growth consumer apps.',
+    education: 'MBA - Harvard Business School',
+    matchReason: 'Outstanding candidate. Proven success in Agile methodologies, stellar technical product management background, and excellent roadmap formulation.',
+    shortlisted: true,
+  },
+  {
+    vacancyId: 2,
+    rank: '#2',
+    name: 'Clark Kent',
+    activeTime: 'ACTIVE 3H AGO',
+    score: 85,
+    skills: ['Stakeholder Management', 'Agile', 'JIRA', 'Product Launch'],
+    expMatch: 'Matched',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'clark.kent@example.com',
+    phone: '+1 (555) 765-4321',
+    experience: '5 Years',
+    bio: 'Product Manager focused on workflow optimization and SaaS integrations. Excellent at translating complex requirements into simple user stories.',
+    education: 'B.A. in Journalism & Business - Northwestern',
+    matchReason: 'Strong match. Solid experience managing product lifecycle, although lacks extensive mobile-native release experience.',
+  },
+  {
+    vacancyId: 2,
+    rank: '#3',
+    name: 'Bruce Wayne',
+    activeTime: 'ACTIVE 3D AGO',
+    score: 70,
+    skills: ['Roadmapping', 'Budgeting', 'Risk Management'],
+    expMatch: 'Partial Match',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'bruce.wayne@example.com',
+    phone: '+1 (555) 888-8888',
+    experience: '10 Years',
+    bio: 'Executive Product Strategist who focuses on corporate risk assessment and high-level enterprise software deployment planning.',
+    education: 'B.S. in Economics - Yale University',
+    matchReason: 'Experienced leader but lacks hand-on technical Agile scrum team management credentials. More suited for portfolio strategy.',
+  },
+  {
+    vacancyId: 2,
+    rank: '#4',
+    name: 'Barry Allen',
+    activeTime: 'ACTIVE 4H AGO',
+    score: 52,
+    skills: ['Scrum', 'JIRA', 'Rapid Delivery'],
+    expMatch: 'Underqualified',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'barry.allen@example.com',
+    phone: '+1 (555) 999-9999',
+    experience: '2 Years',
+    bio: 'Associate Product Manager passionate about fast iterations, continuous deployment loops, and rapid prototyping workflows.',
+    education: 'B.S. in Chemistry - Central City College',
+    matchReason: 'Underqualified. Fast pace and high energy, but lacks structural product management experience and strategic roadmap definition skills.',
+  },
+
+  // Vacancy 3: UX Designer
+  {
+    vacancyId: 3,
+    rank: '#1',
+    name: 'Ada Lovelace',
+    activeTime: 'ACTIVE 30M AGO',
+    score: 98,
+    skills: ['Figma', 'User Research', 'Prototyping', 'Design Systems'],
+    expMatch: 'Matched',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'ada.lovelace@example.com',
+    phone: '+1 (555) 101-0101',
+    experience: '7 Years',
+    bio: 'Lead UX Designer focused on complex data visualization frameworks and clean, pixel-perfect user journeys.',
+    education: 'BFA in Graphic Design - RISD',
+    matchReason: 'Perfect design match. Deep Figma capabilities, stellar design systems expertise, and strong technical coding knowledge for seamless developer handoff.',
+    shortlisted: true,
+  },
+  {
+    vacancyId: 3,
+    rank: '#2',
+    name: 'Alan Turing',
+    activeTime: 'ACTIVE 1H AGO',
+    score: 91,
+    skills: ['Wireframing', 'User Research', 'Information Architecture'],
+    expMatch: 'Matched',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'alan.turing@example.com',
+    phone: '+1 (555) 202-0202',
+    experience: '6 Years',
+    bio: 'Cognitive UX researcher specializing in user behavior analysis, wireframing workflows, and usability testing protocols.',
+    education: 'Ph.D. in Mathematical Logic - Princeton',
+    matchReason: 'Excellent analytical UX specialist. Strong wireframing and user flow skills, though UI visual styling could be supplementary.',
+  },
+  {
+    vacancyId: 3,
+    rank: '#3',
+    name: 'Grace Hopper',
+    activeTime: 'ACTIVE 1D AGO',
+    score: 75,
+    skills: ['Figma', 'Prototyping', 'CSS/HTML'],
+    expMatch: 'Partial Match',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'grace.hopper@example.com',
+    phone: '+1 (555) 303-0303',
+    experience: '4 Years',
+    bio: 'UI Developer / Designer hybrid who bridges the gap between Figma mockups and clean CSS implementation.',
+    education: 'B.S. in Computer Science - Vassar College',
+    matchReason: 'Solid designer-developer with good prototyping skills, but lacks deep user research and journey mapping experience.',
+  },
+  {
+    vacancyId: 3,
+    rank: '#4',
+    name: 'John von Neumann',
+    activeTime: 'ACTIVE 5D AGO',
+    score: 60,
+    skills: ['Figma', 'Wireframing'],
+    expMatch: 'Mismatch',
+    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&h=100&q=80',
+    email: 'john.neumann@example.com',
+    phone: '+1 (555) 404-0404',
+    experience: '3 Years',
+    bio: 'Product generalist who drafts quick wireframes and manages basic CSS layouts.',
+    education: 'B.S. in Mathematics - University of Budapest',
+    matchReason: 'Mismatch. Skill set is more mathematical and logical than visual design. Strong logical layouts but misses creative visual elements.',
+  }
 ];
 
 function RankedApplicants() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
+  const [selectedVacancyId, setSelectedVacancyId] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isMatching, setIsMatching] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -166,13 +357,15 @@ function RankedApplicants() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const selectedVacancy = MOCK_VACANCIES.find(v => v.id === selectedVacancyId) || MOCK_VACANCIES[0];
+
   // Handle run matching simulation
   const handleRunMatching = () => {
     setIsMatching(true);
     // Simulate AI scanning and ranking pipeline
     setTimeout(() => {
       setIsMatching(false);
-      setToastMessage('AI matching engine completed successfully! 48 applicants processed.');
+      setToastMessage(`AI matching engine completed successfully! ${selectedVacancy.totalApplicants} applicants processed for ${selectedVacancy.title}.`);
       setShowToast(true);
       
       // Auto dismiss toast after 4s
@@ -184,6 +377,17 @@ function RankedApplicants() {
 
   // Perform Sorting and Filtering
   const filteredCandidates = candidates.filter((c) => {
+    // Vacancy filtering
+    if (c.vacancyId !== selectedVacancyId) return false;
+
+    // Search query filtering
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchesName = c.name.toLowerCase().includes(q);
+      const matchesSkill = c.skills.some((s) => s.toLowerCase().includes(q));
+      if (!matchesName && !matchesSkill) return false;
+    }
+
     // Tab filtering
     if (activeTab === 'Shortlisted' && !c.shortlisted) return false;
     
@@ -236,33 +440,50 @@ function RankedApplicants() {
           notificationsCount={3}
           searchPlaceholder="Search applicants..."
           onSearch={(q) => {
-            const query = q.toLowerCase();
-            const filtered = MOCK_CANDIDATES.filter((c) =>
-              c.name.toLowerCase().includes(query) ||
-              c.skills.some((s) => s.toLowerCase().includes(query))
-            );
-            setCandidates(filtered);
+            setSearchQuery(q);
             setCurrentPage(1);
           }}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
         <main className="ranked-content">
-          {/* Breadcrumbs */}
-          <nav className="ranked-breadcrumbs">
-            Vacancies / <span className="ranked-breadcrumbs__active">Software Engineer</span>
-          </nav>
+          {/* Breadcrumbs & Vacancy Selector */}
+          <div className="vacancy-selection-header">
+            <nav className="ranked-breadcrumbs">
+              Vacancies / <span className="ranked-breadcrumbs__active">{selectedVacancy.title}</span>
+            </nav>
+            <div className="vacancy-dropdown-wrap">
+              <span className="vacancy-dropdown-label">Active Vacancy:</span>
+              <select 
+                className="vacancy-select" 
+                value={selectedVacancyId} 
+                onChange={(e) => {
+                  setSelectedVacancyId(Number(e.target.value));
+                  setCurrentPage(1);
+                  setSearchQuery('');
+                }}
+              >
+                {MOCK_VACANCIES.map((vac) => (
+                  <option key={vac.id} value={vac.id}>
+                    {vac.title} ({vac.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           {/* Header Section */}
           <div className="ranked-header">
             <div>
               <h1 className="ranked-header__title">
-                Software Engineer <span className="ranked-header__number">#1023</span>
+                {selectedVacancy.title} <span className="ranked-header__number">{selectedVacancy.code}</span>
               </h1>
               <div className="ranked-header__meta">
-                <span className="status-badge-active">Status: Active</span>
+                <span className={`status-badge-active status-badge-${selectedVacancy.status.toLowerCase()}`}>
+                  Status: {selectedVacancy.status}
+                </span>
                 <span className="posted-time">
-                  <Clock size={15} /> Posted 12 days ago
+                  <Clock size={15} /> {selectedVacancy.postedTime}
                 </span>
               </div>
             </div>
@@ -281,35 +502,35 @@ function RankedApplicants() {
 
           {/* Stats Grid */}
           <div className="ranked-stats-grid">
-            <div className="stat-card">
-              <div className="stat-card__info">
-                <span className="stat-card__label">Total Applicants</span>
-                <span className="stat-card__value">48</span>
-                <span className="stat-card__subtext positive">+12 since last run</span>
+            <div className="ranked-stat-card">
+              <div className="ranked-stat-card__info">
+                <span className="ranked-stat-card__label">Total Applicants</span>
+                <span className="ranked-stat-card__value">{selectedVacancy.totalApplicants}</span>
+                <span className="ranked-stat-card__subtext positive">{selectedVacancy.applicantsCountSubtext}</span>
               </div>
-              <div className="stat-card__icon-wrap">
+              <div className="ranked-stat-card__icon-wrap">
                 <Users size={20} />
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-card__info">
-                <span className="stat-card__label">Avg. Match Score</span>
-                <span className="stat-card__value">72%</span>
-                <span className="stat-card__subtext">Engine Confidence: High</span>
+            <div className="ranked-stat-card">
+              <div className="ranked-stat-card__info">
+                <span className="ranked-stat-card__label">Avg. Match Score</span>
+                <span className="ranked-stat-card__value">{selectedVacancy.avgScore}</span>
+                <span className="ranked-stat-card__subtext">{selectedVacancy.engineConfidence}</span>
               </div>
-              <div className="stat-card__icon-wrap">
+              <div className="ranked-stat-card__icon-wrap">
                 <Target size={20} />
               </div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-card__info">
-                <span className="stat-card__label">Last Matched</span>
-                <span className="stat-card__value">2 mins ago</span>
-                <span className="stat-card__subtext">By Admin Recruiter</span>
+            <div className="ranked-stat-card">
+              <div className="ranked-stat-card__info">
+                <span className="ranked-stat-card__label">Last Matched</span>
+                <span className="ranked-stat-card__value">{selectedVacancy.lastMatched}</span>
+                <span className="ranked-stat-card__subtext">{selectedVacancy.lastMatchedBy}</span>
               </div>
-              <div className="stat-card__icon-wrap">
+              <div className="ranked-stat-card__icon-wrap">
                 <Clock size={20} />
               </div>
             </div>
@@ -544,7 +765,7 @@ function RankedApplicants() {
                 <Target size={16} /> Requirement Insight
               </span>
               <p className="insight-card__text">
-                The matching engine has prioritised <strong>React</strong> and <strong>AWS</strong> for this role. Check the Job Parsing preview to adjust weighted skill importance.
+                {selectedVacancy.insightText}
               </p>
               <a href="#review-parsing" className="insight-card__link" onClick={(e) => e.preventDefault()}>
                 Review Job Parsing Data <ExternalLink size={14} />
@@ -558,29 +779,23 @@ function RankedApplicants() {
               </span>
               <div className="progress-card__content">
                 <div className="avatar-group">
-                  <img 
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80&q=80" 
-                    alt="Shortlist 1" 
-                    className="avatar-stacked"
-                  />
-                  <img 
-                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80" 
-                    alt="Shortlist 2" 
-                    className="avatar-stacked"
-                  />
-                  <img 
-                    src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=80&h=80&q=80" 
-                    alt="Shortlist 3" 
-                    className="avatar-stacked"
-                  />
-                  <img 
-                    src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=80&h=80&q=80" 
-                    alt="Shortlist 4" 
-                    className="avatar-stacked"
-                  />
+                  {candidates
+                    .filter((c) => c.vacancyId === selectedVacancyId && c.shortlisted)
+                    .slice(0, 4)
+                    .map((c, i) => (
+                      <img 
+                        key={i}
+                        src={c.avatar} 
+                        alt={c.name} 
+                        className="avatar-stacked"
+                      />
+                    ))
+                  }
                 </div>
                 <p className="progress-card__text">
-                  <strong>4 candidates</strong> already shortlisted for interview stage.
+                  <strong>
+                    {candidates.filter((c) => c.vacancyId === selectedVacancyId && c.shortlisted).length} candidates
+                  </strong> already shortlisted for interview stage.
                 </p>
               </div>
             </div>
