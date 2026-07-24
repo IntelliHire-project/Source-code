@@ -431,7 +431,6 @@ function RankedApplicants() {
       <RecruiterSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Ranked Applicants"
       />
 
       <div className="create-vacancy__main">
