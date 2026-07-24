@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
+import TopBar from '../../../components/TopBar/TopBar';
+import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
 
 const initialSlots = [
@@ -279,124 +283,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
     }
   };
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="recruiter-layout">
-      {/* ── Fixed Sidebar Navigation ── */}
-      <aside className="recruiter-sidebar">
-        <div className="sidebar-brand">
-          <div className="brand-logo-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-              <rect x="2" y="6" width="20" height="14" rx="2"></rect>
-            </svg>
-          </div>
-          <span className="brand-name">IntelliHire</span>
-        </div>
+    <div className="create-vacancy">
+      <RecruiterSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem="Time Slots"
+      />
 
-        <div className="sidebar-nav">
-          <div className="nav-section-label">MAIN MENU</div>
-          <button className="nav-item" type="button">
-            <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span>Dashboard</span>
-          </button>
-          <button className="nav-item" type="button">
-            <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-            </svg>
-            <span>Job Posts</span>
-          </button>
-          <button className="nav-item" type="button">
-            <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-            <span>Candidates</span>
-          </button>
-          <button className="nav-item" type="button">
-            <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            <span>Assessments</span>
-          </button>
-          <button className="nav-item is-active" type="button">
-            <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <polyline points="9 16 11 18 15 14"></polyline>
-            </svg>
-            <span>Interviews</span>
-          </button>
-
-          <div className="nav-section-label">INSIGHTS</div>
-          <button className="nav-item" type="button">
-            <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="20" x2="18" y2="10"></line>
-              <line x1="12" y1="20" x2="12" y2="4"></line>
-              <line x1="6" y1="20" x2="6" y2="14"></line>
-            </svg>
-            <span>Analytics</span>
-          </button>
-          <button className="nav-item" type="button">
-            <svg className="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-            <span>Settings</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main Content Area ── */}
-      <div className="recruiter-main">
-
-        {/* ── TOP NAV BAR: Search LEFT | Notification + Profile RIGHT ── */}
-        <div className="recruiter-topbar">
-          <div className="topbar-search-wrap">
-            <svg className="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input
-              type="text"
-              className="topbar-search-input"
-              placeholder="Search assessments, roles, or candidates..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="topbar-right-group">
-            <button className="icon-btn" type="button" title="Notifications">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-              <span className="notification-dot"></span>
-            </button>
-
-            <div className="recruiter-profile-stack">
-              <div className="recruiter-avatar">AP</div>
-              <div className="recruiter-info">
-                <span className="recruiter-name">Alexander Pierce</span>
-                <span className="recruiter-role">Talent Acquisition Lead</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="create-vacancy__main">
+        <TopBar
+          user={{ name: 'Recruiter', role: 'Recruiter Account' }}
+          notificationsCount={3}
+          searchPlaceholder="Search vacancies, candidates, or interviews..."
+          onSearch={q => setSearchQuery(q)}
+          onHamburgerClick={() => setSidebarOpen(true)}
+        />
 
         {/* Content Container */}
         <div className="recruiter-content">
@@ -416,6 +320,13 @@ function RecruiterInterviewTimeSlotManagementPage() {
               type="button"
             >
               Candidate Allocation
+            </button>
+            <button
+              className="subnav-tab-btn"
+              onClick={() => navigate('/recruiter/interviews/invitations')}
+              type="button"
+            >
+              Invitations & Communication
             </button>
           </div>
 
@@ -814,8 +725,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   className="page-nav-btn"
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  aria-label="Previous Page"
                 >
-                  Previous
+                  <ChevronLeft size={16} />
                 </button>
                 {Array.from({ length: totalPages }, (_, index) => index + 1).map(pageNum => (
                   <button
@@ -832,8 +744,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   className="page-nav-btn"
                   disabled={currentPage === totalPages || totalPages === 0}
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  aria-label="Next Page"
                 >
-                  Next
+                  <ChevronRight size={16} />
                 </button>
               </div>
             </div>
