@@ -15,6 +15,10 @@ import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
 import ProtectedRoute from './ProtectedRoute';
+import AdminSidebar from '../components/common/AdminSidebar';
+import { Menu } from 'lucide-react';
+import '../styles/admin.css';
+import '../pages/admin/VerifyRecruiters/VerifyRecruiters.css';
 
 // Simple placeholder page for other applicant categories
 function PlaceholderApplicants({ title }) {
@@ -36,6 +40,39 @@ function PlaceholderApplicants({ title }) {
         <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', background: 'var(--primary-dark)', minHeight: 'calc(100vh - 64px)' }}>
           <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>{title}</h1>
           <p style={{ color: '#a79e8c' }}>This page is currently under construction.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Simple placeholder page for under-construction admin panels
+function AdminPlaceholder({ title }) {
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  return (
+    <div className="admin-theme admin-dashboard">
+      <AdminSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem={title}
+      />
+      <div className="admin-dashboard__main">
+        <header className="admin-verifier-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', borderBottom: '1px solid var(--border)', background: 'var(--primary)' }}>
+          <button
+            className="topbar__hamburger verifier-hamburger-btn"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Toggle sidebar"
+            type="button"
+            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <Menu />
+          </button>
+          <div style={{ color: '#fff', fontWeight: 600, fontSize: '1.1rem', marginLeft: '12px' }}>IntelliHire Admin Panel</div>
+        </header>
+
+        <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'var(--primary-dark)' }}>
+          <h1 style={{ fontSize: '32px', marginBottom: '20px', fontWeight: 'bold' }}>{title}</h1>
+          <p style={{ color: '#a79e8c', fontSize: '18px' }}>This admin page is currently under construction.</p>
         </div>
       </div>
     </div>
@@ -93,6 +130,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Dashboard" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/users"
           element={
             <ProtectedRoute>
@@ -101,10 +146,74 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/admin/companies"
+          element={
+            <ProtectedRoute>
+              <VerifyRecruiters />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/verifications"
           element={
             <ProtectedRoute>
               <VerifyRecruiters />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/job-moderation"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Job moderation" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/payments"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Payments" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/community-mod"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Community mod." />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Reports" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/system-health"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="System health" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/notifications"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Notifications" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="System settings" />
             </ProtectedRoute>
           }
         />
