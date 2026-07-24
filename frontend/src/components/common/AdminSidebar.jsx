@@ -12,6 +12,7 @@ import {
   Bell,
   Settings,
   LogOut,
+  Flag,
 } from 'lucide-react';
 import logo from '../../logo.png';
 
@@ -21,7 +22,7 @@ const NAV_ITEMS = [
   { label: 'Companies', icon: Building, path: '/admin/companies' },
   { label: 'Job moderation', icon: Briefcase, path: '/admin/job-moderation' },
   { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
-  { label: 'Community mod.', icon: MessageSquare, path: '/admin/community-mod' },
+  { label: 'Content Moderation', icon: Flag, path: '/admin/community-mod' },
   { label: 'Reports', icon: FileText, path: '/admin/reports' },
   { label: 'System health', icon: Activity, path: '/admin/system-health' },
 ];
