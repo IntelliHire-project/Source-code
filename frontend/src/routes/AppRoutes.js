@@ -12,6 +12,7 @@ import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard'
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
+import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
@@ -110,6 +111,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/dashboard"
           element={<RecruiterDashboard />}
+        />
+        <Route
+          path="/recruiter/vacancies"
+          element={<VacancyManagementPage />}
         />
         <Route
           path="/recruiter/create-vacancy"
