@@ -321,6 +321,13 @@ function RecruiterInterviewTimeSlotManagementPage() {
             >
               Candidate Allocation
             </button>
+            <button
+              className="subnav-tab-btn"
+              onClick={() => navigate('/recruiter/interviews/invitations')}
+              type="button"
+            >
+              Invitations & Communication
+            </button>
           </div>
 
           {/* ── Clean Page Heading ── */}
