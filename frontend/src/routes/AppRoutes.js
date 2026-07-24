@@ -14,6 +14,7 @@ import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
+import ModerateContent from '../pages/admin/ModerateContent/ModerateContent';
 import ProtectedRoute from './ProtectedRoute';
 import AdminSidebar from '../components/common/AdminSidebar';
 import { Menu } from 'lucide-react';
@@ -181,7 +182,7 @@ function AppRoutes() {
           path="/admin/community-mod"
           element={
             <ProtectedRoute>
-              <AdminPlaceholder title="Community mod." />
+              <ModerateContent />
             </ProtectedRoute>
           }
         />
