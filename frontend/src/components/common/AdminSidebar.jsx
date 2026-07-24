@@ -6,8 +6,7 @@ import {
   Building,
   Briefcase,
   CreditCard,
-  MessageSquare,
-  FileText,
+  BookOpen,
   Activity,
   Bell,
   Settings,
@@ -23,7 +22,7 @@ const NAV_ITEMS = [
   { label: 'Job moderation', icon: Briefcase, path: '/admin/job-moderation' },
   { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
   { label: 'Content Moderation', icon: Flag, path: '/admin/community-mod' },
-  { label: 'Reports', icon: FileText, path: '/admin/reports' },
+  { label: 'Audit Logs', icon: BookOpen, path: '/admin/reports' },
   { label: 'System health', icon: Activity, path: '/admin/system-health' },
 ];
 

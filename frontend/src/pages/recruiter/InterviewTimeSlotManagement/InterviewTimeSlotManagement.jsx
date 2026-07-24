@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import './InterviewTimeSlotManagementPage.css';
+import { useNavigate } from 'react-router-dom';
+import './InterviewTimeSlotManagement.css';
 
 const initialSlots = [
   {
     id: 1,
     jobPosition: 'Senior Fullstack Engineer',
     round: 'Technical',
-    interviewDate: '25 Jul 2025',
+    interviewDate: '25 Jul 2026',
     startTime: '09:00 AM',
     endTime: '10:00 AM',
     interviewType: 'Online',
@@ -20,7 +21,7 @@ const initialSlots = [
     id: 2,
     jobPosition: 'UI/UX Designer',
     round: 'HR Portfolio Review',
-    interviewDate: '25 Jul 2025',
+    interviewDate: '25 Jul 2026',
     startTime: '11:00 AM',
     endTime: '12:00 PM',
     interviewType: 'Physical',
@@ -34,7 +35,7 @@ const initialSlots = [
     id: 3,
     jobPosition: 'QA Automation Engineer',
     round: 'Final Cultural Fit',
-    interviewDate: '26 Jul 2025',
+    interviewDate: '26 Jul 2026',
     startTime: '02:00 PM',
     endTime: '03:00 PM',
     interviewType: 'Online',
@@ -48,7 +49,7 @@ const initialSlots = [
     id: 4,
     jobPosition: 'Business Analyst',
     round: 'Technical Case Study',
-    interviewDate: '27 Jul 2025',
+    interviewDate: '27 Jul 2026',
     startTime: '10:00 AM',
     endTime: '11:00 AM',
     interviewType: 'Physical',
@@ -62,7 +63,7 @@ const initialSlots = [
     id: 5,
     jobPosition: 'Product Manager',
     round: 'HR Screening',
-    interviewDate: '28 Jul 2025',
+    interviewDate: '28 Jul 2026',
     startTime: '09:00 AM',
     endTime: '10:00 AM',
     interviewType: 'Online',
@@ -76,7 +77,7 @@ const initialSlots = [
     id: 6,
     jobPosition: 'DevOps Lead',
     round: 'Architecture Final',
-    interviewDate: '29 Jul 2025',
+    interviewDate: '29 Jul 2026',
     startTime: '03:00 PM',
     endTime: '04:00 PM',
     interviewType: 'Physical',
@@ -124,6 +125,7 @@ function formatTime(timeValue) {
 }
 
 function RecruiterInterviewTimeSlotManagementPage() {
+  const navigate = useNavigate();
   const [slots, setSlots] = useState(initialSlots);
   const [formData, setFormData] = useState(emptyForm);
   const [editingSlotId, setEditingSlotId] = useState(null);
@@ -398,6 +400,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
         {/* Content Container */}
         <div className="recruiter-content">
+
+          {/* ── Sub-navigation Tabs ── */}
+          <div className="interview-subnav-tabs">
+            <button
+              className="subnav-tab-btn is-active"
+              onClick={() => navigate('/recruiter/interviews')}
+              type="button"
+            >
+              Time Slot Management
+            </button>
+            <button
+              className="subnav-tab-btn"
+              onClick={() => navigate('/recruiter/interviews/allocation')}
+              type="button"
+            >
+              Candidate Allocation
+            </button>
+          </div>
 
           {/* ── Clean Page Heading ── */}
           <div className="page-heading-block">
