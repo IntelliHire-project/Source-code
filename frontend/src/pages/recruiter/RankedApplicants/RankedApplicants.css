@@ -1690,3 +1690,159 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   Batch Actions & Checkbox Layout Extensions
+   ============================================================ */
+.candidates-table.has-checkbox .table-header,
+.candidates-table.has-checkbox .table-row {
+  grid-template-columns: 40px 60px 200px 120px 1fr 130px 140px;
+}
+
+.cell-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Premium styled custom checkboxes */
+.candidate-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #3f4257;
+  border-radius: 4px;
+  background-color: #13141C;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.candidate-checkbox:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.15);
+}
+
+.candidate-checkbox:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.candidate-checkbox:checked::after {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 9px;
+  border: solid #13141C;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+
+/* Batch Actions Bar style - Sticky Floating at Bottom Center */
+.batch-actions-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(26, 27, 39, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(240, 185, 11, 0.45);
+  border-radius: 12px;
+  padding: 12px 24px;
+  min-width: 620px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(240, 185, 11, 0.15);
+  animation: float-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.batch-selected-count {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-on-dark);
+  letter-spacing: 0.2px;
+}
+
+.batch-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-batch {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btn-batch-shortlist {
+  background-color: var(--accent);
+  color: #13141C;
+}
+
+.btn-batch-shortlist:hover {
+  background-color: #f7cb2f;
+  box-shadow: 0 4px 12px rgba(240, 185, 11, 0.2);
+}
+
+.btn-batch-approve {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.btn-batch-approve:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-batch-reject {
+  background-color: rgba(230, 57, 70, 0.1);
+  border: 1.5px solid rgba(230, 57, 70, 0.3);
+  color: var(--crisis);
+}
+
+.btn-batch-reject:hover {
+  background-color: rgba(230, 57, 70, 0.15);
+  border-color: var(--crisis);
+}
+
+.btn-batch-clear {
+  background: transparent;
+  border: none;
+  color: var(--text-on-dark-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: color 0.2s ease;
+}
+
+.btn-batch-clear:hover {
+  color: var(--text-on-dark);
+}
+
+@keyframes float-up {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

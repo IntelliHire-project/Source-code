@@ -204,7 +204,7 @@ const MOCK_CANDIDATES = [
     education: 'Web Design Bootcamp Graduate',
     matchReason: 'Mismatch. Lacks required professional programming depth, framework knowledge, and cloud computing infrastructure experience.',
   },
-  
+
   // Vacancy 2: Product Manager
   {
     vacancyId: 2,
@@ -342,7 +342,7 @@ const MOCK_CANDIDATES = [
 
 const enrichCandidateDetails = (candidate) => {
   if (!candidate) return null;
-  
+
   if (candidate.name === 'Sarah Jenkins') {
     return {
       ...candidate,
@@ -391,7 +391,7 @@ const enrichCandidateDetails = (candidate) => {
 
   // General fallback for others
   const matchPct = candidate.score;
-  
+
   return {
     ...candidate,
     role: candidate.vacancyId === 2 ? 'Product Manager' : (candidate.vacancyId === 3 ? 'UX Designer' : 'Software Engineer'),
@@ -406,7 +406,7 @@ const enrichCandidateDetails = (candidate) => {
     },
     requiredExp: candidate.vacancyId === 2 ? '7 Years' : (candidate.vacancyId === 3 ? '5 Years' : '5 Years'),
     candidateExp: candidate.experience || '3 Years',
-    expInsight: candidate.expMatch === 'Matched' 
+    expInsight: candidate.expMatch === 'Matched'
       ? `The candidate meets and exceeds the requested job experience duration.`
       : `The candidate is slightly below the target experience but shows strong skills alignment.`,
     educationDegree: candidate.education ? candidate.education.split(' - ')[0] : 'B.S. Computer Science',
@@ -428,13 +428,13 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
           <ArrowLeft size={16} /> Back to Applicants
         </button>
         <div className="detail-action-buttons">
-          <button 
+          <button
             className={`btn-action-reject ${candidate.rejected ? 'active' : ''}`}
             onClick={() => onReject(candidate)}
           >
             <UserMinus size={16} /> Reject
           </button>
-          <button 
+          <button
             className={`btn-action-shortlist ${candidate.shortlisted ? 'active' : ''}`}
             onClick={() => onShortlist(candidate)}
           >
@@ -446,10 +446,10 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
       {/* Candidate Profile Header Card */}
       <div className="detail-profile-card">
         <div className="profile-info-left">
-          <img 
-            className="detail-avatar" 
-            src={candidate.avatar} 
-            alt={candidate.name} 
+          <img
+            className="detail-avatar"
+            src={candidate.avatar}
+            alt={candidate.name}
           />
           <div className="profile-metadata">
             <h2 className="detail-name">{candidate.name}</h2>
@@ -466,11 +466,11 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
           <div className="radial-progress-svg-wrap">
             <svg viewBox="0 0 100 100" className="radial-progress-svg">
               <circle cx="50" cy="50" r="42" className="radial-progress-bg" />
-              <circle 
-                cx="50" 
-                cy="50" 
-                r="42" 
-                className="radial-progress-fill" 
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                className="radial-progress-fill"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
               />
@@ -492,10 +492,10 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
             <h3 className="card-section-title">
               <Sliders size={18} className="title-icon animate-pulse" /> Skills Analysis
             </h3>
-            
+
             <div className="skills-group">
               <h4 className="skills-sub-title matched-title">
-                <CheckCircle2 size={16} style={{ color: 'var(--accent)' }} /> 
+                <CheckCircle2 size={16} style={{ color: 'var(--accent)' }} />
                 MATCHED REQUIREMENTS ({candidate.matchedSkills.length})
               </h4>
               <div className="skills-pill-container">
@@ -509,7 +509,7 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
 
             <div className="skills-group">
               <h4 className="skills-sub-title missing-title">
-                <XCircle size={16} style={{ color: '#ff6b6b' }} /> 
+                <XCircle size={16} style={{ color: '#ff6b6b' }} />
                 MISSING SKILLS ({candidate.missingSkills.length})
               </h4>
               <div className="skills-pill-container">
@@ -529,15 +529,15 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
               <h3 className="card-section-title">
                 <Briefcase size={18} className="title-icon" /> Experience
               </h3>
-              
+
               <div className="exp-bar-group">
                 <div className="exp-bar-label-row">
                   <span className="bar-lbl">Required by Job</span>
                   <span className="bar-val">{candidate.requiredExp}</span>
                 </div>
                 <div className="exp-bar-track">
-                  <div 
-                    className="exp-bar-fill required-fill" 
+                  <div
+                    className="exp-bar-fill required-fill"
                     style={{ width: `${(parseInt(candidate.requiredExp) / 10) * 100}%` }}
                   />
                 </div>
@@ -549,8 +549,8 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
                   <span className="bar-val">{candidate.candidateExp}</span>
                 </div>
                 <div className="exp-bar-track">
-                  <div 
-                    className="exp-bar-fill tenure-fill" 
+                  <div
+                    className="exp-bar-fill tenure-fill"
                     style={{ width: `${(parseInt(candidate.candidateExp) / 10) * 100}%` }}
                   />
                 </div>
@@ -566,7 +566,7 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
               <h3 className="card-section-title">
                 <Users size={18} className="title-icon" /> Education Alignment
               </h3>
-              
+
               <div className="edu-degree-header">
                 <div className="edu-tick-icon-wrap">
                   <Check size={18} style={{ color: 'var(--accent)' }} />
@@ -600,8 +600,8 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
                   <span className="breakdown-val">{candidate.matchBreakdown.skillMatch}%</span>
                 </div>
                 <div className="breakdown-progress-track">
-                  <div 
-                    className="breakdown-progress-fill" 
+                  <div
+                    className="breakdown-progress-fill"
                     style={{ width: `${candidate.matchBreakdown.skillMatch}%` }}
                   />
                 </div>
@@ -613,8 +613,8 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
                   <span className="breakdown-val">{candidate.matchBreakdown.experienceMatch}%</span>
                 </div>
                 <div className="breakdown-progress-track">
-                  <div 
-                    className="breakdown-progress-fill" 
+                  <div
+                    className="breakdown-progress-fill"
                     style={{ width: `${candidate.matchBreakdown.experienceMatch}%` }}
                   />
                 </div>
@@ -626,8 +626,8 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
                   <span className="breakdown-val">{candidate.matchBreakdown.semanticSimilarity}%</span>
                 </div>
                 <div className="breakdown-progress-track">
-                  <div 
-                    className="breakdown-progress-fill" 
+                  <div
+                    className="breakdown-progress-fill"
                     style={{ width: `${candidate.matchBreakdown.semanticSimilarity}%` }}
                   />
                 </div>
@@ -639,8 +639,8 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
                   <span className="breakdown-val">{candidate.matchBreakdown.educationAlignment}%</span>
                 </div>
                 <div className="breakdown-progress-track">
-                  <div 
-                    className="breakdown-progress-fill" 
+                  <div
+                    className="breakdown-progress-fill"
                     style={{ width: `${candidate.matchBreakdown.educationAlignment}%` }}
                   />
                 </div>
@@ -680,20 +680,25 @@ function RankedApplicants() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
-  
+  const [selectedCandidateNames, setSelectedCandidateNames] = useState([]);
+
   // Tab State: 'All Applicants', 'Ranked Candidates', 'Shortlisted'
   const [activeTab, setActiveTab] = useState('Ranked Candidates');
-  
+
   // Filtering & Sorting State
   const [sortBy, setSortBy] = useState('Highest Match');
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All'); // 'All', 'Matched', 'Partial Match', 'Underqualified', 'Mismatch'
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
   const selectedVacancy = MOCK_VACANCIES.find(v => v.id === selectedVacancyId) || MOCK_VACANCIES[0];
+
+  useEffect(() => {
+    setSelectedCandidateNames([]);
+  }, [selectedVacancyId, activeTab, currentPage, activeFilter, searchQuery]);
 
   // Handle run matching simulation
   const handleRunMatching = () => {
@@ -703,7 +708,7 @@ function RankedApplicants() {
       setIsMatching(false);
       setToastMessage(`AI matching engine completed successfully! ${selectedVacancy.totalApplicants} applicants processed for ${selectedVacancy.title}.`);
       setShowToast(true);
-      
+
       // Auto dismiss toast after 4s
       setTimeout(() => {
         setShowToast(false);
@@ -726,7 +731,7 @@ function RankedApplicants() {
 
     // Tab filtering
     if (activeTab === 'Shortlisted' && !c.shortlisted) return false;
-    
+
     // Experience matching filtering
     if (activeFilter === 'All') return true;
     return c.expMatch === activeFilter;
@@ -824,9 +829,9 @@ function RankedApplicants() {
                 </nav>
                 <div className="vacancy-dropdown-wrap">
                   <span className="vacancy-dropdown-label">Active Vacancy:</span>
-                  <select 
-                    className="vacancy-select" 
-                    value={selectedVacancyId} 
+                  <select
+                    className="vacancy-select"
+                    value={selectedVacancyId}
                     onChange={(e) => {
                       setSelectedVacancyId(Number(e.target.value));
                       setCurrentPage(1);
@@ -859,8 +864,8 @@ function RankedApplicants() {
                 </div>
                 <div className="ranked-header__actions">
                   <button className="btn btn-outline">Edit Job</button>
-                  <button 
-                    className="btn btn-primary" 
+                  <button
+                    className="btn btn-primary"
                     onClick={handleRunMatching}
                     disabled={isMatching}
                     style={{ opacity: isMatching ? 0.7 : 1 }}
@@ -919,19 +924,19 @@ function RankedApplicants() {
                 <div className="candidates-header">
                   <div className="candidates-header__left-group">
                     <div className="candidates-tabs">
-                      <button 
+                      <button
                         className={`tab-btn ${activeTab === 'All Applicants' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('All Applicants'); setCurrentPage(1); }}
                       >
                         All Applicants
                       </button>
-                      <button 
+                      <button
                         className={`tab-btn ${activeTab === 'Ranked Candidates' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('Ranked Candidates'); setCurrentPage(1); }}
                       >
                         Ranked Candidates
                       </button>
-                      <button 
+                      <button
                         className={`tab-btn ${activeTab === 'Shortlisted' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('Shortlisted'); setCurrentPage(1); }}
                       >
@@ -944,11 +949,11 @@ function RankedApplicants() {
                       {activeTab === 'Shortlisted' && 'Selected candidates marked for shortlisting board.'}
                     </p>
                   </div>
-                  
+
                   <div className="filter-actions">
                     <div className="sort-container">
                       <span>Sort:</span>
-                      <select 
+                      <select
                         className="sort-select"
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
@@ -958,9 +963,9 @@ function RankedApplicants() {
                         <option value="Alphabetical">Alphabetical</option>
                       </select>
                     </div>
-                    
+
                     <div style={{ position: 'relative' }}>
-                      <button 
+                      <button
                         className={`filter-icon-btn ${activeFilter !== 'All' ? 'active' : ''}`}
                         onClick={() => setFilterOpen(!filterOpen)}
                         title="Filter by status"
@@ -1007,8 +1012,36 @@ function RankedApplicants() {
                 </div>
 
                 {/* Candidates Grid Table */}
-                <div className="candidates-table">
+                <div className={`candidates-table ${activeTab !== 'Shortlisted' ? 'has-checkbox' : ''}`}>
                   <div className="table-header">
+                    {activeTab !== 'Shortlisted' && (
+                      <div className="cell-checkbox">
+                        <input
+                          type="checkbox"
+                          className="candidate-checkbox"
+                          checked={
+                            paginatedCandidates.length > 0 &&
+                            paginatedCandidates.every(c => selectedCandidateNames.includes(c.name))
+                          }
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const newSelections = [
+                                ...selectedCandidateNames,
+                                ...paginatedCandidates
+                                  .map(c => c.name)
+                                  .filter(name => !selectedCandidateNames.includes(name))
+                              ];
+                              setSelectedCandidateNames(newSelections);
+                            } else {
+                              const pageNames = paginatedCandidates.map(c => c.name);
+                              setSelectedCandidateNames(
+                                selectedCandidateNames.filter(name => !pageNames.includes(name))
+                              );
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
                     <div>Rank</div>
                     <div>Candidate Name</div>
                     <div>Match Score</div>
@@ -1021,11 +1054,29 @@ function RankedApplicants() {
                     paginatedCandidates.map((candidate) => (
                       <div key={candidate.name} className="table-row-container">
                         <div className="table-row">
+                          {activeTab !== 'Shortlisted' && (
+                            <div className="cell-checkbox">
+                              <input
+                                type="checkbox"
+                                className="candidate-checkbox"
+                                checked={selectedCandidateNames.includes(candidate.name)}
+                                onChange={() => {
+                                  if (selectedCandidateNames.includes(candidate.name)) {
+                                    setSelectedCandidateNames(
+                                      selectedCandidateNames.filter(name => name !== candidate.name)
+                                    );
+                                  } else {
+                                    setSelectedCandidateNames([...selectedCandidateNames, candidate.name]);
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
                           <div className="cell-rank">{candidate.rank}</div>
                           <div className="cell-candidate">
-                            <img 
-                              src={candidate.avatar} 
-                              alt={candidate.name} 
+                            <img
+                              src={candidate.avatar}
+                              alt={candidate.name}
                               className="candidate-avatar"
                             />
                             <div className="candidate-meta">
@@ -1033,11 +1084,11 @@ function RankedApplicants() {
                               <span className="candidate-active-time">{candidate.activeTime}</span>
                             </div>
                           </div>
-                          
+
                           <div className="cell-score">
                             <span className="score-number">{candidate.score}%</span>
                             <div className="score-bar-track">
-                              <div 
+                              <div
                                 className="score-bar-fill"
                                 style={{ width: `${candidate.score}%` }}
                               />
@@ -1055,8 +1106,8 @@ function RankedApplicants() {
                               {getStatusIcon(candidate.expMatch)}
                               <span style={{
                                 color: candidate.expMatch === 'Matched' ? 'var(--success)' :
-                                       candidate.expMatch === 'Partial Match' ? 'var(--accent)' :
-                                       candidate.expMatch === 'Underqualified' ? '#ff6b6b' : '#ff4a4a'
+                                  candidate.expMatch === 'Partial Match' ? 'var(--accent)' :
+                                    candidate.expMatch === 'Underqualified' ? '#ff6b6b' : '#ff4a4a'
                               }}>
                                 {candidate.expMatch}
                               </span>
@@ -1064,14 +1115,11 @@ function RankedApplicants() {
                           </div>
 
                           <div className="cell-actions">
-                            <button 
+                            <button
                               className="btn-view-details"
                               onClick={() => setSelectedCandidate(candidate)}
                             >
                               View Details
-                            </button>
-                            <button className="btn-more-options">
-                              <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>⋮</span>
                             </button>
                           </div>
                         </div>
@@ -1082,8 +1130,8 @@ function RankedApplicants() {
                       <Users size={32} className="empty-state-icon" />
                       <h4 className="empty-state-title">No candidates found</h4>
                       <p className="empty-state-text">
-                        {activeTab === 'Shortlisted' 
-                          ? 'No candidates have been shortlisted yet. Open candidate details to shortlist them.' 
+                        {activeTab === 'Shortlisted'
+                          ? 'No candidates have been shortlisted yet. Open candidate details to shortlist them.'
                           : 'No candidates match the selected filters.'}
                       </p>
                     </div>
@@ -1097,7 +1145,7 @@ function RankedApplicants() {
                   </div>
                   {totalPages > 1 && (
                     <div className="pagination-controls">
-                      <button 
+                      <button
                         className="pagination-btn"
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
@@ -1114,7 +1162,7 @@ function RankedApplicants() {
                           {page}
                         </button>
                       ))}
-                      <button 
+                      <button
                         className="pagination-btn next-active"
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
@@ -1153,10 +1201,10 @@ function RankedApplicants() {
                         .filter((c) => c.vacancyId === selectedVacancyId && c.shortlisted)
                         .slice(0, 4)
                         .map((c, i) => (
-                          <img 
+                          <img
                             key={i}
-                            src={c.avatar} 
-                            alt={c.name} 
+                            src={c.avatar}
+                            alt={c.name}
                             className="avatar-stacked"
                           />
                         ))
@@ -1180,12 +1228,69 @@ function RankedApplicants() {
         <div className="matching-toast">
           <CheckCircle2 size={20} style={{ color: 'var(--success)' }} />
           <span className="matching-toast__text">{toastMessage}</span>
-          <button 
+          <button
             style={{ background: 'none', border: 'none', color: 'var(--text-on-dark-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
             onClick={() => setShowToast(false)}
           >
             <X size={16} />
           </button>
+        </div>
+      )}
+      {selectedCandidateNames.length > 0 && (
+        <div className="batch-actions-bar">
+          <span className="batch-selected-count">
+            {selectedCandidateNames.length} candidate{selectedCandidateNames.length > 1 ? 's' : ''} selected
+          </span>
+          <div className="batch-buttons">
+            <button 
+              className="btn-batch btn-batch-shortlist"
+              onClick={() => {
+                setCandidates(prev => 
+                  prev.map(c => selectedCandidateNames.includes(c.name) ? { ...c, shortlisted: true } : c)
+                );
+                setToastMessage(`Shortlisted ${selectedCandidateNames.length} candidate(s).`);
+                setShowToast(true);
+                setSelectedCandidateNames([]);
+                setTimeout(() => setShowToast(false), 4000);
+              }}
+            >
+              Shortlist Selected
+            </button>
+            
+            <button 
+              className="btn-batch btn-batch-approve"
+              onClick={() => {
+                setToastMessage(`Approved ${selectedCandidateNames.length} candidate(s) for interview.`);
+                setShowToast(true);
+                setSelectedCandidateNames([]);
+                setTimeout(() => setShowToast(false), 4000);
+              }}
+            >
+              Approve for Interview
+            </button>
+
+            <button 
+              className="btn-batch btn-batch-reject"
+              onClick={() => {
+                setCandidates(prev => 
+                  prev.map(c => selectedCandidateNames.includes(c.name) ? { ...c, shortlisted: false, rejected: true } : c)
+                );
+                setToastMessage(`Rejected ${selectedCandidateNames.length} candidate(s).`);
+                setShowToast(true);
+                setSelectedCandidateNames([]);
+                setTimeout(() => setShowToast(false), 4000);
+              }}
+            >
+              Reject Selected
+            </button>
+
+            <button 
+              className="btn-batch-clear"
+              onClick={() => setSelectedCandidateNames([])}
+            >
+              Clear Selection
+            </button>
+          </div>
         </div>
       )}
 
