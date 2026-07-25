@@ -11,6 +11,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
+  X,
 } from 'lucide-react';
 import '../../style.css';
 
@@ -55,6 +57,15 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   });
 
   useEffect(() => {
+    const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+    if (isCollapsed) {
+      document.body.classList.add('sidebar-collapsed');
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+    }
+  }, []);
+
+  useEffect(() => {
     // If current route is a sub-item of any nav item, expand that nav item
     NAV_ITEMS.forEach((item) => {
       if (item.subItems) {
@@ -93,10 +104,45 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
       {isOpen && (
         <div className="sidebar-overlay" onClick={onClose} aria-hidden="true" />
       )}
+
+      {/* Floating Expand button when sidebar is collapsed (desktop only) */}
+      <button
+        type="button"
+        className="sidebar-expand-floating-btn"
+        onClick={() => {
+          document.body.classList.remove('sidebar-collapsed');
+          localStorage.setItem('sidebar_collapsed', 'false');
+        }}
+        aria-label="Expand sidebar"
+      >
+        <ChevronRight size={18} />
+      </button>
+
       <aside className={`app-sidebar ${isOpen ? 'is-open' : ''}`}>
+        <button
+          type="button"
+          className="sidebar-close-btn"
+          onClick={onClose}
+          aria-label="Close sidebar"
+        >
+          <X size={18} />
+        </button>
         <div className="sidebar-logo">
-          <span className="sidebar-logo__box">IH</span>
-          <span className="sidebar-logo__wordmark">IntelliHire</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="sidebar-logo__box">IH</span>
+            <span className="sidebar-logo__wordmark">IntelliHire</span>
+          </div>
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={() => {
+              const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+              localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
+            }}
+            aria-label="Collapse sidebar"
+          >
+            <ChevronLeft size={18} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
