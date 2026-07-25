@@ -109,9 +109,12 @@
 }
 
 /* ── Card Surface ── */
+.recruiter-content .card-surface,
+.eval-card,
 .card-surface {
-  background-color: #16171F;
-  border: 1px solid #2A2C38;
+  background: #16171F !important;
+  background-color: #16171F !important;
+  border: 1px solid #2A2C38 !important;
   border-radius: 12px;
   overflow: hidden;
 }
