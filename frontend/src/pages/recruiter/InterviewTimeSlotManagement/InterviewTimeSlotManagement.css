@@ -414,9 +414,13 @@
 }
 
 /* Card Surface */
+.recruiter-layout .card-surface,
+.recruiter-content .card-surface,
+.tsm-card,
 .card-surface {
-  background-color: var(--bg-sidebar, #16171F);
-  border: 1px solid var(--border-dark, #2A2C38);
+  background: var(--bg-sidebar, #16171F) !important;
+  background-color: var(--bg-sidebar, #16171F) !important;
+  border: 1px solid var(--border-dark, #2A2C38) !important;
   border-radius: 14px;
   padding: 24px;
 }
