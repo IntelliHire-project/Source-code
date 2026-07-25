@@ -484,7 +484,6 @@ function InterviewEvaluationPage() {
           <div className="card-surface eval-card">
             <div className="card-header-bar">
               <span className="gold-indicator" />
-              <ClipboardList size={13} className="card-icon" />
               <h2 className="card-title">Interview Information</h2>
             </div>
 
@@ -562,7 +561,6 @@ function InterviewEvaluationPage() {
             <div className="card-surface eval-card eval-panel-col">
               <div className="card-header-bar">
                 <span className="gold-indicator" />
-                <Users size={13} className="card-icon" />
                 <h2 className="card-title">Panel Assignment</h2>
               </div>
 
@@ -617,7 +615,6 @@ function InterviewEvaluationPage() {
             <div className="card-surface eval-card eval-eval-col">
               <div className="card-header-bar">
                 <span className="gold-indicator" />
-                <Edit2 size={13} className="card-icon" />
                 <h2 className="card-title">Candidate Evaluation</h2>
               </div>
 
@@ -753,7 +750,6 @@ function InterviewEvaluationPage() {
           <div className="card-surface eval-card">
             <div className="card-header-bar">
               <span className="gold-indicator" />
-              <ClipboardList size={13} className="card-icon" />
               <h2 className="card-title">Evaluation Records</h2>
             </div>
 

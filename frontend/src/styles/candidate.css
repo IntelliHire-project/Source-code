@@ -45,7 +45,10 @@
 
 /* ── Shared card surface ── */
 
-.card-surface {
+.candidate-dashboard .card-surface,
+.candidate-profile-content .card-surface,
+.cv-management-content .card-surface,
+.candidate-card-surface {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
