@@ -282,7 +282,14 @@ export default function InterviewCommunication() {
               onClick={() => navigate('/recruiter/interviews/invitations')}
               type="button"
             >
-              Invitations & Communication
+              Invitations &amp; Communication
+            </button>
+            <button
+              className="subnav-tab-btn"
+              onClick={() => navigate('/recruiter/interviews/evaluation')}
+              type="button"
+            >
+              Panel &amp; Evaluation
             </button>
           </div>
 

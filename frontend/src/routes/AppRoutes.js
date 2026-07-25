@@ -8,6 +8,7 @@ import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/Pen
 import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
 import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
 import InterviewCommunication from '../pages/recruiter/InterviewCommunication/InterviewCommunication';
+import InterviewEvaluationPage from '../pages/recruiter/InterviewEvaluation/InterviewEvaluation';
 import CommunityPage from '../pages/community/CommunityPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
@@ -108,6 +109,7 @@ function AppRoutes() {
         <Route path="/recruiter/interviews/allocation" element={<CandidateInterviewAllocation />} />
         <Route path="/recruiter/interviews/invitations" element={<InterviewCommunication />} />
         <Route path="/recruiter/interviews/communication" element={<InterviewCommunication />} />
+        <Route path="/recruiter/interviews/evaluation" element={<InterviewEvaluationPage />} />
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route
