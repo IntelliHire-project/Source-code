@@ -860,7 +860,6 @@ function RankedApplicants() {
                   </div>
                 </div>
                 <div className="ranked-header__actions">
-                  <button className="btn btn-outline">Edit Job</button>
                   <button
                     className="btn btn-primary"
                     onClick={handleRunMatching}
@@ -872,43 +871,6 @@ function RankedApplicants() {
                 </div>
               </div>
 
-              {/* Stats Grid */}
-              <div className="ranked-stats-grid">
-                <div className="ranked-stat-card">
-                  <div className="ranked-stat-card__info">
-                    <span className="ranked-stat-card__label">Total Applicants</span>
-                    <span className="ranked-stat-card__value">{selectedVacancy.totalApplicants}</span>
-                    <span className="ranked-stat-card__subtext positive">{selectedVacancy.applicantsCountSubtext}</span>
-                  </div>
-                  <div className="ranked-stat-card__icon-wrap">
-                    <Users size={20} />
-                  </div>
-                </div>
-
-                <div className="ranked-stat-card">
-                  <div className="ranked-stat-card__info">
-                    <span className="ranked-stat-card__label">Avg. Match Score</span>
-                    <span className="ranked-stat-card__value">{selectedVacancy.avgScore}</span>
-                    <span className="ranked-stat-card__subtext">{selectedVacancy.engineConfidence}</span>
-                  </div>
-                  <div className="ranked-stat-card__icon-wrap">
-                    <Target size={20} />
-                  </div>
-                </div>
-
-                <div className="ranked-stat-card">
-                  <div className="ranked-stat-card__info">
-                    <span className="ranked-stat-card__label">Last Matched</span>
-                    <span className="ranked-stat-card__value">{selectedVacancy.lastMatched}</span>
-                    <span className="ranked-stat-card__subtext">{selectedVacancy.lastMatchedBy}</span>
-                  </div>
-                  <div className="ranked-stat-card__icon-wrap">
-                    <Clock size={20} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Candidates Main Table Section */}
               <div className="candidates-card">
                 {/* Run Matching Loading Scanner Overlay */}
                 {isMatching && (
@@ -925,7 +887,7 @@ function RankedApplicants() {
                         className={`tab-btn ${activeTab === 'All Applicants' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('All Applicants'); setCurrentPage(1); }}
                       >
-                        All Applicants
+                        All Applicants ({selectedVacancy.totalApplicants})
                       </button>
                       <button
                         className={`tab-btn ${activeTab === 'Ranked Candidates' ? 'active' : ''}`}
@@ -948,19 +910,6 @@ function RankedApplicants() {
                   </div>
 
                   <div className="filter-actions">
-                    <div className="sort-container">
-                      <span>Sort:</span>
-                      <select
-                        className="sort-select"
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                      >
-                        <option value="Highest Match">Highest Match</option>
-                        <option value="Lowest Match">Lowest Match</option>
-                        <option value="Alphabetical">Alphabetical</option>
-                      </select>
-                    </div>
-
                     <div style={{ position: 'relative' }}>
                       <button
                         className={`filter-icon-btn ${activeFilter !== 'All' ? 'active' : ''}`}
