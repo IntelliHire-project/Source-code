@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Briefcase,
@@ -23,7 +23,9 @@ const NAV_ITEMS = [
     label: 'Applicants',
     icon: Users,
     subItems: [
+      { label: 'All Applicants', path: '/recruiter/applicants/all' },
       { label: 'Ranked Applicants', path: '/recruiter/applicants/ranked' },
+      { label: 'Shortlisted', path: '/recruiter/applicants/shortlisted' },
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
@@ -46,6 +48,7 @@ const BOTTOM_ITEMS = [
 
 function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [expandedItems, setExpandedItems] = useState({
     Applicants: true,
     Interviews: true,
@@ -110,7 +113,12 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
                     <button
                       type="button"
                       className={`nav-item nav-item-collapsible ${active ? 'is-active' : ''}`}
-                      onClick={() => toggleExpand(item.label)}
+                      onClick={() => {
+                        toggleExpand(item.label);
+                        if (item.label === 'Applicants') {
+                          navigate('/recruiter/applicants/ranked');
+                        }
+                      }}
                     >
                       <span className="nav-item-content">
                         <Icon size={18} />

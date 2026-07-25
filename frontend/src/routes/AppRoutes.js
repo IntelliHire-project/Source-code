@@ -145,11 +145,11 @@ function AppRoutes() {
         />
         <Route
           path="/recruiter/applicants/all"
-          element={<PlaceholderApplicants title="All Applicants" />}
+          element={<RankedApplicants />}
         />
         <Route
           path="/recruiter/applicants/shortlisted"
-          element={<PlaceholderApplicants title="Shortlisted" />}
+          element={<RankedApplicants />}
         />
         <Route
           path="/recruiter/applicants/interviewed"
