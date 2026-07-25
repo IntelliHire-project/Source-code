@@ -34,6 +34,7 @@ const NAV_ITEMS = [
       { label: 'Time Slots', path: '/recruiter/interviews' },
       { label: 'Candidate Allocation', path: '/recruiter/interviews/allocation' },
       { label: 'Invitations & Email', path: '/recruiter/interviews/invitations' },
+      { label: 'Panel & Evaluation', path: '/recruiter/interviews/evaluation' },
     ],
   },
   { label: 'Payment History', icon: CreditCard, path: '/recruiter/payments' },
