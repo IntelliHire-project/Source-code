@@ -342,6 +342,15 @@ function InterviewEvaluationPage() {
       setRecords((prev) => [newRecord, ...prev]);
       showToast(`Evaluation for ${formData.candidateName} saved as draft.`);
     }
+    
+    localStorage.setItem('interview_panel_created', 'true');
+    if (localStorage.getItem('scheduling_pending') === 'true') {
+      localStorage.removeItem('scheduling_pending');
+      setTimeout(() => {
+        navigate('/recruiter/applicants/ranked');
+      }, 1500);
+    }
+    
     handleReset();
   };
 
@@ -376,6 +385,15 @@ function InterviewEvaluationPage() {
       setRecords((prev) => [newRecord, ...prev]);
       showToast(`Evaluation for ${formData.candidateName} submitted successfully.`);
     }
+    
+    localStorage.setItem('interview_panel_created', 'true');
+    if (localStorage.getItem('scheduling_pending') === 'true') {
+      localStorage.removeItem('scheduling_pending');
+      setTimeout(() => {
+        navigate('/recruiter/applicants/ranked');
+      }, 1500);
+    }
+    
     handleReset();
   };
 

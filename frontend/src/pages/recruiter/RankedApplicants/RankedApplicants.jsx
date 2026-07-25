@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Users,
@@ -19,6 +20,8 @@ import {
   UserMinus,
   UserCheck,
   FileText,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -669,6 +672,7 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
 }
 
 function RankedApplicants() {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
   const [selectedVacancyId, setSelectedVacancyId] = useState(1);
@@ -678,6 +682,10 @@ function RankedApplicants() {
   const [toastMessage, setToastMessage] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [selectedCandidateNames, setSelectedCandidateNames] = useState([]);
+
+  // Modal States for Interview Scheduling
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState(null); // 'auto' | 'manual'
 
   // Tab State: 'All Applicants', 'Ranked Candidates', 'Shortlisted'
   const [activeTab, setActiveTab] = useState('Ranked Candidates');
@@ -910,6 +918,17 @@ function RankedApplicants() {
                   </div>
 
                   <div className="filter-actions">
+                    {activeTab === 'Shortlisted' && (
+                      <button
+                        className="btn-schedule-interviews"
+                        onClick={() => {
+                          setSelectedMethod(null);
+                          setShowScheduleModal(true);
+                        }}
+                      >
+                        <Calendar size={16} /> Schedule Interviews
+                      </button>
+                    )}
                     <div style={{ position: 'relative' }}>
                       <button
                         className={`filter-icon-btn ${activeFilter !== 'All' ? 'active' : ''}`}
@@ -1239,6 +1258,103 @@ function RankedApplicants() {
             >
               Clear Selection
             </button>
+          </div>
+        </div>
+      )}
+      {showScheduleModal && (
+        <div className="schedule-modal-overlay">
+          <div className="schedule-modal">
+            <button 
+              className="schedule-modal__close-btn" 
+              onClick={() => {
+                setShowScheduleModal(false);
+                setSelectedMethod(null);
+              }}
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="schedule-modal__title">Choose Scheduling Method</h2>
+            <p className="schedule-modal__desc">
+              Select how you would like to schedule interviews for shortlisted candidates.
+            </p>
+
+            <div className="schedule-options-grid">
+              {/* Option 1: Auto Schedule */}
+              <div 
+                className={`schedule-option-card recommended ${selectedMethod === 'auto' ? 'selected' : ''}`}
+                onClick={() => setSelectedMethod('auto')}
+              >
+                <div className="schedule-option-card__badge">Recommended</div>
+                <div className="schedule-option-card__icon-wrap auto-icon">
+                  <Sparkles size={22} />
+                </div>
+                <div className="schedule-option-card__content">
+                  <h3 className="schedule-option-card__title">🤖 Auto Schedule & Notify</h3>
+                  <p className="schedule-option-card__desc">
+                    Automatically match shortlisted candidates with available interview time slots based on existing interview panels and send interview invitation emails.
+                  </p>
+                </div>
+              </div>
+
+              {/* Option 2: Manual Schedule */}
+              <div 
+                className={`schedule-option-card ${selectedMethod === 'manual' ? 'selected' : ''}`}
+                onClick={() => setSelectedMethod('manual')}
+              >
+                <div className="schedule-option-card__icon-wrap manual-icon">
+                  <Users size={22} />
+                </div>
+                <div className="schedule-option-card__content">
+                  <h3 className="schedule-option-card__title">👤 Manual Scheduling</h3>
+                  <p className="schedule-option-card__desc">
+                    Manually assign interview panels, candidates, interview dates, and time slots before sending interview invitations.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="schedule-modal__actions">
+              <button 
+                className="btn-modal-cancel"
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  setSelectedMethod(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-modal-continue"
+                disabled={!selectedMethod}
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  if (selectedMethod === 'auto') {
+                    // Check local storage flag for existing interview panels
+                    const panelsExist = localStorage.getItem('interview_panel_created') === 'true';
+                    if (panelsExist) {
+                      const shortlistedCount = candidates.filter(
+                        c => c.vacancyId === selectedVacancyId && c.shortlisted
+                      ).length;
+                      
+                      setToastMessage(`Auto-scheduled interviews and sent invitations to ${shortlistedCount} candidate(s) successfully!`);
+                      setShowToast(true);
+                      setTimeout(() => setShowToast(false), 5000);
+                    } else {
+                      // Redirect to Panel & Evaluation page
+                      localStorage.setItem('scheduling_pending', 'true');
+                      navigate('/recruiter/interviews/evaluation');
+                    }
+                  } else {
+                    // Navigate to manual Candidate Allocation page
+                    navigate('/recruiter/interviews/allocation');
+                  }
+                  setSelectedMethod(null);
+                }}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}
