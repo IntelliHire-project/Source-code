@@ -339,7 +339,7 @@
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-primary);
+  color: #FFFFFF;
   cursor: pointer;
   transition: background-color 0.2s ease;
   margin-right: 8px;
