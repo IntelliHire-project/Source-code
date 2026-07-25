@@ -657,9 +657,6 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
             </div>
 
             <div className="breakdown-actions">
-              <button className="btn-approve-interview" onClick={onApprove}>
-                Approve for Interview
-              </button>
               <button className="btn-download-report" onClick={() => alert("Downloading PDF Report...")}>
                 <FileText size={16} style={{ marginRight: '8px' }} /> Download Report (PDF)
               </button>
@@ -1256,19 +1253,6 @@ function RankedApplicants() {
             >
               Shortlist Selected
             </button>
-            
-            <button 
-              className="btn-batch btn-batch-approve"
-              onClick={() => {
-                setToastMessage(`Approved ${selectedCandidateNames.length} candidate(s) for interview.`);
-                setShowToast(true);
-                setSelectedCandidateNames([]);
-                setTimeout(() => setShowToast(false), 4000);
-              }}
-            >
-              Approve for Interview
-            </button>
-
             <button 
               className="btn-batch btn-batch-reject"
               onClick={() => {
