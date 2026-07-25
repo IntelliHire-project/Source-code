@@ -958,7 +958,7 @@ function RankedApplicants() {
                 </div>
 
                 {/* Candidates Grid Table */}
-                <div className={`candidates-table ${activeTab !== 'Shortlisted' ? 'has-checkbox' : ''}`}>
+                <div className={`candidates-table ${activeTab !== 'Shortlisted' ? 'has-checkbox' : 'is-shortlisted'}`}>
                   <div className="table-header">
                     {activeTab !== 'Shortlisted' && (
                       <div className="cell-checkbox">
@@ -1067,6 +1067,22 @@ function RankedApplicants() {
                             >
                               View Details
                             </button>
+                            {activeTab === 'Shortlisted' && (
+                              <button
+                                className="btn-remove-shortlist"
+                                onClick={() => {
+                                  setCandidates(prev =>
+                                    prev.map(c => c.name === candidate.name ? { ...c, shortlisted: false } : c)
+                                  );
+                                  setToastMessage(`${candidate.name} has been removed from the shortlisted board.`);
+                                  setShowToast(true);
+                                  setSelectedCandidateNames(prev => prev.filter(name => name !== candidate.name));
+                                  setTimeout(() => setShowToast(false), 4000);
+                                }}
+                              >
+                                Remove
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

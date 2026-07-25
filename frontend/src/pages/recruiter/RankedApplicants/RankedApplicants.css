@@ -1856,3 +1856,27 @@
     transform: translate(-50%, 0);
   }
 }
+
+/* Shortlisted Section Layout & Button Adjustments */
+.candidates-table.is-shortlisted .table-header,
+.candidates-table.is-shortlisted .table-row {
+  grid-template-columns: 60px 200px 120px 1fr 130px 210px;
+}
+
+.btn-remove-shortlist {
+  background: transparent;
+  color: var(--crisis);
+  border: 1.5px solid rgba(230, 57, 70, 0.4);
+  border-radius: var(--radius-full);
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-remove-shortlist:hover {
+  background-color: var(--crisis);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.25);
+}
