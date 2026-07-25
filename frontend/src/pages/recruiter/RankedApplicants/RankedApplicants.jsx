@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Users,
@@ -19,6 +20,8 @@ import {
   UserMinus,
   UserCheck,
   FileText,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -657,9 +660,6 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
             </div>
 
             <div className="breakdown-actions">
-              <button className="btn-approve-interview" onClick={onApprove}>
-                Approve for Interview
-              </button>
               <button className="btn-download-report" onClick={() => alert("Downloading PDF Report...")}>
                 <FileText size={16} style={{ marginRight: '8px' }} /> Download Report (PDF)
               </button>
@@ -672,6 +672,7 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
 }
 
 function RankedApplicants() {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
   const [selectedVacancyId, setSelectedVacancyId] = useState(1);
@@ -681,6 +682,10 @@ function RankedApplicants() {
   const [toastMessage, setToastMessage] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [selectedCandidateNames, setSelectedCandidateNames] = useState([]);
+
+  // Modal States for Interview Scheduling
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState(null); // 'auto' | 'manual'
 
   // Tab State: 'All Applicants', 'Ranked Candidates', 'Shortlisted'
   const [activeTab, setActiveTab] = useState('Ranked Candidates');
@@ -863,7 +868,6 @@ function RankedApplicants() {
                   </div>
                 </div>
                 <div className="ranked-header__actions">
-                  <button className="btn btn-outline">Edit Job</button>
                   <button
                     className="btn btn-primary"
                     onClick={handleRunMatching}
@@ -875,43 +879,6 @@ function RankedApplicants() {
                 </div>
               </div>
 
-              {/* Stats Grid */}
-              <div className="ranked-stats-grid">
-                <div className="ranked-stat-card">
-                  <div className="ranked-stat-card__info">
-                    <span className="ranked-stat-card__label">Total Applicants</span>
-                    <span className="ranked-stat-card__value">{selectedVacancy.totalApplicants}</span>
-                    <span className="ranked-stat-card__subtext positive">{selectedVacancy.applicantsCountSubtext}</span>
-                  </div>
-                  <div className="ranked-stat-card__icon-wrap">
-                    <Users size={20} />
-                  </div>
-                </div>
-
-                <div className="ranked-stat-card">
-                  <div className="ranked-stat-card__info">
-                    <span className="ranked-stat-card__label">Avg. Match Score</span>
-                    <span className="ranked-stat-card__value">{selectedVacancy.avgScore}</span>
-                    <span className="ranked-stat-card__subtext">{selectedVacancy.engineConfidence}</span>
-                  </div>
-                  <div className="ranked-stat-card__icon-wrap">
-                    <Target size={20} />
-                  </div>
-                </div>
-
-                <div className="ranked-stat-card">
-                  <div className="ranked-stat-card__info">
-                    <span className="ranked-stat-card__label">Last Matched</span>
-                    <span className="ranked-stat-card__value">{selectedVacancy.lastMatched}</span>
-                    <span className="ranked-stat-card__subtext">{selectedVacancy.lastMatchedBy}</span>
-                  </div>
-                  <div className="ranked-stat-card__icon-wrap">
-                    <Clock size={20} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Candidates Main Table Section */}
               <div className="candidates-card">
                 {/* Run Matching Loading Scanner Overlay */}
                 {isMatching && (
@@ -928,7 +895,7 @@ function RankedApplicants() {
                         className={`tab-btn ${activeTab === 'All Applicants' ? 'active' : ''}`}
                         onClick={() => { setActiveTab('All Applicants'); setCurrentPage(1); }}
                       >
-                        All Applicants
+                        All Applicants ({selectedVacancy.totalApplicants})
                       </button>
                       <button
                         className={`tab-btn ${activeTab === 'Ranked Candidates' ? 'active' : ''}`}
@@ -951,19 +918,17 @@ function RankedApplicants() {
                   </div>
 
                   <div className="filter-actions">
-                    <div className="sort-container">
-                      <span>Sort:</span>
-                      <select
-                        className="sort-select"
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
+                    {activeTab === 'Shortlisted' && (
+                      <button
+                        className="btn-schedule-interviews"
+                        onClick={() => {
+                          setSelectedMethod(null);
+                          setShowScheduleModal(true);
+                        }}
                       >
-                        <option value="Highest Match">Highest Match</option>
-                        <option value="Lowest Match">Lowest Match</option>
-                        <option value="Alphabetical">Alphabetical</option>
-                      </select>
-                    </div>
-
+                        <Calendar size={16} /> Schedule Interviews
+                      </button>
+                    )}
                     <div style={{ position: 'relative' }}>
                       <button
                         className={`filter-icon-btn ${activeFilter !== 'All' ? 'active' : ''}`}
@@ -1012,7 +977,7 @@ function RankedApplicants() {
                 </div>
 
                 {/* Candidates Grid Table */}
-                <div className={`candidates-table ${activeTab !== 'Shortlisted' ? 'has-checkbox' : ''}`}>
+                <div className={`candidates-table ${activeTab !== 'Shortlisted' ? 'has-checkbox' : 'is-shortlisted'}`}>
                   <div className="table-header">
                     {activeTab !== 'Shortlisted' && (
                       <div className="cell-checkbox">
@@ -1121,6 +1086,22 @@ function RankedApplicants() {
                             >
                               View Details
                             </button>
+                            {activeTab === 'Shortlisted' && (
+                              <button
+                                className="btn-remove-shortlist"
+                                onClick={() => {
+                                  setCandidates(prev =>
+                                    prev.map(c => c.name === candidate.name ? { ...c, shortlisted: false } : c)
+                                  );
+                                  setToastMessage(`${candidate.name} has been removed from the shortlisted board.`);
+                                  setShowToast(true);
+                                  setSelectedCandidateNames(prev => prev.filter(name => name !== candidate.name));
+                                  setTimeout(() => setShowToast(false), 4000);
+                                }}
+                              >
+                                Remove
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1256,19 +1237,6 @@ function RankedApplicants() {
             >
               Shortlist Selected
             </button>
-            
-            <button 
-              className="btn-batch btn-batch-approve"
-              onClick={() => {
-                setToastMessage(`Approved ${selectedCandidateNames.length} candidate(s) for interview.`);
-                setShowToast(true);
-                setSelectedCandidateNames([]);
-                setTimeout(() => setShowToast(false), 4000);
-              }}
-            >
-              Approve for Interview
-            </button>
-
             <button 
               className="btn-batch btn-batch-reject"
               onClick={() => {
@@ -1290,6 +1258,103 @@ function RankedApplicants() {
             >
               Clear Selection
             </button>
+          </div>
+        </div>
+      )}
+      {showScheduleModal && (
+        <div className="schedule-modal-overlay">
+          <div className="schedule-modal">
+            <button 
+              className="schedule-modal__close-btn" 
+              onClick={() => {
+                setShowScheduleModal(false);
+                setSelectedMethod(null);
+              }}
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="schedule-modal__title">Choose Scheduling Method</h2>
+            <p className="schedule-modal__desc">
+              Select how you would like to schedule interviews for shortlisted candidates.
+            </p>
+
+            <div className="schedule-options-grid">
+              {/* Option 1: Auto Schedule */}
+              <div 
+                className={`schedule-option-card recommended ${selectedMethod === 'auto' ? 'selected' : ''}`}
+                onClick={() => setSelectedMethod('auto')}
+              >
+                <div className="schedule-option-card__badge">Recommended</div>
+                <div className="schedule-option-card__icon-wrap auto-icon">
+                  <Sparkles size={22} />
+                </div>
+                <div className="schedule-option-card__content">
+                  <h3 className="schedule-option-card__title">🤖 Auto Schedule & Notify</h3>
+                  <p className="schedule-option-card__desc">
+                    Automatically match shortlisted candidates with available interview time slots based on existing interview panels and send interview invitation emails.
+                  </p>
+                </div>
+              </div>
+
+              {/* Option 2: Manual Schedule */}
+              <div 
+                className={`schedule-option-card ${selectedMethod === 'manual' ? 'selected' : ''}`}
+                onClick={() => setSelectedMethod('manual')}
+              >
+                <div className="schedule-option-card__icon-wrap manual-icon">
+                  <Users size={22} />
+                </div>
+                <div className="schedule-option-card__content">
+                  <h3 className="schedule-option-card__title">👤 Manual Scheduling</h3>
+                  <p className="schedule-option-card__desc">
+                    Manually assign interview panels, candidates, interview dates, and time slots before sending interview invitations.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="schedule-modal__actions">
+              <button 
+                className="btn-modal-cancel"
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  setSelectedMethod(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-modal-continue"
+                disabled={!selectedMethod}
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  if (selectedMethod === 'auto') {
+                    // Check local storage flag for existing interview panels
+                    const panelsExist = localStorage.getItem('interview_panel_created') === 'true';
+                    if (panelsExist) {
+                      const shortlistedCount = candidates.filter(
+                        c => c.vacancyId === selectedVacancyId && c.shortlisted
+                      ).length;
+                      
+                      setToastMessage(`Auto-scheduled interviews and sent invitations to ${shortlistedCount} candidate(s) successfully!`);
+                      setShowToast(true);
+                      setTimeout(() => setShowToast(false), 5000);
+                    } else {
+                      // Redirect to Panel & Evaluation page
+                      localStorage.setItem('scheduling_pending', 'true');
+                      navigate('/recruiter/interviews/evaluation');
+                    }
+                  } else {
+                    // Navigate to manual Candidate Allocation page
+                    navigate('/recruiter/interviews/allocation');
+                  }
+                  setSelectedMethod(null);
+                }}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}
