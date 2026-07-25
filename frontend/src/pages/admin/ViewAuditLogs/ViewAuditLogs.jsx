@@ -8,7 +8,7 @@ import {
   Calendar,
   Zap,
   Globe,
-  Settings,
+
   Download,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import '../../../styles/admin.css';
 import './ViewAuditLogs.css';
 
 // ── Mock data ─────────────────────────────────────────────────────────
@@ -194,16 +195,15 @@ function ViewAuditLogs() {
         />
 
         {/* ── Page Title Bar ── */}
-        <div className="audit-titlebar">
-          <div className="audit-titlebar__left">
-            <h1 className="audit-titlebar__heading">Audit Management System</h1>
-            <span className="audit-env-badge">PROD-ENV</span>
+        <div className="admin-content__header">
+          <div>
+            <h1 className="admin-content__title">Audit Log</h1>
+            <p className="admin-content__subtitle">
+              Monitor and review all system activity and security events across the organization.
+            </p>
           </div>
           <div className="audit-titlebar__right">
             <LiveClock />
-            <button className="audit-settings-btn" aria-label="Settings">
-              <Settings size={18} />
-            </button>
           </div>
         </div>
 

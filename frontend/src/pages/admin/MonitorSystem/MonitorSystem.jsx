@@ -12,8 +12,8 @@ import {
   Database,
   Bell,
   Activity,
-  Menu,
 } from 'lucide-react';
+import TopBar from '../../../components/TopBar/TopBar';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import './MonitorSystem.css';
 import '../../../styles/admin.css';
@@ -324,17 +324,17 @@ function MonitorSystem() {
         activeItem="System health"
       />
       <div className="admin-dashboard__main ms-shell">
-      {/* ── Top Navigation ── */}
-      <nav className="ms-topnav" role="navigation" aria-label="System monitor navigation">
-        <button
-          className="ms-hamburger-btn"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Toggle sidebar"
-          type="button"
-        >
-          <Menu size={20} />
-        </button>
+        {/* ── Standard TopBar ── */}
+        <TopBar
+          user={{ name: 'Admin User', role: 'System Controller' }}
+          notificationsCount={5}
+          searchPlaceholder="Search system..."
+          onSearch={(q) => console.log('System search:', q)}
+          onHamburgerClick={() => setSidebarOpen(true)}
+        />
 
+        {/* ── Secondary nav: tabs + cluster badge + refresh ── */}
+        <nav className="ms-topnav" role="navigation" aria-label="System monitor navigation">
         <div className="ms-topnav__tabs">
           {TABS.map((tab) => (
             <button

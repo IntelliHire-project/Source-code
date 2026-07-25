@@ -16,8 +16,8 @@ import {
   Check,
   FileText,
   AlertTriangle,
-  Menu,
 } from 'lucide-react';
+import TopBar from '../../../components/TopBar/TopBar';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import './VerifyRecruiters.css';
 
@@ -375,43 +375,16 @@ function VerifyRecruiters() {
       />
 
       <div className="admin-dashboard__main">
-        {/* Custom verifier top bar matching mockup */}
-        <header className="admin-verifier-topbar">
-          <button
-            className="topbar__hamburger verifier-hamburger-btn"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Toggle sidebar"
-            type="button"
-          >
-            <Menu />
-          </button>
+        {/* ── Standard TopBar ── */}
+        <TopBar
+          user={{ name: 'Admin User', role: 'System Controller' }}
+          notificationsCount={5}
+          searchPlaceholder="Search across system..."
+          onSearch={(q) => console.log('Global search:', q)}
+          onHamburgerClick={() => setSidebarOpen(true)}
+        />
 
-          <div className="verifier-search-bar">
-            <Search className="verifier-search-icon" size={18} />
-            <input
-              type="text"
-              placeholder="Search recruiters by name, email, or company ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="verifier-search-input"
-            />
-          </div>
 
-          <button className="verifier-filter-btn">
-            <SlidersHorizontal size={16} />
-            <span>Filters</span>
-          </button>
-
-          <div className="verifier-top-stats">
-            <span className="verifier-top-label">Verification Queue</span>
-            <span className="verifier-top-count">{totalQueueCount} Requests</span>
-          </div>
-
-          <button className="verifier-doc-btn" title="Verification Documents">
-            <FileText size={18} />
-            <span className="verifier-badge-dot"></span>
-          </button>
-        </header>
 
         <main className="verifier-content">
           {/* Header */}

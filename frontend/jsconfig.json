@@ -5,6 +5,7 @@
     "moduleResolution": "node10",
     "jsx": "react-jsx",
     "baseUrl": "src",
+    "ignoreDeprecations": "5.0",
     "checkJs": false,
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
