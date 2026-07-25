@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Briefcase,
   Users,
@@ -673,6 +673,7 @@ function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onAppro
 
 function RankedApplicants() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
   const [selectedVacancyId, setSelectedVacancyId] = useState(1);
@@ -704,6 +705,20 @@ function RankedApplicants() {
   useEffect(() => {
     setSelectedCandidateNames([]);
   }, [selectedVacancyId, activeTab, currentPage, activeFilter, searchQuery]);
+
+  // Synchronize activeTab state with URL routing pathname
+  useEffect(() => {
+    if (location.pathname === '/recruiter/applicants/all') {
+      setActiveTab('All Applicants');
+      setCurrentPage(1);
+    } else if (location.pathname === '/recruiter/applicants/shortlisted') {
+      setActiveTab('Shortlisted');
+      setCurrentPage(1);
+    } else if (location.pathname === '/recruiter/applicants/ranked' || location.pathname === '/recruiter/applicants') {
+      setActiveTab('Ranked Candidates');
+      setCurrentPage(1);
+    }
+  }, [location.pathname]);
 
   // Handle run matching simulation
   const handleRunMatching = () => {
@@ -893,19 +908,19 @@ function RankedApplicants() {
                     <div className="candidates-tabs">
                       <button
                         className={`tab-btn ${activeTab === 'All Applicants' ? 'active' : ''}`}
-                        onClick={() => { setActiveTab('All Applicants'); setCurrentPage(1); }}
+                        onClick={() => navigate('/recruiter/applicants/all')}
                       >
                         All Applicants ({selectedVacancy.totalApplicants})
                       </button>
                       <button
                         className={`tab-btn ${activeTab === 'Ranked Candidates' ? 'active' : ''}`}
-                        onClick={() => { setActiveTab('Ranked Candidates'); setCurrentPage(1); }}
+                        onClick={() => navigate('/recruiter/applicants/ranked')}
                       >
                         Ranked Candidates
                       </button>
                       <button
                         className={`tab-btn ${activeTab === 'Shortlisted' ? 'active' : ''}`}
-                        onClick={() => { setActiveTab('Shortlisted'); setCurrentPage(1); }}
+                        onClick={() => navigate('/recruiter/applicants/shortlisted')}
                       >
                         Shortlisted
                       </button>
