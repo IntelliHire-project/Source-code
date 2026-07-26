@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import TransactionDetailsModal from './TransactionDetailsModal';
+import RefundModal from './RefundModal';
+import ComplianceGuideModal from './ComplianceGuideModal';
 import './Payments.css';
 
 // ── Mock transaction data ─────────────────────────────────────────────
@@ -21,9 +24,9 @@ const ALL_TRANSACTIONS = [
   {
     id: 'TRX-9821-XP',
     company: 'TechFlow Systems',
-    jobTitle: 'Senior Frontend Engineer',
-    date: 'Oct 24, 2023',
-    amount: 1250.0,
+    jobTitle: 'Senior Frontend Engineer (Contract)',
+    date: 'Oct 24, 2023 - 14:32 PM',
+    amount: 13695.0,
     status: 'successful',
     logo: 'https://api.dicebear.com/7.x/initials/svg?seed=TF',
   },
@@ -31,7 +34,7 @@ const ALL_TRANSACTIONS = [
     id: 'TRX-8742-LQ',
     company: 'Green Horizon Ltd',
     jobTitle: 'Sustainability Consultant',
-    date: 'Oct 23, 2023',
+    date: 'Oct 23, 2023 - 09:15 AM',
     amount: 850.0,
     status: 'failed',
     logo: 'https://api.dicebear.com/7.x/initials/svg?seed=GH',
@@ -40,7 +43,7 @@ const ALL_TRANSACTIONS = [
     id: 'TRX-7651-KM',
     company: 'Nexus Creative',
     jobTitle: 'Creative Director',
-    date: 'Oct 22, 2023',
+    date: 'Oct 22, 2023 - 11:45 AM',
     amount: 2100.0,
     status: 'successful',
     logo: 'https://api.dicebear.com/7.x/initials/svg?seed=NC',
@@ -49,7 +52,7 @@ const ALL_TRANSACTIONS = [
     id: 'TRX-6548-JT',
     company: 'DataPulse AI',
     jobTitle: 'ML Operations Specialist',
-    date: 'Oct 22, 2023',
+    date: 'Oct 22, 2023 - 16:20 PM',
     amount: 1500.0,
     status: 'refunded',
     logo: 'https://api.dicebear.com/7.x/initials/svg?seed=DP',
@@ -58,7 +61,7 @@ const ALL_TRANSACTIONS = [
     id: 'TRX-5439-RS',
     company: 'Stellar Fintech',
     jobTitle: 'Product Manager',
-    date: 'Oct 21, 2023',
+    date: 'Oct 21, 2023 - 10:05 AM',
     amount: 1800.0,
     status: 'pending',
     logo: 'https://api.dicebear.com/7.x/initials/svg?seed=SF',
@@ -66,9 +69,9 @@ const ALL_TRANSACTIONS = [
 ];
 
 const RECENT_REFUNDS = [
-  { company: 'Vortex Labs', time: '2H AGO', amount: 350.0, status: 'Review Needed' },
-  { company: 'Aura Design', time: '5H AGO', amount: 1200.0, status: 'Review Needed' },
-  { company: 'CloudScale', time: '1D AGO', amount: 500.0, status: 'Review Needed' },
+  { id: 'TRX-99281-XC', company: 'Nexus Global Talent', time: '2H AGO', amount: 45000.0, status: 'Review Needed' },
+  { id: 'TRX-88123-ZZ', company: 'Aura Design', time: '5H AGO', amount: 1200.0, status: 'Review Needed' },
+  { id: 'TRX-77321-YY', company: 'CloudScale', time: '1D AGO', amount: 500.0, status: 'Review Needed' },
 ];
 
 const fmt = (n) =>
@@ -78,6 +81,9 @@ export default function Payments() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [refundTransaction, setRefundTransaction] = useState(null);
+  const [showComplianceGuide, setShowComplianceGuide] = useState(false);
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -195,7 +201,7 @@ export default function Payments() {
                 </thead>
                 <tbody>
                   {filtered.map(t => (
-                    <tr key={t.id}>
+                    <tr key={t.id} onClick={() => setSelectedTransaction(t)} style={{cursor: 'pointer'}}>
                       <td>
                         <div className="txn-cell-company">
                           <img src={t.logo} alt="" className="txn-company-logo" />
@@ -213,7 +219,7 @@ export default function Payments() {
                         </span>
                       </td>
                       <td>
-                        <button className="txn-action-btn">
+                        <button className="txn-action-btn" onClick={(e) => { e.stopPropagation(); setSelectedTransaction(t); }}>
                           <MoreHorizontal size={16} />
                         </button>
                       </td>
@@ -246,7 +252,7 @@ export default function Payments() {
                   All refunds are currently under manual review by the administrative team.
                   Payments over $5,000.00 require dual-factor authorization from a Senior Financial Officer.
                 </p>
-                <button className="txn-policy-link">Read the Full Compliance Guide →</button>
+                <button className="txn-policy-link" onClick={() => setShowComplianceGuide(true)}>Read the Full Compliance Guide →</button>
               </div>
               <div className="txn-policy-image">
                 <div className="txn-policy-icon-placeholder">
@@ -261,13 +267,13 @@ export default function Payments() {
               </div>
               <div className="txn-refunds-list">
                 {RECENT_REFUNDS.map((r, i) => (
-                  <div className="txn-refund-item" key={i}>
+                  <div className="txn-refund-item" key={i} onClick={() => setRefundTransaction(r)} style={{cursor: 'pointer'}}>
                     <div className="txn-refund-left">
                       <div className="txn-refund-company">{r.company}</div>
                       <div className="txn-refund-time">{r.time}</div>
                     </div>
                     <div className="txn-refund-right">
-                      <div className="txn-refund-amount">{fmt(r.amount)}</div>
+                      <div className="txn-refund-amount">LKR {r.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
                       <div className="txn-refund-status">{r.status}</div>
                     </div>
                   </div>
@@ -279,6 +285,24 @@ export default function Payments() {
 
         </div>
       </div>
+      
+      {/* Transaction Details Modal */}
+      <TransactionDetailsModal 
+        transaction={selectedTransaction} 
+        onClose={() => setSelectedTransaction(null)} 
+      />
+
+      {/* Process Refund Modal */}
+      <RefundModal
+        refund={refundTransaction}
+        onClose={() => setRefundTransaction(null)}
+      />
+
+      {/* Compliance Guide Modal */}
+      <ComplianceGuideModal
+        isOpen={showComplianceGuide}
+        onClose={() => setShowComplianceGuide(false)}
+      />
     </div>
   );
 }
