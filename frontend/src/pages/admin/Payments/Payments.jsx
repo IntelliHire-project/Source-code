@@ -16,7 +16,7 @@ import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import TransactionDetailsModal from './TransactionDetailsModal';
 import RefundModal from './RefundModal';
-import ComplianceGuideModal from './ComplianceGuideModal';
+
 import './Payments.css';
 
 // ── Mock transaction data ─────────────────────────────────────────────
@@ -83,7 +83,7 @@ export default function Payments() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [refundTransaction, setRefundTransaction] = useState(null);
-  const [showComplianceGuide, setShowComplianceGuide] = useState(false);
+
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -245,22 +245,6 @@ export default function Payments() {
 
           {/* Bottom blocks */}
           <div className="txn-bottom-blocks">
-            <div className="txn-policy-card">
-              <div className="txn-policy-content">
-                <h3>Refund Policy Enforcement</h3>
-                <p>
-                  All refunds are currently under manual review by the administrative team.
-                  Payments over $5,000.00 require dual-factor authorization from a Senior Financial Officer.
-                </p>
-                <button className="txn-policy-link" onClick={() => setShowComplianceGuide(true)}>Read the Full Compliance Guide →</button>
-              </div>
-              <div className="txn-policy-image">
-                <div className="txn-policy-icon-placeholder">
-                  <span style={{fontSize:'3rem'}}>✋</span>
-                </div>
-              </div>
-            </div>
-
             <div className="txn-refunds-card">
               <div className="txn-refunds-header">
                 <Clock size={16} /> RECENT REFUND REQUESTS
@@ -298,11 +282,7 @@ export default function Payments() {
         onClose={() => setRefundTransaction(null)}
       />
 
-      {/* Compliance Guide Modal */}
-      <ComplianceGuideModal
-        isOpen={showComplianceGuide}
-        onClose={() => setShowComplianceGuide(false)}
-      />
+
     </div>
   );
 }
