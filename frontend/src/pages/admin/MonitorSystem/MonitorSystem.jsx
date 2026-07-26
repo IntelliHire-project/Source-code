@@ -20,7 +20,7 @@ import '../../../styles/admin.css';
 import logo from '../../../logo.png';
 
 // ── Static configuration ──────────────────────────────────────────────
-const TABS = ['Overview', 'Nodes', 'Services', 'Logs'];
+
 
 const INITIAL_METRICS = {
   cpu:     { value: 64.8, unit: '%',     bar: 64.8, delta: '+4.2% from last hour',  dir: 'up'   },
@@ -269,7 +269,6 @@ function SystemLoadChart({ data }) {
 // ── Main Component ────────────────────────────────────────────────────
 function MonitorSystem() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('Overview');
   const [refreshing, setRefreshing] = useState(false);
   const [metrics, setMetrics] = useState(INITIAL_METRICS);
   const [loadData, setLoadData] = useState(LOAD_DATA);
@@ -333,38 +332,32 @@ function MonitorSystem() {
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
-        {/* ── Secondary nav: tabs + cluster badge + refresh ── */}
-        <nav className="ms-topnav" role="navigation" aria-label="System monitor navigation">
-        <div className="ms-topnav__tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              className={`ms-tab-btn ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-              type="button"
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        <div className="ms-topnav__right">
-          <div className="ms-cluster-badge">
-            <span className="ms-cluster-badge__label">Master Cluster</span>
-            <span className="ms-cluster-badge__status">STABLE</span>
+        {/* ── Page Title ── */}
+        <div className="admin-content__header">
+          <div>
+            <h1 className="admin-content__title">System Health</h1>
+            <p className="admin-content__subtitle">
+              Monitor real-time infrastructure metrics, services, and system incidents.
+            </p>
           </div>
-          <button
-            id="refresh-system-btn"
-            className={`ms-btn-refresh ${refreshing ? 'refreshing' : ''}`}
-            onClick={handleRefresh}
-            type="button"
-            disabled={refreshing}
-          >
-            <RefreshCw size={15} />
-            {refreshing ? 'Refreshing…' : 'Refresh System'}
-          </button>
+          {/* ── Refresh action ── */}
+          <div className="ms-topnav__right" style={{display:'flex', alignItems:'center', gap:'12px'}}>
+            <div className="ms-cluster-badge">
+              <span className="ms-cluster-badge__label">Master Cluster</span>
+              <span className="ms-cluster-badge__status">STABLE</span>
+            </div>
+            <button
+              id="refresh-system-btn"
+              className={`ms-btn-refresh ${refreshing ? 'refreshing' : ''}`}
+              onClick={handleRefresh}
+              type="button"
+              disabled={refreshing}
+            >
+              <RefreshCw size={15} />
+              {refreshing ? 'Refreshing…' : 'Refresh System'}
+            </button>
+          </div>
         </div>
-      </nav>
 
       {/* ── Main Content ── */}
       <main className="ms-content">

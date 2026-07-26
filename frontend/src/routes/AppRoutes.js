@@ -21,6 +21,7 @@ import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyM
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
+import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
 import ModerateContent from '../pages/admin/ModerateContent/ModerateContent';
@@ -167,7 +168,7 @@ function AppRoutes() {
           path="/admin/dashboard"
           element={
             <ProtectedRoute>
-              <AdminPlaceholder title="Dashboard" />
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
