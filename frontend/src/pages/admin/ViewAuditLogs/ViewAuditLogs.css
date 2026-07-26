@@ -12,6 +12,29 @@
   flex: 1;
 }
 
+/* ── Page Header ── */
+.audit-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 28px 20px;
+  margin-bottom: 4px;
+}
+
+.audit-page-header .moderation-header__title-group h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.5px;
+}
+
+.audit-page-header .moderation-header__title-group p {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
 /* ── Page Title Bar ── */
 .audit-titlebar {
   height: 56px;
