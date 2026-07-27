@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Briefcase,
   PlusCircle,
-  Eye,
   CreditCard,
   Settings,
   Users,
@@ -20,7 +19,6 @@ const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/recruiter/dashboard' },
   { label: 'Active Vacancies', icon: Briefcase, path: '/recruiter/vacancies' },
   { label: 'Create Vacancy', icon: PlusCircle, path: '/recruiter/create-vacancy' },
-  { label: 'Vacancy Preview', icon: Eye, path: '/recruiter/vacancy-preview' },
   {
     label: 'Applicants',
     icon: Users,
