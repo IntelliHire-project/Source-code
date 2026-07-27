@@ -127,7 +127,7 @@ function CompleteYourPurchasePage() {
 
   const handleSubmit = useCallback(() => {
     if (validate()) {
-      navigate('/recruiter/payments');
+      navigate('/recruiter/otp-verification');
     }
   }, [validate, navigate]);
 
