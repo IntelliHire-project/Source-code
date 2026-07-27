@@ -297,7 +297,12 @@ function SignupPage() {
                 </svg>
               </div>
               <h2 id="signup-card-title" className="auth-title">Create Your Account</h2>
-              <p className="auth-subtitle">Join thousands of candidates building their future</p>
+            </div>
+
+            {/* Role Toggle Switch */}
+            <div className="auth-role-toggle">
+              <span className="auth-role-tab active">Candidate</span>
+              <Link to="/recruiter/signup" className="auth-role-tab">Recruiter</Link>
             </div>
 
             <form className="auth-form" onSubmit={handleSubmit}>

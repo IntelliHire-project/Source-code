@@ -1,0 +1,252 @@
+/* ============================================================
+   Application Review Modal
+   ============================================================ */
+
+.arm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.arm-modal {
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--primary);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  position: relative;
+}
+
+.arm-modal__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.arm-modal__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(240, 185, 11, 0.35);
+  background: rgba(240, 185, 11, 0.06);
+  color: var(--accent);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.arm-modal__close {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.arm-modal__close:hover {
+  color: var(--text-on-dark);
+  background: var(--primary-light);
+}
+
+.arm-modal__title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-on-dark);
+  letter-spacing: -0.02em;
+}
+
+.arm-modal__subtitle {
+  margin: 8px 0 0;
+  font-size: 0.84rem;
+  color: var(--text-on-dark-muted);
+  opacity: 0.65;
+  line-height: 1.55;
+}
+
+.arm-modal__divider {
+  height: 1px;
+  background: var(--border-dark);
+  margin: 22px 0;
+}
+
+/* ── Sections ── */
+
+.arm-modal__section {
+  margin-bottom: 22px;
+}
+
+.arm-modal__section:last-of-type {
+  margin-bottom: 0;
+}
+
+.arm-modal__section-header {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-on-dark);
+}
+
+.arm-modal__section-header svg {
+  color: var(--accent);
+}
+
+/* ── Card ── */
+
+.arm-modal__card {
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-md);
+  background: var(--primary-light);
+  overflow: hidden;
+}
+
+.arm-modal__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.arm-modal__row--last {
+  border-bottom: none;
+}
+
+.arm-modal__row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.arm-modal__row-label svg {
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.arm-modal__row-value {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-on-dark);
+  text-align: right;
+}
+
+/* ── Skill Tags ── */
+
+.arm-modal__skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+.arm-modal__skill-tag {
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: rgba(240, 185, 11, 0.1);
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+/* ── Footer ── */
+
+.arm-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.arm-modal__btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.arm-modal__btn:hover {
+  transform: translateY(-1px);
+}
+
+.arm-modal__btn--outline {
+  border: 1px solid var(--border-dark);
+  background: transparent;
+  color: var(--text-on-dark);
+}
+
+.arm-modal__btn--outline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.arm-modal__btn--gold {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--primary);
+}
+
+.arm-modal__btn--gold:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 640px) {
+  .arm-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .arm-modal {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 85vh;
+    padding: 22px 18px;
+  }
+
+  .arm-modal__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .arm-modal__row-value {
+    text-align: left;
+  }
+
+  .arm-modal__skill-tags {
+    justify-content: flex-start;
+  }
+}

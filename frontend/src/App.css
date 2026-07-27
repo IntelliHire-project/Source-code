@@ -1,3 +1,4 @@
+
 /* Premium Dark Theme for IntelliHire Auth Flow */
 
 :root {
@@ -887,6 +888,144 @@
   background: transparent;
   position: relative;
   z-index: 10;
+}
+
+/* Auth Role Toggle Switch */
+.auth-role-toggle {
+  display: flex;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 4px;
+  width: 100%;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.auth-role-tab {
+  flex: 1;
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary-dark);
+  text-decoration: none;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.auth-role-tab.active {
+  background-color: var(--accent);
+  color: #000000;
+  box-shadow: 0 2px 8px rgba(240, 185, 11, 0.2);
+}
+
+.auth-role-tab:hover:not(.active) {
+  color: var(--text-primary-dark);
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Features Grid (2 columns on desktop) */
+.auth-features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+  .auth-features-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.auth-feature-category-title {
+  grid-column: span 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+@media (min-width: 768px) {
+  .auth-feature-category-title {
+    grid-column: span 2;
+  }
+}
+
+/* Shared Signup Links styling */
+.auth-signup-links {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.auth-signup-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm, 6px);
+  color: var(--text-primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.auth-signup-btn:hover {
+  border-color: var(--accent);
+  background-color: rgba(240, 185, 11, 0.05);
+  color: var(--text-primary-dark);
+}
+
+/* Centered Hero Side Layout */
+.auth-hero-centered {
+  align-items: center;
+  text-align: center;
+}
+
+.auth-hero-centered .auth-brand {
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0;
+}
+
+.auth-hero-centered .auth-hero-content {
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-hero-centered .auth-hero-footer-features {
+  width: 100%;
+  justify-content: center;
+  gap: 32px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-top: 24px;
+}
+
+.auth-hero-centered .auth-footer-feature {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.auth-hero-centered .auth-footer-feature-icon {
+  margin-bottom: 2px;
 }
 
 /* Adjust wrapper inside split view */

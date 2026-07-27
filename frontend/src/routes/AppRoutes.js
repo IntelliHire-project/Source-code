@@ -5,11 +5,97 @@ import SignupPage from '../pages/candidate/Signup/SignupPage';
 import SignInPage from '../pages/candidate/SignIn/SignInPage';
 import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
-import RecruiterSignInPage from '../pages/recruiter/SignIn/SignInPage';
+import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
+import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
+import InterviewCommunication from '../pages/recruiter/InterviewCommunication/InterviewCommunication';
+import InterviewEvaluationPage from '../pages/recruiter/InterviewEvaluation/InterviewEvaluation';
 import CommunityPage from '../pages/community/CommunityPage';
+import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
+import CandidateDashboard from '../pages/candidate/CandidateDashboard';
+import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
+import JobSearch from '../pages/candidate/jobs/JobSearch';
+import JobDetail from '../pages/candidate/jobs/JobDetail';
+import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
+import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
+import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
+import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
+import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
+import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
+import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
+import RecruiterSidebar from '../components/common/RecruiterSidebar';
+import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
+import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
+import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
+import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
+import ModerateContent from '../pages/admin/ModerateContent/ModerateContent';
+import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
+import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
+import Payments from '../pages/admin/Payments/Payments';
 import ProtectedRoute from './ProtectedRoute';
+import AdminSidebar from '../components/common/AdminSidebar';
+import { Menu } from 'lucide-react';
+import '../styles/admin.css';
+import '../pages/admin/VerifyRecruiters/VerifyRecruiters.css';
+
+// Simple placeholder page for other applicant categories
+function PlaceholderApplicants({ title }) {
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  return (
+    <div className="create-vacancy">
+      <RecruiterSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className="create-vacancy__main">
+        <TopBar
+          user={{ name: 'Recruiter', role: 'Recruiter Account' }}
+          notificationsCount={3}
+          searchPlaceholder="Search..."
+          onHamburgerClick={() => setSidebarOpen(true)}
+        />
+        <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', background: 'var(--primary-dark)', minHeight: 'calc(100vh - 64px)' }}>
+          <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>{title}</h1>
+          <p style={{ color: '#a79e8c' }}>This page is currently under construction.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Simple placeholder page for under-construction admin panels
+function AdminPlaceholder({ title }) {
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  return (
+    <div className="admin-theme admin-dashboard">
+      <AdminSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem={title}
+      />
+      <div className="admin-dashboard__main">
+        <header className="admin-verifier-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', borderBottom: '1px solid var(--border)', background: 'var(--primary)' }}>
+          <button
+            className="topbar__hamburger verifier-hamburger-btn"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Toggle sidebar"
+            type="button"
+            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <Menu />
+          </button>
+          <div style={{ color: '#fff', fontWeight: 600, fontSize: '1.1rem', marginLeft: '12px' }}>IntelliHire Admin Panel</div>
+        </header>
+
+        <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'var(--primary-dark)' }}>
+          <h1 style={{ fontSize: '32px', marginBottom: '20px', fontWeight: 'bold' }}>{title}</h1>
+          <p style={{ color: '#a79e8c', fontSize: '18px' }}>This admin page is currently under construction.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Simple Dashboard template for authenticated users
 function Dashboard() {
@@ -30,11 +116,61 @@ function AppRoutes() {
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
-        <Route path="/recruiter/signin" element={<RecruiterSignInPage />} />
+        <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagement />} />
+        <Route path="/recruiter/interviews/allocation" element={<CandidateInterviewAllocation />} />
+        <Route path="/recruiter/interviews/invitations" element={<InterviewCommunication />} />
+        <Route path="/recruiter/interviews/communication" element={<InterviewCommunication />} />
+        <Route path="/recruiter/interviews/evaluation" element={<InterviewEvaluationPage />} />
+        <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
+        <Route path="/candidate" element={<CandidateDashboard />}>
+          <Route index element={<Navigate to="/candidate/profile" replace />} />
+          <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
+          <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
+          <Route path="cv-management" element={<CvManagementPage />} />
+          <Route path="jobs" element={<JobSearch />} />
+          <Route path="jobs/:jobId" element={<JobDetail />} />
+          <Route path="application-confirmation" element={<ApplicationConfirmation />} />
+        </Route>
         <Route
           path="/recruiter/dashboard"
           element={<RecruiterDashboard />}
+        />
+        <Route
+          path="/recruiter/vacancies"
+          element={<VacancyManagementPage />}
+        />
+        <Route
+          path="/recruiter/create-vacancy"
+          element={<CreateVacancyPage />}
+        />
+        <Route
+          path="/recruiter/vacancy-preview"
+          element={<PreviewVacancyPage />}
+        />
+        <Route
+          path="/recruiter/payments"
+          element={<PaymentBillingPage />}
+        />
+        <Route
+          path="/recruiter/analytics"
+          element={<ApplicantAnalytics />}
+        />
+        <Route
+          path="/recruiter/applicants/ranked"
+          element={<RankedApplicants />}
+        />
+        <Route
+          path="/recruiter/applicants/all"
+          element={<RankedApplicants />}
+        />
+        <Route
+          path="/recruiter/applicants/shortlisted"
+          element={<RankedApplicants />}
+        />
+        <Route
+          path="/recruiter/applicants/interviewed"
+          element={<PlaceholderApplicants title="Interviewed" />}
         />
         <Route
           path="/dashboard"
@@ -44,17 +180,96 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        {/* Community Forum — shared for both recruiters and candidates */}
         <Route
-          path="/community"
+          path="/admin/dashboard"
           element={
             <ProtectedRoute>
-              <CommunityPage />
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
-        {/* Public preview route (no auth required — for visual QA) */}
-        <Route path="/community-preview" element={<CommunityPage />} />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute>
+              <ManageUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/companies"
+          element={
+            <ProtectedRoute>
+              <VerifyRecruiters />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/verifications"
+          element={
+            <ProtectedRoute>
+              <VerifyRecruiters />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/job-moderation"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Job moderation" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/payments"
+          element={
+            <ProtectedRoute>
+              <Payments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/community-mod"
+          element={
+            <ProtectedRoute>
+              <ModerateContent />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <ProtectedRoute>
+              <ViewAuditLogs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/system-health"
+          element={
+            <ProtectedRoute>
+              <MonitorSystem />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/notifications"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="Notifications" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute>
+              <AdminPlaceholder title="System settings" />
+            </ProtectedRoute>
+          }
+        />
+        {/* Community Forum — shared for both recruiters and candidates */}
+        <Route path="/community" element={<CommunityPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
