@@ -25,6 +25,7 @@ import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBilling
 import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
+import VacancySelectorModal from '../components/common/VacancySelectorModal';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
@@ -60,6 +61,7 @@ function PlaceholderApplicants({ title }) {
           <p style={{ color: '#a79e8c' }}>This page is currently under construction.</p>
         </div>
       </div>
+      <VacancySelectorModal />
     </div>
   );
 }
