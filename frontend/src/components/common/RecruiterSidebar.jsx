@@ -8,6 +8,7 @@ import {
   Settings,
   Users,
   Calendar,
+  BarChart2,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -40,6 +41,7 @@ const NAV_ITEMS = [
     ],
   },
   { label: 'Payment History', icon: CreditCard, path: '/recruiter/payments' },
+  { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
 ];
 
 const BOTTOM_ITEMS = [
