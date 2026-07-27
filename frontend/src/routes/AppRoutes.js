@@ -13,12 +13,16 @@ import CommunityPage from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
 import CandidateDashboard from '../pages/candidate/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
+import JobSearch from '../pages/candidate/jobs/JobSearch';
+import JobDetail from '../pages/candidate/jobs/JobDetail';
+import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
+import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
@@ -124,6 +128,9 @@ function AppRoutes() {
           <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
           <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
           <Route path="cv-management" element={<CvManagementPage />} />
+          <Route path="jobs" element={<JobSearch />} />
+          <Route path="jobs/:jobId" element={<JobDetail />} />
+          <Route path="application-confirmation" element={<ApplicationConfirmation />} />
         </Route>
         <Route
           path="/recruiter/dashboard"
@@ -144,6 +151,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/payments"
           element={<PaymentBillingPage />}
+        />
+        <Route
+          path="/recruiter/analytics"
+          element={<ApplicantAnalytics />}
         />
         <Route
           path="/recruiter/applicants/ranked"
