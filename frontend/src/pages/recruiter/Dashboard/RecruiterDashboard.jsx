@@ -22,6 +22,7 @@ import {
   Smile,
   Percent,
   TrendingUp,
+  TrendingDown,
   AlertCircle,
   UserCheck2,
   CalendarDays,
@@ -36,12 +37,10 @@ import './RecruiterDashboard.css';
 
 // Mock Data Sets
 const STATS = [
-  { label: 'Active Job Postings', value: '12', icon: Briefcase, colorClass: 'gold', trend: '+2', trendType: 'positive' },
-  { label: 'Total Applicants', value: '284', icon: Users, colorClass: 'blue', trend: '+45', trendType: 'positive' },
-  { label: 'AI Shortlisted', value: '95', icon: Sparkles, colorClass: 'green', trend: '84%', trendType: 'positive' },
-  { label: 'Interviews Today', value: '8', icon: Calendar, colorClass: 'purple', trend: '3 Onsite', trendType: 'neutral' },
-  { label: 'Positions Filled', value: '45', icon: UserCheck, colorClass: 'teal', trend: '+12%', trendType: 'positive' },
-  { label: 'Pending Reviews', value: '18', icon: AlertCircle, colorClass: 'red', trend: 'Urgent', trendType: 'negative' },
+  { label: 'Active Job Postings', value: '12', icon: Briefcase, color: '#F0B90B', bg: 'rgba(240, 185, 11, 0.12)', change: '+2', up: true },
+  { label: 'Total Applicants', value: '284', icon: Users, color: '#6B8CFF', bg: 'rgba(107, 140, 255, 0.12)', change: '+45', up: true },
+  { label: 'AI Shortlisted', value: '95', icon: Sparkles, color: '#22C55E', bg: 'rgba(34, 197, 94, 0.12)', change: '84%', up: true },
+  { label: 'Interviews Today', value: '8', icon: Calendar, color: '#a371f7', bg: 'rgba(163, 113, 247, 0.12)', change: '3 Onsite', up: null },
 ];
 
 const PIPELINE_STEPS = [
@@ -95,14 +94,6 @@ const AI_RECOMMENDED_CANDIDATES = [
     resumeScore: 82,
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80',
   }
-];
-
-const ACTIVE_JOB_POSTINGS = [
-  { id: 'JOB-204', title: 'Senior Frontend Engineer', department: 'Engineering', applicants: 87, shortlisted: 24, closingDate: '15 Aug 2026', status: 'published' },
-  { id: 'JOB-205', title: 'Product Designer', department: 'Design', applicants: 64, shortlisted: 18, closingDate: '20 Aug 2026', status: 'published' },
-  { id: 'JOB-206', title: 'DevOps Specialist', department: 'Engineering', applicants: 32, shortlisted: 8, closingDate: '10 Aug 2026', status: 'published' },
-  { id: 'JOB-207', title: 'Backend Engineer (Node)', department: 'Engineering', applicants: 52, shortlisted: 15, closingDate: '12 Aug 2026', status: 'draft' },
-  { id: 'JOB-208', title: 'HR Lead Manager', department: 'People & Culture', applicants: 49, shortlisted: 12, closingDate: '05 Aug 2026', status: 'closed' }
 ];
 
 const UPCOMING_INTERVIEWS = [
@@ -226,6 +217,20 @@ function RecruiterDashboard() {
             <div className="welcome-title-grp">
               <h1>Welcome back, Sarah 👋</h1>
               <p>Here is your intelligence overview for today. Let's find your next perfect hire.</p>
+              <div className="welcome-actions-row">
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/create-vacancy')}>
+                  <Plus size={14} /> Post New Job
+                </button>
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/applicants/all')}>
+                  <Users size={14} /> View Applicants
+                </button>
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/applicants/ranked')}>
+                  <Sparkles size={14} /> AI Match Candidates
+                </button>
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/interviews')}>
+                  <Calendar size={14} /> Schedule Interviews
+                </button>
+              </div>
             </div>
             <div className="welcome-date-badge">
               <span className="welcome-date-text">{activeDate}</span>
@@ -242,67 +247,21 @@ function RecruiterDashboard() {
               const Icon = kpi.icon;
               return (
                 <div key={idx} className="recruiter-kpi-card">
-                  <div className={`kpi-card-header ${kpi.colorClass}`}>
-                    <div className="kpi-icon-container">
-                      <Icon size={18} />
-                    </div>
-                    <span className={`kpi-trend-tag ${kpi.trendType}`}>
-                      {kpi.trend}
+                  <div className="kpi-card-left">
+                    <span className="kpi-card-label">{kpi.label}</span>
+                    <span className="kpi-card-value">{kpi.value}</span>
+                    <span className={`kpi-card-change ${kpi.up === true ? 'up' : kpi.up === false ? 'down' : 'neutral'}`}>
+                      {kpi.up === true && <TrendingUp size={12} />}
+                      {kpi.up === false && <TrendingDown size={12} />}
+                      {kpi.change} vs last period
                     </span>
                   </div>
-                  <div className="kpi-value-grp">
-                    <h3>{kpi.value}</h3>
-                    <span>{kpi.label}</span>
+                  <div className="kpi-card-icon" style={{ backgroundColor: kpi.bg, color: kpi.color }}>
+                    <Icon size={18} />
                   </div>
                 </div>
               );
             })}
-          </section>
-
-          {/* ── 3. Quick Actions ── */}
-          <section className="recruiter-quick-actions">
-            <h2 className="recruiter-section-title">Quick Actions</h2>
-            <div className="action-btn-row">
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/create-vacancy')}>
-                <div className="action-icon-box">
-                  <Plus size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">Post New Job</span>
-                  <span className="action-btn-desc">Create and publish a vacancy</span>
-                </div>
-              </button>
-
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/applicants/all')}>
-                <div className="action-icon-box">
-                  <Users size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">View Applicants</span>
-                  <span className="action-btn-desc">Browse candidate applications</span>
-                </div>
-              </button>
-
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/applicants/ranked')}>
-                <div className="action-icon-box">
-                  <Sparkles size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">AI Match Candidates</span>
-                  <span className="action-btn-desc">Trigger rank and scoring models</span>
-                </div>
-              </button>
-
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/interviews')}>
-                <div className="action-icon-box">
-                  <Calendar size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">Schedule Interviews</span>
-                  <span className="action-btn-desc">Arrange team evaluation slots</span>
-                </div>
-              </button>
-            </div>
           </section>
 
           {/* ── 4. Recruitment Pipeline ── */}
@@ -373,67 +332,6 @@ function RecruiterDashboard() {
                   ))}
                 </div>
               </div>
-
-              {/* ── 6. Active Job Postings ── */}
-              <div className="dashboard-panel-card">
-                <div className="panel-header-row">
-                  <h2 className="recruiter-section-title">Active Job Postings</h2>
-                  <button className="panel-view-all-btn" onClick={() => navigate('/recruiter/vacancies')}>
-                    View Vacancies <ChevronRight size={14} />
-                  </button>
-                </div>
-                
-                <div className="postings-table-wrap">
-                  <table className="dashboard-postings-table">
-                    <thead>
-                      <tr>
-                        <th>Job Title & ID</th>
-                        <th>Department</th>
-                        <th>Applicants</th>
-                        <th>AI Shortlisted</th>
-                        <th>Closing Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ACTIVE_JOB_POSTINGS.map((job) => (
-                        <tr key={job.id}>
-                          <td>
-                            <div className="table-job-title-cell">
-                              <strong>{job.title}</strong>
-                              <span>{job.id}</span>
-                            </div>
-                          </td>
-                          <td>{job.department}</td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                              <Users size={12} className="text-muted" /> {job.applicants}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent)', fontWeight: 600 }}>
-                              <Sparkles size={12} /> {job.shortlisted}
-                            </div>
-                          </td>
-                          <td style={{ color: 'var(--text-muted)' }}>{job.closingDate}</td>
-                          <td>
-                            <span className={`postings-status-badge ${job.status}`}>
-                              {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                            </span>
-                          </td>
-                          <td>
-                            <button className="table-action-icon-btn" onClick={() => navigate('/recruiter/vacancies')} title="View Vacancy Details">
-                              <MoreVertical size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
               {/* ── 7. Upcoming Interviews ── */}
               <div className="dashboard-panel-card">
                 <div className="panel-header-row">
