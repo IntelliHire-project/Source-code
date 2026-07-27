@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   MapPin,
@@ -137,6 +138,7 @@ function TopMatchItem({ title, company, matchPercent, reasoning, onClick }) {
 /* ── Main Page ── */
 
 function JobSearch() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState(0);
   const [locationFilter, setLocationFilter] = useState('All Locations');
@@ -221,7 +223,7 @@ function JobSearch() {
       <div className="job-search__body">
         <main className="job-search__main">
           {MOCK_JOBS.map((job) => (
-            <JobCard key={job.id} {...job} onViewDetails={() => console.log('View details:', job.id)} onApply={() => console.log('Apply:', job.id)} />
+            <JobCard key={job.id} {...job} onViewDetails={() => navigate(`/candidate/jobs/${job.id}`)} onApply={() => console.log('Apply:', job.id)} />
           ))}
           <button className="job-search__load-more">Load more opportunities<ArrowDown size={16} /></button>
         </main>

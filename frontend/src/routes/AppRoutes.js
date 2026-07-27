@@ -14,6 +14,7 @@ import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePag
 import CandidateDashboard from '../pages/candidate/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/jobs/JobSearch';
+import JobDetail from '../pages/jobs/JobDetail';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
@@ -125,6 +126,7 @@ function AppRoutes() {
           <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
           <Route path="cv-management" element={<CvManagementPage />} />
           <Route path="jobs" element={<JobSearch />} />
+          <Route path="jobs/:jobId" element={<JobDetail />} />
         </Route>
         <Route
           path="/recruiter/dashboard"
