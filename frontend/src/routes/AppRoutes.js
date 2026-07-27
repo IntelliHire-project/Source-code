@@ -23,6 +23,7 @@ import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancy
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
 import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
+import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
 import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
@@ -154,6 +155,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/select-payment"
           element={<SelectPaymentMethodPage />}
+        />
+        <Route
+          path="/recruiter/complete-purchase"
+          element={<CompleteYourPurchasePage />}
         />
         <Route
           path="/recruiter/payments"

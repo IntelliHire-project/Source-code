@@ -92,7 +92,7 @@ function SelectPaymentMethodPage() {
             <div className="spm-header__text">
               <span className="spm-step-badge">
                 <Zap size={12} />
-                STEP 3: CHECKOUT
+                STEP 2 OF 3
               </span>
               <h1 className="spm-title">Select Payment Method</h1>
               <p className="spm-subtitle">
@@ -218,7 +218,7 @@ function SelectPaymentMethodPage() {
                 <button
                   type="button"
                   className="btn btn-primary spm-cta"
-                  onClick={() => navigate('/recruiter/payments')}
+                  onClick={() => navigate('/recruiter/complete-purchase')}
                 >
                   Continue to Payment
                   <ChevronRight size={16} />
