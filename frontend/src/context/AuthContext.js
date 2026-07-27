@@ -29,6 +29,8 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user);
         saveUserToStorage(data.user);
       }
+      sessionStorage.removeItem('hasChosenVacancy');
+      sessionStorage.removeItem('selectedVacancyId');
       return data;
     } finally {
       setLoading(false);
@@ -46,6 +48,8 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user);
         saveUserToStorage(data.user);
       }
+      sessionStorage.removeItem('hasChosenVacancy');
+      sessionStorage.removeItem('selectedVacancyId');
       return data;
     } finally {
       setLoading(false);
@@ -55,6 +59,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     clearAuthSession();
     setUser(null);
+    sessionStorage.removeItem('hasChosenVacancy');
+    sessionStorage.removeItem('selectedVacancyId');
   };
 
   const value = {
