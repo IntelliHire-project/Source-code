@@ -12,7 +12,6 @@ import {
   ListChecks,
   CheckCircle2,
   ShieldCheck,
-  CreditCard,
   Share2,
   ClipboardCheck,
   ChevronRight,
@@ -189,7 +188,7 @@ function PreviewVacancyPage() {
               </button>
               <button type="button" className="btn btn-primary">
                 <Send size={16} />
-                Publish Vacancy
+                Go to Payment
               </button>
             </div>
           </div>
@@ -292,10 +291,6 @@ function PreviewVacancyPage() {
                     </p>
                   </div>
                 </div>
-                <button type="button" className="btn btn-primary pv-cta-btn">
-                  <CreditCard size={16} />
-                  Go to Payment
-                </button>
               </InsightPanel>
             </div>
 
