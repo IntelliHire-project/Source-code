@@ -217,6 +217,20 @@ function RecruiterDashboard() {
             <div className="welcome-title-grp">
               <h1>Welcome back, Sarah 👋</h1>
               <p>Here is your intelligence overview for today. Let's find your next perfect hire.</p>
+              <div className="welcome-actions-row">
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/create-vacancy')}>
+                  <Plus size={14} /> Post New Job
+                </button>
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/applicants/all')}>
+                  <Users size={14} /> View Applicants
+                </button>
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/applicants/ranked')}>
+                  <Sparkles size={14} /> AI Match Candidates
+                </button>
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/interviews')}>
+                  <Calendar size={14} /> Schedule Interviews
+                </button>
+              </div>
             </div>
             <div className="welcome-date-badge">
               <span className="welcome-date-text">{activeDate}</span>
@@ -243,57 +257,11 @@ function RecruiterDashboard() {
                     </span>
                   </div>
                   <div className="kpi-card-icon" style={{ backgroundColor: kpi.bg, color: kpi.color }}>
-                    <Icon size={22} />
+                    <Icon size={18} />
                   </div>
                 </div>
               );
             })}
-          </section>
-
-          {/* ── 3. Quick Actions ── */}
-          <section className="recruiter-quick-actions">
-            <h2 className="recruiter-section-title">Quick Actions</h2>
-            <div className="action-btn-row">
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/create-vacancy')}>
-                <div className="action-icon-box">
-                  <Plus size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">Post New Job</span>
-                  <span className="action-btn-desc">Create and publish a vacancy</span>
-                </div>
-              </button>
-
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/applicants/all')}>
-                <div className="action-icon-box">
-                  <Users size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">View Applicants</span>
-                  <span className="action-btn-desc">Browse candidate applications</span>
-                </div>
-              </button>
-
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/applicants/ranked')}>
-                <div className="action-icon-box">
-                  <Sparkles size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">AI Match Candidates</span>
-                  <span className="action-btn-desc">Trigger rank and scoring models</span>
-                </div>
-              </button>
-
-              <button className="action-btn-card" onClick={() => navigate('/recruiter/interviews')}>
-                <div className="action-icon-box">
-                  <Calendar size={18} />
-                </div>
-                <div className="action-btn-info">
-                  <span className="action-btn-title">Schedule Interviews</span>
-                  <span className="action-btn-desc">Arrange team evaluation slots</span>
-                </div>
-              </button>
-            </div>
           </section>
 
           {/* ── 4. Recruitment Pipeline ── */}
