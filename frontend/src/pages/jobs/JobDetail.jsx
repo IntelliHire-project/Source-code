@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import './JobDetail.css';
+import ApplicationReviewModal from '../../components/ApplicationReviewModal';
 
 /* ── Mock Data ── */
 
@@ -95,6 +96,7 @@ function CVSelectorCard({ filename, uploadDate, isActive, onSelect }) {
 function JobDetail() {
   const navigate = useNavigate();
   const [selectedCvId, setSelectedCvId] = useState(1);
+  const [showReview, setShowReview] = useState(false);
   const job = MOCK_JOB;
 
   return (
@@ -127,7 +129,7 @@ function JobDetail() {
             <div className="job-detail__header-actions">
               <button className="job-detail__icon-btn" aria-label="Save job"><Bookmark size={18} /></button>
               <button className="job-detail__icon-btn" aria-label="Share job"><Share2 size={18} /></button>
-              <button className="job-detail__apply-btn">Apply Now<ChevronRight size={15} /></button>
+              <button className="job-detail__apply-btn" onClick={() => setShowReview(true)}>Apply Now<ChevronRight size={15} /></button>
             </div>
           </header>
 
@@ -258,7 +260,7 @@ function JobDetail() {
           </div>
 
           {/* Apply */}
-          <button className="job-detail__begin-btn">BEGIN APPLICATION</button>
+          <button className="job-detail__begin-btn" onClick={() => setShowReview(true)}>BEGIN APPLICATION</button>
 
           {/* Verified */}
           <div className="job-detail__verified">
@@ -270,6 +272,13 @@ function JobDetail() {
           <button className="job-detail__report-btn">Report Job Posting</button>
         </aside>
       </div>
+
+      {showReview && (
+        <ApplicationReviewModal
+          onConfirm={() => { setShowReview(false); navigate('/candidate/application-confirmation'); }}
+          onClose={() => setShowReview(false)}
+        />
+      )}
     </div>
   );
 }
