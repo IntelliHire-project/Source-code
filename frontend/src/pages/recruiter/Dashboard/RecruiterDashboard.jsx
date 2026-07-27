@@ -22,6 +22,7 @@ import {
   Smile,
   Percent,
   TrendingUp,
+  TrendingDown,
   AlertCircle,
   UserCheck2,
   CalendarDays,
@@ -36,11 +37,10 @@ import './RecruiterDashboard.css';
 
 // Mock Data Sets
 const STATS = [
-  { label: 'Active Job Postings', value: '12', icon: Briefcase, colorClass: 'gold', trend: '+2', trendType: 'positive' },
-  { label: 'Total Applicants', value: '284', icon: Users, colorClass: 'blue', trend: '+45', trendType: 'positive' },
-  { label: 'AI Shortlisted', value: '95', icon: Sparkles, colorClass: 'green', trend: '84%', trendType: 'positive' },
-  { label: 'Interviews Today', value: '8', icon: Calendar, colorClass: 'purple', trend: '3 Onsite', trendType: 'neutral' },
-  { label: 'Pending Reviews', value: '18', icon: AlertCircle, colorClass: 'red', trend: 'Urgent', trendType: 'negative' },
+  { label: 'Active Job Postings', value: '12', icon: Briefcase, color: '#F0B90B', bg: 'rgba(240, 185, 11, 0.12)', change: '+2', up: true },
+  { label: 'Total Applicants', value: '284', icon: Users, color: '#6B8CFF', bg: 'rgba(107, 140, 255, 0.12)', change: '+45', up: true },
+  { label: 'AI Shortlisted', value: '95', icon: Sparkles, color: '#22C55E', bg: 'rgba(34, 197, 94, 0.12)', change: '84%', up: true },
+  { label: 'Interviews Today', value: '8', icon: Calendar, color: '#a371f7', bg: 'rgba(163, 113, 247, 0.12)', change: '3 Onsite', up: null },
 ];
 
 const PIPELINE_STEPS = [
@@ -233,17 +233,17 @@ function RecruiterDashboard() {
               const Icon = kpi.icon;
               return (
                 <div key={idx} className="recruiter-kpi-card">
-                  <div className={`kpi-card-header ${kpi.colorClass}`}>
-                    <div className="kpi-icon-container">
-                      <Icon size={18} />
-                    </div>
-                    <span className={`kpi-trend-tag ${kpi.trendType}`}>
-                      {kpi.trend}
+                  <div className="kpi-card-left">
+                    <span className="kpi-card-label">{kpi.label}</span>
+                    <span className="kpi-card-value">{kpi.value}</span>
+                    <span className={`kpi-card-change ${kpi.up === true ? 'up' : kpi.up === false ? 'down' : 'neutral'}`}>
+                      {kpi.up === true && <TrendingUp size={12} />}
+                      {kpi.up === false && <TrendingDown size={12} />}
+                      {kpi.change} vs last period
                     </span>
                   </div>
-                  <div className="kpi-value-grp">
-                    <h3>{kpi.value}</h3>
-                    <span>{kpi.label}</span>
+                  <div className="kpi-card-icon" style={{ backgroundColor: kpi.bg, color: kpi.color }}>
+                    <Icon size={22} />
                   </div>
                 </div>
               );
