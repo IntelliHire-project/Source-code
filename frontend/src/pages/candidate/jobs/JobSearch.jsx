@@ -15,7 +15,7 @@ import {
   Clock,
   ChevronRight,
 } from 'lucide-react';
-import './JobSearch.css';
+import './jobs.css';
 
 /* ── Mock Data ── */
 

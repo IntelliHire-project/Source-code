@@ -16,7 +16,7 @@ import {
   FileText,
   ChevronRight,
 } from 'lucide-react';
-import './JobDetail.css';
+import './jobs.css';
 import ApplicationReviewModal from '../../../components/ApplicationReviewModal';
 
 /* ── Mock Data ── */

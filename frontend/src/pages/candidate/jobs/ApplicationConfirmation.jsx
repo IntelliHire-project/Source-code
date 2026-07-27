@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Zap,
 } from 'lucide-react';
-import './ApplicationConfirmation.css';
+import './jobs.css';
 
 /* ── Step Tracker (reusable) ── */
 
