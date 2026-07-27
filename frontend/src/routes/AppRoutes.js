@@ -15,6 +15,7 @@ import CandidateDashboard from '../pages/candidate/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/jobs/JobSearch';
 import JobDetail from '../pages/jobs/JobDetail';
+import ApplicationConfirmation from '../pages/jobs/ApplicationConfirmation';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
@@ -127,6 +128,7 @@ function AppRoutes() {
           <Route path="cv-management" element={<CvManagementPage />} />
           <Route path="jobs" element={<JobSearch />} />
           <Route path="jobs/:jobId" element={<JobDetail />} />
+          <Route path="application-confirmation" element={<ApplicationConfirmation />} />
         </Route>
         <Route
           path="/recruiter/dashboard"
