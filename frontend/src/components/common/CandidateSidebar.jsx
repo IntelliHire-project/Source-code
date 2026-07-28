@@ -11,6 +11,7 @@ import {
   FileCheck2,
   KeyRound,
   Bell,
+  X,
 } from 'lucide-react';
 import logo from '../../logo.png';
 
@@ -42,13 +43,24 @@ function CandidateSidebar({ isOpen = false, onClose, user }) {
       {isOpen && (
         <div className="sidebar-overlay" onClick={onClose} aria-hidden="true" />
       )}
-      <aside className={`admin-sidebar ${isOpen ? 'is-open' : ''}`}>
+      <aside
+        className={`admin-sidebar ${isOpen ? 'is-open' : ''}`}
+        aria-label="Candidate navigation"
+      >
+        <button
+          type="button"
+          className="sidebar-close-btn"
+          onClick={onClose}
+          aria-label="Close navigation"
+        >
+          <X size={18} />
+        </button>
         <div className="admin-sidebar__logo">
           <img src={logo} alt="IntelliHire" style={{ height: '32px', width: 'auto', display: 'block' }} />
           <span className="admin-sidebar__logo-wordmark">IntelliHire</span>
         </div>
 
-        <nav className="admin-sidebar__nav">
+        <nav className="admin-sidebar__nav" aria-label="Candidate primary navigation">
           <ul className="admin-sidebar__list">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;

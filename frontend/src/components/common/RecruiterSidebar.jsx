@@ -130,7 +130,10 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
         <ChevronRight size={18} />
       </button>
 
-      <aside className={`app-sidebar ${isOpen ? 'is-open' : ''}`}>
+      <aside
+        className={`app-sidebar ${isOpen ? 'is-open' : ''}`}
+        aria-label="Recruiter navigation"
+      >
         <button
           type="button"
           className="sidebar-close-btn"
@@ -157,7 +160,7 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
           </button>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Recruiter primary navigation">
           <ul className="nav-list">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
