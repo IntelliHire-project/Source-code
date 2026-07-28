@@ -12,7 +12,6 @@ import {
   ListChecks,
   CheckCircle2,
   ShieldCheck,
-  CreditCard,
   Share2,
   ClipboardCheck,
   ChevronRight,
@@ -26,6 +25,7 @@ import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import InsightPanel from '../../../components/common/InsightPanel';
 import ProgressBar from '../../../components/common/ProgressBar';
+import PaymentRequiredModal from '../../../components/PaymentRequiredModal';
 import '../../../style.css';
 import './PreviewVacancyPage.css';
 
@@ -130,6 +130,7 @@ function SectionHeader({ icon: Icon, label }) {
 
 function PreviewVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const navigate = useNavigate();
   const v = SAMPLE_VACANCY;
 
@@ -187,9 +188,13 @@ function PreviewVacancyPage() {
                 <Edit3 size={16} />
                 Edit Details
               </button>
-              <button type="button" className="btn btn-primary">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowPaymentModal(true)}
+              >
                 <Send size={16} />
-                Publish Vacancy
+                Go to Payment
               </button>
             </div>
           </div>
@@ -292,8 +297,12 @@ function PreviewVacancyPage() {
                     </p>
                   </div>
                 </div>
-                <button type="button" className="btn btn-primary pv-cta-btn">
-                  <CreditCard size={16} />
+                <button
+                  type="button"
+                  className="btn btn-primary pv-cta-btn"
+                  onClick={() => setShowPaymentModal(true)}
+                >
+                  <Send size={16} />
                   Go to Payment
                 </button>
               </InsightPanel>
@@ -356,6 +365,20 @@ function PreviewVacancyPage() {
           </div>
         </main>
       </div>
+
+      {/* ── Payment Required Modal ── */}
+      <PaymentRequiredModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onProceed={() => {
+          setShowPaymentModal(false);
+          navigate('/recruiter/select-payment');
+        }}
+        onSaveDraft={() => {
+          setShowPaymentModal(false);
+        }}
+        jobTitle={v.jobTitle}
+      />
     </div>
   );
 }

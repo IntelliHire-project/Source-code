@@ -22,8 +22,13 @@ import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPag
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
+import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
+import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
+import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
+import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
+import VacancySelectorModal from '../components/common/VacancySelectorModal';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
@@ -59,6 +64,7 @@ function PlaceholderApplicants({ title }) {
           <p style={{ color: '#a79e8c' }}>This page is currently under construction.</p>
         </div>
       </div>
+      <VacancySelectorModal />
     </div>
   );
 }
@@ -148,8 +154,24 @@ function AppRoutes() {
           element={<PreviewVacancyPage />}
         />
         <Route
+          path="/recruiter/select-payment"
+          element={<SelectPaymentMethodPage />}
+        />
+        <Route
+          path="/recruiter/complete-purchase"
+          element={<CompleteYourPurchasePage />}
+        />
+        <Route
+          path="/recruiter/otp-verification"
+          element={<OTPVerificationPage />}
+        />
+        <Route
           path="/recruiter/payments"
           element={<PaymentBillingPage />}
+        />
+        <Route
+          path="/recruiter/analytics"
+          element={<ApplicantAnalytics />}
         />
         <Route
           path="/recruiter/applicants/ranked"
