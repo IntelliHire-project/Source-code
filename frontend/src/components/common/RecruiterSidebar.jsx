@@ -59,7 +59,7 @@ const NAV_ITEMS = [
   },
   { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
   { label: 'Payments', icon: CreditCard, path: '/recruiter/payments' },
-  { label: 'Community', icon: MessagesSquare, path: '/community' },
+  { label: 'Community', icon: MessagesSquare, path: '/recruiter/community' },
 ];
 
 const BOTTOM_ITEMS = [

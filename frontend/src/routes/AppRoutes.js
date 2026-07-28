@@ -309,6 +309,7 @@ function AppRoutes() {
         />
         {/* Community Forum — shared for both recruiters and candidates */}
         <Route path="/community" element={<CommunityPage />} />
+        <Route path="/recruiter/community" element={<CommunityPage roleOverride="recruiter" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

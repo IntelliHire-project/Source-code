@@ -95,19 +95,26 @@ const TRENDING = [
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Sidebar nav items (shared for both roles)
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const NAV_ITEMS = [
-  { id: 'dashboard', iconClass: 'fa-solid fa-gauge-high', label: 'Dashboard', path: '/dashboard' },
-  { id: 'recruitment', iconClass: 'fa-solid fa-briefcase', label: 'Recruitment', path: '/recruitment' },
-  { id: 'question-bank', iconClass: 'fa-solid fa-book-open', label: 'Question Bank', path: '/question-bank' },
-  { id: 'assessments', iconClass: 'fa-solid fa-clipboard-check', label: 'Assessments', path: '/assessments' },
+const RECRUITER_NAV_ITEMS = [
+  { id: 'dashboard', iconClass: 'fa-solid fa-gauge-high', label: 'Dashboard', path: '/recruiter/dashboard' },
+  { id: 'recruitment', iconClass: 'fa-solid fa-briefcase', label: 'Recruitment', path: '/recruiter/vacancies' },
+  { id: 'question-bank', iconClass: 'fa-solid fa-book-open', label: 'Question Bank', path: '/recruiter/question-bank' },
+  { id: 'assessments', iconClass: 'fa-solid fa-clipboard-check', label: 'Assessments', path: '/recruiter/assessments' },
+  { id: 'community', iconClass: 'fa-solid fa-users', label: 'Community', path: '/recruiter/community', active: true },
+];
+
+const CANDIDATE_NAV_ITEMS = [
+  { id: 'dashboard', iconClass: 'fa-solid fa-gauge-high', label: 'Dashboard', path: '/candidate/dashboard' },
+  { id: 'jobs', iconClass: 'fa-solid fa-briefcase', label: 'Find Jobs', path: '/candidate/jobs' },
+  { id: 'applications', iconClass: 'fa-solid fa-file-lines', label: 'Applications', path: '/candidate/applications' },
+  { id: 'profile', iconClass: 'fa-solid fa-user', label: 'Profile', path: '/candidate/profile' },
   { id: 'community', iconClass: 'fa-solid fa-users', label: 'Community', path: '/community', active: true },
-  { id: 'moderator', iconClass: 'fa-solid fa-shield-halved', label: 'Moderator', path: '/moderator' },
 ];
 
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Main Component
    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function CommunityPage() {
+function CommunityPage({ roleOverride }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -115,7 +122,8 @@ function CommunityPage() {
   const [savedPosts, setSavedPosts] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const role = user?.role || 'candidate';
+  const role = roleOverride || user?.role || 'candidate';
+  const navItems = role === 'recruiter' ? RECRUITER_NAV_ITEMS : CANDIDATE_NAV_ITEMS;
 
   const handleSave = (postId) => {
     setSavedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
@@ -128,11 +136,11 @@ function CommunityPage() {
 
   const userInitials = user
     ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'AJ'
-    : 'AJ';
+    : role === 'recruiter' ? 'SP' : 'AJ';
 
   const userName = user
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Alex Johnson'
-    : 'Alex Johnson';
+    : role === 'recruiter' ? 'Sarah Parker' : 'Alex Johnson';
 
   const userRoleLabel = role === 'recruiter' ? 'Recruiter' : 'Candidate';
 
@@ -150,7 +158,7 @@ function CommunityPage() {
 
         {/* Nav */}
         <nav className="comm-nav" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.id}
               to={item.path}
