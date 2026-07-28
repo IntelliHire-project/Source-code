@@ -9,7 +9,13 @@ import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTi
 import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
 import InterviewCommunication from '../pages/recruiter/InterviewCommunication/InterviewCommunication';
 import InterviewEvaluationPage from '../pages/recruiter/InterviewEvaluation/InterviewEvaluation';
-import CommunityPage from '../pages/community/CommunityPage';
+import CommunityPage, {
+  CommunityProfilePage,
+  CreateDiscussionPage,
+  DiscussionPage,
+  GuidelinesPage,
+  SavedPostsPage,
+} from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
 import CandidateDashboard from '../pages/candidate/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
@@ -306,6 +312,11 @@ function AppRoutes() {
         />
         {/* Community Forum — shared for both recruiters and candidates */}
         <Route path="/community" element={<CommunityPage />} />
+        <Route path="/community/new" element={<CreateDiscussionPage />} />
+        <Route path="/community/post/:postId" element={<DiscussionPage />} />
+        <Route path="/community/profile/:slug" element={<CommunityProfilePage />} />
+        <Route path="/community/saved" element={<SavedPostsPage />} />
+        <Route path="/community/guidelines" element={<GuidelinesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

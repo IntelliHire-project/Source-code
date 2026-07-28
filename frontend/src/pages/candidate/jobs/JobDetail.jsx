@@ -23,7 +23,6 @@ import ApplicationReviewModal from '../../../components/ApplicationReviewModal';
 
 const MOCK_JOB = {
   id: 1,
-  logo: 'https://images.unsplash.com/photo-1563986768609-322da13575f2?auto=format&fit=crop&w=80&h=80&q=80',
   title: 'Senior AI Product Designer',
   company: 'IntelliHire Global',
   location: 'London, UK (Remote-friendly)',
@@ -113,9 +112,6 @@ function JobDetail() {
           {/* Header */}
           <header className="job-detail__header">
             <div className="job-detail__header-top">
-              <div className="job-detail__logo-wrap">
-                <img src={job.logo} alt={job.company} className="job-detail__logo" />
-              </div>
               <span className="job-detail__badge">{job.badge}</span>
             </div>
             <h1 className="job-detail__title">{job.title}</h1>

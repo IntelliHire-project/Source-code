@@ -195,12 +195,10 @@ function ViewAuditLogs() {
         />
 
         {/* ── Page Title Bar ── */}
-        <div className="admin-content__header">
-          <div>
-            <h1 className="admin-content__title">Audit Log</h1>
-            <p className="admin-content__subtitle">
-              Monitor and review all system activity and security events across the organization.
-            </p>
+        <div className="audit-page-header">
+          <div className="moderation-header__title-group">
+            <h1>Audit Log</h1>
+            <p>Monitor and review all system activity and security events across the organization.</p>
           </div>
           <div className="audit-titlebar__right">
             <LiveClock />

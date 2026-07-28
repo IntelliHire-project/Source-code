@@ -179,7 +179,22 @@
   display: flex;
   gap: 12px;
   margin-top: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.welcome-actions-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.welcome-actions-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.welcome-actions-row::-webkit-scrollbar-thumb {
+  background: var(--primary-light, #2A2C38);
+  border-radius: 2px;
 }
 
 .welcome-action-btn {
@@ -195,6 +210,7 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .welcome-action-btn:hover {
@@ -1168,4 +1184,199 @@
   .pipeline-step-node {
     min-width: 80px;
   }
+}
+
+/* ────────────────────────────────────────────────────────────
+   Added from Applicant Analytics Charts
+   ──────────────────────────────────────────────────────────── */
+.an-chart-card {
+    background: #16171F;
+    border: 1px solid #2A2C38;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: border-color 0.2s;
+}
+
+.an-chart-card:hover {
+    border-color: rgba(240, 185, 11, 0.25);
+}
+
+.an-chart-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.an-chart-gold-bar {
+    display: inline-block;
+    width: 3px;
+    height: 16px;
+    background: #F0B90B;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.an-chart-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: #FFFFFF;
+}
+
+/* Donut Chart */
+.an-donut-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+}
+
+.an-donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.an-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.an-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.an-legend-label {
+    color: #9599A6;
+    flex: 1;
+    text-align: left;
+}
+
+.an-legend-val {
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+/* Horizontal Bar Chart */
+.an-hbar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.an-hbar-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 40px;
+    align-items: center;
+    gap: 10px;
+}
+
+.an-hbar-label {
+    font-size: 0.75rem;
+    color: #9599A6;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.an-hbar-track {
+    height: 10px;
+    background: #2A2C38;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.an-hbar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #F0B90B, #C99A08);
+    border-radius: 9999px;
+    transition: width 0.5s ease;
+}
+
+.an-hbar-val {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    text-align: left;
+    white-space: nowrap;
+}
+
+/* Layout Overrides for Swapped Sections */
+.recruiter-dashboard-equal-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 992px) {
+  .recruiter-dashboard-equal-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.side-column .interview-strip-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+}
+
+.side-column .interview-type-tag {
+  align-self: flex-start;
+}
+
+/* Card Height Synchronization */
+.events-panel-card,
+.activity-panel-card {
+  height: 300px;
+}
+
+.events-panel-card .recruiter-calendar-widget {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.events-panel-card .calendar-event-row {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.activity-panel-card .timeline-activity-flow {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.events-panel-card .calendar-event-row::-webkit-scrollbar,
+.activity-panel-card .timeline-activity-flow::-webkit-scrollbar {
+  width: 4px;
+}
+
+.events-panel-card .calendar-event-row::-webkit-scrollbar-track,
+.activity-panel-card .timeline-activity-flow::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.events-panel-card .calendar-event-row::-webkit-scrollbar-thumb,
+.activity-panel-card .timeline-activity-flow::-webkit-scrollbar-thumb {
+  background: var(--primary-light, #2A2C38);
+  border-radius: 2px;
 }
