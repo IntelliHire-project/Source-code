@@ -18,20 +18,79 @@ function QuestionBankPage() {
   const [questions, setQuestions] = useState(INITIAL_QUESTIONS);
   const [query, setQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [notice, setNotice] = useState('');
   const [answerType, setAnswerType] = useState('Multiple Choice');
   const [options, setOptions] = useState(['', '', '', '']);
   const [correct, setCorrect] = useState(0);
   const [form, setForm] = useState({ title: '', category: 'Technical', difficulty: 'Easy', prompt: '' });
 
-  const visible = useMemo(() => questions.filter((q) =>
-    `${q.title} ${q.category} ${q.type} ${q.status}`.toLowerCase().includes(query.toLowerCase())
-  ), [questions, query]);
+  const visible = useMemo(() => questions.filter((q) => {
+    const matchesQuery = `${q.title} ${q.category} ${q.type} ${q.status}`.toLowerCase().includes(query.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || q.status === statusFilter;
+    const matchesCategory = categoryFilter === 'All' || q.category === categoryFilter;
+    return matchesQuery && matchesStatus && matchesCategory;
+  }), [questions, query, statusFilter, categoryFilter]);
+
+  const resetEditor = () => {
+    setEditingId(null);
+    setForm({ title: '', category: 'Technical', difficulty: 'Easy', prompt: '' });
+    setAnswerType('Multiple Choice');
+    setOptions(['', '', '', '']);
+    setCorrect(0);
+  };
+
+  const openCreate = () => {
+    resetEditor();
+    setDrawerOpen(true);
+  };
+
+  const openEdit = (question) => {
+    setEditingId(question.id);
+    setForm({
+      title: question.title,
+      category: question.category,
+      difficulty: question.difficulty,
+      prompt: question.prompt || question.title,
+    });
+    setAnswerType(question.type);
+    setOptions(question.options || ['', '', '', '']);
+    setCorrect(question.correct ?? 0);
+    setDrawerOpen(true);
+  };
+
+  const closeEditor = () => {
+    setDrawerOpen(false);
+    resetEditor();
+  };
 
   const publish = (draft = false) => {
-    if (!form.title.trim()) return;
-    setQuestions([{ id: `Q-${9850 + questions.length}`, title: form.title, author: 'Sarah Parker', date: '2026-07-28', category: form.category, type: answerType, difficulty: form.difficulty, status: draft ? 'Draft' : 'Published', usage: 0 }, ...questions]);
-    setDrawerOpen(false);
-    setForm({ title: '', category: 'Technical', difficulty: 'Easy', prompt: '' });
+    if (!form.title.trim() || !form.prompt.trim()) {
+      setNotice('Please enter both a question title and prompt.');
+      return;
+    }
+    const questionData = {
+      title: form.title.trim(),
+      category: form.category,
+      difficulty: form.difficulty,
+      prompt: form.prompt.trim(),
+      type: answerType,
+      options,
+      correct,
+      status: draft ? 'Draft' : 'Published',
+      date: '2026-07-28',
+    };
+    if (editingId) {
+      setQuestions(questions.map((question) => question.id === editingId ? { ...question, ...questionData } : question));
+      setNotice(`Question ${editingId} updated successfully.`);
+    } else {
+      setQuestions([{ id: `Q-${9850 + questions.length}`, author: 'Sarah Parker', usage: 0, ...questionData }, ...questions]);
+      setNotice(draft ? 'Question saved as a draft.' : 'Question published successfully.');
+    }
+    closeEditor();
   };
 
   return (
@@ -39,11 +98,19 @@ function QuestionBankPage() {
       <main className="af-page">
         <div className="af-page-title">
           <div><span className="af-eyebrow">Assessments / Question Bank</span><h1>Question Bank</h1><p>Create, organize, and reuse questions across your assessments.</p></div>
-          <button className="af-primary" onClick={() => setDrawerOpen(true)}><Plus size={17} /> Add Question</button>
+          <button className="af-primary" onClick={openCreate}><Plus size={17} /> Add Question</button>
         </div>
+        {notice && <div className="af-success"><CheckCircle2 size={17} /> {notice}<button type="button" onClick={() => setNotice('')}><X size={15} /></button></div>}
         <div className="af-toolbar">
           <label className="af-search"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by question, category, or type..." /></label>
-          <button className="af-secondary"><Filter size={16} /> All Filters</button>
+          <div className="qb-filter-wrap">
+            <button className={`af-secondary ${filtersOpen ? 'is-active' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)}><Filter size={16} /> {statusFilter === 'All' && categoryFilter === 'All' ? 'All Filters' : 'Filters Applied'}</button>
+            {filtersOpen && <div className="qb-filter-panel">
+              <label>Status<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option>All</option><option>Published</option><option>Draft</option><option>Archived</option></select></label>
+              <label>Category<select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}><option>All</option><option>Technical</option><option>Soft Skills</option><option>Aptitude</option></select></label>
+              <button type="button" onClick={() => { setStatusFilter('All'); setCategoryFilter('All'); setFiltersOpen(false); }}>Clear filters</button>
+            </div>}
+          </div>
         </div>
         <section className="qb-table-card">
           <div className="qb-table-head"><span>Question</span><span>Classification</span><span>Status</span><span>Usage</span><span>Actions</span></div>
@@ -53,9 +120,10 @@ function QuestionBankPage() {
               <div className="qb-tags"><span>{q.category}</span><span>{q.type}</span><span className={`difficulty-${q.difficulty.toLowerCase()}`}>{q.difficulty}</span></div>
               <span className={`qb-status ${q.status.toLowerCase()}`}>{q.status}</span>
               <div className="qb-usage"><span><i style={{ width: `${Math.min(q.usage * 2, 100)}%` }} /></span><b>{q.usage} tests</b></div>
-              <div className="qb-actions"><button title="Edit"><Edit3 size={16} /></button><button title="Duplicate" onClick={() => setQuestions([...questions, { ...q, id: `${q.id}-COPY` }])}><Copy size={16} /></button><button title="Delete" onClick={() => setQuestions(questions.filter((item) => item.id !== q.id))}><Trash2 size={16} /></button></div>
+              <div className="qb-actions"><button title="Edit question" onClick={() => openEdit(q)}><Edit3 size={16} /></button><button title="Duplicate question" onClick={() => { setQuestions([...questions, { ...q, id: `${q.id}-COPY-${Date.now()}`, title: `${q.title} (Copy)`, status: 'Draft', usage: 0 }]); setNotice('Question duplicated as a draft.'); }}><Copy size={16} /></button><button title="Delete question" onClick={() => { if (window.confirm(`Delete "${q.title}"?`)) { setQuestions(questions.filter((item) => item.id !== q.id)); setNotice('Question deleted.'); } }}><Trash2 size={16} /></button></div>
             </article>
           ))}
+          {!visible.length && <div className="qb-empty"><FileQuestion size={30} /><strong>No questions found</strong><span>Try changing your search or filters.</span></div>}
           <div className="qb-pagination"><button disabled><ChevronLeft size={15} /> Previous</button><span className="active">1</span><span>2</span><span>3</span><span>...</span><span>24</span><button>Next <ChevronRight size={15} /></button></div>
         </section>
         <section className="qb-guidelines">
@@ -64,9 +132,9 @@ function QuestionBankPage() {
         </section>
       </main>
 
-      {drawerOpen && <div className="qb-drawer-overlay" onMouseDown={(e) => e.target === e.currentTarget && setDrawerOpen(false)}>
+      {drawerOpen && <div className="qb-drawer-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeEditor()}>
         <aside className="qb-drawer">
-          <header><div><h2>Create New Question</h2><p>Configure question details and scoring logic.</p></div><button onClick={() => setDrawerOpen(false)}><X size={20} /></button></header>
+          <header><div><h2>{editingId ? 'Edit Question' : 'Create New Question'}</h2><p>{editingId ? `Update ${editingId} and its scoring logic.` : 'Configure question details and scoring logic.'}</p></div><button onClick={closeEditor}><X size={20} /></button></header>
           <div className="qb-form">
             <h3><FileQuestion size={17} /> Basic Information</h3>
             <label>Question Title<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Explain the difference between..." /></label>
@@ -77,7 +145,7 @@ function QuestionBankPage() {
             <div className="qb-answer-types">{[['Multiple Choice', CheckCircle2], ['Coding', Braces], ['Open Ended', Globe2]].map(([type, Icon]) => <button className={answerType === type ? 'selected' : ''} onClick={() => setAnswerType(type)} key={type}><Icon size={22} />{type}</button>)}</div>
             {answerType === 'Multiple Choice' && <div className="qb-options"><div><span>Options & Correctness</span><button onClick={() => setOptions([...options, ''])}><Plus size={15} /> Add Option</button></div>{options.map((option, index) => <label key={index}><button className={correct === index ? 'correct' : ''} onClick={() => setCorrect(index)} type="button" aria-label={`Mark option ${index + 1} correct`} /><input value={option} onChange={(e) => setOptions(options.map((item, i) => i === index ? e.target.value : item))} placeholder={`Option ${index + 1} text...`} /><button type="button" onClick={() => setOptions(options.filter((_, i) => i !== index))}><Trash2 size={15} /></button></label>)}</div>}
           </div>
-          <footer><button className="af-secondary" onClick={() => setDrawerOpen(false)}>Discard Changes</button><div><button className="af-secondary" onClick={() => publish(true)}>Save as Draft</button><button className="af-primary" onClick={() => publish(false)}>Publish Question</button></div></footer>
+          <footer><button className="af-secondary" onClick={closeEditor}>Discard Changes</button><div><button className="af-secondary" onClick={() => publish(true)}>Save as Draft</button><button className="af-primary" onClick={() => publish(false)}>{editingId ? 'Update Question' : 'Publish Question'}</button></div></footer>
         </aside>
       </div>}
     </AssessmentShell>

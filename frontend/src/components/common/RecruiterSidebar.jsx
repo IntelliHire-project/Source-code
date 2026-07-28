@@ -38,7 +38,15 @@ const NAV_ITEMS = [
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
-  { label: 'Assessments', icon: ClipboardCheck, path: '/recruiter/assessments' },
+  {
+    label: 'Assessments',
+    icon: ClipboardCheck,
+    subItems: [
+      { label: 'Assessment Dashboard', path: '/recruiter/assessments' },
+      { label: 'Question Bank', path: '/recruiter/question-bank' },
+      { label: 'Create Assessment', path: '/recruiter/assessments/new' },
+    ],
+  },
   {
     label: 'Interviews',
     icon: Calendar,
@@ -65,6 +73,7 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   const [expandedItems, setExpandedItems] = useState({
     'Job vacancies': true,
     Applicants: true,
+    Assessments: true,
     Interviews: true,
   });
 
@@ -93,13 +102,13 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   }, [location.pathname, activeItem]);
 
   function isActive(item) {
-    if (activeItem) return item.label === activeItem;
+    if (activeItem && item.label === activeItem) return true;
     return location.pathname === item.path;
   }
 
   function isParentActive(item) {
     if (item.subItems) {
-      return item.subItems.some((subItem) => isActive(subItem));
+      return item.label === activeItem || item.subItems.some((subItem) => isActive(subItem));
     }
     return isActive(item);
   }
@@ -178,6 +187,8 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
                         toggleExpand(item.label);
                         if (item.label === 'Applicants') {
                           navigate('/recruiter/applicants/ranked');
+                        } else if (item.label === 'Assessments') {
+                          navigate('/recruiter/assessments');
                         }
                       }}
                     >
