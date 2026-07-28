@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Bell, Bold, Bookmark, BriefcaseBusiness, CheckCircle2, ChevronDown,
-  ChevronRight, Clock3, Eye, FileImage, FileText, Flag, Hash, Heart, Info,
-  Italic, LayoutDashboard, Link2, List, ListOrdered, Menu, MessageCircle,
-  MoreHorizontal, Paperclip, Search, Send, Settings, Share2, ShieldCheck,
-  Sparkles, TrendingUp, Type, UserRound, Users, X
+  ArrowLeft, Award, BarChart3, Bell, Bold, Bookmark, BriefcaseBusiness, Calendar,
+  CheckCircle2, ChevronDown, ChevronRight, Clock3, Edit3, ExternalLink, Eye,
+  FileImage, FileText, Flag, Hash, Heart, Info, Italic, LayoutDashboard, Link2,
+  List, ListOrdered, MapPin, Menu, MessageCircle, MoreHorizontal, Paperclip,
+  Search, Send, Settings, Share2, ShieldCheck, Sparkles, TrendingUp, Type,
+  UserPlus, UserRound, Users, X
 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import './CommunityPage.css';
@@ -254,10 +255,83 @@ export function DiscussionPage() {
 export function CommunityProfilePage() {
   const { slug } = useParams();
   const isSelf = !slug || slug === 'alex-johnson';
+  const [activeProfileTab, setActiveProfileTab] = useState('Recent Posts');
+  const [connected, setConnected] = useState(false);
+  const profilePosts = [
+    { ...POSTS[1], date: 'Oct 24, 2026', category: 'Engineering' },
+    { ...POSTS[0], id: 'serverless-future', date: 'Oct 12, 2026', category: 'Infrastructure', title: 'The Future of Serverless: Why Edge Functions Change Everything', excerpt: 'Exploring how modern edge platforms are redefining latency expectations for global applications.' },
+    { ...POSTS[2], date: 'Sep 28, 2026', category: 'Career Growth', title: 'Transitioning from Mid-level to Senior: A Personal Journey' },
+    { ...POSTS[3], id: 'graphql-rest', date: 'Sep 15, 2026', category: 'API Design', title: 'Demystifying GraphQL: When to Choose it Over REST', excerpt: 'An objective comparison of query languages and data-fetching paradigms based on product needs.' },
+    { ...POSTS[1], id: 'design-systems-scale', date: 'Sep 06, 2026', category: 'Frontend', title: 'Building a Design System That Actually Scales Across Teams', excerpt: 'The practical governance, component boundaries, and contribution workflow that kept our shared UI library useful as the company grew.', likes: 206, comments: 48 },
+    { ...POSTS[2], id: 'technical-mentoring', date: 'Aug 29, 2026', category: 'Leadership', title: 'A Practical Framework for Mentoring Early-Career Engineers', excerpt: 'How structured goals, thoughtful code reviews, and regular feedback can turn everyday project work into meaningful career development.', likes: 184, comments: 37 }
+  ];
   return (
     <CommunityShell title="Member profile">
-      <section className="profile-cover"><div className="profile-pattern"/><div className="profile-identity"><span className="profile-avatar">AJ<i/></span><div><span className="eyebrow">{isSelf ? 'Your community profile' : 'Community member'}</span><h1>Alex Johnson</h1><p><BriefcaseBusiness size={16}/>Senior Full Stack Engineer · Colombo, Sri Lanka</p></div><button className="button primary">{isSelf ? 'Edit profile' : 'Connect'}</button></div></section>
-      <div className="profile-grid"><aside><section className="profile-stats"><div><strong>42</strong><span>Posts</span></div><div><strong>1.2k</strong><span>Upvotes</span></div><div><strong>284</strong><span>Connections</span></div></section><section className="forum-card profile-about"><h2>Professional overview</h2><p>Building scalable web applications and mentoring early-career engineers. Interested in distributed systems, accessible product design, and practical career coaching.</p><h3>Skills & expertise</h3><div className="tag-cloud">{['React', 'TypeScript', 'Node.js', 'System Design', 'AWS'].map((tag) => <span key={tag}>{tag}</span>)}</div></section></aside><section><div className="page-heading compact-heading"><div><span className="eyebrow">Recent contributions</span><h2>Community posts</h2></div></div><div className="profile-post-grid">{POSTS.slice(0, 4).map((post) => <Link className="forum-card profile-post" to={`/community/post/${post.id}`} key={post.id}><span className="category-pill">{post.category}</span><h3>{post.title}</h3><p>{post.excerpt}</p><small><Heart size={15}/>{post.likes}<MessageCircle size={15}/>{post.comments}</small></Link>)}</div></section></div>
+      <section className="member-profile-hero">
+        <div className="member-cover">
+          <div className="member-cover-mark"><Sparkles/><span>IntelliHire Community</span></div>
+          {isSelf && <button type="button" className="cover-edit"><Edit3 size={16}/>Edit Cover</button>}
+        </div>
+        <div className="member-identity">
+          <div className="member-avatar">AJ<i/></div>
+          <div className="member-title">
+            <h1>Alex Johnson</h1>
+            <p><BriefcaseBusiness size={16}/>Senior Full Stack Engineer @ TechFlow Systems</p>
+            <span><MapPin size={15}/>Colombo, Sri Lanka <Calendar size={15}/>Member since Jan 2023</span>
+          </div>
+          <div className="member-actions">
+            {!isSelf && <button type="button" className="button secondary"><MessageCircle size={17}/>Message</button>}
+            <button type="button" className="button primary" onClick={() => setConnected(!connected)}>{isSelf ? <><Edit3 size={17}/>Edit Profile</> : <><UserPlus size={17}/>{connected ? 'Connected' : 'Connect'}</>}</button>
+            <button type="button" className="member-more" aria-label="More member actions"><MoreHorizontal size={19}/></button>
+          </div>
+        </div>
+      </section>
+
+      <div className="member-profile-layout">
+        <aside className="member-profile-sidebar">
+          <section className="member-stat-grid">
+            <div className="member-stat-card"><span>Community Posts</span><strong>42</strong><small><TrendingUp size={14}/>12% this month</small><i><MessageCircle size={20}/></i></div>
+            <div className="member-stat-card"><span>Helpful Upvotes</span><strong>1.2k</strong><small><TrendingUp size={14}/>5% overall</small><i><Heart size={20}/></i></div>
+            <div className="member-stat-card"><span>Assessments Passed</span><strong>15</strong><small><TrendingUp size={14}/>Top 1% rank</small><i><Award size={20}/></i></div>
+            <div className="member-stat-card"><span>Connections</span><strong>284</strong><small>Professional network</small><i><UserPlus size={20}/></i></div>
+          </section>
+
+          <section className="forum-card member-overview">
+            <h2>Professional Overview</h2>
+            <p>Passionate about building scalable web applications and mentoring junior developers. Currently focusing on distributed systems and reactive UI patterns. Active contributor to the IntelliHire community and career coach.</p>
+            <h3>Skills & Expertise</h3>
+            <div className="member-skills">{['React', 'TypeScript', 'Node.js', 'GraphQL', 'AWS', 'Kubernetes', 'System Design'].map((skill) => <span key={skill}>{skill}</span>)}</div>
+            <footer><Award size={17}/><span>Expert Contributor</span><a href="/candidate/cv-management">Full CV <ExternalLink size={13}/></a></footer>
+          </section>
+
+          <section className="forum-card member-badges">
+            <h2>Community Badges</h2>
+            <div>
+              <span><i><Award/></i><b>Top Mentor</b></span>
+              <span><i><FileText/></i><b>Writer</b></span>
+              <span><i><BarChart3/></i><b>Rising Star</b></span>
+            </div>
+          </section>
+        </aside>
+
+        <section className="member-contributions">
+          <div className="member-tabs">
+            {['Recent Posts', 'Activity History', 'Certifications'].map((tab) => <button type="button" className={activeProfileTab === tab ? 'is-active' : ''} onClick={() => setActiveProfileTab(tab)} key={tab}>{tab}</button>)}
+            <Link to="/community">View All Posts</Link>
+          </div>
+          {activeProfileTab === 'Recent Posts' ? <>
+            <div className="member-post-grid">
+              {profilePosts.map((post) => <Link className="member-post-card" to={`/community/post/${post.id}`} key={post.id}>
+                <header><span>{post.category}</span><time>{post.date}</time></header>
+                <h2>{post.title}</h2>
+                <p>{post.excerpt}</p>
+                <footer><span><Heart size={16}/>{post.likes}</span><span><MessageCircle size={16}/>{post.comments}</span><Share2 size={16}/><Bookmark size={16}/></footer>
+              </Link>)}
+            </div>
+            <Link className="button member-show-more" to="/community">Show More Discussions</Link>
+          </> : <div className="member-tab-placeholder"><Sparkles/><h2>{activeProfileTab}</h2><p>This member's {activeProfileTab.toLowerCase()} will appear here.</p></div>}
+        </section>
+      </div>
     </CommunityShell>
   );
 }
