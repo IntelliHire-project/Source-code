@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   CheckCircle2,
@@ -36,6 +37,7 @@ const SUMMARY = [
 ];
 
 function AssessmentsPage() {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -114,7 +116,8 @@ function AssessmentsPage() {
                   )}
                 </div>
                 <button className="assessment-dark-btn" type="button" onClick={exportAssessments}><Download size={16} /> Export</button>
-                <button className="assessment-primary-btn" type="button" onClick={() => window.alert('New assessment workflow started.')}><Plus size={17} /> New Assessment</button>
+                <button className="assessment-dark-btn" type="button" onClick={() => navigate('/recruiter/question-bank')}><FileText size={16} /> Question Bank</button>
+                <button className="assessment-primary-btn" type="button" onClick={() => navigate('/recruiter/assessments/new')}><Plus size={17} /> New Assessment</button>
               </div>
             </div>
 
@@ -136,8 +139,8 @@ function AssessmentsPage() {
                       <td><span className={`assessment-status status-${item.status.toLowerCase()}`}>{item.status}</span></td>
                       <td>
                         <div className="assessment-actions">
-                          <button title="View assessment" type="button"><Eye size={17} /></button>
-                          <button title="Edit assessment" type="button"><Pencil size={16} /></button>
+                          <button title="View candidate report" type="button" onClick={() => navigate('/recruiter/assessments/report/marcus-chen')}><Eye size={17} /></button>
+                          <button title="Edit assessment" type="button" onClick={() => navigate('/recruiter/assessments/new')}><Pencil size={16} /></button>
                           <button title="More actions" type="button"><MoreHorizontal size={18} /></button>
                         </div>
                       </td>
