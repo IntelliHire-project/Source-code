@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Search,
   Bell,
-  Users,
   ChevronDown,
   User,
   Settings,
@@ -32,7 +31,6 @@ import './TopBar.css';
  * @param {string}  [searchPlaceholder]   - Placeholder text for search input.
  * @param {Function}[onSearch]            - Called with the search query string.
  * @param {Function}[onNotificationClick] - Called when the bell icon is clicked.
- * @param {Function}[onCommunityClick]    - Called when the community icon is clicked.
  * @param {Function}[onProfileClick]      - Called when "Profile" is selected from dropdown.
  * @param {Function}[onSettingsClick]     - Called when "Settings" is selected from dropdown.
  * @param {Function}[onLogout]            - Called when "Logout" is selected from dropdown.
@@ -107,7 +105,6 @@ function TopBar({
   searchPlaceholder = 'Search…',
   onSearch,
   onNotificationClick,
-  onCommunityClick,
   onProfileClick,
   onSettingsClick,
   onLogout,
@@ -247,16 +244,6 @@ function TopBar({
               {notificationsCount > 99 ? '99+' : notificationsCount}
             </span>
           )}
-        </button>
-
-        {/* Community */}
-        <button
-          className="topbar__icon-btn"
-          onClick={onCommunityClick}
-          aria-label="Community"
-          type="button"
-        >
-          <Users />
         </button>
 
         <span className="topbar__divider" aria-hidden="true" />
