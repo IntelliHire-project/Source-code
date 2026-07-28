@@ -52,36 +52,6 @@ const PIPELINE_STEPS = [
   { label: 'Offers Sent', count: 14, status: 'pending' },
   { label: 'Hired', count: 8, status: 'pending' }
 ];
-const UPCOMING_INTERVIEWS = [
-  {
-    id: 'INT-501',
-    candidate: 'Sarah Jenkins',
-    position: 'Senior Frontend Engineer',
-    date: 'Today',
-    time: '2:00 PM - 3:00 PM',
-    panel: 'Julian Thorne (Lead), Alice Fernando',
-    type: 'online'
-  },
-  {
-    id: 'INT-502',
-    candidate: 'Marcus Aurelius',
-    position: 'DevOps Specialist',
-    date: 'Today',
-    time: '4:30 PM - 5:30 PM',
-    panel: 'Rupert Vance (SRE), Julian Thorne',
-    type: 'onsite'
-  },
-  {
-    id: 'INT-503',
-    candidate: 'Priya Nair',
-    position: 'Frontend Engineer',
-    date: 'Tomorrow',
-    time: '10:00 AM - 11:00 AM',
-    panel: 'Alice Fernando, Julian Thorne',
-    type: 'online'
-  }
-];
-
 const RECENT_ACTIVITIES = [
   { id: 'ACT-001', type: 'success', text: 'New application received from <strong>Liam Carter</strong> for <strong>Senior Frontend Engineer</strong>.', time: '2 mins ago' },
   { id: 'ACT-002', type: 'highlight', text: 'Candidate <strong>Sarah Jenkins</strong> shortlisted by AI with a <strong>96% Match</strong>.', time: '20 mins ago' },
@@ -89,15 +59,6 @@ const RECENT_ACTIVITIES = [
   { id: 'ACT-004', type: 'neutral', text: 'Interview feedback submitted for <strong>Emma Watson</strong> by Julian Thorne.', time: '3 hours ago' },
   { id: 'ACT-005', type: 'success', text: 'Offer letter sent to <strong>David Beckham</strong> for Backend Engineer.', time: '5 hours ago' }
 ];
-
-const PENDING_TASKS = [
-  { id: 'TSK-001', title: 'Review 8 new candidate portfolios', meta: 'Product Designer · Due EOD', actionLabel: 'Review' },
-  { id: 'TSK-002', title: 'Submit evaluation for Emma Watson', meta: 'Interviewed 2h ago', actionLabel: 'Submit' },
-  { id: 'TSK-003', title: 'Assign panel for DevOps Specialist', meta: 'Needs 2 senior members', actionLabel: 'Assign' },
-  { id: 'TSK-004', title: 'Review vacancy deadline extensions', meta: 'HR Manager closing soon', actionLabel: 'Review' },
-  { id: 'TSK-005', title: 'Follow up on offer letter response', meta: 'David Beckham · Sent 3 days ago', actionLabel: 'Remind' }
-];
-
 const CALENDAR_EVENTS = [
   { id: 'EVT-001', time: '10:00 AM - 11:00 AM', title: 'Recruiter Alignment Meeting', category: 'meeting' },
   { id: 'EVT-002', time: '2:00 PM - 3:00 PM', title: 'Interview: Sarah Jenkins', category: 'interview' },
@@ -165,6 +126,9 @@ function RecruiterDashboard() {
                 <button className="welcome-action-btn" onClick={() => navigate('/recruiter/create-vacancy')}>
                   <Plus size={14} /> Post New Job
                 </button>
+                <button className="welcome-action-btn" onClick={() => navigate('/recruiter/vacancies')}>
+                  <Briefcase size={14} /> View Active Vacancies
+                </button>
                 <button className="welcome-action-btn" onClick={() => navigate('/recruiter/applicants/all')}>
                   <Users size={14} /> View Applicants
                 </button>
@@ -178,10 +142,6 @@ function RecruiterDashboard() {
             </div>
             <div className="welcome-date-badge">
               <span className="welcome-date-text">{activeDate}</span>
-              <div className="welcome-system-chip">
-                <span className="pulse-dot"></span>
-                AI screening engines running smoothly
-              </div>
             </div>
           </section>
 
@@ -275,128 +235,40 @@ function RecruiterDashboard() {
             </div>
           </div>
 
-          {/* ── BOTTOM COLUMN GRID ── */}
-          <div className="recruiter-dashboard-bottom-layout">
-            
-            {/* ── Left Column (Main Widgets) ── */}
-            <div className="main-column">
+          {/* ── 8. Recruitment Analytics ── */}
+          <div className="dashboard-panel-card" style={{ marginTop: '24px' }}>
+            <div className="panel-header-row">
+              <h2 className="recruiter-section-title">Recruitment Analytics & Insights</h2>
+              <button className="panel-view-all-btn" onClick={() => navigate('/recruiter/analytics')}>
+                Advanced Analytics <ChevronRight size={14} />
+              </button>
+            </div>
+
+            <div className="analytics-dashboard-grid">
               
-              {/* ── 8. Recruitment Analytics ── */}
-              <div className="dashboard-panel-card">
-                <div className="panel-header-row">
-                  <h2 className="recruiter-section-title">Recruitment Analytics & Insights</h2>
-                  <button className="panel-view-all-btn" onClick={() => navigate('/recruiter/analytics')}>
-                    Advanced Analytics <ChevronRight size={14} />
-                  </button>
+              {/* Bar chart */}
+              <div className="an-chart-card an-chart-card--bar">
+                <div className="an-chart-header">
+                  <span className="an-chart-gold-bar" />
+                  <span className="an-chart-title">APPLICANTS BY JOB POSITION</span>
                 </div>
+                <HorizontalBarChart data={DASHBOARD_BAR_CHART_DATA} />
+              </div>
 
-                <div className="analytics-dashboard-grid">
-                  
-                  {/* Bar chart */}
-                  <div className="an-chart-card an-chart-card--bar">
-                    <div className="an-chart-header">
-                      <span className="an-chart-gold-bar" />
-                      <span className="an-chart-title">APPLICANTS BY JOB POSITION</span>
-                    </div>
-                    <HorizontalBarChart data={DASHBOARD_BAR_CHART_DATA} />
-                  </div>
-
-                  {/* Donut chart */}
-                  <div className="an-chart-card an-chart-card--donut">
-                    <div className="an-chart-header">
-                      <span className="an-chart-gold-bar" />
-                      <span className="an-chart-title">APPLICANT STATUS</span>
-                    </div>
-                    <DonutChart
-                      shortlisted={DASHBOARD_ANALYTICS_TOTALS.shortlisted}
-                      rejected={DASHBOARD_ANALYTICS_TOTALS.rejected}
-                      pending={DASHBOARD_ANALYTICS_TOTALS.pending}
-                    />
-                  </div>
-
+              {/* Donut chart */}
+              <div className="an-chart-card an-chart-card--donut">
+                <div className="an-chart-header">
+                  <span className="an-chart-gold-bar" />
+                  <span className="an-chart-title">APPLICANT STATUS</span>
                 </div>
+                <DonutChart
+                  shortlisted={DASHBOARD_ANALYTICS_TOTALS.shortlisted}
+                  rejected={DASHBOARD_ANALYTICS_TOTALS.rejected}
+                  pending={DASHBOARD_ANALYTICS_TOTALS.pending}
+                />
               </div>
 
             </div>
-
-            {/* ── Right Column (Side Panels) ── */}
-            <div className="side-column">
-              
-              {/* ── 10. Pending Tasks ── */}
-              <div className="dashboard-panel-card">
-                <div className="panel-header-row">
-                  <h2 className="recruiter-section-title">Pending Action Items</h2>
-                  <span style={{ fontSize: '0.72rem', background: 'rgba(230,57,70,0.15)', color: 'var(--crisis)', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
-                    {PENDING_TASKS.length} Alerts
-                  </span>
-                </div>
-
-                <div className="pending-tasks-list">
-                  {PENDING_TASKS.map((task) => (
-                    <div key={task.id} className="pending-task-item">
-                      <div className="pending-task-left">
-                        <div className="pending-task-icon-box">
-                          <AlertCircle size={14} />
-                        </div>
-                        <div className="pending-task-info">
-                          <span className="pending-task-title">{task.title}</span>
-                          <span className="pending-task-meta">{task.meta}</span>
-                        </div>
-                      </div>
-                      <button className="pending-task-action-btn" onClick={() => console.log('Pending task action clicked')}>
-                        {task.actionLabel}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── 7. Upcoming Interviews ── */}
-              <div className="dashboard-panel-card">
-                <div className="panel-header-row">
-                  <h2 className="recruiter-section-title">Upcoming Scheduled Interviews</h2>
-                  <button className="panel-view-all-btn" onClick={() => navigate('/recruiter/interviews')}>
-                    View Calendar <ChevronRight size={14} />
-                  </button>
-                </div>
-
-                <div className="upcoming-interviews-list">
-                  {UPCOMING_INTERVIEWS.map((interview) => (
-                    <div key={interview.id} className="interview-strip-card">
-                      <div className="interview-date-block">
-                        <div className="date-block-icon">
-                          <CalendarDays size={16} />
-                        </div>
-                        <div className="date-block-text">
-                          <span className="date">{interview.date}</span>
-                          <span className="time">{interview.time}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="interview-candidate-info">
-                        <strong>{interview.candidate}</strong>
-                        <span>{interview.position}</span>
-                      </div>
-
-                      <div className="interview-panel-grp">
-                        <span className="panel-label-small">Evaluation Panel</span>
-                        <span className="panel-names-list">{interview.panel}</span>
-                      </div>
-
-                      <span className={`interview-type-tag ${interview.type}`}>
-                        {interview.type.toUpperCase()}
-                      </span>
-
-                      <button className="view-profile-action-btn" style={{ width: 'auto', padding: '6px 12px' }} onClick={() => navigate('/recruiter/interviews/evaluation')}>
-                        Start Evaluation
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
           </div>
 
         </main>
