@@ -221,3 +221,29 @@
   background: var(--community-surface-soft);
   border: 1px solid var(--community-border-ash);
 }
+
+/* Contrast fixes for the two light/dark states highlighted in review. */
+.community-hero .button.secondary {
+  color: var(--text-on-dark);
+}
+
+.community-hero .button.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.category-card > label.is-selected {
+  color: var(--primary);
+}
+
+.category-card > label.is-selected strong {
+  color: var(--primary);
+}
+
+.category-card > label.is-selected small {
+  color: var(--text-secondary);
+}
+
+.category-card > label input[type='radio'] {
+  accent-color: var(--accent);
+}
