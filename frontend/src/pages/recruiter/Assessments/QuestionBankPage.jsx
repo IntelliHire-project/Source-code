@@ -35,7 +35,7 @@ function QuestionBankPage() {
   };
 
   return (
-    <AssessmentShell onSearch={setQuery} searchPlaceholder="Search question bank...">
+    <AssessmentShell currentPage="Question Bank" onSearch={setQuery} searchPlaceholder="Search question bank...">
       <main className="af-page">
         <div className="af-page-title">
           <div><span className="af-eyebrow">Assessments / Question Bank</span><h1>Question Bank</h1><p>Create, organize, and reuse questions across your assessments.</p></div>

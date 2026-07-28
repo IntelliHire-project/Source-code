@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, Clock3, FileText, HelpCircle, Plus, Save, SlidersHorizontal, Trash2, Upload } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AssessmentShell from './AssessmentShell';
 import './AssessmentFlow.css';
 
@@ -11,17 +11,19 @@ const STARTER_QUESTIONS = [
 
 function CreateAssessmentPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isEditing = location.pathname.endsWith('/edit');
   const [questions, setQuestions] = useState(STARTER_QUESTIONS);
   const [expanded, setExpanded] = useState(1);
   const [saved, setSaved] = useState(false);
   const [config, setConfig] = useState({ title: 'Senior Frontend Engineer - React', role: 'Software Engineering', description: 'This assessment evaluates core React competencies, architectural patterns, and problem-solving skills for senior-level candidates.', duration: 60, difficulty: 'Senior' });
   const updateQuestion = (id, key, value) => setQuestions(questions.map((q) => q.id === id ? { ...q, [key]: value } : q));
   return (
-    <AssessmentShell>
+    <AssessmentShell currentPage={isEditing ? 'Edit Assessment' : 'Create Assessment'}>
       <main className="af-page">
         <div className="af-page-title">
-          <div><span className="af-eyebrow">Assessments / New Assessment</span><h1>Create New Assessment</h1><p>Configure your evaluation criteria and technical challenges.</p></div>
-          <div className="af-title-actions"><button className="af-secondary" onClick={() => setSaved(true)}>Save as Draft</button><button className="af-primary" onClick={() => navigate('/recruiter/assessments')}><Save size={16} /> Publish Assessment</button></div>
+          <div><span className="af-eyebrow">Assessments / {isEditing ? 'Edit Assessment' : 'New Assessment'}</span><h1>{isEditing ? 'Edit Assessment' : 'Create New Assessment'}</h1><p>Configure your evaluation criteria and technical challenges.</p></div>
+          <div className="af-title-actions"><button className="af-secondary" onClick={() => setSaved(true)}>Save as Draft</button><button className="af-primary" onClick={() => navigate('/recruiter/assessments')}><Save size={16} /> {isEditing ? 'Update Assessment' : 'Publish Assessment'}</button></div>
         </div>
         {saved && <div className="af-success"><CheckCircle2 size={17} /> Draft saved successfully.</div>}
         <div className="ca-layout">

@@ -13,7 +13,7 @@ function CandidateReportPage() {
   const [open, setOpen] = useState([0, 1]);
   const toggle = (i) => setOpen(open.includes(i) ? open.filter((item) => item !== i) : [...open, i]);
   return (
-    <AssessmentShell>
+    <AssessmentShell currentPage="Marcus Chen Report">
       <main className="af-page report-page">
         <header className="report-profile"><div className="report-avatar">MC<span><CheckCircle2 size={15} /></span></div><div><h1>Marcus Chen</h1><p><b>Senior Frontend Engineer</b> · Applied: Jul 24, 2026 · Colombo, LK</p></div><div className="report-buttons"><button className="af-secondary"><Download size={16} /> Export PDF</button><button className="af-secondary"><Share2 size={16} /> Share</button><button className="af-primary">Move to Interview</button></div></header>
         <section className="report-kpis">{[

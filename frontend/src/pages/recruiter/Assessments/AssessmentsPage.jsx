@@ -21,12 +21,12 @@ import TopBar from '../../../components/TopBar/TopBar';
 import './AssessmentsPage.css';
 
 const ASSESSMENTS = [
-  { name: 'Senior Fullstack Engineering Challenge', updated: '2 hours ago', role: 'Senior Software Engineer', candidates: 42, duration: 90, status: 'Active' },
-  { name: 'Product Management Strategy Case', updated: '5 hours ago', role: 'Product Manager', candidates: 18, duration: 120, status: 'Reviewing' },
-  { name: 'UI/UX Design Systems Proficiency', updated: 'yesterday', role: 'Lead Designer', candidates: 25, duration: 60, status: 'Active' },
-  { name: 'Q3 Marketing Analytics Test', updated: '3 days ago', role: 'Data Analyst', candidates: 124, duration: 45, status: 'Completed' },
-  { name: 'Customer Success Communication Lab', updated: '1 week ago', role: 'CS Manager', candidates: 9, duration: 30, status: 'Draft' },
-  { name: 'Entry Level DevOps Fundamentals', updated: '2 hours ago', role: 'Junior DevOps', candidates: 56, duration: 75, status: 'Active' },
+  { id: 'senior-fullstack', name: 'Senior Fullstack Engineering Challenge', updated: '2 hours ago', role: 'Senior Software Engineer', candidates: 42, duration: 90, status: 'Active' },
+  { id: 'product-strategy', name: 'Product Management Strategy Case', updated: '5 hours ago', role: 'Product Manager', candidates: 18, duration: 120, status: 'Reviewing' },
+  { id: 'design-systems', name: 'UI/UX Design Systems Proficiency', updated: 'yesterday', role: 'Lead Designer', candidates: 25, duration: 60, status: 'Active' },
+  { id: 'marketing-analytics', name: 'Q3 Marketing Analytics Test', updated: '3 days ago', role: 'Data Analyst', candidates: 124, duration: 45, status: 'Completed' },
+  { id: 'success-communication', name: 'Customer Success Communication Lab', updated: '1 week ago', role: 'CS Manager', candidates: 9, duration: 30, status: 'Draft' },
+  { id: 'devops-fundamentals', name: 'Entry Level DevOps Fundamentals', updated: '2 hours ago', role: 'Junior DevOps', candidates: 56, duration: 75, status: 'Active' },
 ];
 
 const SUMMARY = [
@@ -43,14 +43,26 @@ function AssessmentsPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [assessments, setAssessments] = useState(ASSESSMENTS);
+  const [actionMenu, setActionMenu] = useState(null);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return ASSESSMENTS.filter((item) => {
+    return assessments.filter((item) => {
       const matchesQuery = !normalized || `${item.name} ${item.role} ${item.status}`.toLowerCase().includes(normalized);
       return matchesQuery && (statusFilter === 'All' || item.status === statusFilter);
     });
-  }, [query, statusFilter]);
+  }, [query, statusFilter, assessments]);
+
+  const duplicateAssessment = (item) => {
+    setAssessments([...assessments, { ...item, id: `${item.id}-copy-${Date.now()}`, name: `${item.name} (Copy)`, status: 'Draft', updated: 'just now' }]);
+    setActionMenu(null);
+  };
+
+  const toggleArchive = (item) => {
+    setAssessments(assessments.map((assessment) => assessment.id === item.id ? { ...assessment, status: assessment.status === 'Archived' ? 'Draft' : 'Archived', updated: 'just now' } : assessment));
+    setActionMenu(null);
+  };
 
   const exportAssessments = () => {
     const header = 'Assessment Name,Job Role,Candidates,Duration,Status\n';
@@ -139,9 +151,17 @@ function AssessmentsPage() {
                       <td><span className={`assessment-status status-${item.status.toLowerCase()}`}>{item.status}</span></td>
                       <td>
                         <div className="assessment-actions">
-                          <button title="View candidate report" type="button" onClick={() => navigate('/recruiter/assessments/report/marcus-chen')}><Eye size={17} /></button>
-                          <button title="Edit assessment" type="button" onClick={() => navigate('/recruiter/assessments/new')}><Pencil size={16} /></button>
-                          <button title="More actions" type="button"><MoreHorizontal size={18} /></button>
+                          <button title="Preview assessment" type="button" onClick={() => navigate(`/recruiter/assessments/${item.id}`)}><Eye size={17} /></button>
+                          <button title="Edit assessment" type="button" onClick={() => navigate(`/recruiter/assessments/${item.id}/edit`)}><Pencil size={16} /></button>
+                          <div className="assessment-more-wrap">
+                            <button title="More assessment actions" type="button" aria-expanded={actionMenu === item.id} onClick={() => setActionMenu(actionMenu === item.id ? null : item.id)}><MoreHorizontal size={18} /></button>
+                            {actionMenu === item.id && <div className="assessment-more-menu">
+                              <button type="button" onClick={() => navigate(`/recruiter/assessments/${item.id}/candidates`)}>View candidate results</button>
+                              <button type="button" onClick={() => duplicateAssessment(item)}>Duplicate assessment</button>
+                              <button type="button" onClick={() => toggleArchive(item)}>{item.status === 'Archived' ? 'Restore assessment' : 'Archive assessment'}</button>
+                              <button className="danger" type="button" onClick={() => { if (window.confirm(`Delete "${item.name}"?`)) setAssessments(assessments.filter((assessment) => assessment.id !== item.id)); setActionMenu(null); }}>Delete assessment</button>
+                            </div>}
+                          </div>
                         </div>
                       </td>
                     </tr>
