@@ -14,7 +14,7 @@ import './TopBar.css';
 /**
  * TopBar — Reusable dashboard top bar component.
  *
- * Follows the TalentBridge Design System (system_design.md § 10).
+ * Follows the IntelliHire Design System (system_design.md § 10).
  * Drop this into any dashboard layout to get breadcrumbs, search,
  * notifications, community link, and a profile dropdown.
  *
