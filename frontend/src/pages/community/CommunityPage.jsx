@@ -3,12 +3,14 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Award, BarChart3, Bell, Bold, Bookmark, BriefcaseBusiness, Calendar,
   CheckCircle2, ChevronDown, ChevronRight, Clock3, Edit3, ExternalLink, Eye,
-  FileImage, FileText, Flag, Hash, Heart, Info, Italic, LayoutDashboard, Link2,
+  FileImage, FileText, Flag, Hash, Heart, Info, Italic, Link2,
   List, ListOrdered, MapPin, Menu, MessageCircle, MoreHorizontal, Paperclip,
-  Search, Send, Settings, Share2, ShieldCheck, Sparkles, TrendingUp, Type,
-  UserPlus, UserRound, Users, X
+  Search, Send, Share2, ShieldCheck, Sparkles, TrendingUp, Type,
+  UserPlus, X
 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
+import RecruiterSidebar from '../../components/common/RecruiterSidebar';
+import CandidateSidebar from '../../components/common/CandidateSidebar';
 import './CommunityPage.css';
 
 const POSTS = [
@@ -22,7 +24,9 @@ const TOPICS = ['Career Growth', 'Interview Prep', 'Salary Negotiation', 'Work-L
 const CATEGORIES = ['Announcements', 'Job Referrals', 'Tech Stack Q&A', 'Success Stories', 'Mental Health'];
 
 function roleInfo(user, roleOverride) {
-  const role = (roleOverride || user?.role || 'candidate').toLowerCase();
+  if (roleOverride) sessionStorage.setItem('community_account_role', roleOverride);
+  const rememberedRole = sessionStorage.getItem('community_account_role');
+  const role = (roleOverride || user?.role || rememberedRole || 'candidate').toLowerCase();
   if (role.includes('recruit')) return { role: 'Recruiter', home: '/recruiter/dashboard', settings: '/recruiter/settings' };
   if (role.includes('admin')) return { role: 'Admin', home: '/admin/dashboard', settings: '/admin/settings' };
   return { role: 'Candidate', home: '/candidate/profile', settings: '/candidate/settings' };
@@ -37,41 +41,17 @@ function CommunityShell({ children, title = 'Community', action, roleOverride })
   const name = user?.fullName || user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || fallbackName;
   const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
-  const primary = info.role === 'Recruiter'
-    ? [
-        { label: 'Dashboard', icon: LayoutDashboard, to: '/recruiter/dashboard' },
-        { label: 'Job vacancies', icon: BriefcaseBusiness, to: '/recruiter/vacancies' },
-        { label: 'Applicants', icon: Users, to: '/recruiter/applicants/all' }
-      ]
-    : info.role === 'Admin'
-      ? [
-          { label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard' },
-          { label: 'Users', icon: Users, to: '/admin/users' },
-          { label: 'Community mod.', icon: ShieldCheck, to: '/admin/community-mod' }
-        ]
-      : [
-          { label: 'Dashboard', icon: LayoutDashboard, to: '/candidate/profile' },
-          { label: 'Find jobs', icon: Search, to: '/candidate/jobs' },
-          { label: 'My applications', icon: FileText, to: '/candidate/applications' }
-        ];
-
   return (
-    <div className="community-shell">
-      {menuOpen && <button className="community-overlay" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}
-      <aside className={`community-sidebar ${menuOpen ? 'is-open' : ''}`}>
-        <div className="community-brand"><span className="community-brand-mark" aria-hidden="true">IH</span><span>IntelliHire</span><button onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={18}/></button></div>
-        <nav>
-          {primary.map(({ label, icon: Icon, to }) => <Link key={to} to={to}><Icon size={18}/><span>{label}</span></Link>)}
-          <Link className="is-active" to={info.role === 'Recruiter' ? '/recruiter/community' : '/community'}><MessageCircle size={18}/><span>Community</span></Link>
-          <Link to="/community/saved"><Bookmark size={18}/><span>Saved posts</span></Link>
-          {info.role !== 'Admin' && <Link to="/community/profile/alex-johnson"><UserRound size={18}/><span>My community profile</span></Link>}
-        </nav>
-        <div className="community-sidebar-footer"><Link to={info.settings}><Settings size={18}/><span>Settings</span></Link></div>
-      </aside>
+    <div className={`community-shell community-shell--${info.role.toLowerCase()}`}>
+      {info.role === 'Recruiter' ? (
+        <RecruiterSidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} activeItem="Community" />
+      ) : (
+        <CandidateSidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} user={user} />
+      )}
       <div className="community-workspace">
         <header className="community-topbar">
           <button className="community-menu" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={21}/></button>
-          <div className="community-crumbs"><Link className="community-system-name" to={info.home}>IntelliHire</Link><ChevronRight size={15}/><Link to="/community">Community</Link>{title !== 'Community' && <><ChevronRight size={15}/><span>{title}</span></>}</div>
+          <div className="community-crumbs"><Link className="community-system-name" to={info.home}>IntelliHire</Link><ChevronRight size={15}/><Link to={info.role === 'Recruiter' ? '/recruiter/community' : '/community'}>Community</Link>{title !== 'Community' && <><ChevronRight size={15}/><span>{title}</span></>}</div>
           <div className="community-top-actions">
             {action}
             <button className="community-icon-button" aria-label="Notifications"><Bell size={19}/><i/></button>

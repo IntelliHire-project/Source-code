@@ -314,7 +314,7 @@ function AppRoutes() {
           }
         />
         {/* Community Forum — shared for both recruiters and candidates */}
-        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/community" element={<CommunityPage roleOverride="candidate" />} />
         <Route path="/recruiter/community" element={<CommunityPage roleOverride="recruiter" />} />
         <Route path="/community/new" element={<CreateDiscussionPage />} />
         <Route path="/community/post/:postId" element={<DiscussionPage />} />
