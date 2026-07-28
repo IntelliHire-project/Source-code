@@ -22,6 +22,9 @@ import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPag
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
+import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
+import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
+import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
 import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
@@ -149,6 +152,18 @@ function AppRoutes() {
         <Route
           path="/recruiter/vacancy-preview"
           element={<PreviewVacancyPage />}
+        />
+        <Route
+          path="/recruiter/select-payment"
+          element={<SelectPaymentMethodPage />}
+        />
+        <Route
+          path="/recruiter/complete-purchase"
+          element={<CompleteYourPurchasePage />}
+        />
+        <Route
+          path="/recruiter/otp-verification"
+          element={<OTPVerificationPage />}
         />
         <Route
           path="/recruiter/payments"

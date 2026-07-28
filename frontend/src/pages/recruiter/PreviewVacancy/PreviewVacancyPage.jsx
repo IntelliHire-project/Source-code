@@ -372,7 +372,7 @@ function PreviewVacancyPage() {
         onClose={() => setShowPaymentModal(false)}
         onProceed={() => {
           setShowPaymentModal(false);
-          navigate('/recruiter/payment-billing');
+          navigate('/recruiter/select-payment');
         }}
         onSaveDraft={() => {
           setShowPaymentModal(false);
