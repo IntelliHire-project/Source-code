@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Bell, Bookmark, BriefcaseBusiness, ChevronRight, Clock3,
-  FileText, Flag, Heart, LayoutDashboard, Menu, MessageCircle,
-  Paperclip, Search, Send, Settings, Share2, ShieldCheck, Sparkles, TrendingUp,
-  UserRound, Users, X
+  ArrowLeft, Bell, Bold, Bookmark, BriefcaseBusiness, CheckCircle2, ChevronDown,
+  ChevronRight, Clock3, Eye, FileImage, FileText, Flag, Hash, Heart, Info,
+  Italic, LayoutDashboard, Link2, List, ListOrdered, Menu, MessageCircle,
+  MoreHorizontal, Paperclip, Search, Send, Settings, Share2, ShieldCheck,
+  Sparkles, TrendingUp, Type, UserRound, Users, X
 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import './CommunityPage.css';
@@ -147,13 +148,80 @@ export function CreateDiscussionPage() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('Career Growth');
+  const [previewing, setPreviewing] = useState(false);
+  const [attachedFile, setAttachedFile] = useState(null);
   const publish = (e) => { e.preventDefault(); if (title.trim() && body.trim()) navigate('/community/post/react-performance'); };
+  const categories = [
+    ['Career Growth', 'Tips for professional growth and job hunting'],
+    ['Interview Prep', 'Technical and behavioral interview strategies'],
+    ['Industry News', 'Latest trends in technology and recruitment'],
+    ['Negotiation', 'How to handle offer and salary discussions']
+  ];
   return (
     <CommunityShell title="Create discussion">
-      <div className="page-heading"><div><span className="eyebrow">Share your experience</span><h1>Create a new discussion</h1><p>Clear, specific questions receive the most helpful answers.</p></div></div>
-      <form className="editor-grid" onSubmit={publish}>
-        <section className="forum-card editor-card"><h2><FileText/>Post content</h2><label>Post title<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What would you like to discuss?" maxLength="120"/><small>{title.length}/120 characters</small></label><label>Detailed description<textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Add context, what you have tried, and the outcome you are looking for..." rows="13"/><small>Markdown supported</small></label><div className="attachment-box"><Paperclip/><span><strong>Add supporting files</strong><small>PDF, PNG or JPG · up to 10 MB</small></span><button type="button" className="button secondary">Browse</button></div></section>
-        <aside><section className="forum-card category-card"><h2>Discussion category</h2>{['Career Growth', 'Interview Prep', 'Industry News', 'Negotiation', 'Tech Stack Q&A'].map((item) => <label className={category === item ? 'is-selected' : ''} key={item}><input type="radio" name="category" checked={category === item} onChange={() => setCategory(item)}/><span><strong>{item}</strong><small>{item === 'Interview Prep' ? 'Technical and behavioral interview strategies' : 'Professional insights and community advice'}</small></span></label>)}</section><section className="forum-card guidelines-summary"><h3><ShieldCheck/>Before you post</h3><p>Be professional, search first, protect private information, and use the most relevant category.</p><Link to="/community/guidelines">Read full guidelines</Link></section><button className="button primary publish-button" disabled={!title.trim() || !body.trim()}><Send size={17}/>Publish discussion</button></aside>
+      <div className="create-discussion-heading">
+        <div><h1>Create New Discussion</h1><p>Share your insights and connect with the IntelliHire professional community.</p></div>
+        <div className="create-heading-actions">
+          <button type="button" className={`button preview-button ${previewing ? 'is-active' : ''}`} onClick={() => setPreviewing(!previewing)}><Eye size={17}/>{previewing ? 'Edit Post' : 'Live Preview'}</button>
+          <button type="submit" form="create-discussion-form" className="button primary" disabled={!title.trim() || !body.trim()}><Send size={17}/>Publish Post</button>
+        </div>
+      </div>
+      <form id="create-discussion-form" className="editor-grid create-discussion-grid" onSubmit={publish}>
+        <div className="create-discussion-main">
+          <section className="forum-card editor-card">
+            <h2><Type/>Post Content</h2>
+            {!previewing ? <>
+              <label>POST TITLE<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Optimizing React Performance for Enterprise Applications" maxLength="120"/><small>Make it catchy and descriptive to attract the right audience.</small></label>
+              <label>DETAILED DESCRIPTION
+                <div className="rich-editor">
+                  <div className="editor-toolbar">
+                    <button type="button" aria-label="Bold"><Bold size={17}/></button>
+                    <button type="button" aria-label="Italic"><Italic size={17}/></button>
+                    <i/>
+                    <button type="button" aria-label="Bulleted list"><List size={17}/></button>
+                    <button type="button" aria-label="Numbered list"><ListOrdered size={17}/></button>
+                    <i/>
+                    <button type="button" aria-label="Add link"><Link2 size={17}/></button>
+                    <button type="button" aria-label="Add image"><FileImage size={17}/></button>
+                    <button type="button" className="toolbar-more" aria-label="More formatting"><MoreHorizontal size={18}/></button>
+                  </div>
+                  <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Share the context, what you learned, and the question you would like the community to discuss..." rows="15"/>
+                  <div className="editor-status"><span>Words: {body.trim() ? body.trim().split(/\s+/).length : 0}</span><span>Markdown supported</span></div>
+                </div>
+              </label>
+            </> : <div className="post-preview"><span className="category-pill">{category}</span><h1>{title || 'Your discussion title'}</h1><p>{body || 'Your discussion content will appear here.'}</p></div>}
+          </section>
+          <section className="forum-card documents-card">
+            <h2><Paperclip/>Supporting Documents</h2>
+            <div className="documents-layout">
+              <label className="document-dropzone">
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.zip" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}/>
+                <span className="document-icon"><Paperclip size={22}/></span>
+                <strong>Drag & drop files or <u>browse</u></strong>
+                <small>PDF, JPEG, PNG, ZIP (Max 10MB)</small>
+              </label>
+              <div className="attached-files">
+                <span>ATTACHED FILES</span>
+                {attachedFile ? <div className="attached-file"><Paperclip size={18}/><div><strong>{attachedFile.name}</strong><small>{Math.max(.1, attachedFile.size / 1048576).toFixed(1)} MB</small></div><button type="button" onClick={() => setAttachedFile(null)} aria-label="Remove file"><X size={17}/></button></div> : <p>No files attached yet</p>}
+                {attachedFile && <button type="button" onClick={() => setAttachedFile(null)}>Clear all attachments</button>}
+              </div>
+            </div>
+          </section>
+        </div>
+        <aside className="create-discussion-aside">
+          <section className="forum-card category-card">
+            <h2><Hash/>Discussion Category</h2>
+            {categories.map(([item, description]) => <label className={category === item ? 'is-selected' : ''} key={item}><input type="radio" name="category" checked={category === item} onChange={() => setCategory(item)}/><span><strong>{item}</strong><small>{description}</small></span>{category === item && <CheckCircle2 size={17}/>}</label>)}
+            <button type="button" className="request-category">Request New Category<ChevronDown size={15}/></button>
+          </section>
+          <section className="forum-card posting-guidelines">
+            <h2><Info/>Posting Guidelines</h2>
+            <details open><summary>Be Professional<ChevronDown size={16}/></summary><p>Maintain a respectful and helpful tone. Avoid commercial self-promotion unless relevant to the context.</p></details>
+            <details><summary>Search First<ChevronDown size={16}/></summary><p>Check for an existing discussion before creating a duplicate topic.</p></details>
+            <details><summary>Use Tags Correctly<ChevronDown size={16}/></summary><p>Choose the category that best matches your discussion.</p></details>
+            <div className="guideline-notice"><Info size={18}/><span>Posts violating IntelliHire policies may be flagged for moderator review.</span></div>
+          </section>
+        </aside>
       </form>
     </CommunityShell>
   );
