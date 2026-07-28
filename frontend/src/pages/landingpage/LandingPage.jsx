@@ -76,7 +76,7 @@ function Dashboard() {
 }
 
 function Hero() {
-  const people = [['AM','Product','p1'],['RK','Design','p2'],['JL','Data','p3'],['SN','Engineering','p4'],['MK','Growth','p5'],['TA','Operations','p6']];
+  const people = [['PM','Product Manager','p1'],['QA','QA Engineer','p2'],['SE','Software Engineer','p3'],['BA','Business Analyst','p4'],['UX','UX Designer','p5'],['DE','Data Engineer','p6'],['DO','DevOps Engineer','p7'],['DS','Data Scientist','p8']];
   const trust = [[BrainCircuit,'AI-Powered'],[ShieldCheck,'Secure Platform'],[Zap,'Fast Hiring'],[TrendingUp,'Career Development']];
   return (
     <section className="ih-hero">
@@ -172,7 +172,14 @@ function GettingStarted() {
   </div></section>;
 }
 
-const stats = [['98%','Match Accuracy'],['2.4k+','Hires Made'],['12min','Avg. Time to Shortlist'],['$42M','Salaries Matched']];
+const stats = [
+  ['98%','Match Accuracy'],
+  ['2.4k+','Hires Made'],
+  ['12min','Avg. Time to Shortlist'],
+  ['$42M','Salaries Matched'],
+  ['10k+','Candidates Prepared'],
+  ['500+','Recruiter Teams'],
+];
 const Stats = () => <section className="ih-stats"><div className="ih-container">{stats.map(([value,label],i) => <Reveal delay={i*70} key={label}><strong>{value}</strong><span>{label}</span></Reveal>)}</div></section>;
 
 function CTA() {

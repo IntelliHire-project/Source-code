@@ -2,12 +2,13 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
-    "moduleResolution": "node10",
+    "moduleResolution": "node",
     "jsx": "react-jsx",
     "baseUrl": "src",
-    "ignoreDeprecations": "5.0",
     "checkJs": false,
     "allowJs": true,
+    "noResolve": true,
+    "types": [],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "strict": false
