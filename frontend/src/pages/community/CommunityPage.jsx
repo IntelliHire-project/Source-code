@@ -21,98 +21,20 @@ const POSTS = [
 const TOPICS = ['Career Growth', 'Interview Prep', 'Salary Negotiation', 'Work-Life Balance'];
 const CATEGORIES = ['Announcements', 'Job Referrals', 'Tech Stack Q&A', 'Success Stories', 'Mental Health'];
 
-<<<<<<< HEAD
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Sidebar nav items (shared for both roles)
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const RECRUITER_NAV_ITEMS = [
-  { id: 'dashboard', iconClass: 'fa-solid fa-gauge-high', label: 'Dashboard', path: '/recruiter/dashboard' },
-  { id: 'recruitment', iconClass: 'fa-solid fa-briefcase', label: 'Recruitment', path: '/recruiter/vacancies' },
-  { id: 'question-bank', iconClass: 'fa-solid fa-book-open', label: 'Question Bank', path: '/recruiter/question-bank' },
-  { id: 'assessments', iconClass: 'fa-solid fa-clipboard-check', label: 'Assessments', path: '/recruiter/assessments' },
-  { id: 'community', iconClass: 'fa-solid fa-users', label: 'Community', path: '/recruiter/community', active: true },
-];
-
-const CANDIDATE_NAV_ITEMS = [
-  { id: 'dashboard', iconClass: 'fa-solid fa-gauge-high', label: 'Dashboard', path: '/candidate/dashboard' },
-  { id: 'jobs', iconClass: 'fa-solid fa-briefcase', label: 'Find Jobs', path: '/candidate/jobs' },
-  { id: 'applications', iconClass: 'fa-solid fa-file-lines', label: 'Applications', path: '/candidate/applications' },
-  { id: 'profile', iconClass: 'fa-solid fa-user', label: 'Profile', path: '/candidate/profile' },
-  { id: 'community', iconClass: 'fa-solid fa-users', label: 'Community', path: '/community', active: true },
-];
-
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Main Component
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function CommunityPage({ roleOverride }) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const [activeTab, setActiveTab] = useState('trending');
-  const [savedPosts, setSavedPosts] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const role = roleOverride || user?.role || 'candidate';
-  const navItems = role === 'recruiter' ? RECRUITER_NAV_ITEMS : CANDIDATE_NAV_ITEMS;
-
-  const handleSave = (postId) => {
-    setSavedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
-  };
-
-  const handleLogout = () => {
-    if (logout) logout();
-    navigate('/');
-  };
-
-  const userInitials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'AJ'
-    : role === 'recruiter' ? 'SP' : 'AJ';
-
-  const userName = user
-    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Alex Johnson'
-    : role === 'recruiter' ? 'Sarah Parker' : 'Alex Johnson';
-
-  const userRoleLabel = role === 'recruiter' ? 'Recruiter' : 'Candidate';
-
-  return (
-    <div className="comm-shell">
-      {/* â”€â”€ Sidebar â”€â”€ */}
-      <aside className={`comm-sidebar${sidebarOpen ? ' comm-sidebar--open' : ''}`} aria-label="Sidebar navigation">
-        {/* Logo */}
-        <div className="comm-sidebar-logo">
-          <div className="comm-logo-box" aria-hidden="true">
-            <i className="fa-solid fa-bolt" />
-          </div>
-          <span className="comm-logo-wordmark">TalentBridge</span>
-        </div>
-
-        {/* Nav */}
-        <nav className="comm-nav" aria-label="Main navigation">
-          {navItems.map((item) => (
-            <Link
-              key={item.id}
-              to={item.path}
-              className={`comm-nav-item${item.active ? ' comm-nav-item--active' : ''}`}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <i className={`${item.iconClass} comm-nav-icon`} aria-hidden="true" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-=======
-function roleInfo(user) {
-  const role = (user?.role || 'candidate').toLowerCase();
+function roleInfo(user, roleOverride) {
+  const role = (roleOverride || user?.role || 'candidate').toLowerCase();
   if (role.includes('recruit')) return { role: 'Recruiter', home: '/recruiter/dashboard', settings: '/recruiter/settings' };
   if (role.includes('admin')) return { role: 'Admin', home: '/admin/dashboard', settings: '/admin/settings' };
   return { role: 'Candidate', home: '/candidate/profile', settings: '/candidate/settings' };
 }
 
-function CommunityShell({ children, title = 'Community', action }) {
+function CommunityShell({ children, title = 'Community', action, roleOverride }) {
   const { user } = useAuth();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const info = roleInfo(user);
-  const name = user?.fullName || user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Alex Johnson';
+  const info = roleInfo(user, roleOverride);
+  const fallbackName = info.role === 'Recruiter' ? 'Sarah Parker' : 'Alex Johnson';
+  const name = user?.fullName || user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || fallbackName;
   const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
   const primary = info.role === 'Recruiter'
@@ -140,10 +62,9 @@ function CommunityShell({ children, title = 'Community', action }) {
         <div className="community-brand"><span className="community-brand-mark" aria-hidden="true">IH</span><span>IntelliHire</span><button onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={18}/></button></div>
         <nav>
           {primary.map(({ label, icon: Icon, to }) => <Link key={to} to={to}><Icon size={18}/><span>{label}</span></Link>)}
-          <Link className="is-active" to="/community"><MessageCircle size={18}/><span>Community</span></Link>
+          <Link className="is-active" to={info.role === 'Recruiter' ? '/recruiter/community' : '/community'}><MessageCircle size={18}/><span>Community</span></Link>
           <Link to="/community/saved"><Bookmark size={18}/><span>Saved posts</span></Link>
           {info.role !== 'Admin' && <Link to="/community/profile/alex-johnson"><UserRound size={18}/><span>My community profile</span></Link>}
->>>>>>> b558dbd1e1b0637dac69c2d2eb6527609423c834
         </nav>
         <div className="community-sidebar-footer"><Link to={info.settings}><Settings size={18}/><span>Settings</span></Link></div>
       </aside>
@@ -184,7 +105,7 @@ function PostCard({ post, saved, onSave }) {
   );
 }
 
-export function CommunityPage() {
+export function CommunityPage({ roleOverride }) {
   const [tab, setTab] = useState('Trending');
   const [query, setQuery] = useState('');
   const [topic, setTopic] = useState('All topics');
@@ -199,7 +120,7 @@ export function CommunityPage() {
   };
 
   return (
-    <CommunityShell action={<Link className="button primary compact" to="/community/new">Create post</Link>}>
+    <CommunityShell roleOverride={roleOverride} action={<Link className="button primary compact" to="/community/new">Create post</Link>}>
       <section className="community-hero">
         <div><span className="eyebrow">IntelliHire community</span><h1>Grow your career, together.</h1><p>Ask better questions, trade real-world experience, and meet people building meaningful careers through IntelliHire.</p><div className="hero-buttons"><Link className="button primary" to="/community/new">Start a discussion</Link><Link className="button secondary" to="/community/guidelines">View guidelines</Link></div></div>
         <div className="hero-art"><Sparkles/><b>12,500+</b><span>helpful discussions</span></div>
