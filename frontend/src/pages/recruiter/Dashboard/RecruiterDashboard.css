@@ -222,14 +222,14 @@
   background: var(--primary, #16171F);
   border: 1px solid var(--primary-light, #2A2C38);
   border-radius: var(--radius-lg, 14px);
-  padding: 24px 28px;
+  padding: 16px 28px;
 }
 
 .pipeline-wrapper {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 24px;
+  margin-top: 16px;
   position: relative;
 }
 
@@ -283,7 +283,7 @@
 }
 
 .pipeline-step-label {
-  margin-top: 10px;
+  margin-top: 6px;
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-muted, #9CA0A8);

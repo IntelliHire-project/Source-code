@@ -52,50 +52,6 @@ const PIPELINE_STEPS = [
   { label: 'Offers Sent', count: 14, status: 'pending' },
   { label: 'Hired', count: 8, status: 'pending' }
 ];
-
-const AI_RECOMMENDED_CANDIDATES = [
-  {
-    id: 'CAND-001',
-    name: 'Sarah Jenkins',
-    position: 'Senior Frontend Engineer',
-    matchScore: 96,
-    skills: ['React', 'TypeScript', 'CSS Grid', 'Webpack'],
-    experience: '5 years',
-    resumeScore: 92,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80',
-  },
-  {
-    id: 'CAND-002',
-    name: 'Michael Chen',
-    position: 'Lead React Developer',
-    matchScore: 94,
-    skills: ['React', 'Next.js', 'Redux', 'Node.js'],
-    experience: '7 years',
-    resumeScore: 89,
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80',
-  },
-  {
-    id: 'CAND-003',
-    name: 'Priya Nair',
-    position: 'Frontend Engineer',
-    matchScore: 91,
-    skills: ['JavaScript', 'React', 'Tailwind', 'Git'],
-    experience: '3 years',
-    resumeScore: 85,
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80',
-  },
-  {
-    id: 'CAND-004',
-    name: 'David Miller',
-    position: 'UI Engineer',
-    matchScore: 88,
-    skills: ['Figma', 'HTML/CSS', 'React', 'Framer Motion'],
-    experience: '4 years',
-    resumeScore: 82,
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80',
-  }
-];
-
 const UPCOMING_INTERVIEWS = [
   {
     id: 'INT-501',
@@ -148,15 +104,6 @@ const CALENDAR_EVENTS = [
   { id: 'EVT-003', time: '4:30 PM - 5:30 PM', title: 'Interview: Marcus Aurelius', category: 'interview' },
   { id: 'EVT-004', time: '11:59 PM', title: 'Expiry: HR Manager (JOB-208)', category: 'deadline' }
 ];
-
-const PERFORMANCE_INSIGHTS = [
-  { label: 'Avg Time to Hire', value: '18 Days', trend: '-2.4 days', trendType: 'positive' },
-  { label: 'Shortlisting Rate', value: '33.4%', trend: '+4.1%', trendType: 'positive' },
-  { label: 'Interview Success Rate', value: '64%', trend: '+1.5%', trendType: 'positive' },
-  { label: 'Offer Acceptance Rate', value: '88%', trend: '+3%', trendType: 'positive' },
-  { label: 'Hired This Month', value: '8 Candidates', trend: 'Target met', trendType: 'neutral' }
-];
-
 // SVG Chart data points
 const AREA_CHART_DATA = [
   { day: 'Mon', applicants: 25 },
@@ -288,50 +235,6 @@ function RecruiterDashboard() {
             {/* ── Left Column (Main Widgets) ── */}
             <div className="main-column">
               
-              {/* ── 5. AI Recommended Candidates ── */}
-              <div className="dashboard-panel-card">
-                <div className="panel-header-row">
-                  <h2 className="recruiter-section-title">
-                    <Sparkles size={18} style={{ color: 'var(--accent)' }} />
-                    AI Recommended Candidates
-                  </h2>
-                  <button className="panel-view-all-btn" onClick={() => navigate('/recruiter/applicants/ranked')}>
-                    Analyze All Matches <ArrowUpRight size={14} />
-                  </button>
-                </div>
-                
-                <div className="candidates-horizontal-scroll">
-                  {AI_RECOMMENDED_CANDIDATES.map((cand) => (
-                    <div key={cand.id} className="candidate-rec-card">
-                      <div className="candidate-card-header">
-                        <div className="candidate-photo-wrapper">
-                          <img src={cand.avatar} alt={cand.name} className="candidate-profile-pic" />
-                          <span className="match-score-badge">{cand.matchScore}% Match</span>
-                        </div>
-                        <div className="candidate-name-title">
-                          <h4>{cand.name}</h4>
-                          <span>{cand.position}</span>
-                        </div>
-                      </div>
-
-                      <div className="candidate-meta-row">
-                        <span className="candidate-exp">Experience: <strong>{cand.experience}</strong></span>
-                        <span className="candidate-resume-score">Resume Score: {cand.resumeScore}/100</span>
-                      </div>
-
-                      <div className="candidate-skills-wrap">
-                        {cand.skills.map((skill, sIdx) => (
-                          <span key={sIdx} className="candidate-skill-tag">{skill}</span>
-                        ))}
-                      </div>
-
-                      <button className="view-profile-action-btn" onClick={() => navigate('/recruiter/applicants/ranked')}>
-                        View Match Profile
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
               {/* ── 7. Upcoming Interviews ── */}
               <div className="dashboard-panel-card">
                 <div className="panel-header-row">
@@ -714,25 +617,6 @@ function RecruiterDashboard() {
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-
-              {/* ── 12. Performance Insights ── */}
-              <div className="dashboard-panel-card">
-                <div className="panel-header-row">
-                  <h2 className="recruiter-section-title">Performance Insights</h2>
-                </div>
-
-                <div className="performance-insights-grid">
-                  {PERFORMANCE_INSIGHTS.map((insight, idx) => (
-                    <div key={idx} className="insight-metric-mini">
-                      <span className="insight-metric-label">{insight.label}</span>
-                      <span className="insight-metric-value">{insight.value}</span>
-                      <span className={`insight-metric-footer ${insight.trendType === 'negative' ? 'warning' : ''}`}>
-                        <TrendingUp size={10} /> {insight.trend}
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
 
