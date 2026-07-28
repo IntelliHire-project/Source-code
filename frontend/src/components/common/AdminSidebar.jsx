@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Flag,
+  X,
 } from 'lucide-react';
 import logo from '../../logo.png';
 
@@ -21,8 +22,8 @@ const NAV_ITEMS = [
   { label: 'Companies', icon: Building, path: '/admin/companies' },
   { label: 'Job moderation', icon: Briefcase, path: '/admin/job-moderation' },
   { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
-  { label: 'Content Moderation', icon: Flag, path: '/admin/community-mod' },
-  { label: 'Audit Logs', icon: BookOpen, path: '/admin/reports' },
+  { label: 'Community mod.', icon: Flag, path: '/admin/community-mod' },
+  { label: 'Reports', icon: BookOpen, path: '/admin/reports' },
   { label: 'System health', icon: Activity, path: '/admin/system-health' },
 ];
 
@@ -48,13 +49,24 @@ function AdminSidebar({ isOpen = false, onClose, activeItem }) {
       {isOpen && (
         <div className="sidebar-overlay" onClick={onClose} aria-hidden="true" />
       )}
-      <aside className={`admin-sidebar ${isOpen ? 'is-open' : ''}`}>
+      <aside
+        className={`admin-sidebar ${isOpen ? 'is-open' : ''}`}
+        aria-label="Administrator navigation"
+      >
+        <button
+          type="button"
+          className="sidebar-close-btn"
+          onClick={onClose}
+          aria-label="Close navigation"
+        >
+          <X size={18} />
+        </button>
         <div className="admin-sidebar__logo">
           <img src={logo} alt="IntelliHire" style={{ height: '32px', width: 'auto', display: 'block' }} />
           <span className="admin-sidebar__logo-wordmark">IntelliHire</span>
         </div>
 
-        <nav className="admin-sidebar__nav">
+        <nav className="admin-sidebar__nav" aria-label="Administrator primary navigation">
           <ul className="admin-sidebar__list">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
