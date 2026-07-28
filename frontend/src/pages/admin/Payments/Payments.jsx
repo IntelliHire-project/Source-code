@@ -118,7 +118,7 @@ export default function Payments() {
           
           {/* Banner */}
           <div className="txn-banner">
-            <h1 className="txn-banner-title">PLATFORM TRANSACTIONS</h1>
+            <h1 className="txn-banner-title">Transaction History</h1>
             <p className="txn-banner-desc">
               Monitor global revenue streams, manage recruiter payouts, and
               handle refund requests with high-precision financial tracking tools.
