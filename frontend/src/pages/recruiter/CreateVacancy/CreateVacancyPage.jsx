@@ -7,6 +7,7 @@ import {
   Info,
   ChevronRight,
   AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -214,6 +215,16 @@ function CreateVacancyPage() {
                   </div>
                 </div>
               </section>
+
+              <button
+                type="button"
+                className="cv-schedule-btn"
+                onClick={() => navigate('/recruiter/interviews')}
+              >
+                <Calendar size={16} />
+                Schedule Interview Panels &amp; Time Slots
+                <ChevronRight size={14} />
+              </button>
             </div>
 
             {/* ── Right: rail ── */}
