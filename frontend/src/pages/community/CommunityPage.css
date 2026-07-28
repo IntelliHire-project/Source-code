@@ -97,3 +97,127 @@
 @media (max-width: 1024px) { .community-sidebar { transform: translateX(-100%); transition: transform .22s; }.community-sidebar.is-open { transform: translateX(0); }.community-brand button { display: block; }.community-overlay { position: fixed; inset: 0; z-index: 35; border: 0; background: rgba(13,14,19,.58); }.community-workspace { margin-left: 0; }.community-menu { display: grid; }.community-crumbs { margin-right: auto; }.community-grid { grid-template-columns: 1fr; }.forum-left { position: static; grid-template-columns: 1fr 1fr; }.forum-search { grid-column: 1/-1; }.editor-grid, .discussion-layout { grid-template-columns: 1fr; }.discussion-rail { position: static; grid-template-columns: repeat(2,1fr); }.profile-grid { grid-template-columns: 1fr; }.profile-grid > aside { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }.profile-about { margin-top: 0; } }
 @media (max-width: 700px) { .community-main { padding: 20px 16px 40px; }.community-topbar { padding: 0 14px; }.community-crumbs, .community-user span, .community-top-actions > .compact { display: none; }.community-hero { padding: 30px 24px; min-height: auto; }.hero-art { display: none; }.community-hero h1 { font-size: 2rem; }.forum-left { grid-template-columns: 1fr; }.forum-search { grid-column: auto; }.post-author-row { flex-wrap: wrap; }.post-author-row .category-pill { margin-left: 49px; }.post-author-row .pin-pill { margin-left: 0; }.profile-identity { align-items: flex-start; flex-wrap: wrap; }.profile-identity .button { margin-left: 136px; }.profile-post-grid { grid-template-columns: 1fr; }.profile-grid > aside { grid-template-columns: 1fr; }.comment-editor { grid-template-columns: auto 1fr; }.comment-editor button { grid-column: 2; }.discussion-rail { grid-template-columns: 1fr; }.guidelines-hero { align-items: flex-start; }.guidelines-footer { align-items: stretch; flex-direction: column; } }
 @media (max-width: 480px) { .hero-buttons { flex-direction: column; }.community-hero .button { width: 100%; }.post-card { padding: 18px; }.post-actions { gap: 12px; }.post-actions button, .post-actions a { font-size: 0; gap: 0; }.post-actions svg { width: 18px; height: 18px; }.post-actions .save-action { margin-left: auto; }.editor-card, .category-card, .guidelines-summary, .article-body { padding: 18px; }.article-actions { margin: 25px -18px -18px; padding: 15px 18px; }.profile-pattern { height: 130px; }.profile-identity { padding: 0 18px 20px; }.profile-identity h1 { font-size: 1.5rem; }.profile-identity .button { margin-left: 0; width: 100%; }.guidelines-hero { padding: 25px; }.guidelines-hero > svg { width: 35px; flex-shrink: 0; }.guidelines-hero h1 { font-size: 1.45rem; } }
+
+/* Dark ash community treatment from the approved UI references. */
+.community-shell {
+  --community-bg-ash: #1D1E24;
+  --community-surface-ash: #292A31;
+  --community-surface-soft: #23242A;
+  --community-border-ash: #3A3B44;
+  --community-text-muted: #A9ABB4;
+  background: var(--community-bg-ash);
+  color: var(--text-on-dark);
+}
+
+.community-topbar {
+  background: var(--community-surface-soft);
+  border-color: var(--community-border-ash);
+}
+
+.community-crumbs,
+.community-icon-button,
+.community-menu,
+.community-user small {
+  color: var(--community-text-muted);
+}
+
+.community-crumbs span,
+.page-heading h1,
+.page-heading h2,
+.post-copy h2,
+.forum-card h2,
+.forum-card h3,
+.discussion-header h1,
+.comment strong,
+.profile-identity h1 {
+  color: var(--text-on-dark);
+}
+
+.forum-card,
+.forum-search,
+.button.secondary,
+.moderation-note,
+.profile-cover,
+.profile-stats div {
+  background: var(--community-surface-ash);
+  border-color: var(--community-border-ash);
+}
+
+.forum-search input,
+.editor-card input,
+.editor-card textarea,
+.comment-editor textarea {
+  background: var(--community-surface-soft);
+  border-color: var(--community-border-ash);
+  color: var(--text-on-dark);
+}
+
+.forum-search input::placeholder,
+.editor-card input::placeholder,
+.editor-card textarea::placeholder,
+.comment-editor textarea::placeholder {
+  color: var(--community-text-muted);
+}
+
+.feed-tabs {
+  background: var(--community-surface-soft);
+  border: 1px solid var(--community-border-ash);
+}
+
+.feed-tabs button,
+.side-card button,
+.community-pulse p,
+.post-copy p,
+.post-author-row small,
+.post-actions button,
+.post-actions a,
+.question-card p,
+.expert-card p,
+.page-heading p,
+.article-body,
+.comment > div > div,
+.profile-about p,
+.profile-post p,
+.guidelines-list p,
+.guidelines-footer p {
+  color: var(--community-text-muted);
+}
+
+.feed-tabs button.is-active {
+  background: var(--accent);
+  color: var(--primary);
+}
+
+.post-actions,
+.trend-row,
+.related-row,
+.article-actions,
+.comment {
+  border-color: var(--community-border-ash);
+}
+
+.category-pill,
+.tag-cloud span,
+.comments h2 span,
+.comment em {
+  background: var(--community-surface-soft);
+  color: var(--community-text-muted);
+}
+
+.profile-avatar {
+  border-color: var(--community-surface-ash);
+}
+
+.profile-avatar i {
+  border-color: var(--community-surface-ash);
+}
+
+.profile-stats {
+  background: var(--community-border-ash);
+  border-color: var(--community-border-ash);
+}
+
+.guidelines-footer {
+  background: var(--community-surface-soft);
+  border: 1px solid var(--community-border-ash);
+}
