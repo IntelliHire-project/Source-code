@@ -232,21 +232,49 @@ export function DiscussionPage() {
   const { postId } = useParams();
   const post = POSTS.find((item) => item.id === postId) || POSTS[1];
   const [comment, setComment] = useState('');
+  const [savedDiscussion, setSavedDiscussion] = useState(false);
+  const [upvoted, setUpvoted] = useState(false);
   const [comments, setComments] = useState([
     { initials: 'SM', name: 'Sarah Miller', role: 'Software Architect', time: '2 hours ago', text: 'Great breakdown. Measuring the user-facing outcome before choosing an optimization has saved our team months of unnecessary refactoring.', likes: 24 },
-    { initials: 'MC', name: 'Marcus Chen', role: 'DevOps Engineer', time: '5 hours ago', text: 'I would add observability from day one. Performance work is much easier when traces make the actual bottleneck visible.', likes: 18 }
+    { initials: 'MC', name: 'Marcus Chen', role: 'DevOps Engineer', time: '5 hours ago', text: 'I would add observability from day one. Performance work is much easier when traces make the actual bottleneck visible.', likes: 18 },
+    { initials: 'ER', name: 'Elena Rodriguez', role: 'Senior Product Manager', time: '1 day ago', text: 'From a product perspective, I appreciate the emphasis on scalability. An adaptable architecture is a business requirement because it helps teams respond to changing user needs.', likes: 9 }
   ]);
   const addComment = () => { if (!comment.trim()) return; setComments([{ initials: 'AJ', name: 'Alex Johnson', role: 'Community member', time: 'Just now', text: comment, likes: 0 }, ...comments]); setComment(''); };
   return (
     <CommunityShell title="Discussion">
-      <Link className="back-link" to="/community"><ArrowLeft size={17}/>Back to community</Link>
-      <div className="discussion-layout">
+      <Link className="back-link discussion-back" to="/community"><ArrowLeft size={17}/>Back to Career Community</Link>
+      <header className="discussion-detail-header">
+        <div className="discussion-labels"><span className="category-pill">{post.category}</span><span className="best-practice-pill">Best Practices</span></div>
+        <h1>{post.title}</h1>
+        <div className="discussion-detail-meta">
+          <Link className="avatar" to={`/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}>{post.initials}</Link>
+          <div><Link to={`/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}><strong>{post.author}</strong></Link><small>Lead Architect · Posted {post.time}</small></div>
+          <span><Eye size={16}/>2.4k Views</span><span><MessageCircle size={16}/>{comments.length} Comments</span>
+          <div className="discussion-header-actions">
+            <button type="button" className={savedDiscussion ? 'is-active' : ''} onClick={() => setSavedDiscussion(!savedDiscussion)}><Bookmark size={17}/>{savedDiscussion ? 'Saved' : 'Save'}</button>
+            <button type="button"><Share2 size={17}/>Share</button>
+          </div>
+        </div>
+      </header>
+      <div className="discussion-layout discussion-detail-layout">
         <article>
-          <header className="discussion-header"><span className="category-pill">{post.category}</span><h1>{post.title}</h1><div className="post-author-row"><span className="avatar">{post.initials}</span><div><strong>{post.author}</strong><small>{post.role} · {post.time}</small></div></div></header>
-          <section className="forum-card article-body"><p>When systems and careers grow, intuition is no longer enough. The most useful improvements begin with a clear baseline, a shared definition of success, and evidence from real users.</p><h2>Start with the real constraint</h2><p>Before changing tools or architecture, identify the slowest part of the experience. Measure it, document it, and agree on the outcome the team wants to improve.</p><ul><li>Capture a reliable baseline before making changes.</li><li>Prioritize changes users will actually notice.</li><li>Ship in small increments and compare the results.</li><li>Document trade-offs for the next person.</li></ul><div className="article-callout"><Sparkles/><p><strong>Community takeaway</strong><br/>Good advice includes context. Share what worked, what did not, and the constraints behind your choice.</p></div><p>What approaches have worked for your team? I would especially like to hear how you balance short-term delivery with long-term maintainability.</p><div className="article-actions"><button><Heart size={18}/>{post.likes} Upvotes</button><button><MessageCircle size={18}/>{comments.length} Comments</button><button><Flag size={17}/>Report</button></div></section>
-          <section className="comments"><h2>Comments <span>{comments.length}</span></h2><div className="forum-card comment-editor"><span className="avatar">AJ</span><textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share a constructive thought..." rows="3"/><button className="button primary" onClick={addComment} disabled={!comment.trim()}>Post comment</button></div>{comments.map((item, index) => <article className="comment" key={`${item.name}-${index}`}><span className="avatar">{item.initials}</span><div><p><strong>{item.name}</strong><em>{item.role}</em><small>{item.time}</small></p><div>{item.text}</div><button><Heart size={14}/>{item.likes} upvotes</button></div></article>)}</section>
+          <section className="forum-card article-body discussion-article">
+            <p>As IntelliHire grows to support high-volume recruitment activity and community interactions, we have had to rethink the architecture behind the experience. A simple monolithic approach served the product well at the beginning, but scale requires a more resilient model.</p>
+            <h2>Key Challenges in Recruitment Systems</h2>
+            <p>Recruitment platforms have unique traffic patterns. Global hiring events create significant spikes, while quieter periods still require dependable availability. Our approach focuses on:</p>
+            <ul><li>Event-driven communication for decoupled assessment scoring</li><li>Edge caching strategies for candidate profile performance</li><li>Queue management for processing-intensive tasks</li><li>Database partitioning for high-volume assessment data</li></ul>
+            <figure className="discussion-figure"><div><span className="figure-laptop"><i>IH</i><b>IntelliHire</b><small>Professional Career Community</small></span><span className="figure-team"><i/><i/><i/><i/></span></div><figcaption>Fig 1: Conceptual workspace for architectural planning</figcaption></figure>
+            <p>I would love to hear from other senior engineers and architects in the community. How are you handling data consistency across services in high-concurrency environments? Are you favoring eventual consistency or distributed transactions?</p>
+            <div className="article-actions"><button type="button" className={upvoted ? 'is-active' : ''} onClick={() => setUpvoted(!upvoted)}><Heart size={18}/>{post.likes + (upvoted ? 1 : 0)} Upvotes</button><button type="button"><MessageCircle size={18}/>{comments.length} Comments</button><button type="button"><Flag size={17}/>Report Post</button></div>
+          </section>
+          <section className="comments discussion-comments">
+            <div className="comments-heading"><h2>Comments <span>{comments.length}</span></h2><small>Sort by: <strong>Top Comments</strong></small></div>
+            <div className="forum-card comment-editor detail-comment-editor"><span className="avatar">AJ</span><textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your thoughts on this architecture..." rows="4"/><div><button type="button" className="comment-cancel" onClick={() => setComment('')}>Cancel</button><button type="button" className="button primary" onClick={addComment} disabled={!comment.trim()}>Post Comment<Send size={15}/></button></div></div>
+            {comments.map((item, index) => <article className="comment detail-comment" key={`${item.name}-${index}`}><span className="avatar">{item.initials}</span><div><p><strong>{item.name}</strong><em>{item.role}</em><small>{item.time}</small><MoreHorizontal size={17}/></p><div>{item.text}</div><footer><button><Heart size={14}/>{item.likes} Upvotes</button><button>Reply</button></footer></div></article>)}
+            <button type="button" className="load-comments">Load more comments (39)</button>
+          </section>
         </article>
-        <aside className="discussion-rail"><section className="forum-card"><h3>Related discussions</h3>{POSTS.filter((item) => item.id !== post.id).slice(0, 3).map((item) => <Link className="related-row" to={`/community/post/${item.id}`} key={item.id}>{item.title}<small>{item.comments} replies</small></Link>)}</section><section className="forum-card"><h3>Popular tags</h3><div className="tag-cloud">{['React', 'Career', 'Architecture', 'Interview', 'Remote work', 'Leadership'].map((tag) => <span key={tag}>#{tag}</span>)}</div></section><section className="moderation-note"><Clock3/><span><strong>Active moderation</strong><small>Typical response in under 15 minutes</small></span></section></aside>
+        <aside className="discussion-rail detail-discussion-rail"><section className="forum-card related-discussions"><span className="rail-eyebrow"><TrendingUp size={15}/>Trending now</span><h2>Related Discussions</h2>{POSTS.filter((item) => item.id !== post.id).map((item) => <Link className="related-row" to={`/community/post/${item.id}`} key={item.id}><span className="category-pill">{item.category}</span>{item.title}<small><MessageCircle size={12}/>{item.comments}</small></Link>)}<Link className="rail-all-link" to="/community">View all related topics</Link></section><section className="forum-card popular-tags"><h2>Popular Tags</h2><div className="tag-cloud">{['Microservices','Scalability','Architecture','Backend','DevOps','Cloud','Talent Platform','NodeJS'].map((tag) => <span key={tag}>#{tag}</span>)}</div></section><section className="expert-review-card"><Sparkles/><h2>Need expert architectural review?</h2><p>Connect with verified lead architects for private code reviews and one-to-one strategy sessions.</p><button type="button" className="button primary">Explore Expert Sessions</button></section><section className="moderation-note"><Clock3/><span><strong>Active moderation</strong><small>Responses in approximately 15 minutes</small></span></section></aside>
       </div>
     </CommunityShell>
   );
