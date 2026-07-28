@@ -26,6 +26,11 @@ const EXPERIENCE_OPTIONS = [
 
 const INITIAL_SKILLS = ['React', 'TypeScript', 'REST APIs'];
 
+const ASSESSMENT_OPTIONS = [
+  { label: 'Yes', value: 'yes' },
+  { label: 'No', value: 'no' },
+];
+
 function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -36,6 +41,7 @@ function CreateVacancyPage() {
   const [skills, setSkills] = useState(INITIAL_SKILLS);
   const [qualifications, setQualifications] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('senior');
+  const [requireAssessmentTest, setRequireAssessmentTest] = useState('no');
   const [openings, setOpenings] = useState('3');
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
@@ -178,6 +184,18 @@ function CreateVacancyPage() {
                     <span className="cv-field-hint">
                       Add key technical and soft skills the ideal candidate should have.
                     </span>
+                  </div>
+
+                  <div className="cv-field">
+                    <label className="cv-label">Require Assessment Test?</label>
+                    <div className="assessment-toggle-wrapper">
+                      <PillToggleGroup
+                        name="assessment-test"
+                        options={ASSESSMENT_OPTIONS}
+                        value={requireAssessmentTest}
+                        onChange={setRequireAssessmentTest}
+                      />
+                    </div>
                   </div>
 
                   <div className="cv-field">

@@ -362,6 +362,12 @@
   color: var(--primary, #16171F);
 }
 
+/* ── Assessment Test Toggle (2-col override) ── */
+.assessment-toggle-wrapper .pill-toggle-group {
+  grid-template-columns: 1fr 1fr;
+  max-width: 220px;
+}
+
 /* ── Salary Range row ── */
 .cv-salary-row {
   display: flex;
