@@ -46,6 +46,7 @@ function CreateVacancyPage() {
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [shortlistCount, setShortlistCount] = useState('');
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -286,6 +287,20 @@ function CreateVacancyPage() {
                     type="date"
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
+                  />
+                </div>
+
+                <div className="cv-field">
+                  <label className="cv-label" htmlFor="cv-shortlist-count">
+                    Number of Candidates to Shortlist
+                  </label>
+                  <input
+                    id="cv-shortlist-count"
+                    className="cv-input"
+                    type="number"
+                    min="1"
+                    value={shortlistCount}
+                    onChange={(e) => setShortlistCount(e.target.value)}
                   />
                 </div>
               </section>
