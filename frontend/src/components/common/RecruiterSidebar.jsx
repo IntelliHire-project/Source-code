@@ -52,7 +52,6 @@ const NAV_ITEMS = [
       { label: 'Recruitment Progress', path: '/recruiter/analytics/progress' },
     ],
   },
-  { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
   { label: 'Community', icon: MessageCircle, path: '/community' },
 ];
 
