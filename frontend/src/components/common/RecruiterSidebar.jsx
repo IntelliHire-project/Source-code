@@ -42,6 +42,16 @@ const NAV_ITEMS = [
     ],
   },
   { label: 'Payment History', icon: CreditCard, path: '/recruiter/payments' },
+  {
+    label: 'Analytics',
+    icon: BarChart2,
+    subItems: [
+      { label: 'Applicant Analytics', path: '/recruiter/analytics/applicants' },
+      { label: 'Shortlisting Analytics', path: '/recruiter/analytics/shortlisting' },
+      { label: 'Assessment Performance', path: '/recruiter/analytics/assessment' },
+      { label: 'Recruitment Progress', path: '/recruiter/analytics/progress' },
+    ],
+  },
   { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
   { label: 'Community', icon: MessageCircle, path: '/community' },
 ];
@@ -56,6 +66,7 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   const [expandedItems, setExpandedItems] = useState({
     Applicants: true,
     Interviews: true,
+    Analytics: true,
   });
 
   useEffect(() => {
@@ -161,12 +172,15 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
                     <button
                       type="button"
                       className={`nav-item nav-item-collapsible ${active ? 'is-active' : ''}`}
-                      onClick={() => {
-                        toggleExpand(item.label);
-                        if (item.label === 'Applicants') {
-                          navigate('/recruiter/applicants/ranked');
-                        }
-                      }}
+                       onClick={() => {
+                         toggleExpand(item.label);
+                         if (item.label === 'Applicants') {
+                           navigate('/recruiter/applicants/ranked');
+                         }
+                         if (item.label === 'Analytics') {
+                           navigate('/recruiter/analytics/applicants');
+                         }
+                       }}
                     >
                       <span className="nav-item-content">
                         <Icon size={18} />
