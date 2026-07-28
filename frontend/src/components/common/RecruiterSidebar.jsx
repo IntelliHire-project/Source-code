@@ -9,6 +9,7 @@ import {
   Users,
   Calendar,
   BarChart2,
+  MessageCircle,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   },
   { label: 'Payment History', icon: CreditCard, path: '/recruiter/payments' },
   { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
+  { label: 'Community', icon: MessageCircle, path: '/community' },
 ];
 
 const BOTTOM_ITEMS = [
