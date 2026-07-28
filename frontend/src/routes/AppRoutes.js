@@ -64,6 +64,15 @@ function PlaceholderApplicants({ title }) {
   );
 }
 
+function CandidatePlaceholder({ title }) {
+  return (
+    <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', minHeight: 'calc(100vh - 64px)' }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>{title}</h1>
+      <p style={{ color: '#a79e8c' }}>This candidate page is currently under construction.</p>
+    </div>
+  );
+}
+
 // Simple placeholder page for under-construction admin panels
 function AdminPlaceholder({ title }) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -124,13 +133,19 @@ function AppRoutes() {
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
-          <Route index element={<Navigate to="/candidate/profile" replace />} />
+          <Route index element={<Navigate to="/candidate/dashboard" replace />} />
+          <Route path="dashboard" element={<CandidatePlaceholder title="Dashboard" />} />
           <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
           <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
           <Route path="cv-management" element={<CvManagementPage />} />
+          <Route path="cv-insights" element={<CandidatePlaceholder title="CV insights" />} />
           <Route path="jobs" element={<JobSearch />} />
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
+          <Route path="applications" element={<CandidatePlaceholder title="My applications" />} />
+          <Route path="mock-interviews" element={<CandidatePlaceholder title="Mock interviews" />} />
+          <Route path="notifications" element={<CandidatePlaceholder title="Notifications" />} />
+          <Route path="settings" element={<CandidatePlaceholder title="Settings" />} />
         </Route>
         <Route
           path="/recruiter/dashboard"
@@ -155,6 +170,18 @@ function AppRoutes() {
         <Route
           path="/recruiter/analytics"
           element={<ApplicantAnalytics />}
+        />
+        <Route
+          path="/recruiter/assessments"
+          element={<PlaceholderApplicants title="Assessments" />}
+        />
+        <Route
+          path="/recruiter/notifications"
+          element={<PlaceholderApplicants title="Notifications" />}
+        />
+        <Route
+          path="/recruiter/company-profile"
+          element={<PlaceholderApplicants title="Company profile" />}
         />
         <Route
           path="/recruiter/applicants/ranked"

@@ -3,23 +3,29 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   BriefcaseBusiness,
-  Search,
-  MessageSquare,
-  Globe,
+  Users,
   Settings,
   LogOut,
+  UserRound,
+  Sparkles,
+  FileCheck2,
+  KeyRound,
+  Bell,
 } from 'lucide-react';
 import logo from '../../logo.png';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/candidate/dashboard', exact: true },
-  { label: 'Job Search', icon: Search, path: '/candidate/jobs' },
-  { label: 'Applications', icon: BriefcaseBusiness, path: '/candidate/applications' },
-  { label: 'Messages', icon: MessageSquare, path: '/candidate/messages' },
-  { label: 'Community', icon: Globe, path: '/community' },
+  { label: 'Profile and CV', icon: UserRound, path: '/candidate/profile' },
+  { label: 'CV insights', icon: Sparkles, path: '/candidate/cv-insights' },
+  { label: 'Find jobs', icon: BriefcaseBusiness, path: '/candidate/jobs' },
+  { label: 'My applications', icon: FileCheck2, path: '/candidate/applications' },
+  { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
+  { label: 'Community', icon: Users, path: '/community' },
 ];
 
 const BOTTOM_ITEMS = [
+  { label: 'Notifications', icon: Bell, path: '/candidate/notifications' },
   { label: 'Settings', icon: Settings, path: '/candidate/settings' },
 ];
 

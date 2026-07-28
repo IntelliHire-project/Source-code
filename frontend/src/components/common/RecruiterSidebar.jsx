@@ -3,12 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Briefcase,
-  PlusCircle,
   CreditCard,
-  Settings,
   Users,
   Calendar,
   BarChart2,
+  ClipboardCheck,
+  Bell,
+  Building2,
+  MessagesSquare,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -18,8 +20,14 @@ import '../../style.css';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/recruiter/dashboard' },
-  { label: 'Active Vacancies', icon: Briefcase, path: '/recruiter/vacancies' },
-  { label: 'Create Vacancy', icon: PlusCircle, path: '/recruiter/create-vacancy' },
+  {
+    label: 'Job vacancies',
+    icon: Briefcase,
+    subItems: [
+      { label: 'Active Vacancies', path: '/recruiter/vacancies' },
+      { label: 'Create Vacancy', path: '/recruiter/create-vacancy' },
+    ],
+  },
   {
     label: 'Applicants',
     icon: Users,
@@ -30,6 +38,7 @@ const NAV_ITEMS = [
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
+  { label: 'Assessments', icon: ClipboardCheck, path: '/recruiter/assessments' },
   {
     label: 'Interviews',
     icon: Calendar,
@@ -40,18 +49,21 @@ const NAV_ITEMS = [
       { label: 'Panel & Evaluation', path: '/recruiter/interviews/evaluation' },
     ],
   },
-  { label: 'Payment History', icon: CreditCard, path: '/recruiter/payments' },
   { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
+  { label: 'Payments', icon: CreditCard, path: '/recruiter/payments' },
+  { label: 'Community', icon: MessagesSquare, path: '/community' },
 ];
 
 const BOTTOM_ITEMS = [
-  { label: 'Settings', icon: Settings, path: '/recruiter/settings' },
+  { label: 'Notifications', icon: Bell, path: '/recruiter/notifications' },
+  { label: 'Company profile', icon: Building2, path: '/recruiter/company-profile' },
 ];
 
 function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [expandedItems, setExpandedItems] = useState({
+    'Job vacancies': true,
     Applicants: true,
     Interviews: true,
   });
