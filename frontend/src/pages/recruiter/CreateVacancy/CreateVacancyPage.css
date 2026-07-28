@@ -362,6 +362,39 @@
   color: var(--primary, #16171F);
 }
 
+/* ── Salary Range row ── */
+.cv-salary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cv-salary-field {
+  position: relative;
+  flex: 1;
+}
+
+.cv-salary-prefix {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #5C6070;
+  pointer-events: none;
+}
+
+.cv-input--salary {
+  padding-left: 26px;
+}
+
+.cv-salary-separator {
+  color: #5C6070;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
 /* ─────────────────────────────────────────────
    Right Rail
    ───────────────────────────────────────────── */

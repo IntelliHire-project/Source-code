@@ -37,6 +37,8 @@ function CreateVacancyPage() {
   const [qualifications, setQualifications] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('senior');
   const [openings, setOpenings] = useState('3');
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
   const [deadline, setDeadline] = useState('');
 
   /* ── Autosave timer ── */
@@ -48,7 +50,7 @@ function CreateVacancyPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setLastEdited((p) => p + 1), 60000);
     return () => clearInterval(timerRef.current);
-  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, deadline]);
+  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline]);
 
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
@@ -223,6 +225,37 @@ function CreateVacancyPage() {
                     value={openings}
                     onChange={(e) => setOpenings(e.target.value)}
                   />
+                </div>
+
+                <div className="cv-field">
+                  <label className="cv-label">Salary Range</label>
+                  <div className="cv-salary-row">
+                    <div className="cv-salary-field">
+                      <span className="cv-salary-prefix">$</span>
+                      <input
+                        id="cv-salary-min"
+                        className="cv-input cv-input--salary"
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={salaryMin}
+                        onChange={(e) => setSalaryMin(e.target.value)}
+                      />
+                    </div>
+                    <span className="cv-salary-separator">–</span>
+                    <div className="cv-salary-field">
+                      <span className="cv-salary-prefix">$</span>
+                      <input
+                        id="cv-salary-max"
+                        className="cv-input cv-input--salary"
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={salaryMax}
+                        onChange={(e) => setSalaryMax(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="cv-field">
