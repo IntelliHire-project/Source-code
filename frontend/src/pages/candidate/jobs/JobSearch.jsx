@@ -22,7 +22,6 @@ import './jobs.css';
 const MOCK_JOBS = [
   {
     id: 1,
-    logo: 'https://images.unsplash.com/photo-1563986768609-322da13575f2?auto=format&fit=crop&w=80&h=80&q=80',
     title: 'Senior Frontend Engineer',
     company: 'TechFlow Systems',
     location: 'Remote (NYC Based)',
@@ -32,7 +31,6 @@ const MOCK_JOBS = [
   },
   {
     id: 2,
-    logo: 'https://images.unsplash.com/photo-1572044272145-01352ee573fa?auto=format&fit=crop&w=80&h=80&q=80',
     title: 'Product Designer',
     company: 'Nexus Creative',
     location: 'San Francisco, CA',
@@ -42,7 +40,6 @@ const MOCK_JOBS = [
   },
   {
     id: 3,
-    logo: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=80&h=80&q=80',
     title: 'Full Stack Developer',
     company: 'Financier AI',
     location: 'London, UK',
@@ -52,7 +49,6 @@ const MOCK_JOBS = [
   },
   {
     id: 4,
-    logo: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=80&h=80&q=80',
     title: 'Cloud Architect',
     company: 'SkyScale Solutions',
     location: 'Austin, TX',
@@ -78,17 +74,10 @@ const TABS = [
 
 /* ── Inline Components ── */
 
-function JobCard({ logo, title, company, location, salaryRange, postedTime, skills = [], onViewDetails, onApply }) {
+function JobCard({ title, company, location, salaryRange, postedTime, skills = [], onViewDetails }) {
   return (
     <div className="job-card">
       <div className="job-card__header">
-        <div className="job-card__logo-wrap">
-          {logo ? (
-            <img src={logo} alt={`${company} logo`} className="job-card__logo" />
-          ) : (
-            <div className="job-card__logo-placeholder">{company?.charAt(0) || 'C'}</div>
-          )}
-        </div>
         <div className="job-card__header-info">
           <h3 className="job-card__title">{title}</h3>
           <p className="job-card__company">
@@ -108,8 +97,7 @@ function JobCard({ logo, title, company, location, salaryRange, postedTime, skil
         </div>
       )}
       <div className="job-card__footer">
-        <button className="job-card__btn job-card__btn--outline" onClick={onViewDetails}>View Details</button>
-        <button className="job-card__btn job-card__btn--gold" onClick={onApply}>Apply Now<ChevronRight size={15} /></button>
+        <button className="job-card__btn job-card__btn--gold" onClick={onViewDetails}>View Details<ChevronRight size={15} /></button>
       </div>
     </div>
   );
@@ -223,7 +211,7 @@ function JobSearch() {
       <div className="job-search__body">
         <main className="job-search__main">
           {MOCK_JOBS.map((job) => (
-            <JobCard key={job.id} {...job} onViewDetails={() => navigate(`/candidate/jobs/${job.id}`)} onApply={() => console.log('Apply:', job.id)} />
+            <JobCard key={job.id} {...job} onViewDetails={() => navigate(`/candidate/jobs/${job.id}`)} />
           ))}
           <button className="job-search__load-more">Load more opportunities<ArrowDown size={16} /></button>
         </main>

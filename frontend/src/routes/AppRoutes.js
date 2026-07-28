@@ -37,6 +37,7 @@ import AssessmentPreviewPage from '../pages/recruiter/Assessments/AssessmentPrev
 import AssessmentCandidatesPage from '../pages/recruiter/Assessments/AssessmentCandidatesPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
+import VacancySelectorModal from '../components/common/VacancySelectorModal';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
@@ -72,6 +73,7 @@ function PlaceholderApplicants({ title }) {
           <p style={{ color: '#a79e8c' }}>This page is currently under construction.</p>
         </div>
       </div>
+      <VacancySelectorModal />
     </div>
   );
 }
@@ -176,11 +178,27 @@ function AppRoutes() {
           element={<PreviewVacancyPage />}
         />
         <Route
+          path="/recruiter/select-payment"
+          element={<SelectPaymentMethodPage />}
+        />
+        <Route
+          path="/recruiter/complete-purchase"
+          element={<CompleteYourPurchasePage />}
+        />
+        <Route
+          path="/recruiter/otp-verification"
+          element={<OTPVerificationPage />}
+        />
+        <Route
           path="/recruiter/payments"
           element={<PaymentBillingPage />}
         />
         <Route
           path="/recruiter/analytics"
+          element={<Navigate to="/recruiter/analytics/applicants" replace />}
+        />
+        <Route
+          path="/recruiter/analytics/applicants"
           element={<ApplicantAnalytics />}
         />
         <Route

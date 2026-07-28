@@ -25,54 +25,9 @@ import {
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import VacancySelectorModal, { MOCK_VACANCIES } from '../../../components/common/VacancySelectorModal';
 import './RankedApplicants.css';
 import '../../../style.css';
-
-// Mock Vacancies Data
-const MOCK_VACANCIES = [
-  {
-    id: 1,
-    title: 'Software Engineer',
-    code: '#1023',
-    status: 'Active',
-    postedTime: 'Posted 12 days ago',
-    totalApplicants: 48,
-    avgScore: '72%',
-    lastMatched: '2 mins ago',
-    lastMatchedBy: 'By Admin Recruiter',
-    applicantsCountSubtext: '+12 since last run',
-    engineConfidence: 'Engine Confidence: High',
-    insightText: 'The matching engine has prioritised React and AWS for this role. Check the Job Parsing preview to adjust weighted skill importance.',
-  },
-  {
-    id: 2,
-    title: 'Product Manager',
-    code: '#1024',
-    status: 'Active',
-    postedTime: 'Posted 5 days ago',
-    totalApplicants: 14,
-    avgScore: '81%',
-    lastMatched: '1 hour ago',
-    lastMatchedBy: 'By Senior Recruiter',
-    applicantsCountSubtext: '+3 since last run',
-    engineConfidence: 'Engine Confidence: Very High',
-    insightText: 'The matching engine has prioritised Product Strategy and Agile Roadmap for this role. Check the Job Parsing preview to adjust weighted skill importance.',
-  },
-  {
-    id: 3,
-    title: 'UX Designer',
-    code: '#1025',
-    status: 'Closed',
-    postedTime: 'Posted 20 days ago',
-    totalApplicants: 35,
-    avgScore: '79%',
-    lastMatched: '2 days ago',
-    lastMatchedBy: 'By HR Assistant',
-    applicantsCountSubtext: 'Finalized',
-    engineConfidence: 'Engine Confidence: High',
-    insightText: 'The matching engine has prioritised Figma prototyping and User Research for this role. Check the Job Parsing preview to adjust weighted skill importance.',
-  }
-];
 
 // Rich Mock Candidates Data
 const MOCK_CANDIDATES = [
@@ -676,7 +631,10 @@ function RankedApplicants() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
-  const [selectedVacancyId, setSelectedVacancyId] = useState(1);
+  const [selectedVacancyId, setSelectedVacancyId] = useState(() => {
+    const stored = sessionStorage.getItem('selectedVacancyId');
+    return stored ? Number(stored) : 1;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [isMatching, setIsMatching] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -1373,7 +1331,7 @@ function RankedApplicants() {
           </div>
         </div>
       )}
-
+      <VacancySelectorModal onSelect={(id) => setSelectedVacancyId(id)} />
     </div>
   );
 }

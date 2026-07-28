@@ -75,6 +75,7 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
     Applicants: true,
     Assessments: true,
     Interviews: true,
+    Analytics: true,
   });
 
   useEffect(() => {

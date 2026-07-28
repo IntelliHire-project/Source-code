@@ -333,12 +333,10 @@ function MonitorSystem() {
         />
 
         {/* ── Page Title ── */}
-        <div className="admin-content__header">
-          <div>
-            <h1 className="admin-content__title">System Health</h1>
-            <p className="admin-content__subtitle">
-              Monitor real-time infrastructure metrics, services, and system incidents.
-            </p>
+        <div className="ms-page-header">
+          <div className="moderation-header__title-group">
+            <h1>System Health</h1>
+            <p>Monitor real-time infrastructure metrics, services, and system incidents.</p>
           </div>
           {/* ── Refresh action ── */}
           <div className="ms-topnav__right" style={{display:'flex', alignItems:'center', gap:'12px'}}>

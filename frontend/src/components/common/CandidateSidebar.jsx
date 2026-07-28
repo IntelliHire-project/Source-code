@@ -2,8 +2,12 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  BriefcaseBusiness,
+  Sparkles,
+  Briefcase,
+  FileText,
+  KeyRound,
   Users,
+  Bell,
   Settings,
   LogOut,
   UserRound,
@@ -17,10 +21,9 @@ import logo from '../../logo.png';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/candidate/dashboard', exact: true },
-  { label: 'Profile and CV', icon: UserRound, path: '/candidate/profile' },
   { label: 'CV insights', icon: Sparkles, path: '/candidate/cv-insights' },
-  { label: 'Find jobs', icon: BriefcaseBusiness, path: '/candidate/jobs' },
-  { label: 'My applications', icon: FileCheck2, path: '/candidate/applications' },
+  { label: 'Find jobs', icon: Briefcase, path: '/candidate/jobs' },
+  { label: 'My applications', icon: FileText, path: '/candidate/applications' },
   { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
   { label: 'Community', icon: Users, path: '/community' },
 ];
