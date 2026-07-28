@@ -2,10 +2,12 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  BriefcaseBusiness,
-  Search,
-  MessageSquare,
-  Globe,
+  Sparkles,
+  Briefcase,
+  FileText,
+  KeyRound,
+  Users,
+  Bell,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -13,13 +15,15 @@ import logo from '../../logo.png';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/candidate/dashboard', exact: true },
-  { label: 'Job Search', icon: Search, path: '/candidate/jobs' },
-  { label: 'Applications', icon: BriefcaseBusiness, path: '/candidate/applications' },
-  { label: 'Messages', icon: MessageSquare, path: '/candidate/messages' },
-  { label: 'Community', icon: Globe, path: '/community' },
+  { label: 'CV insights', icon: Sparkles, path: '/candidate/cv-insights' },
+  { label: 'Find jobs', icon: Briefcase, path: '/candidate/jobs' },
+  { label: 'My applications', icon: FileText, path: '/candidate/applications' },
+  { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
+  { label: 'Community', icon: Users, path: '/community' },
 ];
 
 const BOTTOM_ITEMS = [
+  { label: 'Notifications', icon: Bell, path: '/candidate/notifications' },
   { label: 'Settings', icon: Settings, path: '/candidate/settings' },
 ];
 
