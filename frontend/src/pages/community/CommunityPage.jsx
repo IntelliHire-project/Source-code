@@ -1,546 +1,384 @@
-﻿import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft, Award, BarChart3, Bell, Bold, Bookmark, BriefcaseBusiness, Calendar,
+  CheckCircle2, ChevronDown, ChevronRight, Clock3, Edit3, ExternalLink, Eye,
+  FileImage, FileText, Flag, Hash, Heart, Info, Italic, LayoutDashboard, Link2,
+  List, ListOrdered, MapPin, Menu, MessageCircle, MoreHorizontal, Paperclip,
+  Search, Send, Settings, Share2, ShieldCheck, Sparkles, TrendingUp, Type,
+  UserPlus, UserRound, Users, X
+} from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import './CommunityPage.css';
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Static mock data
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
-const POPULAR_TOPICS = [
-  { id: 1, icon: 'ðŸ“ˆ', label: 'Career Growth', count: '7.1k', active: true },
-  { id: 2, icon: 'ðŸ’¬', label: 'Interview Prep', count: '31k' },
-  { id: 3, icon: '#', label: 'Salary Negotiation', count: '47k' },
-  { id: 4, icon: 'âš–ï¸', label: 'Work Life Balance', count: '2.1k' },
-];
-
-const CATEGORIES = [
-  { id: 1, label: 'Announcements' },
-  { id: 2, label: 'Job Referrals' },
-  { id: 3, label: 'Tech Stack Q&A' },
-  { id: 4, label: 'Success Stories' },
-  { id: 5, label: 'Mental Health' },
-];
-
 const POSTS = [
-  {
-    id: 1,
-    avatar: 'SJ',
-    avatarColor: '#6B8CFF',
-    author: 'Sarah Jenkins',
-    role: 'Senior Marketing Manager',
-    time: '2 hours ago',
-    badge: 'Pinned',
-    badgeType: 'pinned',
-    category: 'Career Growth',
-    title: 'How I negotiated a 30% increase in my base salary at a Series B startup',
-    excerpt:
-      'Salary negotiation is often the most stressful part of the hiring process. In this post, I break down the exact scripts I used, the research methodology for market rates, and how to handle the "what is your current salary" trap...',
-    likes: 245,
-    comments: 42,
-  },
-  {
-    id: 2,
-    avatar: 'DC',
-    avatarColor: '#22C55E',
-    author: 'David Chen',
-    role: 'Full Stack Engineer',
-    time: '5 hours ago',
-    badge: null,
-    category: 'Tech Stack Q&A',
-    title: 'Is it still worth learning Next.js 13+ with the App Router transition?',
-    excerpt:
-      "I've been seeing a lot of mixed reviews regarding the stability and DX of the new App Router. As someone looking to specialize in frontend, should I focus on the Pages router first or jump straight into Server Components?",
-    likes: 128,
-    comments: 89,
-  },
-  {
-    id: 3,
-    avatar: 'MT',
-    avatarColor: '#F0B90B',
-    author: 'Marcus Thorne',
-    role: 'Project Director',
-    time: '8 hours ago',
-    badge: null,
-    category: 'Management',
-    title: "The shift from IC to Manager: What they don't tell you in the handbook",
-    excerpt:
-      "Transitioning into management isn't just a step up; it's a career change. Your success is no longer measured by your output, but by the multiplication of your team's output. Here are 5 things I wish I knew...",
-    likes: 562,
-    comments: 112,
-  },
-  {
-    id: 4,
-    avatar: 'ER',
-    avatarColor: '#E63946',
-    author: 'Elena Rodriguez',
-    role: 'Product Designer',
-    time: '1 day ago',
-    badge: null,
-    category: 'Job Referrals',
-    title: 'referring 5 junior designers for open roles at FinTech solutions',
-    excerpt:
-      "My company is expanding our design team and we have 5 open roles for juniors. If you have a portfolio with at least 2 strong case studies, please drop your link below. I'm happy to provide internal referrals for the right candidates...",
-    likes: 319,
-    comments: 156,
-  },
+  { id: 'salary-negotiation', initials: 'SJ', author: 'Sarah Jenkins', role: 'Senior Marketing Manager', time: '2 hours ago', category: 'Career Growth', pinned: true, title: 'How I negotiated a 30% increase in my base salary', excerpt: 'Salary negotiation can be the most stressful part of hiring. Here are the scripts, market research, and practical lessons that helped me prepare.', likes: 245, comments: 42 },
+  { id: 'react-performance', initials: 'AJ', author: 'Alex Johnson', role: 'Senior Full Stack Engineer', time: '5 hours ago', category: 'Engineering', title: 'Optimizing React performance in large-scale applications', excerpt: 'A practical guide to memoization, virtualization, and the performance measurements that actually moved the needle for our team.', likes: 128, comments: 89 },
+  { id: 'career-manager', initials: 'MT', author: 'Marcus Thorne', role: 'Project Director', time: '8 hours ago', category: 'Management', title: "The shift from IC to manager: what they don't tell you", excerpt: "Moving into management is a career change. Your success becomes the multiplication of your team's output, not only your own.", likes: 562, comments: 112 },
+  { id: 'job-referrals', initials: 'ER', author: 'Elena Rodriguez', role: 'Product Designer', time: '1 day ago', category: 'Job Referrals', title: 'Referring five junior designers for open fintech roles', excerpt: 'Our design team is expanding. Share a portfolio with two strong case studies and I will review it for an internal referral.', likes: 319, comments: 156 }
 ];
 
-const TRENDING = [
-  { rank: 1, title: 'React vs. Angular in 2024: The Verdict', participants: '1.1k participants' },
-  { rank: 2, title: 'Remote Work Tax Implications for Expats', participants: '640 participants' },
-  { rank: 3, title: 'Best portfolio builders for UI/UX designers', participants: '580 participants' },
-];
+const TOPICS = ['Career Growth', 'Interview Prep', 'Salary Negotiation', 'Work-Life Balance'];
+const CATEGORIES = ['Announcements', 'Job Referrals', 'Tech Stack Q&A', 'Success Stories', 'Mental Health'];
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Sidebar nav items (shared for both roles)
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-const NAV_ITEMS = [
-  { id: 'dashboard', iconClass: 'fa-solid fa-gauge-high', label: 'Dashboard', path: '/dashboard' },
-  { id: 'recruitment', iconClass: 'fa-solid fa-briefcase', label: 'Recruitment', path: '/recruitment' },
-  { id: 'question-bank', iconClass: 'fa-solid fa-book-open', label: 'Question Bank', path: '/question-bank' },
-  { id: 'assessments', iconClass: 'fa-solid fa-clipboard-check', label: 'Assessments', path: '/assessments' },
-  { id: 'community', iconClass: 'fa-solid fa-users', label: 'Community', path: '/community', active: true },
-  { id: 'moderator', iconClass: 'fa-solid fa-shield-halved', label: 'Moderator', path: '/moderator' },
-];
+function roleInfo(user) {
+  const role = (user?.role || 'candidate').toLowerCase();
+  if (role.includes('recruit')) return { role: 'Recruiter', home: '/recruiter/dashboard', settings: '/recruiter/settings' };
+  if (role.includes('admin')) return { role: 'Admin', home: '/admin/dashboard', settings: '/admin/settings' };
+  return { role: 'Candidate', home: '/candidate/profile', settings: '/candidate/settings' };
+}
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Main Component
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function CommunityPage() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+function CommunityShell({ children, title = 'Community', action }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const info = roleInfo(user);
+  const name = user?.fullName || user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Alex Johnson';
+  const initials = name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
-  const [activeTab, setActiveTab] = useState('trending');
-  const [savedPosts, setSavedPosts] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const role = user?.role || 'candidate';
-
-  const handleSave = (postId) => {
-    setSavedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
-  };
-
-  const handleLogout = () => {
-    if (logout) logout();
-    navigate('/');
-  };
-
-  const userInitials = user
-    ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'AJ'
-    : 'AJ';
-
-  const userName = user
-    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Alex Johnson'
-    : 'Alex Johnson';
-
-  const userRoleLabel = role === 'recruiter' ? 'Recruiter' : 'Candidate';
+  const primary = info.role === 'Recruiter'
+    ? [
+        { label: 'Dashboard', icon: LayoutDashboard, to: '/recruiter/dashboard' },
+        { label: 'Job vacancies', icon: BriefcaseBusiness, to: '/recruiter/vacancies' },
+        { label: 'Applicants', icon: Users, to: '/recruiter/applicants/all' }
+      ]
+    : info.role === 'Admin'
+      ? [
+          { label: 'Dashboard', icon: LayoutDashboard, to: '/admin/dashboard' },
+          { label: 'Users', icon: Users, to: '/admin/users' },
+          { label: 'Community mod.', icon: ShieldCheck, to: '/admin/community-mod' }
+        ]
+      : [
+          { label: 'Dashboard', icon: LayoutDashboard, to: '/candidate/profile' },
+          { label: 'Find jobs', icon: Search, to: '/candidate/jobs' },
+          { label: 'My applications', icon: FileText, to: '/candidate/applications' }
+        ];
 
   return (
-    <div className="comm-shell">
-      {/* â”€â”€ Sidebar â”€â”€ */}
-      <aside className={`comm-sidebar${sidebarOpen ? ' comm-sidebar--open' : ''}`} aria-label="Sidebar navigation">
-        {/* Logo */}
-        <div className="comm-sidebar-logo">
-          <div className="comm-logo-box" aria-hidden="true">
-            <i className="fa-solid fa-bolt" />
-          </div>
-          <span className="comm-logo-wordmark">TalentBridge</span>
-        </div>
-
-        {/* Nav */}
-        <nav className="comm-nav" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.id}
-              to={item.path}
-              className={`comm-nav-item${item.active ? ' comm-nav-item--active' : ''}`}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <i className={`${item.iconClass} comm-nav-icon`} aria-hidden="true" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+    <div className="community-shell">
+      {menuOpen && <button className="community-overlay" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}
+      <aside className={`community-sidebar ${menuOpen ? 'is-open' : ''}`}>
+        <div className="community-brand"><span className="community-brand-mark" aria-hidden="true">IH</span><span>IntelliHire</span><button onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={18}/></button></div>
+        <nav>
+          {primary.map(({ label, icon: Icon, to }) => <Link key={to} to={to}><Icon size={18}/><span>{label}</span></Link>)}
+          <Link className="is-active" to="/community"><MessageCircle size={18}/><span>Community</span></Link>
+          <Link to="/community/saved"><Bookmark size={18}/><span>Saved posts</span></Link>
+          {info.role !== 'Admin' && <Link to="/community/profile/alex-johnson"><UserRound size={18}/><span>My community profile</span></Link>}
         </nav>
-
-        {/* Settings pinned bottom */}
-        <div className="comm-sidebar-bottom">
-          <div className="comm-sidebar-divider" aria-hidden="true" />
-          <Link to="/settings" className="comm-nav-item">
-            <i className="fa-solid fa-gear comm-nav-icon" aria-hidden="true" />
-            <span>Settings</span>
-          </Link>
-        </div>
+        <div className="community-sidebar-footer"><Link to={info.settings}><Settings size={18}/><span>Settings</span></Link></div>
       </aside>
-
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="comm-sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* â”€â”€ Main wrapper â”€â”€ */}
-      <div className="comm-main-wrapper">
-        {/* â”€â”€ Top Bar â”€â”€ */}
-        <header className="comm-topbar" aria-label="Top navigation bar">
-          <div className="comm-topbar-left">
-            <button
-              className="comm-hamburger"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label="Toggle sidebar"
-              aria-expanded={sidebarOpen}
-            >
-              <i className="fa-solid fa-bars" />
-            </button>
-            <nav className="comm-breadcrumb" aria-label="Breadcrumb">
-              <Link to="/" className="comm-breadcrumb-item">TalentBridge</Link>
-              <i className="fa-solid fa-chevron-right comm-breadcrumb-sep" aria-hidden="true" />
-              <Link to="/dashboard" className="comm-breadcrumb-item">Dashboard</Link>
-              <i className="fa-solid fa-chevron-right comm-breadcrumb-sep" aria-hidden="true" />
-              <span className="comm-breadcrumb-item comm-breadcrumb-item--active">Community</span>
-            </nav>
-          </div>
-
-          <div className="comm-topbar-right">
-            {/* Search */}
-            <div className="comm-search-wrap">
-              <i className="fa-solid fa-magnifying-glass comm-search-icon" aria-hidden="true" />
-              <input
-                className="comm-search-input"
-                type="search"
-                placeholder="Search platform..."
-                aria-label="Search platform"
-              />
-            </div>
-
-            {/* Notification bell */}
-            <button className="comm-notif-btn" aria-label="View notifications">
-              <i className="fa-solid fa-bell" aria-hidden="true" />
-              <span className="comm-notif-dot" aria-label="Unread notifications" />
-            </button>
-
-            {/* User chip */}
-            <div className="comm-user-chip">
-              <div className="comm-user-avatar" aria-hidden="true">{userInitials}</div>
-              <div className="comm-user-info">
-                <span className="comm-user-name">{userName}</span>
-                <span className="comm-user-role">{userRoleLabel}</span>
-              </div>
-            </div>
+      <div className="community-workspace">
+        <header className="community-topbar">
+          <button className="community-menu" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={21}/></button>
+          <div className="community-crumbs"><Link className="community-system-name" to={info.home}>IntelliHire</Link><ChevronRight size={15}/><Link to="/community">Community</Link>{title !== 'Community' && <><ChevronRight size={15}/><span>{title}</span></>}</div>
+          <div className="community-top-actions">
+            {action}
+            <button className="community-icon-button" aria-label="Notifications"><Bell size={19}/><i/></button>
+            <Link className="community-user" to="/community/profile/alex-johnson"><span><strong>{name}</strong><small>{info.role}</small></span><b>{initials || 'AJ'}</b></Link>
           </div>
         </header>
-
-        {/* â”€â”€ Page Content â”€â”€ */}
-        <main className="comm-content" id="main-content" aria-label="Community page content">
-          {/* Hero Banner */}
-          <section className="comm-hero" aria-labelledby="community-hero-title">
-            <div className="comm-hero-overlay" aria-hidden="true" />
-            <div className="comm-hero-body">
-              <span className="comm-hero-eyebrow">COMMUNITY HUB</span>
-              <h1 id="community-hero-title" className="comm-hero-title">
-                Fuel Your Career Growth with<br />TalentBridge
-              </h1>
-              <p className="comm-hero-desc">
-                Connect with industry experts, share your success stories, and get the insights you need to land your dream role.
-              </p>
-              <div className="comm-hero-actions">
-                <button className="comm-btn comm-btn--primary" id="hero-create-post-btn">
-                  <i className="fa-solid fa-plus" aria-hidden="true" />
-                  Create New Post
-                </button>
-                <button className="comm-btn comm-btn--outline" id="hero-guidelines-btn">
-                  View Guidelines
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* â”€â”€ 3-Column Grid â”€â”€ */}
-          <div className="comm-grid">
-            {/* â”€â”€ Left Panel â”€â”€ */}
-            <aside className="comm-left-panel" aria-label="Forum sidebar">
-              {/* Search discussions */}
-              <div className="comm-panel-search-wrap">
-                <i className="fa-solid fa-magnifying-glass comm-panel-search-icon" aria-hidden="true" />
-                <input
-                  className="comm-panel-search"
-                  type="search"
-                  placeholder="Search discussions..."
-                  aria-label="Search discussions"
-                />
-              </div>
-
-              {/* Popular Topics */}
-              <section className="comm-widget-section" aria-labelledby="popular-topics-title">
-                <h2 id="popular-topics-title" className="comm-widget-heading">
-                  <i className="fa-solid fa-fire-flame-curved comm-widget-heading-icon" aria-hidden="true" />
-                  Popular Topics
-                </h2>
-                <ul className="comm-topic-list" role="list">
-                  {POPULAR_TOPICS.map((topic) => (
-                    <li key={topic.id}>
-                      <button
-                        className={`comm-topic-item${topic.active ? ' comm-topic-item--active' : ''}`}
-                        aria-pressed={!!topic.active}
-                        id={`topic-btn-${topic.id}`}
-                      >
-                        <span className="comm-topic-icon" aria-hidden="true">{topic.icon}</span>
-                        <span className="comm-topic-label">{topic.label}</span>
-                        <span className="comm-topic-count">{topic.count}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {/* Categories */}
-              <section className="comm-widget-section" aria-labelledby="categories-title">
-                <h2 id="categories-title" className="comm-widget-heading">
-                  <i className="fa-solid fa-table-cells comm-widget-heading-icon" aria-hidden="true" />
-                  Categories
-                </h2>
-                <ul className="comm-category-list" role="list">
-                  {CATEGORIES.map((cat) => (
-                    <li key={cat.id}>
-                      <button className="comm-category-item" id={`category-btn-${cat.id}`}>
-                        <i className="fa-solid fa-chevron-right comm-category-chevron" aria-hidden="true" />
-                        {cat.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {/* Community Pulse */}
-              <section className="comm-widget-section" aria-labelledby="community-pulse-title">
-                <h2 id="community-pulse-title" className="comm-pulse-heading">Community Pulse</h2>
-                <div className="comm-pulse-row">
-                  <span className="comm-pulse-label">Active Now</span>
-                  <span className="comm-pulse-value">1,429</span>
-                </div>
-                <div className="comm-pulse-row">
-                  <span className="comm-pulse-label">Total Discussions</span>
-                  <span className="comm-pulse-value">17.5k</span>
-                </div>
-                <div className="comm-pulse-row">
-                  <span className="comm-pulse-label">Experts Online</span>
-                  <div className="comm-pulse-avatars" aria-hidden="true">
-                    <div className="comm-pulse-avatar" style={{ background: '#6B8CFF' }}>E</div>
-                    <div className="comm-pulse-avatar" style={{ background: '#22C55E' }}>M</div>
-                    <div className="comm-pulse-avatar" style={{ background: '#F0B90B', color: '#16171F' }}>R</div>
-                  </div>
-                </div>
-              </section>
-            </aside>
-
-            {/* â”€â”€ Feed â”€â”€ */}
-            <section className="comm-feed" aria-label="Discussion feed">
-              {/* Tabs */}
-              <div className="comm-tabs" role="tablist" aria-label="Feed filter">
-                {[
-                  { key: 'trending', label: 'Trending' },
-                  { key: 'latest', label: 'Latest' },
-                  { key: 'top-rated', label: 'Top Rated' },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    role="tab"
-                    aria-selected={activeTab === tab.key}
-                    className={`comm-tab${activeTab === tab.key ? ' comm-tab--active' : ''}`}
-                    onClick={() => setActiveTab(tab.key)}
-                    id={`tab-${tab.key}`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Posts */}
-              <div className="comm-post-list" role="feed" aria-label="Community posts">
-                {POSTS.map((post) => (
-                  <article
-                    key={post.id}
-                    className="comm-post-card"
-                    aria-labelledby={`post-title-${post.id}`}
-                  >
-                    {/* Post header */}
-                    <div className="comm-post-header">
-                      <div className="comm-post-author">
-                        <div
-                          className="comm-post-avatar"
-                          style={{
-                            background: post.avatarColor,
-                            color: post.avatarColor === '#F0B90B' ? '#16171F' : '#fff',
-                          }}
-                          aria-hidden="true"
-                        >
-                          {post.avatar}
-                        </div>
-                        <div className="comm-post-meta">
-                          <span className="comm-post-author-name">{post.author}</span>
-                          <span className="comm-post-author-role">
-                            {post.role} Â· {post.time}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="comm-post-header-right">
-                        {post.badge && (
-                          <span className="comm-badge comm-badge--pinned">{post.badge}</span>
-                        )}
-                        <span className="comm-badge comm-badge--category">{post.category}</span>
-                        <button className="comm-post-more" aria-label={`More options for post by ${post.author}`}>
-                          <i className="fa-solid fa-ellipsis" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Title & excerpt */}
-                    <h3 id={`post-title-${post.id}`} className="comm-post-title">
-                      {post.title}
-                    </h3>
-                    <p className="comm-post-excerpt">{post.excerpt}</p>
-
-                    {/* Actions row */}
-                    <div className="comm-post-actions">
-                      <div className="comm-post-reactions">
-                        <button
-                          className="comm-reaction-btn"
-                          aria-label={`${post.likes} likes`}
-                          id={`like-btn-${post.id}`}
-                        >
-                          <i className="fa-regular fa-heart" aria-hidden="true" />
-                          <span>{post.likes}</span>
-                        </button>
-                        <button
-                          className="comm-reaction-btn"
-                          aria-label={`${post.comments} comments`}
-                          id={`comment-btn-${post.id}`}
-                        >
-                          <i className="fa-regular fa-comment" aria-hidden="true" />
-                          <span>{post.comments}</span>
-                        </button>
-                        <button
-                          className="comm-reaction-btn"
-                          aria-label="Share post"
-                          id={`share-btn-${post.id}`}
-                        >
-                          <i className="fa-solid fa-share-nodes" aria-hidden="true" />
-                          <span>Share</span>
-                        </button>
-                      </div>
-                      <button
-                        className={`comm-save-btn${savedPosts[post.id] ? ' comm-save-btn--saved' : ''}`}
-                        aria-label={savedPosts[post.id] ? 'Unsave post' : 'Save post'}
-                        aria-pressed={!!savedPosts[post.id]}
-                        onClick={() => handleSave(post.id)}
-                        id={`save-btn-${post.id}`}
-                      >
-                        <i
-                          className={savedPosts[post.id] ? 'fa-solid fa-bookmark' : 'fa-regular fa-bookmark'}
-                          aria-hidden="true"
-                        />
-                        <span>{savedPosts[post.id] ? 'Saved' : 'Save'}</span>
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              {/* Load More */}
-              <div className="comm-load-more-wrap">
-                <button
-                  className="comm-btn comm-btn--ghost"
-                  id="load-more-discussions-btn"
-                >
-                  Load More Discussions
-                </button>
-              </div>
-            </section>
-
-            {/* â”€â”€ Right Rail â”€â”€ */}
-            <aside className="comm-right-rail" aria-label="Right sidebar widgets">
-              {/* Have a question? */}
-              <div className="comm-widget comm-widget--dark" aria-labelledby="have-question-title">
-                <h2 id="have-question-title" className="comm-widget-title comm-widget-title--light">
-                  Have a question?
-                </h2>
-                <p className="comm-widget-desc">
-                  Start a discussion and get answers from our global community of experts.
-                </p>
-                <button className="comm-btn comm-btn--primary comm-widget-cta-btn" id="create-new-thread-btn">
-                  <i className="fa-solid fa-plus" aria-hidden="true" />
-                  Create New Thread
-                </button>
-              </div>
-
-              {/* Trending Right Now */}
-              <div className="comm-widget" aria-labelledby="trending-now-title">
-                <h2 id="trending-now-title" className="comm-widget-title">Trending Right Now</h2>
-                <ol className="comm-trending-list" aria-label="Trending discussions">
-                  {TRENDING.map((item) => (
-                    <li key={item.rank} className="comm-trending-item">
-                      <span className="comm-trending-rank" aria-label={`Rank ${item.rank}`}>
-                        #{item.rank}
-                      </span>
-                      <div className="comm-trending-info">
-                        <span className="comm-trending-title">{item.title}</span>
-                        <span className="comm-trending-participants">
-                          <i className="fa-solid fa-users comm-trending-users-icon" aria-hidden="true" />
-                          {item.participants}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              {/* Expert Spotlight */}
-              <div className="comm-widget" aria-labelledby="expert-spotlight-title">
-                <h2 id="expert-spotlight-title" className="comm-widget-title">Expert Spotlight</h2>
-                <div className="comm-expert-card">
-                  <div className="comm-expert-avatar-wrap">
-                    <div className="comm-expert-avatar" aria-hidden="true">AR</div>
-                    <span className="comm-expert-online-dot" aria-label="Expert is online" />
-                  </div>
-                  <div className="comm-expert-info">
-                    <span className="comm-expert-name">Alex Rivera</span>
-                    <span className="comm-expert-role">
-                      <i className="fa-solid fa-shield-halved comm-expert-shield" aria-hidden="true" />
-                      Staff Engineer @ TechFlow
-                    </span>
-                  </div>
-                </div>
-                <blockquote className="comm-expert-quote">
-                  "Passionate about mentoring early-career engineers and architecting scalable React applications."
-                </blockquote>
-                <button
-                  className="comm-btn comm-btn--ghost comm-expert-view-btn"
-                  id="view-expert-profile-btn"
-                >
-                  View Profile
-                </button>
-              </div>
-
-              {/* Footer links */}
-              <div className="comm-rail-footer">
-                <nav className="comm-rail-footer-links" aria-label="Community footer navigation">
-                  <a href="/about" className="comm-rail-footer-link">About</a>
-                  <a href="/guidelines" className="comm-rail-footer-link">Guidelines</a>
-                  <a href="/privacy" className="comm-rail-footer-link">Privacy</a>
-                  <a href="/terms" className="comm-rail-footer-link">Terms</a>
-                  <a href="/support" className="comm-rail-footer-link">Support</a>
-                </nav>
-                <p className="comm-rail-copyright">Â© 2026 TalentBridge Community. v2.4.0</p>
-              </div>
-            </aside>
-          </div>
-        </main>
+        <main className="community-main" data-path={location.pathname}>{children}</main>
       </div>
     </div>
   );
+}
+
+function PostCard({ post, saved, onSave }) {
+  const [liked, setLiked] = useState(false);
+  return (
+    <article className="forum-card post-card">
+      <div className="post-author-row">
+        <Link className="avatar" to={`/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}>{post.initials}</Link>
+        <div><Link to={`/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}><strong>{post.author}</strong></Link><small>{post.role} · {post.time}</small></div>
+        <span className="category-pill">{post.category}</span>
+        {post.pinned && <span className="pin-pill">Pinned</span>}
+      </div>
+      <Link to={`/community/post/${post.id}`} className="post-copy"><h2>{post.title}</h2><p>{post.excerpt}</p></Link>
+      <div className="post-actions">
+        <button className={liked ? 'is-selected' : ''} onClick={() => setLiked(!liked)}><Heart size={17}/>{post.likes + (liked ? 1 : 0)}</button>
+        <Link to={`/community/post/${post.id}`}><MessageCircle size={17}/>{post.comments}</Link>
+        <button><Share2 size={17}/>Share</button>
+        <button className={saved ? 'is-selected save-action' : 'save-action'} onClick={onSave}><Bookmark size={17}/>Save</button>
+      </div>
+    </article>
+  );
+}
+
+export function CommunityPage() {
+  const [tab, setTab] = useState('Trending');
+  const [query, setQuery] = useState('');
+  const [topic, setTopic] = useState('All topics');
+  const [saved, setSaved] = useState(() => JSON.parse(localStorage.getItem('community_saved') || '{}'));
+  const filtered = useMemo(() => POSTS.filter((post) =>
+    (topic === 'All topics' || post.category === topic) &&
+    `${post.title} ${post.excerpt} ${post.author}`.toLowerCase().includes(query.toLowerCase())
+  ), [query, topic]);
+  const toggleSave = (id) => {
+    const next = { ...saved, [id]: !saved[id] };
+    setSaved(next); localStorage.setItem('community_saved', JSON.stringify(next));
+  };
+
+  return (
+    <CommunityShell action={<Link className="button primary compact" to="/community/new">Create post</Link>}>
+      <section className="community-hero">
+        <div><span className="eyebrow">IntelliHire community</span><h1>Grow your career, together.</h1><p>Ask better questions, trade real-world experience, and meet people building meaningful careers through IntelliHire.</p><div className="hero-buttons"><Link className="button primary" to="/community/new">Start a discussion</Link><Link className="button secondary" to="/community/guidelines">View guidelines</Link></div></div>
+        <div className="hero-art"><Sparkles/><b>12,500+</b><span>helpful discussions</span></div>
+      </section>
+      <div className="community-grid">
+        <aside className="forum-left">
+          <label className="forum-search"><Search size={17}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search discussions"/></label>
+          <section className="forum-card side-card"><h3><TrendingUp size={17}/>Popular topics</h3>{['All topics', ...TOPICS].map((item) => <button key={item} className={topic === item ? 'is-active' : ''} onClick={() => setTopic(item)}>{item}<span>›</span></button>)}</section>
+          <section className="forum-card community-pulse"><h3>Community pulse</h3><p><span>Active now</span><strong>1,429</strong></p><p><span>Total discussions</span><strong>12.5k</strong></p><p><span>Experts online</span><strong>84</strong></p></section>
+        </aside>
+        <section className="forum-feed">
+          <div className="feed-tabs">{['Trending', 'Latest', 'Top rated'].map((item) => <button className={tab === item ? 'is-active' : ''} onClick={() => setTab(item)} key={item}>{item}</button>)}</div>
+          {filtered.length ? filtered.map((post) => <PostCard key={post.id} post={post} saved={saved[post.id]} onSave={() => toggleSave(post.id)}/>) : <div className="forum-card empty-state"><Search/><h2>No discussions found</h2><p>Try another search or topic.</p></div>}
+        </section>
+        <aside className="forum-right">
+          <section className="forum-card question-card"><MessageCircle/><h3>Have a question?</h3><p>Start a discussion and get practical answers from the community.</p><Link className="button primary" to="/community/new">Create new thread</Link></section>
+          <section className="forum-card"><h3>Trending right now</h3>{POSTS.slice(0, 3).map((post, index) => <Link className="trend-row" to={`/community/post/${post.id}`} key={post.id}><b>#{index + 1}</b><span>{post.title}<small>{post.comments} replies</small></span></Link>)}</section>
+          <section className="forum-card expert-card"><span className="avatar">AJ</span><div><small>Expert spotlight</small><h3>Alex Johnson</h3><p>Frontend systems and career mentoring</p></div><Link to="/community/profile/alex-johnson">View profile</Link></section>
+        </aside>
+      </div>
+    </CommunityShell>
+  );
+}
+
+export function CreateDiscussionPage() {
+  const navigate = useNavigate();
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [category, setCategory] = useState('Career Growth');
+  const [previewing, setPreviewing] = useState(false);
+  const [attachedFile, setAttachedFile] = useState(null);
+  const publish = (e) => { e.preventDefault(); if (title.trim() && body.trim()) navigate('/community/post/react-performance'); };
+  const categories = [
+    ['Career Growth', 'Tips for professional growth and job hunting'],
+    ['Interview Prep', 'Technical and behavioral interview strategies'],
+    ['Industry News', 'Latest trends in technology and recruitment'],
+    ['Negotiation', 'How to handle offer and salary discussions']
+  ];
+  return (
+    <CommunityShell title="Create discussion">
+      <div className="create-discussion-heading">
+        <div><h1>Create New Discussion</h1><p>Share your insights and connect with the IntelliHire professional community.</p></div>
+        <div className="create-heading-actions">
+          <button type="button" className={`button preview-button ${previewing ? 'is-active' : ''}`} onClick={() => setPreviewing(!previewing)}><Eye size={17}/>{previewing ? 'Edit Post' : 'Live Preview'}</button>
+          <button type="submit" form="create-discussion-form" className="button primary" disabled={!title.trim() || !body.trim()}><Send size={17}/>Publish Post</button>
+        </div>
+      </div>
+      <form id="create-discussion-form" className="editor-grid create-discussion-grid" onSubmit={publish}>
+        <div className="create-discussion-main">
+          <section className="forum-card editor-card">
+            <h2><Type/>Post Content</h2>
+            {!previewing ? <>
+              <label>POST TITLE<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Optimizing React Performance for Enterprise Applications" maxLength="120"/><small>Make it catchy and descriptive to attract the right audience.</small></label>
+              <label>DETAILED DESCRIPTION
+                <div className="rich-editor">
+                  <div className="editor-toolbar">
+                    <button type="button" aria-label="Bold"><Bold size={17}/></button>
+                    <button type="button" aria-label="Italic"><Italic size={17}/></button>
+                    <i/>
+                    <button type="button" aria-label="Bulleted list"><List size={17}/></button>
+                    <button type="button" aria-label="Numbered list"><ListOrdered size={17}/></button>
+                    <i/>
+                    <button type="button" aria-label="Add link"><Link2 size={17}/></button>
+                    <button type="button" aria-label="Add image"><FileImage size={17}/></button>
+                    <button type="button" className="toolbar-more" aria-label="More formatting"><MoreHorizontal size={18}/></button>
+                  </div>
+                  <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Share the context, what you learned, and the question you would like the community to discuss..." rows="15"/>
+                  <div className="editor-status"><span>Words: {body.trim() ? body.trim().split(/\s+/).length : 0}</span><span>Markdown supported</span></div>
+                </div>
+              </label>
+            </> : <div className="post-preview"><span className="category-pill">{category}</span><h1>{title || 'Your discussion title'}</h1><p>{body || 'Your discussion content will appear here.'}</p></div>}
+          </section>
+          <section className="forum-card documents-card">
+            <h2><Paperclip/>Supporting Documents</h2>
+            <div className="documents-layout">
+              <label className="document-dropzone">
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.zip" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}/>
+                <span className="document-icon"><Paperclip size={22}/></span>
+                <strong>Drag & drop files or <u>browse</u></strong>
+                <small>PDF, JPEG, PNG, ZIP (Max 10MB)</small>
+              </label>
+              <div className="attached-files">
+                <span>ATTACHED FILES</span>
+                {attachedFile ? <div className="attached-file"><Paperclip size={18}/><div><strong>{attachedFile.name}</strong><small>{Math.max(.1, attachedFile.size / 1048576).toFixed(1)} MB</small></div><button type="button" onClick={() => setAttachedFile(null)} aria-label="Remove file"><X size={17}/></button></div> : <p>No files attached yet</p>}
+                {attachedFile && <button type="button" onClick={() => setAttachedFile(null)}>Clear all attachments</button>}
+              </div>
+            </div>
+          </section>
+        </div>
+        <aside className="create-discussion-aside">
+          <section className="forum-card category-card">
+            <h2><Hash/>Discussion Category</h2>
+            {categories.map(([item, description]) => <label className={category === item ? 'is-selected' : ''} key={item}><input type="radio" name="category" checked={category === item} onChange={() => setCategory(item)}/><span><strong>{item}</strong><small>{description}</small></span>{category === item && <CheckCircle2 size={17}/>}</label>)}
+            <button type="button" className="request-category">Request New Category<ChevronDown size={15}/></button>
+          </section>
+          <section className="forum-card posting-guidelines">
+            <h2><Info/>Posting Guidelines</h2>
+            <details open><summary>Be Professional<ChevronDown size={16}/></summary><p>Maintain a respectful and helpful tone. Avoid commercial self-promotion unless relevant to the context.</p></details>
+            <details><summary>Search First<ChevronDown size={16}/></summary><p>Check for an existing discussion before creating a duplicate topic.</p></details>
+            <details><summary>Use Tags Correctly<ChevronDown size={16}/></summary><p>Choose the category that best matches your discussion.</p></details>
+            <div className="guideline-notice"><Info size={18}/><span>Posts violating IntelliHire policies may be flagged for moderator review.</span></div>
+          </section>
+        </aside>
+      </form>
+    </CommunityShell>
+  );
+}
+
+export function DiscussionPage() {
+  const { postId } = useParams();
+  const post = POSTS.find((item) => item.id === postId) || POSTS[1];
+  const [comment, setComment] = useState('');
+  const [savedDiscussion, setSavedDiscussion] = useState(false);
+  const [upvoted, setUpvoted] = useState(false);
+  const [comments, setComments] = useState([
+    { initials: 'SM', name: 'Sarah Miller', role: 'Software Architect', time: '2 hours ago', text: 'Great breakdown. Measuring the user-facing outcome before choosing an optimization has saved our team months of unnecessary refactoring.', likes: 24 },
+    { initials: 'MC', name: 'Marcus Chen', role: 'DevOps Engineer', time: '5 hours ago', text: 'I would add observability from day one. Performance work is much easier when traces make the actual bottleneck visible.', likes: 18 },
+    { initials: 'ER', name: 'Elena Rodriguez', role: 'Senior Product Manager', time: '1 day ago', text: 'From a product perspective, I appreciate the emphasis on scalability. An adaptable architecture is a business requirement because it helps teams respond to changing user needs.', likes: 9 }
+  ]);
+  const addComment = () => { if (!comment.trim()) return; setComments([{ initials: 'AJ', name: 'Alex Johnson', role: 'Community member', time: 'Just now', text: comment, likes: 0 }, ...comments]); setComment(''); };
+  return (
+    <CommunityShell title="Discussion">
+      <Link className="back-link discussion-back" to="/community"><ArrowLeft size={17}/>Back to Career Community</Link>
+      <header className="discussion-detail-header">
+        <div className="discussion-labels"><span className="category-pill">{post.category}</span><span className="best-practice-pill">Best Practices</span></div>
+        <h1>{post.title}</h1>
+        <div className="discussion-detail-meta">
+          <Link className="avatar" to={`/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}>{post.initials}</Link>
+          <div><Link to={`/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}><strong>{post.author}</strong></Link><small>Lead Architect · Posted {post.time}</small></div>
+          <span><Eye size={16}/>2.4k Views</span><span><MessageCircle size={16}/>{comments.length} Comments</span>
+          <div className="discussion-header-actions">
+            <button type="button" className={savedDiscussion ? 'is-active' : ''} onClick={() => setSavedDiscussion(!savedDiscussion)}><Bookmark size={17}/>{savedDiscussion ? 'Saved' : 'Save'}</button>
+            <button type="button"><Share2 size={17}/>Share</button>
+          </div>
+        </div>
+      </header>
+      <div className="discussion-layout discussion-detail-layout">
+        <article>
+          <section className="forum-card article-body discussion-article">
+            <p>As IntelliHire grows to support high-volume recruitment activity and community interactions, we have had to rethink the architecture behind the experience. A simple monolithic approach served the product well at the beginning, but scale requires a more resilient model.</p>
+            <h2>Key Challenges in Recruitment Systems</h2>
+            <p>Recruitment platforms have unique traffic patterns. Global hiring events create significant spikes, while quieter periods still require dependable availability. Our approach focuses on:</p>
+            <ul><li>Event-driven communication for decoupled assessment scoring</li><li>Edge caching strategies for candidate profile performance</li><li>Queue management for processing-intensive tasks</li><li>Database partitioning for high-volume assessment data</li></ul>
+            <figure className="discussion-figure"><div><span className="figure-laptop"><i>IH</i><b>IntelliHire</b><small>Professional Career Community</small></span><span className="figure-team"><i/><i/><i/><i/></span></div><figcaption>Fig 1: Conceptual workspace for architectural planning</figcaption></figure>
+            <p>I would love to hear from other senior engineers and architects in the community. How are you handling data consistency across services in high-concurrency environments? Are you favoring eventual consistency or distributed transactions?</p>
+            <div className="article-actions"><button type="button" className={upvoted ? 'is-active' : ''} onClick={() => setUpvoted(!upvoted)}><Heart size={18}/>{post.likes + (upvoted ? 1 : 0)} Upvotes</button><button type="button"><MessageCircle size={18}/>{comments.length} Comments</button><button type="button"><Flag size={17}/>Report Post</button></div>
+          </section>
+          <section className="comments discussion-comments">
+            <div className="comments-heading"><h2>Comments <span>{comments.length}</span></h2><small>Sort by: <strong>Top Comments</strong></small></div>
+            <div className="forum-card comment-editor detail-comment-editor"><span className="avatar">AJ</span><textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your thoughts on this architecture..." rows="4"/><div><button type="button" className="comment-cancel" onClick={() => setComment('')}>Cancel</button><button type="button" className="button primary" onClick={addComment} disabled={!comment.trim()}>Post Comment<Send size={15}/></button></div></div>
+            {comments.map((item, index) => <article className="comment detail-comment" key={`${item.name}-${index}`}><span className="avatar">{item.initials}</span><div><p><strong>{item.name}</strong><em>{item.role}</em><small>{item.time}</small><MoreHorizontal size={17}/></p><div>{item.text}</div><footer><button><Heart size={14}/>{item.likes} Upvotes</button><button>Reply</button></footer></div></article>)}
+            <button type="button" className="load-comments">Load more comments (39)</button>
+          </section>
+        </article>
+        <aside className="discussion-rail detail-discussion-rail"><section className="forum-card related-discussions"><span className="rail-eyebrow"><TrendingUp size={15}/>Trending now</span><h2>Related Discussions</h2>{POSTS.filter((item) => item.id !== post.id).map((item) => <Link className="related-row" to={`/community/post/${item.id}`} key={item.id}><span className="category-pill">{item.category}</span>{item.title}<small><MessageCircle size={12}/>{item.comments}</small></Link>)}<Link className="rail-all-link" to="/community">View all related topics</Link></section><section className="forum-card popular-tags"><h2>Popular Tags</h2><div className="tag-cloud">{['Microservices','Scalability','Architecture','Backend','DevOps','Cloud','Talent Platform','NodeJS'].map((tag) => <span key={tag}>#{tag}</span>)}</div></section><section className="expert-review-card"><Sparkles/><h2>Need expert architectural review?</h2><p>Connect with verified lead architects for private code reviews and one-to-one strategy sessions.</p><button type="button" className="button primary">Explore Expert Sessions</button></section><section className="moderation-note"><Clock3/><span><strong>Active moderation</strong><small>Responses in approximately 15 minutes</small></span></section></aside>
+      </div>
+    </CommunityShell>
+  );
+}
+
+export function CommunityProfilePage() {
+  const { slug } = useParams();
+  const isSelf = !slug || slug === 'alex-johnson';
+  const [activeProfileTab, setActiveProfileTab] = useState('Recent Posts');
+  const [connected, setConnected] = useState(false);
+  const profilePosts = [
+    { ...POSTS[1], date: 'Oct 24, 2026', category: 'Engineering' },
+    { ...POSTS[0], id: 'serverless-future', date: 'Oct 12, 2026', category: 'Infrastructure', title: 'The Future of Serverless: Why Edge Functions Change Everything', excerpt: 'Exploring how modern edge platforms are redefining latency expectations for global applications.' },
+    { ...POSTS[2], date: 'Sep 28, 2026', category: 'Career Growth', title: 'Transitioning from Mid-level to Senior: A Personal Journey' },
+    { ...POSTS[3], id: 'graphql-rest', date: 'Sep 15, 2026', category: 'API Design', title: 'Demystifying GraphQL: When to Choose it Over REST', excerpt: 'An objective comparison of query languages and data-fetching paradigms based on product needs.' },
+    { ...POSTS[1], id: 'design-systems-scale', date: 'Sep 06, 2026', category: 'Frontend', title: 'Building a Design System That Actually Scales Across Teams', excerpt: 'The practical governance, component boundaries, and contribution workflow that kept our shared UI library useful as the company grew.', likes: 206, comments: 48 },
+    { ...POSTS[2], id: 'technical-mentoring', date: 'Aug 29, 2026', category: 'Leadership', title: 'A Practical Framework for Mentoring Early-Career Engineers', excerpt: 'How structured goals, thoughtful code reviews, and regular feedback can turn everyday project work into meaningful career development.', likes: 184, comments: 37 }
+  ];
+  return (
+    <CommunityShell title="Member profile">
+      <section className="member-profile-hero">
+        <div className="member-cover">
+          <div className="member-cover-mark"><Sparkles/><span>IntelliHire Community</span></div>
+          {isSelf && <button type="button" className="cover-edit"><Edit3 size={16}/>Edit Cover</button>}
+        </div>
+        <div className="member-identity">
+          <div className="member-avatar">AJ<i/></div>
+          <div className="member-title">
+            <h1>Alex Johnson</h1>
+            <p><BriefcaseBusiness size={16}/>Senior Full Stack Engineer @ TechFlow Systems</p>
+            <span><MapPin size={15}/>Colombo, Sri Lanka <Calendar size={15}/>Member since Jan 2023</span>
+          </div>
+          <div className="member-actions">
+            {!isSelf && <button type="button" className="button secondary"><MessageCircle size={17}/>Message</button>}
+            <button type="button" className="button primary" onClick={() => setConnected(!connected)}>{isSelf ? <><Edit3 size={17}/>Edit Profile</> : <><UserPlus size={17}/>{connected ? 'Connected' : 'Connect'}</>}</button>
+            <button type="button" className="member-more" aria-label="More member actions"><MoreHorizontal size={19}/></button>
+          </div>
+        </div>
+      </section>
+
+      <div className="member-profile-layout">
+        <aside className="member-profile-sidebar">
+          <section className="member-stat-grid">
+            <div className="member-stat-card"><span>Community Posts</span><strong>42</strong><small><TrendingUp size={14}/>12% this month</small><i><MessageCircle size={20}/></i></div>
+            <div className="member-stat-card"><span>Helpful Upvotes</span><strong>1.2k</strong><small><TrendingUp size={14}/>5% overall</small><i><Heart size={20}/></i></div>
+            <div className="member-stat-card"><span>Assessments Passed</span><strong>15</strong><small><TrendingUp size={14}/>Top 1% rank</small><i><Award size={20}/></i></div>
+            <div className="member-stat-card"><span>Connections</span><strong>284</strong><small>Professional network</small><i><UserPlus size={20}/></i></div>
+          </section>
+
+          <section className="forum-card member-overview">
+            <h2>Professional Overview</h2>
+            <p>Passionate about building scalable web applications and mentoring junior developers. Currently focusing on distributed systems and reactive UI patterns. Active contributor to the IntelliHire community and career coach.</p>
+            <h3>Skills & Expertise</h3>
+            <div className="member-skills">{['React', 'TypeScript', 'Node.js', 'GraphQL', 'AWS', 'Kubernetes', 'System Design'].map((skill) => <span key={skill}>{skill}</span>)}</div>
+            <footer><Award size={17}/><span>Expert Contributor</span><a href="/candidate/cv-management">Full CV <ExternalLink size={13}/></a></footer>
+          </section>
+
+          <section className="forum-card member-badges">
+            <h2>Community Badges</h2>
+            <div>
+              <span><i><Award/></i><b>Top Mentor</b></span>
+              <span><i><FileText/></i><b>Writer</b></span>
+              <span><i><BarChart3/></i><b>Rising Star</b></span>
+            </div>
+          </section>
+        </aside>
+
+        <section className="member-contributions">
+          <div className="member-tabs">
+            {['Recent Posts', 'Activity History', 'Certifications'].map((tab) => <button type="button" className={activeProfileTab === tab ? 'is-active' : ''} onClick={() => setActiveProfileTab(tab)} key={tab}>{tab}</button>)}
+            <Link to="/community">View All Posts</Link>
+          </div>
+          {activeProfileTab === 'Recent Posts' ? <>
+            <div className="member-post-grid">
+              {profilePosts.map((post) => <Link className="member-post-card" to={`/community/post/${post.id}`} key={post.id}>
+                <header><span>{post.category}</span><time>{post.date}</time></header>
+                <h2>{post.title}</h2>
+                <p>{post.excerpt}</p>
+                <footer><span><Heart size={16}/>{post.likes}</span><span><MessageCircle size={16}/>{post.comments}</span><Share2 size={16}/><Bookmark size={16}/></footer>
+              </Link>)}
+            </div>
+            <Link className="button member-show-more" to="/community">Show More Discussions</Link>
+          </> : <div className="member-tab-placeholder"><Sparkles/><h2>{activeProfileTab}</h2><p>This member's {activeProfileTab.toLowerCase()} will appear here.</p></div>}
+        </section>
+      </div>
+    </CommunityShell>
+  );
+}
+
+export function SavedPostsPage() {
+  const saved = JSON.parse(localStorage.getItem('community_saved') || '{}');
+  const items = POSTS.filter((post) => saved[post.id]);
+  return <CommunityShell title="Saved posts"><div className="page-heading"><div><span className="eyebrow">Your library</span><h1>Saved discussions</h1><p>Keep useful conversations close for when you need them.</p></div></div><div className="saved-list">{items.length ? items.map((post) => <PostCard key={post.id} post={post} saved onSave={() => { const next = { ...saved, [post.id]: false }; localStorage.setItem('community_saved', JSON.stringify(next)); window.location.reload(); }}/>) : <section className="forum-card empty-state"><Bookmark/><h2>No saved posts yet</h2><p>Use the save button on any discussion to add it here.</p><Link className="button primary" to="/community">Explore discussions</Link></section>}</div></CommunityShell>;
+}
+
+export function GuidelinesPage() {
+  const rules = [
+    ['Be useful and professional', 'Write with respect. Challenge ideas with evidence, never attack the person sharing them.'],
+    ['Protect privacy', 'Do not post personal contact details, private candidate information, interview content, or confidential company data.'],
+    ['Search before posting', 'Check for an existing discussion and add to it when your question is already being answered.'],
+    ['Use accurate categories', 'Choose the most relevant category and write a clear title so others can find your discussion.'],
+    ['No spam or misleading content', 'Disclose relevant relationships and avoid repetitive promotion, scams, plagiarism, or misinformation.']
+  ];
+  return <CommunityShell title="Guidelines"><div className="guidelines-hero"><ShieldCheck/><div><span className="eyebrow">Community standards</span><h1>A helpful, safe place for career conversations.</h1><p>These rules apply to candidates, recruiters, and every community contributor.</p></div></div><div className="guidelines-list">{rules.map(([title, copy], index) => <section className="forum-card" key={title}><b>{String(index + 1).padStart(2, '0')}</b><div><h2>{title}</h2><p>{copy}</p></div></section>)}</div><section className="guidelines-footer"><div><h2>See something that breaks these standards?</h2><p>Use “Report” on the discussion. Moderators review reports and keep actions confidential.</p></div><Link className="button primary" to="/community">Return to community</Link></section></CommunityShell>;
 }
 
 export default CommunityPage;
