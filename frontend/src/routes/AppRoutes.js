@@ -28,13 +28,13 @@ import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPag
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
-import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
-import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
-import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
-import ApplicantAnalytics from '../pages/recruiter/ApplicantAnalytics/ApplicantAnalytics';
-import ShortlistingAnalytics from '../pages/recruiter/ShortlistingAnalytics/ShortlistingAnalytics';
-import AssessmentAnalytics from '../pages/recruiter/AssessmentAnalytics/AssessmentAnalytics';
-import RecruitmentProgress from '../pages/recruiter/RecruitmentProgress/RecruitmentProgress';
+import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
+import AssessmentsPage from '../pages/recruiter/Assessments/AssessmentsPage';
+import QuestionBankPage from '../pages/recruiter/Assessments/QuestionBankPage';
+import CreateAssessmentPage from '../pages/recruiter/Assessments/CreateAssessmentPage';
+import CandidateReportPage from '../pages/recruiter/Assessments/CandidateReportPage';
+import AssessmentPreviewPage from '../pages/recruiter/Assessments/AssessmentPreviewPage';
+import AssessmentCandidatesPage from '../pages/recruiter/Assessments/AssessmentCandidatesPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import VacancySelectorModal from '../components/common/VacancySelectorModal';
@@ -74,6 +74,15 @@ function PlaceholderApplicants({ title }) {
         </div>
       </div>
       <VacancySelectorModal />
+    </div>
+  );
+}
+
+function CandidatePlaceholder({ title }) {
+  return (
+    <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', minHeight: 'calc(100vh - 64px)' }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>{title}</h1>
+      <p style={{ color: '#a79e8c' }}>This candidate page is currently under construction.</p>
     </div>
   );
 }
@@ -138,13 +147,19 @@ function AppRoutes() {
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
-          <Route index element={<Navigate to="/candidate/profile" replace />} />
+          <Route index element={<Navigate to="/candidate/dashboard" replace />} />
+          <Route path="dashboard" element={<CandidatePlaceholder title="Dashboard" />} />
           <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
           <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
           <Route path="cv-management" element={<CvManagementPage />} />
+          <Route path="cv-insights" element={<CandidatePlaceholder title="CV insights" />} />
           <Route path="jobs" element={<JobSearch />} />
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
+          <Route path="applications" element={<CandidatePlaceholder title="My applications" />} />
+          <Route path="mock-interviews" element={<CandidatePlaceholder title="Mock interviews" />} />
+          <Route path="notifications" element={<CandidatePlaceholder title="Notifications" />} />
+          <Route path="settings" element={<CandidatePlaceholder title="Settings" />} />
         </Route>
         <Route
           path="/recruiter/dashboard"
@@ -187,16 +202,22 @@ function AppRoutes() {
           element={<ApplicantAnalytics />}
         />
         <Route
-          path="/recruiter/analytics/shortlisting"
-          element={<ShortlistingAnalytics />}
+          path="/recruiter/assessments"
+          element={<AssessmentsPage />}
+        />
+        <Route path="/recruiter/question-bank" element={<QuestionBankPage />} />
+        <Route path="/recruiter/assessments/new" element={<CreateAssessmentPage />} />
+        <Route path="/recruiter/assessments/:assessmentId" element={<AssessmentPreviewPage />} />
+        <Route path="/recruiter/assessments/:assessmentId/edit" element={<CreateAssessmentPage />} />
+        <Route path="/recruiter/assessments/:assessmentId/candidates" element={<AssessmentCandidatesPage />} />
+        <Route path="/recruiter/assessments/report/:candidateId" element={<CandidateReportPage />} />
+        <Route
+          path="/recruiter/notifications"
+          element={<PlaceholderApplicants title="Notifications" />}
         />
         <Route
-          path="/recruiter/analytics/assessment"
-          element={<AssessmentAnalytics />}
-        />
-        <Route
-          path="/recruiter/analytics/progress"
-          element={<RecruitmentProgress />}
+          path="/recruiter/company-profile"
+          element={<PlaceholderApplicants title="Company profile" />}
         />
         <Route
           path="/recruiter/applicants/ranked"
@@ -311,7 +332,8 @@ function AppRoutes() {
           }
         />
         {/* Community Forum — shared for both recruiters and candidates */}
-        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/community" element={<CommunityPage roleOverride="candidate" />} />
+        <Route path="/recruiter/community" element={<CommunityPage roleOverride="recruiter" />} />
         <Route path="/community/new" element={<CreateDiscussionPage />} />
         <Route path="/community/post/:postId" element={<DiscussionPage />} />
         <Route path="/community/profile/:slug" element={<CommunityProfilePage />} />

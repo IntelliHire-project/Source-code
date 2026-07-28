@@ -14,7 +14,7 @@
 .community-sidebar nav a:hover, .community-sidebar-footer a:hover { background: var(--primary-light); color: var(--text-on-dark); }
 .community-sidebar nav a.is-active { background: rgba(240,185,11,.13); color: var(--accent); box-shadow: inset 3px 0 var(--accent); }
 .community-sidebar-footer { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--border-dark); }
-.community-workspace { min-width: 0; margin-left: 220px; }
+.community-workspace { min-width: 0; margin-left: 260px; }
 .community-topbar { position: sticky; top: 0; z-index: 30; height: 64px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; gap: 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .community-crumbs { display: flex; align-items: center; gap: 7px; color: var(--text-secondary); font-size: .82rem; }
 .community-crumbs span { color: var(--text-primary); font-weight: 600; }
