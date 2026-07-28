@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Bell, Bookmark, BriefcaseBusiness, ChevronRight, Clock3,
-  FileText, Flag, Heart, Home, Image, LayoutDashboard, Menu, MessageCircle,
+  FileText, Flag, Heart, LayoutDashboard, Menu, MessageCircle,
   Paperclip, Search, Send, Settings, Share2, ShieldCheck, Sparkles, TrendingUp,
   UserRound, Users, X
 } from 'lucide-react';
@@ -56,7 +56,7 @@ function CommunityShell({ children, title = 'Community', action }) {
     <div className="community-shell">
       {menuOpen && <button className="community-overlay" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}
       <aside className={`community-sidebar ${menuOpen ? 'is-open' : ''}`}>
-        <div className="community-brand"><span className="community-brand-mark">IH</span><span>IntelliHire</span><button onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={18}/></button></div>
+        <div className="community-brand"><span className="community-brand-mark" aria-hidden="true">IH</span><span>IntelliHire</span><button onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={18}/></button></div>
         <nav>
           {primary.map(({ label, icon: Icon, to }) => <Link key={to} to={to}><Icon size={18}/><span>{label}</span></Link>)}
           <Link className="is-active" to="/community"><MessageCircle size={18}/><span>Community</span></Link>
@@ -68,7 +68,7 @@ function CommunityShell({ children, title = 'Community', action }) {
       <div className="community-workspace">
         <header className="community-topbar">
           <button className="community-menu" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu size={21}/></button>
-          <div className="community-crumbs"><Link to={info.home}>Home</Link><ChevronRight size={15}/><Link to="/community">Community</Link>{title !== 'Community' && <><ChevronRight size={15}/><span>{title}</span></>}</div>
+          <div className="community-crumbs"><Link className="community-system-name" to={info.home}>IntelliHire</Link><ChevronRight size={15}/><Link to="/community">Community</Link>{title !== 'Community' && <><ChevronRight size={15}/><span>{title}</span></>}</div>
           <div className="community-top-actions">
             {action}
             <button className="community-icon-button" aria-label="Notifications"><Bell size={19}/><i/></button>
@@ -119,7 +119,7 @@ export function CommunityPage() {
   return (
     <CommunityShell action={<Link className="button primary compact" to="/community/new">Create post</Link>}>
       <section className="community-hero">
-        <div><span className="eyebrow">Community hub</span><h1>Grow your career, together.</h1><p>Ask better questions, trade real-world experience, and meet people building meaningful careers.</p><div className="hero-buttons"><Link className="button primary" to="/community/new">Start a discussion</Link><Link className="button secondary" to="/community/guidelines">View guidelines</Link></div></div>
+        <div><span className="eyebrow">IntelliHire community</span><h1>Grow your career, together.</h1><p>Ask better questions, trade real-world experience, and meet people building meaningful careers through IntelliHire.</p><div className="hero-buttons"><Link className="button primary" to="/community/new">Start a discussion</Link><Link className="button secondary" to="/community/guidelines">View guidelines</Link></div></div>
         <div className="hero-art"><Sparkles/><b>12,500+</b><span>helpful discussions</span></div>
       </section>
       <div className="community-grid">
