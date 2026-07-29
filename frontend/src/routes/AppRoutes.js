@@ -31,6 +31,8 @@ import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBilling
 import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
 import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
+import PaymentStatusPage from '../pages/recruiter/PaymentStatus/PaymentStatusPage';
+import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
 import ApplicantAnalytics from '../pages/recruiter/ApplicantAnalytics/ApplicantAnalytics';
 import ShortlistingAnalytics from '../pages/recruiter/ShortlistingAnalytics/ShortlistingAnalytics';
 import AssessmentAnalytics from '../pages/recruiter/AssessmentAnalytics/AssessmentAnalytics';
@@ -200,6 +202,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/otp-verification"
           element={<OTPVerificationPage />}
+        />
+        <Route
+          path="/recruiter/payment-status"
+          element={<PaymentStatusPage />}
         />
         <Route
           path="/recruiter/payments"
