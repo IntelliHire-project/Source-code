@@ -161,6 +161,12 @@ function AppRoutes() {
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
           <Route path="applications" element={<CandidatePlaceholder title="My applications" />} />
           <Route path="mock-interviews" element={<CandidatePlaceholder title="Mock interviews" />} />
+          <Route path="community" element={<CommunityPage roleOverride="candidate" />} />
+          <Route path="community/new" element={<CreateDiscussionPage />} />
+          <Route path="community/post/:postId" element={<DiscussionPage />} />
+          <Route path="community/profile/:slug" element={<CommunityProfilePage />} />
+          <Route path="community/saved" element={<SavedPostsPage />} />
+          <Route path="community/guidelines" element={<GuidelinesPage />} />
           <Route path="notifications" element={<CandidatePlaceholder title="Notifications" />} />
           <Route path="settings" element={<CandidatePlaceholder title="Settings" />} />
         </Route>
@@ -335,13 +341,8 @@ function AppRoutes() {
           }
         />
         {/* Community Forum — shared for both recruiters and candidates */}
-        <Route path="/community" element={<CommunityPage roleOverride="candidate" />} />
+        <Route path="/community" element={<Navigate to="/candidate/community" replace />} />
         <Route path="/recruiter/community" element={<CommunityPage roleOverride="recruiter" />} />
-        <Route path="/community/new" element={<CreateDiscussionPage />} />
-        <Route path="/community/post/:postId" element={<DiscussionPage />} />
-        <Route path="/community/profile/:slug" element={<CommunityProfilePage />} />
-        <Route path="/community/saved" element={<SavedPostsPage />} />
-        <Route path="/community/guidelines" element={<GuidelinesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
