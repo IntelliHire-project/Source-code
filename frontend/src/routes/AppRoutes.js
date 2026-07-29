@@ -24,6 +24,7 @@ import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
 import MyApplications from '../pages/candidate/MyApplications';
 import CVInsights from '../pages/candidate/CVInsights';
+import DashboardPage from '../pages/candidate/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
@@ -156,7 +157,7 @@ function AppRoutes() {
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
           <Route index element={<Navigate to="/candidate/dashboard" replace />} />
-          <Route path="dashboard" element={<CandidatePlaceholder title="Dashboard" />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
           <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
           <Route path="cv-management" element={<CvManagementPage />} />
