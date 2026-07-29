@@ -32,6 +32,9 @@ import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/Sele
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
 import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
 import ApplicantAnalytics from '../pages/recruiter/ApplicantAnalytics/ApplicantAnalytics';
+import ShortlistingAnalytics from '../pages/recruiter/ShortlistingAnalytics/ShortlistingAnalytics';
+import AssessmentAnalytics from '../pages/recruiter/AssessmentAnalytics/AssessmentAnalytics';
+import RecruitmentProgress from '../pages/recruiter/RecruitmentProgress/RecruitmentProgress';
 import AssessmentsPage from '../pages/recruiter/Assessments/AssessmentsPage';
 import QuestionBankPage from '../pages/recruiter/Assessments/QuestionBankPage';
 import CreateAssessmentPage from '../pages/recruiter/Assessments/CreateAssessmentPage';
@@ -209,6 +212,18 @@ function AppRoutes() {
         <Route
           path="/recruiter/analytics/applicants"
           element={<ApplicantAnalytics />}
+        />
+        <Route
+          path="/recruiter/analytics/shortlisting"
+          element={<ShortlistingAnalytics />}
+        />
+        <Route
+          path="/recruiter/analytics/assessment"
+          element={<AssessmentAnalytics />}
+        />
+        <Route
+          path="/recruiter/analytics/progress"
+          element={<RecruitmentProgress />}
         />
         <Route
           path="/recruiter/assessments"
