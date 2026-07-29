@@ -10,8 +10,6 @@ import {
   Bell,
   Settings,
   LogOut,
-  UserRound,
-  FileCheck2,
   X,
 } from 'lucide-react';
 import logo from '../../logo.png';
