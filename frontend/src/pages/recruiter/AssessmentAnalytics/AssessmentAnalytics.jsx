@@ -10,6 +10,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Search,
+  RotateCcw,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -51,13 +53,45 @@ export default function AssessmentAnalytics() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [roundFilter, setRoundFilter] = useState('all');
+  const [recommendationFilter, setRecommendationFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
   const filteredEvals = PANEL_EVALUATIONS.filter((e) => {
-    if (roleFilter === 'all') return true;
-    return e.role.toLowerCase().includes(roleFilter.toLowerCase());
+    const query = searchQuery.trim().toLowerCase();
+    return (roleFilter === 'all' || e.role === roleFilter)
+      && (roundFilter === 'all' || e.round === roundFilter)
+      && (recommendationFilter === 'all' || e.recommendation === recommendationFilter)
+      && (!query || e.candidate.toLowerCase().includes(query) || e.role.toLowerCase().includes(query));
   });
+
+  const averageScore = filteredEvals.length
+    ? filteredEvals.reduce((sum, item) => sum + (Number.parseFloat(item.overall) * 20), 0) / filteredEvals.length
+    : 0;
+  const assessmentStats = [
+    { ...ASSESSMENT_STATS[0], label: 'Evaluation Records', value: filteredEvals.length },
+    { ...ASSESSMENT_STATS[1], value: filteredEvals.length ? '100%' : '0%' },
+    { ...ASSESSMENT_STATS[2], value: `${averageScore.toFixed(1)}%` },
+    { ...ASSESSMENT_STATS[3], value: filteredEvals.filter((item) => item.recommendation === 'Reject').length },
+  ];
+  const scoreDistribution = SCORE_DISTRIBUTION.map((range, index) => {
+    const limits = [[81, 100], [61, 80], [41, 60], [21, 40], [0, 20]][index];
+    const count = filteredEvals.filter((item) => {
+      const score = Number.parseFloat(item.overall) * 20;
+      return score >= limits[0] && score <= limits[1];
+    }).length;
+    return { ...range, count, pct: filteredEvals.length ? Math.round((count / filteredEvals.length) * 100) : 0 };
+  });
+  const filtersActive = roleFilter !== 'all' || roundFilter !== 'all' || recommendationFilter !== 'all' || searchQuery.trim();
+  const clearFilters = () => { setRoleFilter('all'); setRoundFilter('all'); setRecommendationFilter('all'); setSearchQuery(''); setCurrentPage(1); };
+  const exportReport = () => {
+    const rows = [['Candidate', 'Role', 'Round', 'Communication', 'Technical', 'Problem Solving', 'Teamwork', 'Overall', 'Recommendation'], ...filteredEvals.map((e) => [e.candidate, e.role, e.round, e.comm, e.tech, e.problem, e.teamwork, e.overall, e.recommendation])];
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a'); link.href = url; link.download = 'assessment-performance-report.csv'; link.click(); URL.revokeObjectURL(url);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredEvals.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -80,19 +114,7 @@ export default function AssessmentAnalytics() {
         />
 
         <main className="an-page-wrapper">
-          {/* Header */}
-          <div className="an-page-header">
-            <div>
-              <h1 className="an-page-title">Assessment Performance Analytics</h1>
-              <p className="an-page-subtitle">Clean breakdown of assessment performance, score ranges &amp; panel feedback.</p>
-            </div>
-            <button className="an-export-btn" type="button">
-              <Download size={16} />
-              Export Report
-            </button>
-          </div>
-
-          {/* Sub Nav Tabs */}
+          {/* Analytics Feature Navigation */}
           <div className="an-tabs">
             {TABS.map((tab) => (
               <button
@@ -106,9 +128,21 @@ export default function AssessmentAnalytics() {
             ))}
           </div>
 
+          {/* Header */}
+          <div className="an-page-header">
+            <div>
+              <h1 className="an-page-title">Assessment Performance Analytics</h1>
+              <p className="an-page-subtitle">Clean breakdown of assessment performance, score ranges &amp; panel feedback.</p>
+            </div>
+            <button className="an-export-btn" type="button" onClick={exportReport}>
+              <Download size={16} />
+              Export Report
+            </button>
+          </div>
+
           {/* KPI Stat Cards */}
           <div className="an-stats-grid">
-            {ASSESSMENT_STATS.map((stat, i) => {
+            {assessmentStats.map((stat, i) => {
               const Icon = stat.icon;
               return (
                 <div key={i} className="an-stat-card">
@@ -129,6 +163,7 @@ export default function AssessmentAnalytics() {
             <span className="an-filter-label">
               <Filter size={14} /> FILTERS:
             </span>
+            <label className="an-local-search"><Search size={15} /><input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search evaluations..." /></label>
             <div className="an-select-wrap">
               <select
                 className="an-select"
@@ -145,6 +180,9 @@ export default function AssessmentAnalytics() {
               </select>
               <ChevronDown size={14} className="an-select-caret" />
             </div>
+            <div className="an-select-wrap"><select className="an-select" value={roundFilter} onChange={(e) => { setRoundFilter(e.target.value); setCurrentPage(1); }}><option value="all">All Rounds</option>{[...new Set(PANEL_EVALUATIONS.map((e) => e.round))].map((round) => <option key={round} value={round}>{round}</option>)}</select><ChevronDown size={14} className="an-select-caret" /></div>
+            <div className="an-select-wrap"><select className="an-select" value={recommendationFilter} onChange={(e) => { setRecommendationFilter(e.target.value); setCurrentPage(1); }}><option value="all">All Recommendations</option><option value="Hire">Hire</option><option value="Hold">Hold</option><option value="Reject">Reject</option></select><ChevronDown size={14} className="an-select-caret" /></div>
+            {filtersActive && <button type="button" className="an-clear-filter" onClick={clearFilters}><RotateCcw size={14} /> Clear Filters</button>}
           </div>
 
           {/* Clean Overview Card: Score Distribution Bars */}
@@ -154,7 +192,7 @@ export default function AssessmentAnalytics() {
               <span className="an-overview-title">ASSESSMENT SCORE DISTRIBUTION</span>
             </div>
             <div className="an-dist-container">
-              {SCORE_DISTRIBUTION.map((item, i) => (
+              {scoreDistribution.map((item, i) => (
                 <div key={i} className="an-dist-bar-item">
                   <div className="an-dist-bar-header">
                     <span className="an-score-tag">{item.range}</span>
@@ -162,7 +200,7 @@ export default function AssessmentAnalytics() {
                     <span className="an-dist-val">{item.count} candidates ({item.pct}%)</span>
                   </div>
                   <div className="an-dist-track">
-                    <div className="an-dist-fill" style={{ width: `${item.pct * 2}%`, background: item.color }} />
+                    <div className="an-dist-fill" style={{ width: `${Math.min(item.pct, 100)}%`, background: item.color }} />
                   </div>
                 </div>
               ))}
@@ -183,26 +221,20 @@ export default function AssessmentAnalytics() {
                     <th>CANDIDATE</th>
                     <th>ROLE</th>
                     <th>ROUND</th>
-                    <th>COMM SKILLS</th>
-                    <th>TECH SKILLS</th>
-                    <th>PROBLEM SOLVING</th>
-                    <th>TEAMWORK</th>
+                    <th>SKILL RATINGS (C / T / P / W)</th>
                     <th>OVERALL</th>
                     <th>RECOMMENDATION</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedEvals.map((e) => {
-                    const recColor = e.recommendation === 'Hire' ? '#22C55E' : e.recommendation === 'Hold' ? '#F0B90B' : '#E63946';
+                    const recColor = e.recommendation === 'Hire' ? '#78B98B' : e.recommendation === 'Hold' ? '#B7A46A' : '#C77980';
                     return (
                       <tr key={e.id}>
                         <td className="an-td-pos">{e.candidate}</td>
                         <td className="an-td-muted">{e.role}</td>
                         <td className="an-td-muted">{e.round}</td>
-                        <td><span className="an-star-rating">{'★'.repeat(e.comm)}{'☆'.repeat(5 - e.comm)}</span></td>
-                        <td><span className="an-star-rating">{'★'.repeat(e.tech)}{'☆'.repeat(5 - e.tech)}</span></td>
-                        <td><span className="an-star-rating">{'★'.repeat(e.problem)}{'☆'.repeat(5 - e.problem)}</span></td>
-                        <td><span className="an-star-rating">{'★'.repeat(e.teamwork)}{'☆'.repeat(5 - e.teamwork)}</span></td>
+                        <td><span className="an-skill-summary"><b>{e.comm}</b><b>{e.tech}</b><b>{e.problem}</b><b>{e.teamwork}</b></span></td>
                         <td><span className="an-score-badge" style={{ color: '#F0B90B' }}>{e.overall}</span></td>
                         <td>
                           <span className="an-status-pill" style={{ background: `${recColor}20`, color: recColor }}>
@@ -214,8 +246,8 @@ export default function AssessmentAnalytics() {
                   })}
                   {paginatedEvals.length === 0 && (
                     <tr>
-                      <td colSpan="9" className="an-td-empty">
-                        No evaluation records match your selected filters.
+                      <td colSpan="6" className="an-td-empty">
+                        <span>No evaluation records match your search and filters.</span><button type="button" onClick={clearFilters}>Clear Filters</button>
                       </td>
                     </tr>
                   )}
@@ -223,8 +255,13 @@ export default function AssessmentAnalytics() {
               </table>
             </div>
 
+            <div className="an-mobile-cards">
+              {paginatedEvals.map((e) => <article className="an-mobile-card" key={e.id}><div className="an-mobile-card__head"><div><strong>{e.candidate}</strong><span>{e.role}</span></div><b>{e.overall}</b></div><p>{e.round}</p><div className="an-mobile-scores"><span>Communication {e.comm}/5</span><span>Technical {e.tech}/5</span><span>Problem solving {e.problem}/5</span><span>Teamwork {e.teamwork}/5</span></div><small>{e.recommendation}</small></article>)}
+              {!paginatedEvals.length && <div className="an-mobile-empty"><p>No evaluations match your search and filters.</p><button type="button" onClick={clearFilters}>Clear Filters</button></div>}
+            </div>
+
             {/* Pagination Controls */}
-            <div className="an-pagination">
+            {filteredEvals.length > pageSize && <div className="an-pagination">
               <span className="an-pagination-info">
                 Showing <strong>{filteredEvals.length > 0 ? (safePage - 1) * pageSize + 1 : 0}–{Math.min(safePage * pageSize, filteredEvals.length)}</strong> of <strong>{filteredEvals.length}</strong> evaluations
               </span>
@@ -259,7 +296,7 @@ export default function AssessmentAnalytics() {
                   <ChevronRight size={16} />
                 </button>
               </div>
-            </div>
+            </div>}
           </div>
         </main>
       </div>

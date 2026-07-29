@@ -11,26 +11,13 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Search,
+  RotateCcw,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import '../../../style.css';
 import './ShortlistingAnalytics.css';
-
-const SHORTLIST_STATS = [
-  { label: 'Total Shortlisted', value: '418', icon: Star, color: '#F0B90B', bg: 'rgba(240,185,11,0.12)' },
-  { label: 'Shortlist Rate', value: '32.6%', icon: Target, color: '#22C55E', bg: 'rgba(34,197,94,0.12)' },
-  { label: 'Avg Time to Shortlist', value: '3.2d', icon: Clock, color: '#6B8CFF', bg: 'rgba(107,140,255,0.12)' },
-  { label: 'Pending Review', value: '142', icon: AlertCircle, color: '#F0B90B', bg: 'rgba(240,185,11,0.10)' },
-];
-
-const CRITERIA_METRICS = [
-  { criteria: 'Technical Skills Match', shortlisted: 280, total: 418, pct: 67 },
-  { criteria: 'Relevant Experience', shortlisted: 310, total: 418, pct: 74 },
-  { criteria: 'Educational Qualification', shortlisted: 390, total: 418, pct: 93 },
-  { criteria: 'Communication & Soft Skills', shortlisted: 265, total: 418, pct: 63 },
-  { criteria: 'Portfolio & System Projects', shortlisted: 198, total: 418, pct: 47 },
-];
 
 const SHORTLISTED_CANDIDATES = [
   { id: 'C-101', rank: '#1', name: 'Alex Sterling', role: 'Software Engineer', score: 94, expMatch: 'Matched', status: 'SHORTLISTED', criteriaMet: '5/5 Criteria' },
@@ -54,13 +41,46 @@ export default function ShortlistingAnalytics() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
   const filteredCandidates = SHORTLISTED_CANDIDATES.filter((c) => {
-    if (roleFilter === 'all') return true;
-    return c.role.toLowerCase().includes(roleFilter.toLowerCase());
+    const query = searchQuery.trim().toLowerCase();
+    return (roleFilter === 'all' || c.role === roleFilter)
+      && (statusFilter === 'all' || c.status === statusFilter)
+      && (!query || c.name.toLowerCase().includes(query) || c.role.toLowerCase().includes(query));
   });
+
+  const shortlistedCount = filteredCandidates.filter((c) => c.status === 'SHORTLISTED').length;
+  const reviewCount = filteredCandidates.filter((c) => c.status === 'UNDER REVIEW').length;
+  const rate = filteredCandidates.length ? Math.round((shortlistedCount / filteredCandidates.length) * 100) : 0;
+  const shortlistStats = [
+    { label: 'Total Shortlisted', value: shortlistedCount, icon: Star, color: '#D7B85B', bg: 'rgba(240,185,11,0.10)' },
+    { label: 'Shortlist Rate', value: `${rate}%`, icon: Target, color: '#78B98B', bg: 'rgba(120,185,139,0.10)' },
+    { label: 'Avg Time to Shortlist', value: '3.2d', icon: Clock, color: '#8FA7E8', bg: 'rgba(143,167,232,0.10)' },
+    { label: 'Pending Review', value: reviewCount, icon: AlertCircle, color: '#B7A46A', bg: 'rgba(183,164,106,0.10)' },
+  ];
+  const criteriaDefinitions = [
+    ['Technical Skills Match', (c) => c.score >= 80],
+    ['Relevant Experience', (c) => c.expMatch === 'Matched'],
+    ['Educational Qualification', (c) => c.score >= 70],
+    ['Communication & Soft Skills', (c) => Number(c.criteriaMet[0]) >= 4],
+    ['Portfolio & System Projects', (c) => c.score >= 90],
+  ];
+  const criteriaMetrics = criteriaDefinitions.map(([criteria, test]) => {
+    const met = filteredCandidates.filter(test).length;
+    return { criteria, shortlisted: met, total: filteredCandidates.length, pct: filteredCandidates.length ? Math.round((met / filteredCandidates.length) * 100) : 0 };
+  });
+  const filtersActive = roleFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim();
+  const clearFilters = () => { setRoleFilter('all'); setStatusFilter('all'); setSearchQuery(''); setCurrentPage(1); };
+  const exportReport = () => {
+    const rows = [['Rank', 'Candidate', 'Role', 'AI Match Score', 'Experience Match', 'Criteria Met', 'Status'], ...filteredCandidates.map((c) => [c.rank, c.name, c.role, `${c.score}%`, c.expMatch, c.criteriaMet, c.status])];
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a'); link.href = url; link.download = 'shortlisting-analytics-report.csv'; link.click(); URL.revokeObjectURL(url);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -83,19 +103,7 @@ export default function ShortlistingAnalytics() {
         />
 
         <main className="an-page-wrapper">
-          {/* Header */}
-          <div className="an-page-header">
-            <div>
-              <h1 className="an-page-title">Shortlisting Analytics</h1>
-              <p className="an-page-subtitle">Clean breakdown of shortlisted candidates and requirement matches.</p>
-            </div>
-            <button className="an-export-btn" type="button">
-              <Download size={16} />
-              Export Report
-            </button>
-          </div>
-
-          {/* Sub Nav Tabs */}
+          {/* Analytics Feature Navigation */}
           <div className="an-tabs">
             {TABS.map((tab) => (
               <button
@@ -109,9 +117,21 @@ export default function ShortlistingAnalytics() {
             ))}
           </div>
 
+          {/* Header */}
+          <div className="an-page-header">
+            <div>
+              <h1 className="an-page-title">Shortlisting Analytics</h1>
+              <p className="an-page-subtitle">Clean breakdown of shortlisted candidates and requirement matches.</p>
+            </div>
+            <button className="an-export-btn" type="button" onClick={exportReport}>
+              <Download size={16} />
+              Export Report
+            </button>
+          </div>
+
           {/* KPI Stat Cards */}
           <div className="an-stats-grid">
-            {SHORTLIST_STATS.map((stat, i) => {
+            {shortlistStats.map((stat, i) => {
               const Icon = stat.icon;
               return (
                 <div key={i} className="an-stat-card">
@@ -132,6 +152,7 @@ export default function ShortlistingAnalytics() {
             <span className="an-filter-label">
               <Filter size={14} /> FILTERS:
             </span>
+            <label className="an-local-search"><Search size={15} /><input value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} placeholder="Search candidates..." /></label>
             <div className="an-select-wrap">
               <select
                 className="an-select"
@@ -145,6 +166,13 @@ export default function ShortlistingAnalytics() {
               </select>
               <ChevronDown size={14} className="an-select-caret" />
             </div>
+            <div className="an-select-wrap">
+              <select className="an-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
+                <option value="all">All Statuses</option><option value="SHORTLISTED">Shortlisted</option><option value="UNDER REVIEW">Under Review</option><option value="REJECTED">Rejected</option>
+              </select>
+              <ChevronDown size={14} className="an-select-caret" />
+            </div>
+            {filtersActive && <button type="button" className="an-clear-filter" onClick={clearFilters}><RotateCcw size={14} /> Clear Filters</button>}
           </div>
 
           {/* Clean Overview Card: Criteria Match Breakdown */}
@@ -154,14 +182,14 @@ export default function ShortlistingAnalytics() {
               <span className="an-overview-title">SHORTLISTING METRICS BY CRITERIA</span>
             </div>
             <div className="an-dist-container">
-              {CRITERIA_METRICS.map((item, i) => (
+              {criteriaMetrics.map((item, i) => (
                 <div key={i} className="an-dist-bar-item">
                   <div className="an-dist-bar-header">
                     <span className="an-dist-label">{item.criteria}</span>
                     <span className="an-dist-val">{item.shortlisted} / {item.total} ({item.pct}%)</span>
                   </div>
                   <div className="an-dist-track">
-                    <div className="an-dist-fill" style={{ width: `${item.pct}%`, background: item.pct >= 70 ? '#22C55E' : '#F0B90B' }} />
+                    <div className="an-dist-fill" style={{ width: `${item.pct}%`, background: item.pct >= 70 ? '#789982' : '#B79A45' }} />
                   </div>
                 </div>
               ))}
@@ -192,8 +220,8 @@ export default function ShortlistingAnalytics() {
                   {paginatedCandidates.map((c) => {
                     const isShortlisted = c.status === 'SHORTLISTED';
                     const isUnderReview = c.status === 'UNDER REVIEW';
-                    const statusBg = isShortlisted ? 'rgba(34,197,94,0.15)' : isUnderReview ? 'rgba(240,185,11,0.15)' : 'rgba(230,57,70,0.15)';
-                    const statusColor = isShortlisted ? '#22C55E' : isUnderReview ? '#F0B90B' : '#E63946';
+                    const statusBg = isShortlisted ? 'rgba(120,185,139,0.10)' : isUnderReview ? 'rgba(183,164,106,0.10)' : 'rgba(199,121,128,0.10)';
+                    const statusColor = isShortlisted ? '#78B98B' : isUnderReview ? '#B7A46A' : '#C77980';
 
                     return (
                       <tr key={c.id}>
@@ -223,7 +251,7 @@ export default function ShortlistingAnalytics() {
                   {paginatedCandidates.length === 0 && (
                     <tr>
                       <td colSpan="7" className="an-td-empty">
-                        No shortlisted candidates match your selected filters.
+                        <span>No candidates match your search and filters.</span><button type="button" onClick={clearFilters}>Clear Filters</button>
                       </td>
                     </tr>
                   )}
@@ -231,8 +259,13 @@ export default function ShortlistingAnalytics() {
               </table>
             </div>
 
+            <div className="an-mobile-cards">
+              {paginatedCandidates.map((c) => <article className="an-mobile-card" key={c.id}><div className="an-mobile-card__head"><div><strong>{c.name}</strong><span>{c.role}</span></div><b>{c.score}%</b></div><div className="an-mobile-card__details"><span>{c.rank}</span><span>{c.expMatch}</span><span>{c.criteriaMet}</span><span>{c.status}</span></div></article>)}
+              {!paginatedCandidates.length && <div className="an-mobile-empty"><p>No candidates match your search and filters.</p><button type="button" onClick={clearFilters}>Clear Filters</button></div>}
+            </div>
+
             {/* Pagination Controls */}
-            <div className="an-pagination">
+            {filteredCandidates.length > pageSize && <div className="an-pagination">
               <span className="an-pagination-info">
                 Showing <strong>{filteredCandidates.length > 0 ? (safePage - 1) * pageSize + 1 : 0}–{Math.min(safePage * pageSize, filteredCandidates.length)}</strong> of <strong>{filteredCandidates.length}</strong> candidates
               </span>
@@ -267,7 +300,7 @@ export default function ShortlistingAnalytics() {
                   <ChevronRight size={16} />
                 </button>
               </div>
-            </div>
+            </div>}
           </div>
         </main>
       </div>
