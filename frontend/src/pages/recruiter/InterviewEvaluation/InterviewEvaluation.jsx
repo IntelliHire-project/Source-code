@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -15,6 +15,9 @@ import {
   RotateCcw,
   Save,
   Send,
+  Search,
+  CalendarDays,
+  Clock3,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -68,7 +71,7 @@ const INITIAL_RECORDS = [
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
     panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
     interviewRound: 'Technical',
-    interviewDate: '25 Jul 2026',
+    interviewDate: '03 Aug 2026',
     commSkills: 4,
     techSkills: 5,
     problemSolving: 4,
@@ -85,7 +88,7 @@ const INITIAL_RECORDS = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
     panel: ['M. Dias (HR Manager)', 'R. Fernando (Engineering VP)', 'S. Ali (Product Director)'],
     interviewRound: 'HR Portfolio Review',
-    interviewDate: '25 Jul 2026',
+    interviewDate: '03 Aug 2026',
     commSkills: 4,
     techSkills: 3,
     problemSolving: 4,
@@ -102,7 +105,7 @@ const INITIAL_RECORDS = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
     panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
     interviewRound: 'Final Cultural Fit',
-    interviewDate: '26 Jul 2026',
+    interviewDate: '04 Aug 2026',
     commSkills: 3,
     techSkills: 4,
     problemSolving: 3,
@@ -119,7 +122,7 @@ const INITIAL_RECORDS = [
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
     panel: ['M. Dias (HR Manager)', 'T. Kumara (Senior QA)', 'S. Ali (Product Director)'],
     interviewRound: 'Technical Case Study',
-    interviewDate: '27 Jul 2026',
+    interviewDate: '05 Aug 2026',
     commSkills: 5,
     techSkills: 4,
     problemSolving: 5,
@@ -136,7 +139,7 @@ const INITIAL_RECORDS = [
     avatar: null,
     panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
     interviewRound: 'HR Screening',
-    interviewDate: '28 Jul 2026',
+    interviewDate: '06 Aug 2026',
     commSkills: 4,
     techSkills: 3,
     problemSolving: 4,
@@ -153,7 +156,7 @@ const INITIAL_RECORDS = [
     avatar: null,
     panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
     interviewRound: 'Architecture Final',
-    interviewDate: '29 Jul 2026',
+    interviewDate: '07 Aug 2026',
     commSkills: 4,
     techSkills: 5,
     problemSolving: 5,
@@ -168,8 +171,8 @@ const INITIAL_RECORDS = [
 const EMPTY_FORM = {
   jobPosition: 'Senior Fullstack Engineer',
   interviewRound: 'Technical',
-  interviewDate: '25 Jul 2026',
-  interviewTime: '09:00 AM',
+  interviewDate: '2026-08-03',
+  interviewTime: '09:00',
   panelMember1: 'J. Silva (Tech Lead)',
   panelMember2: 'K. Perera (Senior Dev)',
   hrRepresentative: 'N. Gupta (HR Lead)',
@@ -258,6 +261,58 @@ function StatusBadge({ value }) {
   return <span className={`status-badge ${map[value] || ''}`}>{value}</span>;
 }
 
+function PanelSummary({ members }) {
+  const [activeMember, setActiveMember] = useState(null);
+  return (
+    <div className="panel-summary">
+      <div className="panel-avatar-stack">
+        {members.slice(0, 3).map((member, index) => {
+          const displayName = member.split(' (')[0];
+          const initials = displayName
+            .split(/\s+/)
+            .map((part) => part.replace('.', '').charAt(0))
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+          return (
+            <button
+              type="button"
+              className={`panel-member-avatar panel-member-avatar-${index + 1}`}
+              key={member}
+              title={member}
+              aria-label={`Show panel member ${member}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setActiveMember(activeMember === member ? null : member);
+              }}
+            >
+              {initials}
+            </button>
+          );
+        })}
+      </div>
+      {activeMember && (
+        <span className="panel-member-popover" role="status">
+          {activeMember}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function toDateInputValue(dateValue) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue || '')) return dateValue;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function formatDisplayDate(dateValue) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────
 function InterviewEvaluationPage() {
   const navigate = useNavigate();
@@ -270,6 +325,7 @@ function InterviewEvaluationPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const ITEMS_PER_PAGE = 5;
 
   // ── Derived candidate info from form selection ──
@@ -298,11 +354,42 @@ function InterviewEvaluationPage() {
   const showToast = (msg, type = 'success') => {
     setMessage(msg);
     setMessageType(type);
-    setTimeout(() => setMessage(''), 4000);
   };
+
+  useEffect(() => {
+    if (!message) return undefined;
+    const timeoutId = window.setTimeout(() => setMessage(''), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [message]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'candidateName') {
+      const candidate = CANDIDATES.find((item) => item.name === value);
+      setFormData((prev) => ({
+        ...prev,
+        candidateName: value,
+        jobPosition: candidate?.role || prev.jobPosition,
+      }));
+      return;
+    }
+    if (name === 'jobPosition') {
+      const candidate = CANDIDATES.find((item) => item.role === value);
+      setFormData((prev) => ({
+        ...prev,
+        jobPosition: value,
+        candidateName: candidate?.name || prev.candidateName,
+      }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -315,16 +402,51 @@ function InterviewEvaluationPage() {
     setEditingId(null);
   };
 
+  const validateEvaluation = (requireRemarks = false) => {
+    const panel = [formData.panelMember1, formData.panelMember2, formData.hrRepresentative];
+    if (new Set(panel).size !== panel.length) {
+      showToast('Each panel member must be unique.', 'error');
+      return false;
+    }
+    if (!formData.interviewDate || !formData.interviewTime) {
+      showToast('Interview date and time are required.', 'error');
+      return false;
+    }
+    const interviewDate = new Date(`${formData.interviewDate}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (interviewDate < today) {
+      showToast('Interview date cannot be in the past.', 'error');
+      return false;
+    }
+    if (requireRemarks && !formData.remarks.trim()) {
+      showToast('Please enter interview remarks before submitting.', 'error');
+      return false;
+    }
+    const duplicate = records.some(
+      (record) =>
+        record.id !== editingId &&
+        record.candidateName === formData.candidateName &&
+        record.interviewRound === formData.interviewRound
+    );
+    if (duplicate) {
+      showToast('An evaluation already exists for this candidate and interview round.', 'error');
+      return false;
+    }
+    return true;
+  };
+
   const handleSave = () => {
+    if (!validateEvaluation(false)) return;
     const candidate = CANDIDATES.find((c) => c.name === formData.candidateName) || CANDIDATES[0];
     const newRecord = {
-      id: editingId || `EVL-${String(records.length + 1).padStart(3, '0')}`,
+      id: editingId || `EVL-${String(Math.max(...records.map((record) => Number(record.id.split('-')[1]))) + 1).padStart(3, '0')}`,
       candidateName: formData.candidateName,
       candidateRole: candidate.role,
       avatar: candidate.avatar,
       panel: [formData.panelMember1, formData.panelMember2, formData.hrRepresentative].filter(Boolean),
       interviewRound: formData.interviewRound,
-      interviewDate: formData.interviewDate,
+      interviewDate: formatDisplayDate(formData.interviewDate),
       commSkills: formData.commSkills,
       techSkills: formData.techSkills,
       problemSolving: formData.problemSolving,
@@ -352,22 +474,20 @@ function InterviewEvaluationPage() {
     }
     
     handleReset();
+    setShowForm(false);
   };
 
   const handleSubmit = () => {
-    if (!formData.remarks.trim()) {
-      showToast('Please enter interview remarks before submitting.', 'error');
-      return;
-    }
+    if (!validateEvaluation(true)) return;
     const candidate = CANDIDATES.find((c) => c.name === formData.candidateName) || CANDIDATES[0];
     const newRecord = {
-      id: editingId || `EVL-${String(records.length + 1).padStart(3, '0')}`,
+      id: editingId || `EVL-${String(Math.max(...records.map((record) => Number(record.id.split('-')[1]))) + 1).padStart(3, '0')}`,
       candidateName: formData.candidateName,
       candidateRole: candidate.role,
       avatar: candidate.avatar,
       panel: [formData.panelMember1, formData.panelMember2, formData.hrRepresentative].filter(Boolean),
       interviewRound: formData.interviewRound,
-      interviewDate: formData.interviewDate,
+      interviewDate: formatDisplayDate(formData.interviewDate),
       commSkills: formData.commSkills,
       techSkills: formData.techSkills,
       problemSolving: formData.problemSolving,
@@ -395,6 +515,7 @@ function InterviewEvaluationPage() {
     }
     
     handleReset();
+    setShowForm(false);
   };
 
   const handleEdit = (record) => {
@@ -402,8 +523,8 @@ function InterviewEvaluationPage() {
     setFormData({
       jobPosition: record.candidateRole,
       interviewRound: record.interviewRound,
-      interviewDate: record.interviewDate,
-      interviewTime: '09:00 AM',
+      interviewDate: toDateInputValue(record.interviewDate),
+      interviewTime: '09:00',
       panelMember1: record.panel[0] || '',
       panelMember2: record.panel[1] || '',
       hrRepresentative: record.panel[2] || '',
@@ -416,6 +537,7 @@ function InterviewEvaluationPage() {
       remarks: record.remarks,
       recommendation: record.recommendation,
     });
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -432,7 +554,6 @@ function InterviewEvaluationPage() {
           user={{ name: 'Recruiter', role: 'Recruiter Account' }}
           notificationsCount={3}
           searchPlaceholder="Search assessments, roles, or candidates..."
-          onSearch={(q) => setSearchQuery(q)}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
@@ -472,7 +593,7 @@ function InterviewEvaluationPage() {
 
           {/* ── Page Heading + Action Button ── */}
           <div className="eval-page-header">
-            <div className="page-heading-block" style={{ margin: 0 }}>
+            <div className="eval-heading-copy">
               <h1 className="page-title">Interview Panel &amp; Evaluation Management</h1>
               <p className="page-subtitle">
                 Assign interview panels and record candidate evaluation results.
@@ -480,11 +601,19 @@ function InterviewEvaluationPage() {
             </div>
             <button
               type="button"
-              className="btn-primary-accent"
-              onClick={() => { handleReset(); window.scrollTo({ top: 200, behavior: 'smooth' }); }}
+              className="eval-assign-trigger"
+              onClick={() => {
+                if (showForm) {
+                  setShowForm(false);
+                  handleReset();
+                } else {
+                  handleReset();
+                  setShowForm(true);
+                }
+              }}
             >
-              <Plus size={15} />
-              <span>Assign Interview Panel</span>
+              {showForm ? <X size={15} /> : <Plus size={15} />}
+              <span>{showForm ? 'Close Evaluation Form' : 'Assign Interview Panel'}</span>
             </button>
           </div>
 
@@ -496,6 +625,8 @@ function InterviewEvaluationPage() {
             </div>
           )}
 
+          {showForm && (
+            <>
           {/* ─────────────────────────────────────────────────────── */}
           {/* SECTION 1: Interview Information Card                   */}
           {/* ─────────────────────────────────────────────────────── */}
@@ -539,15 +670,14 @@ function InterviewEvaluationPage() {
               <div className="eval-form-group">
                 <label className="eval-label" htmlFor="interviewDate">Interview Date</label>
                 <div className="eval-input-icon-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7079" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                  <CalendarDays size={14} />
                   <input
                     id="interviewDate"
                     name="interviewDate"
-                    type="text"
+                    type="date"
                     className="eval-input"
                     value={formData.interviewDate}
                     onChange={handleFieldChange}
-                    placeholder="e.g. 25 Jul 2026"
                   />
                 </div>
               </div>
@@ -555,15 +685,14 @@ function InterviewEvaluationPage() {
               <div className="eval-form-group">
                 <label className="eval-label" htmlFor="interviewTime">Interview Time</label>
                 <div className="eval-input-icon-wrap">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6E7079" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                  <Clock3 size={14} />
                   <input
                     id="interviewTime"
                     name="interviewTime"
-                    type="text"
+                    type="time"
                     className="eval-input"
                     value={formData.interviewTime}
                     onChange={handleFieldChange}
-                    placeholder="e.g. 09:00 AM"
                   />
                 </div>
               </div>
@@ -622,10 +751,6 @@ function InterviewEvaluationPage() {
                   </select>
                 </div>
 
-                <button type="button" className="btn-add-panel">
-                  <Plus size={14} />
-                  Add Panel Member
-                </button>
               </div>
             </div>
 
@@ -646,7 +771,7 @@ function InterviewEvaluationPage() {
                     value={formData.candidateName}
                     onChange={handleFieldChange}
                   >
-                    {CANDIDATES.map((c) => (
+                    {CANDIDATES.filter((candidate) => candidate.role === formData.jobPosition).map((c) => (
                       <option key={c.name} value={c.name}>{c.name}</option>
                     ))}
                   </select>
@@ -761,6 +886,8 @@ function InterviewEvaluationPage() {
               </div>
             </div>
           </div>
+            </>
+          )}
 
           {/* ─────────────────────────────────────────────────────── */}
           {/* SECTION 3: Evaluation Records Table                     */}
@@ -769,6 +896,16 @@ function InterviewEvaluationPage() {
             <div className="card-header-bar">
               <span className="gold-indicator" />
               <h2 className="card-title">Evaluation Records</h2>
+              <div className="eval-record-search">
+                <Search size={14} />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search evaluations..."
+                  aria-label="Search evaluation records"
+                />
+              </div>
             </div>
 
             <div className="eval-table-wrap">
@@ -796,9 +933,7 @@ function InterviewEvaluationPage() {
                         </div>
                       </td>
                       <td>
-                        <span className="record-panel-text">
-                          {record.panel.join(', ')}
-                        </span>
+                        <PanelSummary members={record.panel} />
                       </td>
                       <td>
                         <StarRating value={record.overallRating} readOnly />
@@ -816,18 +951,19 @@ function InterviewEvaluationPage() {
                             className="tbl-btn tbl-btn-view"
                             onClick={() => setViewRecord(record)}
                             title="View Details"
+                            aria-label={`View ${record.candidateName}'s evaluation`}
                           >
                             <Eye size={13} />
-                            View
                           </button>
                           <button
                             type="button"
                             className="tbl-btn tbl-btn-edit"
                             onClick={() => handleEdit(record)}
-                            title="Edit Evaluation"
+                            disabled={record.status === 'Completed'}
+                            title={record.status === 'Completed' ? 'Completed evaluations cannot be edited' : 'Edit Evaluation'}
+                            aria-label={`Edit ${record.candidateName}'s evaluation`}
                           >
                             <Edit2 size={13} />
-                            Edit
                           </button>
                         </div>
                       </td>
@@ -843,8 +979,53 @@ function InterviewEvaluationPage() {
               </table>
             </div>
 
+            <div className="eval-mobile-records">
+              {paginatedRecords.length === 0 && (
+                <div className="eval-mobile-empty">No evaluation records found.</div>
+              )}
+              {paginatedRecords.map((record) => (
+                <article className="eval-mobile-record-card" key={`mobile-${record.id}`}>
+                  <div className="eval-mobile-record-card__header">
+                    <div className="record-candidate-cell">
+                      <CandidateAvatar name={record.candidateName} avatar={record.avatar} />
+                      <div>
+                        <div className="record-candidate-name">{record.candidateName}</div>
+                        <div className="record-candidate-role">{record.candidateRole}</div>
+                      </div>
+                    </div>
+                    <StatusBadge value={record.status} />
+                  </div>
+                  <div className="eval-mobile-record-card__body">
+                    <StarRating value={record.overallRating} readOnly />
+                    <RecBadge value={record.recommendation} />
+                    <PanelSummary members={record.panel} />
+                  </div>
+                  <div className="record-actions">
+                    <button
+                      type="button"
+                      className="tbl-btn tbl-btn-view"
+                      onClick={() => setViewRecord(record)}
+                      aria-label={`View ${record.candidateName}'s evaluation`}
+                    >
+                      <Eye size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="tbl-btn tbl-btn-edit"
+                      disabled={record.status === 'Completed'}
+                      onClick={() => handleEdit(record)}
+                      aria-label={`Edit ${record.candidateName}'s evaluation`}
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
             {/* Pagination */}
-            <div className="eval-pagination-row">
+            {filteredRecords.length > ITEMS_PER_PAGE && (
+              <div className="eval-pagination-row">
               <span className="pagination-info">
                 Showing{' '}
                 <strong>{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredRecords.length)}</strong>
@@ -886,7 +1067,8 @@ function InterviewEvaluationPage() {
                   <ChevronRight size={16} />
                 </button>
               </div>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -966,6 +1148,7 @@ function InterviewEvaluationPage() {
               <button
                 type="button"
                 className="btn-eval-edit-modal"
+                disabled={viewRecord.status === 'Completed'}
                 onClick={() => { handleEdit(viewRecord); setViewRecord(null); }}
               >
                 <Edit2 size={14} />
