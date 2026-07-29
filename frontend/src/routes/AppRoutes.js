@@ -22,6 +22,7 @@ import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
+import MyApplications from '../pages/candidate/MyApplications';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
@@ -162,7 +163,7 @@ function AppRoutes() {
           <Route path="jobs" element={<JobSearch />} />
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
-          <Route path="applications" element={<CandidatePlaceholder title="My applications" />} />
+          <Route path="applications" element={<MyApplications />} />
           <Route path="mock-interviews" element={<CandidatePlaceholder title="Mock interviews" />} />
           <Route path="notifications" element={<CandidatePlaceholder title="Notifications" />} />
           <Route path="settings" element={<CandidatePlaceholder title="Settings" />} />
