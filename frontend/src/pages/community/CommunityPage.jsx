@@ -24,6 +24,13 @@ const POSTS = [
 const TOPICS = ['Career Growth', 'Interview Prep', 'Salary Negotiation', 'Work-Life Balance'];
 const CATEGORIES = ['Announcements', 'Job Referrals', 'Tech Stack Q&A', 'Success Stories', 'Mental Health'];
 
+function useCommunityBase() {
+  const { pathname } = useLocation();
+  return pathname.startsWith('/recruiter/community')
+    ? '/recruiter/community'
+    : '/candidate/community';
+}
+
 function readStorage(storage, key, fallback) {
   try {
     const value = storage.getItem(key);
@@ -61,6 +68,7 @@ function roleInfo(user, roleOverride) {
 function CommunityShell({ children, title = 'Community', action, roleOverride }) {
   const { user } = useAuth();
   const location = useLocation();
+  const communityBase = useCommunityBase();
   const candidatePage = React.useContext(CandidatePageContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const info = roleInfo(user, roleOverride);
@@ -104,7 +112,7 @@ function CommunityShell({ children, title = 'Community', action, roleOverride })
           <div className="community-top-actions">
             {action}
             <button className="community-icon-button" aria-label="Notifications"><Bell size={19}/><i/></button>
-            <Link className="community-user" to="/candidate/community/profile/alex-johnson"><span><strong>{name}</strong><small>{info.role}</small></span><b>{initials || 'AJ'}</b></Link>
+            <Link className="community-user" to={`${communityBase}/profile/alex-johnson`}><span><strong>{name}</strong><small>{info.role}</small></span><b>{initials || 'AJ'}</b></Link>
           </div>
         </header>
         <main className="community-main" data-path={location.pathname}>{children}</main>
@@ -115,18 +123,19 @@ function CommunityShell({ children, title = 'Community', action, roleOverride })
 
 function PostCard({ post, saved, onSave }) {
   const [liked, setLiked] = useState(false);
+  const communityBase = useCommunityBase();
   return (
     <article className="forum-card post-card">
       <div className="post-author-row">
-        <Link className="avatar" to={`/candidate/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}>{post.initials}</Link>
-        <div><Link to={`/candidate/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}><strong>{post.author}</strong></Link><small>{post.role} · {post.time}</small></div>
+        <Link className="avatar" to={`${communityBase}/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}>{post.initials}</Link>
+        <div><Link to={`${communityBase}/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}><strong>{post.author}</strong></Link><small>{post.role} · {post.time}</small></div>
         <span className="category-pill">{post.category}</span>
         {post.pinned && <span className="pin-pill">Pinned</span>}
       </div>
-      <Link to={`/candidate/community/post/${post.id}`} className="post-copy"><h2>{post.title}</h2><p>{post.excerpt}</p></Link>
+      <Link to={`${communityBase}/post/${post.id}`} className="post-copy"><h2>{post.title}</h2><p>{post.excerpt}</p></Link>
       <div className="post-actions">
         <button className={liked ? 'is-selected' : ''} onClick={() => setLiked(!liked)}><Heart size={17}/>{post.likes + (liked ? 1 : 0)}</button>
-        <Link to={`/candidate/community/post/${post.id}`}><MessageCircle size={17}/>{post.comments}</Link>
+        <Link to={`${communityBase}/post/${post.id}`}><MessageCircle size={17}/>{post.comments}</Link>
         <button><Share2 size={17}/>Share</button>
         <button className={saved ? 'is-selected save-action' : 'save-action'} onClick={onSave}><Bookmark size={17}/>Save</button>
       </div>
@@ -135,6 +144,7 @@ function PostCard({ post, saved, onSave }) {
 }
 
 export function CommunityPage({ roleOverride }) {
+  const communityBase = useCommunityBase();
   const [tab, setTab] = useState('Trending');
   const [query, setQuery] = useState('');
   const [topic, setTopic] = useState('All topics');
@@ -149,9 +159,9 @@ export function CommunityPage({ roleOverride }) {
   };
 
   return (
-    <CommunityShell roleOverride={roleOverride} action={<Link className="button primary compact" to="/candidate/community/new">Create post</Link>}>
+    <CommunityShell roleOverride={roleOverride} action={<Link className="button primary compact" to={`${communityBase}/new`}>Create post</Link>}>
       <section className="community-hero">
-        <div><span className="eyebrow">IntelliHire community</span><h1>Grow your career, together.</h1><p>Ask better questions, trade real-world experience, and meet people building meaningful careers through IntelliHire.</p><div className="hero-buttons"><Link className="button primary" to="/candidate/community/new">Start a discussion</Link><Link className="button secondary" to="/candidate/community/guidelines">View guidelines</Link></div></div>
+        <div><span className="eyebrow">IntelliHire community</span><h1>Grow your career, together.</h1><p>Ask better questions, trade real-world experience, and meet people building meaningful careers through IntelliHire.</p><div className="hero-buttons"><Link className="button primary" to={`${communityBase}/new`}>Start a discussion</Link><Link className="button secondary" to={`${communityBase}/guidelines`}>View guidelines</Link></div></div>
         <div className="hero-art"><Sparkles/><b>12,500+</b><span>helpful discussions</span></div>
       </section>
       <div className="community-grid">
@@ -165,23 +175,24 @@ export function CommunityPage({ roleOverride }) {
           {filtered.length ? filtered.map((post) => <PostCard key={post.id} post={post} saved={saved[post.id]} onSave={() => toggleSave(post.id)}/>) : <div className="forum-card empty-state"><Search/><h2>No discussions found</h2><p>Try another search or topic.</p></div>}
         </section>
         <aside className="forum-right">
-          <section className="forum-card question-card"><MessageCircle/><h3>Have a question?</h3><p>Start a discussion and get practical answers from the community.</p><Link className="button primary" to="/candidate/community/new">Create new thread</Link></section>
-          <section className="forum-card"><h3>Trending right now</h3>{POSTS.slice(0, 3).map((post, index) => <Link className="trend-row" to={`/candidate/community/post/${post.id}`} key={post.id}><b>#{index + 1}</b><span>{post.title}<small>{post.comments} replies</small></span></Link>)}</section>
-          <section className="forum-card expert-card"><span className="avatar">AJ</span><div><small>Expert spotlight</small><h3>Alex Johnson</h3><p>Frontend systems and career mentoring</p></div><Link to="/candidate/community/profile/alex-johnson">View profile</Link></section>
+          <section className="forum-card question-card"><MessageCircle/><h3>Have a question?</h3><p>Start a discussion and get practical answers from the community.</p><Link className="button primary" to={`${communityBase}/new`}>Create new thread</Link></section>
+          <section className="forum-card"><h3>Trending right now</h3>{POSTS.slice(0, 3).map((post, index) => <Link className="trend-row" to={`${communityBase}/post/${post.id}`} key={post.id}><b>#{index + 1}</b><span>{post.title}<small>{post.comments} replies</small></span></Link>)}</section>
+          <section className="forum-card expert-card"><span className="avatar">AJ</span><div><small>Expert spotlight</small><h3>Alex Johnson</h3><p>Frontend systems and career mentoring</p></div><Link to={`${communityBase}/profile/alex-johnson`}>View profile</Link></section>
         </aside>
       </div>
     </CommunityShell>
   );
 }
 
-export function CreateDiscussionPage() {
+export function CreateDiscussionPage({ roleOverride }) {
+  const communityBase = useCommunityBase();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('Career Growth');
   const [previewing, setPreviewing] = useState(false);
   const [attachedFile, setAttachedFile] = useState(null);
-  const publish = (e) => { e.preventDefault(); if (title.trim() && body.trim()) navigate('/candidate/community/post/react-performance'); };
+  const publish = (e) => { e.preventDefault(); if (title.trim() && body.trim()) navigate(`${communityBase}/post/react-performance`); };
   const categories = [
     ['Career Growth', 'Tips for professional growth and job hunting'],
     ['Interview Prep', 'Technical and behavioral interview strategies'],
@@ -189,7 +200,7 @@ export function CreateDiscussionPage() {
     ['Negotiation', 'How to handle offer and salary discussions']
   ];
   return (
-    <CommunityShell title="Create discussion">
+    <CommunityShell title="Create discussion" roleOverride={roleOverride}>
       <div className="create-discussion-heading">
         <div><h1>Create New Discussion</h1><p>Share your insights and connect with the IntelliHire professional community.</p></div>
         <div className="create-heading-actions">
@@ -258,7 +269,8 @@ export function CreateDiscussionPage() {
   );
 }
 
-export function DiscussionPage() {
+export function DiscussionPage({ roleOverride }) {
+  const communityBase = useCommunityBase();
   const { postId } = useParams();
   const post = POSTS.find((item) => item.id === postId) || POSTS[1];
   const [comment, setComment] = useState('');
@@ -271,14 +283,14 @@ export function DiscussionPage() {
   ]);
   const addComment = () => { if (!comment.trim()) return; setComments([{ initials: 'AJ', name: 'Alex Johnson', role: 'Community member', time: 'Just now', text: comment, likes: 0 }, ...comments]); setComment(''); };
   return (
-    <CommunityShell title="Discussion">
-      <Link className="back-link discussion-back" to="/candidate/community"><ArrowLeft size={17}/>Back to Career Community</Link>
+    <CommunityShell title="Discussion" roleOverride={roleOverride}>
+      <Link className="back-link discussion-back" to={communityBase}><ArrowLeft size={17}/>Back to Career Community</Link>
       <header className="discussion-detail-header">
         <div className="discussion-labels"><span className="category-pill">{post.category}</span><span className="best-practice-pill">Best Practices</span></div>
         <h1>{post.title}</h1>
         <div className="discussion-detail-meta">
-          <Link className="avatar" to={`/candidate/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}>{post.initials}</Link>
-          <div><Link to={`/candidate/community/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}><strong>{post.author}</strong></Link><small>Lead Architect · Posted {post.time}</small></div>
+          <Link className="avatar" to={`${communityBase}/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}>{post.initials}</Link>
+          <div><Link to={`${communityBase}/profile/${post.author.toLowerCase().replaceAll(' ', '-')}`}><strong>{post.author}</strong></Link><small>Lead Architect · Posted {post.time}</small></div>
           <span><Eye size={16}/>2.4k Views</span><span><MessageCircle size={16}/>{comments.length} Comments</span>
           <div className="discussion-header-actions">
             <button type="button" className={savedDiscussion ? 'is-active' : ''} onClick={() => setSavedDiscussion(!savedDiscussion)}><Bookmark size={17}/>{savedDiscussion ? 'Saved' : 'Save'}</button>
@@ -304,13 +316,14 @@ export function DiscussionPage() {
             <button type="button" className="load-comments">Load more comments (39)</button>
           </section>
         </article>
-        <aside className="discussion-rail detail-discussion-rail"><section className="forum-card related-discussions"><span className="rail-eyebrow"><TrendingUp size={15}/>Trending now</span><h2>Related Discussions</h2>{POSTS.filter((item) => item.id !== post.id).map((item) => <Link className="related-row" to={`/candidate/community/post/${item.id}`} key={item.id}><span className="category-pill">{item.category}</span>{item.title}<small><MessageCircle size={12}/>{item.comments}</small></Link>)}<Link className="rail-all-link" to="/candidate/community">View all related topics</Link></section><section className="forum-card popular-tags"><h2>Popular Tags</h2><div className="tag-cloud">{['Microservices','Scalability','Architecture','Backend','DevOps','Cloud','Talent Platform','NodeJS'].map((tag) => <span key={tag}>#{tag}</span>)}</div></section><section className="expert-review-card"><Sparkles/><h2>Need expert architectural review?</h2><p>Connect with verified lead architects for private code reviews and one-to-one strategy sessions.</p><button type="button" className="button primary">Explore Expert Sessions</button></section><section className="moderation-note"><Clock3/><span><strong>Active moderation</strong><small>Responses in approximately 15 minutes</small></span></section></aside>
+        <aside className="discussion-rail detail-discussion-rail"><section className="forum-card related-discussions"><span className="rail-eyebrow"><TrendingUp size={15}/>Trending now</span><h2>Related Discussions</h2>{POSTS.filter((item) => item.id !== post.id).map((item) => <Link className="related-row" to={`${communityBase}/post/${item.id}`} key={item.id}><span className="category-pill">{item.category}</span>{item.title}<small><MessageCircle size={12}/>{item.comments}</small></Link>)}<Link className="rail-all-link" to={communityBase}>View all related topics</Link></section><section className="forum-card popular-tags"><h2>Popular Tags</h2><div className="tag-cloud">{['Microservices','Scalability','Architecture','Backend','DevOps','Cloud','Talent Platform','NodeJS'].map((tag) => <span key={tag}>#{tag}</span>)}</div></section><section className="expert-review-card"><Sparkles/><h2>Need expert architectural review?</h2><p>Connect with verified lead architects for private code reviews and one-to-one strategy sessions.</p><button type="button" className="button primary">Explore Expert Sessions</button></section><section className="moderation-note"><Clock3/><span><strong>Active moderation</strong><small>Responses in approximately 15 minutes</small></span></section></aside>
       </div>
     </CommunityShell>
   );
 }
 
-export function CommunityProfilePage() {
+export function CommunityProfilePage({ roleOverride }) {
+  const communityBase = useCommunityBase();
   const { slug } = useParams();
   const isSelf = !slug || slug === 'alex-johnson';
   const [activeProfileTab, setActiveProfileTab] = useState('Recent Posts');
@@ -324,7 +337,7 @@ export function CommunityProfilePage() {
     { ...POSTS[2], id: 'technical-mentoring', date: 'Aug 29, 2026', category: 'Leadership', title: 'A Practical Framework for Mentoring Early-Career Engineers', excerpt: 'How structured goals, thoughtful code reviews, and regular feedback can turn everyday project work into meaningful career development.', likes: 184, comments: 37 }
   ];
   return (
-    <CommunityShell title="Member profile">
+    <CommunityShell title="Member profile" roleOverride={roleOverride}>
       <section className="member-profile-hero">
         <div className="member-cover">
           <div className="member-cover-mark"><Sparkles/><span>IntelliHire Community</span></div>
@@ -375,18 +388,18 @@ export function CommunityProfilePage() {
         <section className="member-contributions">
           <div className="member-tabs">
             {['Recent Posts', 'Activity History', 'Certifications'].map((tab) => <button type="button" className={activeProfileTab === tab ? 'is-active' : ''} onClick={() => setActiveProfileTab(tab)} key={tab}>{tab}</button>)}
-            <Link to="/candidate/community">View All Posts</Link>
+            <Link to={communityBase}>View All Posts</Link>
           </div>
           {activeProfileTab === 'Recent Posts' ? <>
             <div className="member-post-grid">
-              {profilePosts.map((post) => <Link className="member-post-card" to={`/candidate/community/post/${post.id}`} key={post.id}>
+              {profilePosts.map((post) => <Link className="member-post-card" to={`${communityBase}/post/${post.id}`} key={post.id}>
                 <header><span>{post.category}</span><time>{post.date}</time></header>
                 <h2>{post.title}</h2>
                 <p>{post.excerpt}</p>
                 <footer><span><Heart size={16}/>{post.likes}</span><span><MessageCircle size={16}/>{post.comments}</span><Share2 size={16}/><Bookmark size={16}/></footer>
               </Link>)}
             </div>
-            <Link className="button member-show-more" to="/candidate/community">Show More Discussions</Link>
+            <Link className="button member-show-more" to={communityBase}>Show More Discussions</Link>
           </> : <div className="member-tab-placeholder"><Sparkles/><h2>{activeProfileTab}</h2><p>This member's {activeProfileTab.toLowerCase()} will appear here.</p></div>}
         </section>
       </div>
@@ -394,13 +407,15 @@ export function CommunityProfilePage() {
   );
 }
 
-export function SavedPostsPage() {
+export function SavedPostsPage({ roleOverride }) {
+  const communityBase = useCommunityBase();
   const saved = readSavedPosts();
   const items = POSTS.filter((post) => saved[post.id]);
-  return <CommunityShell title="Saved posts"><div className="page-heading"><div><span className="eyebrow">Your library</span><h1>Saved discussions</h1><p>Keep useful conversations close for when you need them.</p></div></div><div className="saved-list">{items.length ? items.map((post) => <PostCard key={post.id} post={post} saved onSave={() => { const next = { ...saved, [post.id]: false }; writeStorage(localStorage, 'community_saved', JSON.stringify(next)); window.location.reload(); }}/>) : <section className="forum-card empty-state"><Bookmark/><h2>No saved posts yet</h2><p>Use the save button on any discussion to add it here.</p><Link className="button primary" to="/candidate/community">Explore discussions</Link></section>}</div></CommunityShell>;
+  return <CommunityShell title="Saved posts" roleOverride={roleOverride}><div className="page-heading"><div><span className="eyebrow">Your library</span><h1>Saved discussions</h1><p>Keep useful conversations close for when you need them.</p></div></div><div className="saved-list">{items.length ? items.map((post) => <PostCard key={post.id} post={post} saved onSave={() => { const next = { ...saved, [post.id]: false }; writeStorage(localStorage, 'community_saved', JSON.stringify(next)); window.location.reload(); }}/>) : <section className="forum-card empty-state"><Bookmark/><h2>No saved posts yet</h2><p>Use the save button on any discussion to add it here.</p><Link className="button primary" to={communityBase}>Explore discussions</Link></section>}</div></CommunityShell>;
 }
 
-export function GuidelinesPage() {
+export function GuidelinesPage({ roleOverride }) {
+  const communityBase = useCommunityBase();
   const rules = [
     ['Be useful and professional', 'Write with respect. Challenge ideas with evidence, never attack the person sharing them.'],
     ['Protect privacy', 'Do not post personal contact details, private candidate information, interview content, or confidential company data.'],
@@ -408,7 +423,7 @@ export function GuidelinesPage() {
     ['Use accurate categories', 'Choose the most relevant category and write a clear title so others can find your discussion.'],
     ['No spam or misleading content', 'Disclose relevant relationships and avoid repetitive promotion, scams, plagiarism, or misinformation.']
   ];
-  return <CommunityShell title="Guidelines"><div className="guidelines-hero"><ShieldCheck/><div><span className="eyebrow">Community standards</span><h1>A helpful, safe place for career conversations.</h1><p>These rules apply to candidates, recruiters, and every community contributor.</p></div></div><div className="guidelines-list">{rules.map(([title, copy], index) => <section className="forum-card" key={title}><b>{String(index + 1).padStart(2, '0')}</b><div><h2>{title}</h2><p>{copy}</p></div></section>)}</div><section className="guidelines-footer"><div><h2>See something that breaks these standards?</h2><p>Use “Report” on the discussion. Moderators review reports and keep actions confidential.</p></div><Link className="button primary" to="/candidate/community">Return to community</Link></section></CommunityShell>;
+  return <CommunityShell title="Guidelines" roleOverride={roleOverride}><div className="guidelines-hero"><ShieldCheck/><div><span className="eyebrow">Community standards</span><h1>A helpful, safe place for career conversations.</h1><p>These rules apply to candidates, recruiters, and every community contributor.</p></div></div><div className="guidelines-list">{rules.map(([title, copy], index) => <section className="forum-card" key={title}><b>{String(index + 1).padStart(2, '0')}</b><div><h2>{title}</h2><p>{copy}</p></div></section>)}</div><section className="guidelines-footer"><div><h2>See something that breaks these standards?</h2><p>Use “Report” on the discussion. Moderators review reports and keep actions confidential.</p></div><Link className="button primary" to={communityBase}>Return to community</Link></section></CommunityShell>;
 }
 
 export default CommunityPage;
