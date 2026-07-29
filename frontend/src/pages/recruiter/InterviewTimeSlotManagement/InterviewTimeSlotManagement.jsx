@@ -1,6 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Eye,
+  Pencil,
+  Plus,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import '../../../style.css';
@@ -11,7 +21,7 @@ const initialSlots = [
     id: 1,
     jobPosition: 'Senior Fullstack Engineer',
     round: 'Technical',
-    interviewDate: '25 Jul 2026',
+    interviewDate: '03 Aug 2026',
     startTime: '09:00 AM',
     endTime: '10:00 AM',
     interviewType: 'Online',
@@ -22,10 +32,94 @@ const initialSlots = [
     bookedCount: 2,
   },
   {
+    id: 7,
+    jobPosition: 'Senior Fullstack Engineer',
+    round: 'System Design',
+    interviewDate: '04 Aug 2026',
+    startTime: '10:30 AM',
+    endTime: '11:30 AM',
+    interviewType: 'Online',
+    capacity: 4,
+    status: 'AVAILABLE',
+    meetingLocation: 'https://meet.google.com/fullstack-system-design',
+    additionalNotes: 'Architecture discussion covering scalability, APIs, and database design.',
+    bookedCount: 1,
+  },
+  {
+    id: 8,
+    jobPosition: 'Senior Fullstack Engineer',
+    round: 'Final Panel',
+    interviewDate: '06 Aug 2026',
+    startTime: '01:30 PM',
+    endTime: '02:30 PM',
+    interviewType: 'Physical',
+    capacity: 3,
+    status: 'FULLY BOOKED',
+    meetingLocation: 'Engineering Conference Room, 2nd Floor',
+    additionalNotes: 'Final discussion with the engineering manager and technical panel.',
+    bookedCount: 3,
+  },
+  {
+    id: 9,
+    jobPosition: 'Senior Fullstack Engineer',
+    round: 'Technical',
+    interviewDate: '05 Aug 2026',
+    startTime: '09:30 AM',
+    endTime: '10:30 AM',
+    interviewType: 'Online',
+    capacity: 5,
+    status: 'AVAILABLE',
+    meetingLocation: 'https://meet.google.com/fullstack-technical-b',
+    additionalNotes: 'Coding and debugging exercise focused on React and Node.js.',
+    bookedCount: 3,
+  },
+  {
+    id: 10,
+    jobPosition: 'Senior Fullstack Engineer',
+    round: 'Backend Deep Dive',
+    interviewDate: '07 Aug 2026',
+    startTime: '11:00 AM',
+    endTime: '12:00 PM',
+    interviewType: 'Physical',
+    capacity: 4,
+    status: 'AVAILABLE',
+    meetingLocation: 'Engineering Interview Room 1',
+    additionalNotes: 'API design, database performance, and service reliability discussion.',
+    bookedCount: 2,
+  },
+  {
+    id: 11,
+    jobPosition: 'Senior Fullstack Engineer',
+    round: 'Frontend Architecture',
+    interviewDate: '10 Aug 2026',
+    startTime: '02:00 PM',
+    endTime: '03:00 PM',
+    interviewType: 'Online',
+    capacity: 4,
+    status: 'AVAILABLE',
+    meetingLocation: 'https://meet.google.com/frontend-architecture',
+    additionalNotes: 'Frontend architecture, accessibility, performance, and testing discussion.',
+    bookedCount: 1,
+  },
+  {
+    id: 12,
+    jobPosition: 'Senior Fullstack Engineer',
+    round: 'Engineering Manager',
+    interviewDate: '11 Aug 2026',
+    startTime: '03:30 PM',
+    endTime: '04:30 PM',
+    interviewType: 'Physical',
+    capacity: 3,
+    status: 'AVAILABLE',
+    meetingLocation: 'Engineering Conference Room, 2nd Floor',
+    additionalNotes: 'Leadership, collaboration, delivery ownership, and career goals discussion.',
+    bookedCount: 2,
+  },
+  {
     id: 2,
     jobPosition: 'UI/UX Designer',
     round: 'HR Portfolio Review',
-    interviewDate: '25 Jul 2026',
+    interviewDate: '03 Aug 2026',
     startTime: '11:00 AM',
     endTime: '12:00 PM',
     interviewType: 'Physical',
@@ -39,7 +133,7 @@ const initialSlots = [
     id: 3,
     jobPosition: 'QA Automation Engineer',
     round: 'Final Cultural Fit',
-    interviewDate: '26 Jul 2026',
+    interviewDate: '04 Aug 2026',
     startTime: '02:00 PM',
     endTime: '03:00 PM',
     interviewType: 'Online',
@@ -53,7 +147,7 @@ const initialSlots = [
     id: 4,
     jobPosition: 'Business Analyst',
     round: 'Technical Case Study',
-    interviewDate: '27 Jul 2026',
+    interviewDate: '05 Aug 2026',
     startTime: '10:00 AM',
     endTime: '11:00 AM',
     interviewType: 'Physical',
@@ -67,7 +161,7 @@ const initialSlots = [
     id: 5,
     jobPosition: 'Product Manager',
     round: 'HR Screening',
-    interviewDate: '28 Jul 2026',
+    interviewDate: '06 Aug 2026',
     startTime: '09:00 AM',
     endTime: '10:00 AM',
     interviewType: 'Online',
@@ -81,7 +175,7 @@ const initialSlots = [
     id: 6,
     jobPosition: 'DevOps Lead',
     round: 'Architecture Final',
-    interviewDate: '29 Jul 2026',
+    interviewDate: '07 Aug 2026',
     startTime: '03:00 PM',
     endTime: '04:00 PM',
     interviewType: 'Physical',
@@ -128,40 +222,68 @@ function formatTime(timeValue) {
   return `${String(normalizedHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
 }
 
+function toDateInputValue(dateValue) {
+  if (!dateValue) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) return dateValue;
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function toTimeInputValue(timeValue) {
+  if (!timeValue) return '';
+  if (/^\d{2}:\d{2}$/.test(timeValue)) return timeValue;
+  const match = timeValue.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return '';
+  let hours = Number(match[1]);
+  const minutes = match[2];
+  const period = match[3].toUpperCase();
+  if (period === 'AM' && hours === 12) hours = 0;
+  if (period === 'PM' && hours !== 12) hours += 12;
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
+function timeToMinutes(timeValue) {
+  const normalized = toTimeInputValue(timeValue);
+  if (!normalized) return Number.NaN;
+  const [hours, minutes] = normalized.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function getTodayInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function RecruiterInterviewTimeSlotManagementPage() {
   const navigate = useNavigate();
   const [slots, setSlots] = useState(initialSlots);
   const [formData, setFormData] = useState(emptyForm);
   const [editingSlotId, setEditingSlotId] = useState(null);
-  const [showForm, setShowForm] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [typeFilter, setTypeFilter] = useState('ALL');
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [positionFilter, setPositionFilter] = useState(initialSlots[0].jobPosition);
   const [formError, setFormError] = useState('');
   const [message, setMessage] = useState('');
   const [viewingSlot, setViewingSlot] = useState(null);
   const [deletingSlot, setDeletingSlot] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  const todayInputValue = getTodayInputValue();
+  const jobPositions = useMemo(
+    () => [...new Set(slots.map(slot => slot.jobPosition))].sort(),
+    [slots]
+  );
 
   // Filtered Slots
   const filteredSlots = useMemo(() => {
-    return slots.filter(slot => {
-      const query = searchQuery.trim().toLowerCase();
-      const matchesSearch =
-        !query ||
-        slot.jobPosition.toLowerCase().includes(query) ||
-        slot.round.toLowerCase().includes(query) ||
-        slot.status.toLowerCase().includes(query) ||
-        slot.interviewType.toLowerCase().includes(query);
-
-      const matchesStatus = statusFilter === 'ALL' || slot.status === statusFilter;
-      const matchesType = typeFilter === 'ALL' || slot.interviewType === typeFilter;
-
-      return matchesSearch && matchesStatus && matchesType;
-    });
-  }, [slots, searchQuery, statusFilter, typeFilter]);
+    return slots.filter(slot => slot.jobPosition === positionFilter);
+  }, [slots, positionFilter]);
 
   // Paginated Slots
   const totalPages = Math.ceil(filteredSlots.length / itemsPerPage) || 1;
@@ -169,6 +291,23 @@ function RecruiterInterviewTimeSlotManagementPage() {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredSlots.slice(start, start + itemsPerPage);
   }, [filteredSlots, currentPage]);
+
+  useEffect(() => {
+    if (!message) return undefined;
+    const timeoutId = window.setTimeout(() => setMessage(''), 3500);
+    return () => window.clearTimeout(timeoutId);
+  }, [message]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (jobPositions.length > 0 && !jobPositions.includes(positionFilter)) {
+      setPositionFilter(jobPositions[0]);
+      setCurrentPage(1);
+    }
+  }, [jobPositions, positionFilter]);
 
   const handleFieldChange = event => {
     const { name, value } = event.target;
@@ -197,15 +336,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
       jobPosition: slot.jobPosition,
       interviewRound: slot.round,
       interviewType: slot.interviewType,
-      interviewDate: slot.interviewDate,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
+      interviewDate: toDateInputValue(slot.interviewDate),
+      startTime: toTimeInputValue(slot.startTime),
+      endTime: toTimeInputValue(slot.endTime),
       capacity: String(slot.capacity),
       meetingLocation: slot.meetingLocation || '',
       additionalNotes: slot.additionalNotes || '',
     });
     setFormError('');
-    setMessage(`Editing slot #${slot.id}`);
     window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
@@ -222,6 +360,30 @@ function RecruiterInterviewTimeSlotManagementPage() {
     const capacityNumber = Number(formData.capacity);
     if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
       setFormError('Capacity must be a positive whole number.');
+      return;
+    }
+
+    if (formData.interviewDate < todayInputValue) {
+      setFormError('Interview date cannot be in the past.');
+      return;
+    }
+
+    const startMinutes = timeToMinutes(formData.startTime);
+    const endMinutes = timeToMinutes(formData.endTime);
+    if (endMinutes <= startMinutes) {
+      setFormError('End time must be later than start time.');
+      return;
+    }
+
+    const hasOverlap = slots.some(slot => {
+      if (slot.id === editingSlotId || slot.jobPosition !== formData.jobPosition) return false;
+      if (toDateInputValue(slot.interviewDate) !== formData.interviewDate) return false;
+      const existingStart = timeToMinutes(slot.startTime);
+      const existingEnd = timeToMinutes(slot.endTime);
+      return startMinutes < existingEnd && endMinutes > existingStart;
+    });
+    if (hasOverlap) {
+      setFormError('This time overlaps with another slot for the selected job position.');
       return;
     }
 
@@ -269,10 +431,13 @@ function RecruiterInterviewTimeSlotManagementPage() {
       };
 
       setSlots(current => [newSlot, ...current]);
+      setPositionFilter(formData.jobPosition);
+      setCurrentPage(1);
       setMessage('Interview time slot created successfully.');
     }
 
     setFormData(emptyForm);
+    setShowForm(false);
   };
 
   const confirmDeleteSlot = () => {
@@ -298,7 +463,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
           user={{ name: 'Recruiter', role: 'Recruiter Account' }}
           notificationsCount={3}
           searchPlaceholder="Search vacancies, candidates, or interviews..."
-          onSearch={q => setSearchQuery(q)}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
@@ -339,10 +503,22 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
           {/* ── Clean Page Heading ── */}
           <div className="page-heading-block">
-            <h1 className="page-title">Interview Time Slot Management</h1>
-            <p className="page-subtitle">
-              Create, manage, and schedule interview availability for shortlisted candidates.
-            </p>
+            <div>
+              <h1 className="page-title">Interview Time Slot Management</h1>
+              <p className="page-subtitle">
+                Create, manage, and schedule interview availability for shortlisted candidates.
+              </p>
+            </div>
+            {!showForm && (
+              <button
+                type="button"
+                className="add-slot-trigger"
+                onClick={handleToggleForm}
+              >
+                <Plus size={17} strokeWidth={2.5} />
+                <span>Add New Time Slot</span>
+              </button>
+            )}
           </div>
 
           {/* Toast / Message Notification */}
@@ -359,23 +535,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <span>{formError}</span>
               <button type="button" className="toast-close" onClick={() => setFormError('')}>
                 ×
-              </button>
-            </div>
-          )}
-
-          {/* ── Add New Slot Button (visible when form is hidden) ── */}
-          {!showForm && (
-            <div className="page-action-bar">
-              <button
-                type="button"
-                className="btn-primary-accent"
-                onClick={handleToggleForm}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Add New Time Slot</span>
               </button>
             </div>
           )}
@@ -464,6 +623,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     <input
                       type="date"
                       name="interviewDate"
+                      min={todayInputValue}
                       value={formData.interviewDate}
                       onChange={handleFieldChange}
                       className="form-control"
@@ -553,83 +713,27 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 <span className="gold-indicator"></span>
                 <h2 className="card-title">Scheduled Interview Time Slots</h2>
               </div>
+            </div>
 
-              <div className="table-header-controls">
-                <div className="table-search-box">
-                  <input
-                    type="text"
-                    placeholder="Search slots..."
-                    value={searchQuery}
-                    onChange={e => {
-                      setSearchQuery(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="table-search-input"
-                  />
-                </div>
-
-                <div className="filter-dropdown-container">
-                  <button
-                    type="button"
-                    className={`btn-table-action ${statusFilter !== 'ALL' || typeFilter !== 'ALL' ? 'active-filter' : ''}`}
-                    onClick={() => setShowFilterDropdown(prev => !prev)}
-                  >
-                    <span>Filter</span>
-                    {(statusFilter !== 'ALL' || typeFilter !== 'ALL') && (
-                      <span className="filter-badge-dot"></span>
-                    )}
-                  </button>
-
-                  {showFilterDropdown && (
-                    <div className="filter-dropdown-menu">
-                      <div className="filter-section">
-                        <label className="filter-label">STATUS</label>
-                        <select
-                          value={statusFilter}
-                          onChange={e => {
-                            setStatusFilter(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="filter-select"
-                        >
-                          <option value="ALL">All Statuses</option>
-                          <option value="AVAILABLE">AVAILABLE</option>
-                          <option value="FULLY BOOKED">FULLY BOOKED</option>
-                          <option value="COMPLETED">COMPLETED</option>
-                        </select>
-                      </div>
-
-                      <div className="filter-section">
-                        <label className="filter-label">INTERVIEW TYPE</label>
-                        <select
-                          value={typeFilter}
-                          onChange={e => {
-                            setTypeFilter(e.target.value);
-                            setCurrentPage(1);
-                          }}
-                          className="filter-select"
-                        >
-                          <option value="ALL">All Types</option>
-                          <option value="Online">Online</option>
-                          <option value="Physical">Physical</option>
-                        </select>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="btn-clear-filters"
-                        onClick={() => {
-                          setStatusFilter('ALL');
-                          setTypeFilter('ALL');
-                          setShowFilterDropdown(false);
-                        }}
-                      >
-                        Reset Filters
-                      </button>
-                    </div>
-                  )}
-                </div>
+            <div className="slot-filter-toolbar">
+              <div className="position-selector">
+                <label htmlFor="slot-position-filter">Job Position</label>
+                <select
+                  id="slot-position-filter"
+                  value={positionFilter}
+                  onChange={e => {
+                    setPositionFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {jobPositions.map(position => (
+                    <option key={position} value={position}>{position}</option>
+                  ))}
+                </select>
               </div>
+              <span className="slot-count-label">
+                {filteredSlots.length} {filteredSlots.length === 1 ? 'slot' : 'slots'}
+              </span>
             </div>
 
             {/* Table Container */}
@@ -637,13 +741,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <table className="slots-data-table">
                 <thead>
                   <tr>
-                    <th>Job Position</th>
                     <th>Round</th>
-                    <th>Interview Date</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
+                    <th>Date &amp; Time</th>
                     <th>Type</th>
-                    <th>Capacity</th>
+                    <th>Booked / Total</th>
                     <th>Status</th>
                     <th className="text-right">Actions</th>
                   </tr>
@@ -651,24 +752,29 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 <tbody>
                   {paginatedSlots.length === 0 ? (
                     <tr>
-                      <td colSpan="9" className="empty-table-cell">
+                      <td colSpan="6" className="empty-table-cell">
                         <div className="empty-state-box">
                           <p>No interview time slots found matching your criteria.</p>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    paginatedSlots.map(slot => (
+                    paginatedSlots.map(slot => {
+                      const actionsLocked = slot.status === 'FULLY BOOKED' || slot.status === 'COMPLETED';
+                      return (
                       <tr key={slot.id}>
-                        <td className="font-semibold text-white">{slot.jobPosition}</td>
                         <td>
                           <div className="round-cell">
-                            <span>📋 {slot.round}</span>
+                            <ClipboardList size={15} aria-hidden="true" />
+                            <span>{slot.round}</span>
                           </div>
                         </td>
-                        <td>{slot.interviewDate}</td>
-                        <td className="time-cell">{slot.startTime}</td>
-                        <td className="time-cell">{slot.endTime}</td>
+                        <td>
+                          <div className="date-time-cell">
+                            <span><CalendarDays size={14} aria-hidden="true" />{slot.interviewDate}</span>
+                            <small>{slot.startTime} – {slot.endTime}</small>
+                          </div>
+                        </td>
                         <td>
                           <span className={`type-badge type-${slot.interviewType.toLowerCase()}`}>
                             {slot.interviewType}
@@ -676,7 +782,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         </td>
                         <td>
                           <div className="capacity-cell">
-                            <span>👥 {slot.capacity}</span>
+                            <Users size={15} aria-hidden="true" />
+                            <span>{slot.bookedCount} / {slot.capacity}</span>
                           </div>
                         </td>
                         <td>
@@ -688,39 +795,85 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           <div className="action-buttons-wrap">
                             <button
                               type="button"
-                              className="action-icon-btn"
+                              className="action-icon-btn action-view-btn"
                               title="View Details"
+                              aria-label={`View slot ${slot.id} details`}
                               onClick={() => setViewingSlot(slot)}
                             >
-                              👁
+                              <Eye size={16} />
                             </button>
                             <button
                               type="button"
-                              className="action-icon-btn"
-                              title="Edit Slot"
+                              className="action-icon-btn action-edit-btn"
+                              title={actionsLocked ? `${slot.status} slots cannot be edited` : 'Edit Slot'}
+                              aria-label={`Edit slot ${slot.id}`}
+                              disabled={actionsLocked}
                               onClick={() => handleEditSlot(slot)}
                             >
-                              ✏️
+                              <Pencil size={15} />
                             </button>
                             <button
                               type="button"
                               className="action-icon-btn action-delete-btn"
-                              title="Delete Slot"
+                              title={actionsLocked ? `${slot.status} slots cannot be deleted` : 'Delete Slot'}
+                              aria-label={`Delete slot ${slot.id}`}
+                              disabled={actionsLocked}
                               onClick={() => setDeletingSlot(slot)}
                             >
-                              🗑
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
 
+            <div className="mobile-slot-list">
+              {paginatedSlots.length === 0 && (
+                <div className="mobile-slot-empty">No interview time slots found for this job position.</div>
+              )}
+              {paginatedSlots.map(slot => {
+                const actionsLocked = slot.status === 'FULLY BOOKED' || slot.status === 'COMPLETED';
+                return (
+                  <article className="mobile-slot-card" key={`mobile-${slot.id}`}>
+                    <div className="mobile-slot-card__header">
+                      <div className="round-cell">
+                        <ClipboardList size={16} aria-hidden="true" />
+                        <strong>{slot.round}</strong>
+                      </div>
+                      <span className={`status-pill status-${slot.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                        {slot.status}
+                      </span>
+                    </div>
+                    <div className="mobile-slot-card__details">
+                      <span><CalendarDays size={15} /> {slot.interviewDate}</span>
+                      <span>{slot.startTime} – {slot.endTime}</span>
+                      <span className={`type-badge type-${slot.interviewType.toLowerCase()}`}>{slot.interviewType}</span>
+                      <span><Users size={15} /> {slot.bookedCount} / {slot.capacity} booked</span>
+                    </div>
+                    <div className="mobile-slot-card__actions">
+                      <button type="button" className="mobile-slot-action mobile-slot-view" onClick={() => setViewingSlot(slot)}>
+                        <Eye size={15} /> View
+                      </button>
+                      <button type="button" className="mobile-slot-action mobile-slot-edit" disabled={actionsLocked} onClick={() => handleEditSlot(slot)}>
+                        <Pencil size={14} /> Edit
+                      </button>
+                      <button type="button" className="mobile-slot-action mobile-slot-delete" disabled={actionsLocked} onClick={() => setDeletingSlot(slot)}>
+                        <Trash2 size={15} /> Delete
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
             {/* Pagination & Summary Footer */}
-            <div className="table-pagination-footer">
+            {filteredSlots.length > itemsPerPage && (
+              <div className="table-pagination-footer">
               <span className="pagination-info">
                 Showing {filteredSlots.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}–
                 {Math.min(currentPage * itemsPerPage, filteredSlots.length)} of {filteredSlots.length} interview time slots
@@ -756,7 +909,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   <ChevronRight size={16} />
                 </button>
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Footer Branding */}
@@ -843,11 +997,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
               </p>
               <p className="text-muted-sm">This action cannot be undone.</p>
             </div>
-            <div className="modal-footer">
-              <button type="button" className="btn-ghost-dark" onClick={() => setDeletingSlot(null)}>
+            <div className="modal-footer delete-modal-actions">
+              <button type="button" className="delete-modal-btn delete-modal-cancel" onClick={() => setDeletingSlot(null)}>
                 Cancel
               </button>
-              <button type="button" className="btn-danger" onClick={confirmDeleteSlot}>
+              <button type="button" className="delete-modal-btn delete-modal-confirm" onClick={confirmDeleteSlot}>
                 Delete Slot
               </button>
             </div>

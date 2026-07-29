@@ -3,12 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Briefcase,
-  PlusCircle,
   CreditCard,
-  Settings,
   Users,
   Calendar,
   BarChart2,
+  ClipboardCheck,
+  Bell,
+  Building2,
+  MessagesSquare,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
@@ -18,8 +20,14 @@ import '../../style.css';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/recruiter/dashboard' },
-  { label: 'Active Vacancies', icon: Briefcase, path: '/recruiter/vacancies' },
-  { label: 'Create Vacancy', icon: PlusCircle, path: '/recruiter/create-vacancy' },
+  {
+    label: 'Job vacancies',
+    icon: Briefcase,
+    subItems: [
+      { label: 'Active Vacancies', path: '/recruiter/vacancies' },
+      { label: 'Create Vacancy', path: '/recruiter/create-vacancy' },
+    ],
+  },
   {
     label: 'Applicants',
     icon: Users,
@@ -28,6 +36,15 @@ const NAV_ITEMS = [
       { label: 'Ranked Applicants', path: '/recruiter/applicants/ranked' },
       { label: 'Shortlisted', path: '/recruiter/applicants/shortlisted' },
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
+    ],
+  },
+  {
+    label: 'Assessments',
+    icon: ClipboardCheck,
+    subItems: [
+      { label: 'Assessment Dashboard', path: '/recruiter/assessments' },
+      { label: 'Question Bank', path: '/recruiter/question-bank' },
+      { label: 'Create Assessment', path: '/recruiter/assessments/new' },
     ],
   },
   {
@@ -40,20 +57,34 @@ const NAV_ITEMS = [
       { label: 'Panel & Evaluation', path: '/recruiter/interviews/evaluation' },
     ],
   },
-  { label: 'Payment History', icon: CreditCard, path: '/recruiter/payments' },
-  { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
+  {
+    label: 'Analytics',
+    icon: BarChart2,
+    subItems: [
+      { label: 'Applicant Analytics', path: '/recruiter/analytics/applicants' },
+      { label: 'Shortlisting Analytics', path: '/recruiter/analytics/shortlisting' },
+      { label: 'Assessment Performance', path: '/recruiter/analytics/assessment' },
+      { label: 'Recruitment Progress', path: '/recruiter/analytics/progress' },
+    ],
+  },
+  { label: 'Payments', icon: CreditCard, path: '/recruiter/payments' },
+  { label: 'Community', icon: MessagesSquare, path: '/recruiter/community' },
 ];
 
 const BOTTOM_ITEMS = [
-  { label: 'Settings', icon: Settings, path: '/recruiter/settings' },
+  { label: 'Notifications', icon: Bell, path: '/recruiter/notifications' },
+  { label: 'Company profile', icon: Building2, path: '/recruiter/company-profile' },
 ];
 
 function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [expandedItems, setExpandedItems] = useState({
+    'Job vacancies': true,
     Applicants: true,
+    Assessments: true,
     Interviews: true,
+    Analytics: true,
   });
 
   useEffect(() => {
@@ -81,13 +112,13 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   }, [location.pathname, activeItem]);
 
   function isActive(item) {
-    if (activeItem) return item.label === activeItem;
+    if (activeItem && item.label === activeItem) return true;
     return location.pathname === item.path;
   }
 
   function isParentActive(item) {
     if (item.subItems) {
-      return item.subItems.some((subItem) => isActive(subItem));
+      return item.label === activeItem || item.subItems.some((subItem) => isActive(subItem));
     }
     return isActive(item);
   }
@@ -118,7 +149,10 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
         <ChevronRight size={18} />
       </button>
 
-      <aside className={`app-sidebar ${isOpen ? 'is-open' : ''}`}>
+      <aside
+        className={`app-sidebar ${isOpen ? 'is-open' : ''}`}
+        aria-label="Recruiter navigation"
+      >
         <button
           type="button"
           className="sidebar-close-btn"
@@ -145,7 +179,7 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
           </button>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Recruiter primary navigation">
           <ul className="nav-list">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -163,6 +197,8 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
                         toggleExpand(item.label);
                         if (item.label === 'Applicants') {
                           navigate('/recruiter/applicants/ranked');
+                        } else if (item.label === 'Assessments') {
+                          navigate('/recruiter/assessments');
                         }
                       }}
                     >

@@ -126,9 +126,7 @@ img {
   flex-direction: column;
   flex-shrink: 0;
   overflow-y: auto;
-  z-index: 40;
-  scrollbar-width: none; /* Hide scrollbar in Firefox */
-  -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
+  z-index: 50;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
