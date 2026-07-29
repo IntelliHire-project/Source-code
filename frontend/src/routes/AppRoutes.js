@@ -32,7 +32,6 @@ import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/Sele
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
 import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
 import PaymentStatusPage from '../pages/recruiter/PaymentStatus/PaymentStatusPage';
-import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
 import ApplicantAnalytics from '../pages/recruiter/ApplicantAnalytics/ApplicantAnalytics';
 import ShortlistingAnalytics from '../pages/recruiter/ShortlistingAnalytics/ShortlistingAnalytics';
 import AssessmentAnalytics from '../pages/recruiter/AssessmentAnalytics/AssessmentAnalytics';
