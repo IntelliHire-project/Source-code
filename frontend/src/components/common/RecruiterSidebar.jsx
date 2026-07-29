@@ -57,7 +57,16 @@ const NAV_ITEMS = [
       { label: 'Panel & Evaluation', path: '/recruiter/interviews/evaluation' },
     ],
   },
-  { label: 'Analytics', icon: BarChart2, path: '/recruiter/analytics' },
+  {
+    label: 'Analytics',
+    icon: BarChart2,
+    subItems: [
+      { label: 'Applicant Analytics', path: '/recruiter/analytics/applicants' },
+      { label: 'Shortlisting Analytics', path: '/recruiter/analytics/shortlisting' },
+      { label: 'Assessment Performance', path: '/recruiter/analytics/assessment' },
+      { label: 'Recruitment Progress', path: '/recruiter/analytics/progress' },
+    ],
+  },
   { label: 'Payments', icon: CreditCard, path: '/recruiter/payments' },
   { label: 'Community', icon: MessagesSquare, path: '/recruiter/community' },
 ];
