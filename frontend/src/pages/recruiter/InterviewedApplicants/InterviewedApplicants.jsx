@@ -395,40 +395,7 @@ function InterviewedApplicants() {
           </div>
 
           {/* Stats Row */}
-          <section className="interviewed-stats-grid">
-            <div className="interviewed-stat-card">
-              <div className="stat-card-info">
-                <span className="stat-label">Total Interviewed</span>
-                <span className="stat-value">{stats.total}</span>
-                <span className="stat-subtext">Completed or in review</span>
-              </div>
-              <div className="stat-icon-wrap">
-                <Users size={20} />
-              </div>
-            </div>
-
-            <div className="interviewed-stat-card">
-              <div className="stat-card-info">
-                <span className="stat-label">Offers Recommended</span>
-                <span className="stat-value text-green">{stats.hires}</span>
-                <span className="stat-subtext positive"><TrendingUp size={12} /> {Math.round((stats.hires/stats.total)*100)}% Conversion Rate</span>
-              </div>
-              <div className="stat-icon-wrap icon-green">
-                <UserCheck size={20} />
-              </div>
-            </div>
-
-            <div className="interviewed-stat-card">
-              <div className="stat-card-info">
-                <span className="stat-label">Pending In-Review</span>
-                <span className="stat-value text-yellow">{stats.reviews}</span>
-                <span className="stat-subtext">Awaiting panel consensus</span>
-              </div>
-              <div className="stat-icon-wrap icon-yellow">
-                <AlertCircle size={20} />
-              </div>
-            </div>
-          </section>
+          
 
           {/* Filter Dashboard Card */}
           <section className="filters-dashboard-card">
