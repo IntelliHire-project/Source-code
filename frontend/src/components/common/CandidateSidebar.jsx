@@ -11,10 +11,7 @@ import {
   Settings,
   LogOut,
   UserRound,
-  Sparkles,
   FileCheck2,
-  KeyRound,
-  Bell,
   X,
 } from 'lucide-react';
 import logo from '../../logo.png';
