@@ -18,6 +18,7 @@ import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
+import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
@@ -187,7 +188,7 @@ function AppRoutes() {
         />
         <Route
           path="/recruiter/applicants/interviewed"
-          element={<PlaceholderApplicants title="Interviewed" />}
+          element={<InterviewedApplicants />}
         />
         <Route
           path="/dashboard"
