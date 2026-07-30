@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import './jobs.css';
+import { CandidatePageContext } from '../CandidateDashboard';
 import ApplicationReviewModal from '../../../components/ApplicationReviewModal';
 
 /* ── Mock Data ── */
@@ -101,10 +102,15 @@ function CVSelectorCard({ filename, uploadDate, isActive, onSelect }) {
 
 function JobDetail() {
   const navigate = useNavigate();
+  const { setPageLabel } = useContext(CandidatePageContext);
   const [selectedCvId, setSelectedCvId] = useState(1);
   const [showReview, setShowReview] = useState(false);
   const [showCvPrompt, setShowCvPrompt] = useState(false);
   const job = MOCK_JOB;
+
+  useEffect(() => {
+    setPageLabel('JOB DETAIL');
+  }, [setPageLabel]);
 
   return (
     <div className="job-detail">

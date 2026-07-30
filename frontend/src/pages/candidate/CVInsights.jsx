@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   Sparkles,
   Check,
@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Zap,
 } from 'lucide-react';
+import { CandidatePageContext } from './CandidateDashboard';
 import './cv-insights.css';
 
 /* ── Mock Data ── */
@@ -290,6 +291,7 @@ const ANALYSIS_TABS = [
 ];
 
 function CVInsights() {
+  const { setPageLabel } = useContext(CandidatePageContext);
   const [selectedCvId, setSelectedCvId] = useState(1);
   const [cvDropdownOpen, setCvDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('strengths');
@@ -298,6 +300,10 @@ function CVInsights() {
   ]);
   const [isChatTyping, setIsChatTyping] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  useEffect(() => {
+    setPageLabel('CV INSIGHTS');
+  }, [setPageLabel]);
 
   const selectedCv = MOCK_CVS.find((cv) => cv.id === selectedCvId) || MOCK_CVS[0];
 

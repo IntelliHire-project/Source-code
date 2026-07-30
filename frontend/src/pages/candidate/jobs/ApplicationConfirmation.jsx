@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Check,
@@ -8,10 +8,16 @@ import {
   CalendarDays,
   Home,
 } from 'lucide-react';
+import { CandidatePageContext } from '../CandidateDashboard';
 import './jobs.css';
 
 function ApplicationConfirmation() {
   const navigate = useNavigate();
+  const { setPageLabel } = useContext(CandidatePageContext);
+
+  useEffect(() => {
+    setPageLabel('APPLICATION CONFIRMED');
+  }, [setPageLabel]);
 
   return (
     <div className="app-confirm">
