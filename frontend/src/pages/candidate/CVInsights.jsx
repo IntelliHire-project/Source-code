@@ -7,8 +7,6 @@ import {
   Bot,
   FileText,
   ChevronDown,
-  Download,
-  RefreshCw,
   Zap,
 } from 'lucide-react';
 import { CandidatePageContext } from './CandidateDashboard';
@@ -299,7 +297,6 @@ function CVInsights() {
     { role: 'ai', text: 'Hi! I\'m your CV assistant. Ask me anything about improving your CV — I can help with summaries, keywords, ATS issues, and more.' },
   ]);
   const [isChatTyping, setIsChatTyping] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     setPageLabel('CV INSIGHTS');
@@ -316,13 +313,6 @@ function CVInsights() {
       setChatMessages((prev) => [...prev, { role: 'ai', text: reply }]);
       setIsChatTyping(false);
     }, 1500);
-  }
-
-  function handleReanalyze() {
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-    }, 2000);
   }
 
   return (
@@ -381,7 +371,6 @@ function CVInsights() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Body */}
       <div className="cv-insights__body">
@@ -425,25 +414,6 @@ function CVInsights() {
         </div>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="cv-insights__bottom">
-        <button
-          className="cv-insights__btn cv-insights__btn--primary"
-          onClick={handleReanalyze}
-          disabled={isAnalyzing}
-        >
-          {isAnalyzing ? (
-            <span className="cv-insights__btn-spinner" />
-          ) : (
-            <RefreshCw size={16} />
-          )}
-          {isAnalyzing ? 'Analyzing...' : 'Re-analyze CV'}
-        </button>
-        <button className="cv-insights__btn cv-insights__btn--outline">
-          <Download size={16} />
-          Download Full Report
-        </button>
-      </div>
     </div>
   );
 }
