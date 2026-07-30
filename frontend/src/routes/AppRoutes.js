@@ -22,6 +22,9 @@ import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
+import MyApplications from '../pages/candidate/MyApplications';
+import CVInsights from '../pages/candidate/CVInsights';
+import DashboardPage from '../pages/candidate/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';
@@ -156,15 +159,15 @@ function AppRoutes() {
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
           <Route index element={<Navigate to="/candidate/dashboard" replace />} />
-          <Route path="dashboard" element={<CandidatePlaceholder title="Dashboard" />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
           <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
           <Route path="cv-management" element={<CvManagementPage />} />
-          <Route path="cv-insights" element={<CandidatePlaceholder title="CV insights" />} />
+          <Route path="cv-insights" element={<CVInsights />} />
           <Route path="jobs" element={<JobSearch />} />
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
-          <Route path="applications" element={<CandidatePlaceholder title="My applications" />} />
+          <Route path="applications" element={<MyApplications />} />
           <Route path="mock-interviews" element={<CandidatePlaceholder title="Mock interviews" />} />
           <Route path="community" element={<CommunityPage roleOverride="candidate" />} />
           <Route path="community/new" element={<CreateDiscussionPage roleOverride="candidate" />} />
