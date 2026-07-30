@@ -12,6 +12,8 @@ import {
   Layers,
   Globe,
   Clock,
+  Plus,
+  X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -218,6 +220,7 @@ function CreateVacancyPage() {
   const [workMode, setWorkMode] = useState('remote');
   const [jobType, setJobType] = useState('full-time');
   const [selectedLocation, setSelectedLocation] = useState('');
+  const [responsibilities, setResponsibilities] = useState(['']);
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -228,7 +231,18 @@ function CreateVacancyPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setLastEdited((p) => p + 1), 60000);
     return () => clearInterval(timerRef.current);
-  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, category, workMode, jobType, selectedLocation]);
+  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, category, workMode, jobType, selectedLocation, responsibilities]);
+
+  const addResponsibility = () => setResponsibilities([...responsibilities, '']);
+  const removeResponsibility = (idx) => {
+    const updated = responsibilities.filter((_, i) => i !== idx);
+    setResponsibilities(updated.length ? updated : ['']);
+  };
+  const updateResponsibility = (idx, value) => {
+    const updated = [...responsibilities];
+    updated[idx] = value;
+    setResponsibilities(updated);
+  };
 
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
@@ -294,6 +308,7 @@ function CreateVacancyPage() {
                       workMode,
                       jobType,
                       selectedLocation,
+                      responsibilities: responsibilities.filter(Boolean),
                     },
                   })
                 }
@@ -369,6 +384,43 @@ function CreateVacancyPage() {
                     value={category}
                     onChange={setCategory}
                   />
+
+                  <div className="cv-field">
+                    <label className="cv-label">Key Responsibilities</label>
+                    <span className="cv-field-hint" style={{ marginBottom: 4 }}>
+                      Add each responsibility as a separate bullet point
+                    </span>
+                    <div className="cv-repeater">
+                      {responsibilities.map((item, idx) => (
+                        <div key={idx} className="cv-repeater-item">
+                          <span className="cv-repeater-bullet" aria-hidden="true" />
+                          <input
+                            type="text"
+                            className="cv-input cv-repeater-input"
+                            value={item}
+                            onChange={(e) => updateResponsibility(idx, e.target.value)}
+                            placeholder="e.g. Lead the design and implementation of…"
+                          />
+                          <button
+                            type="button"
+                            className="cv-repeater-remove"
+                            onClick={() => removeResponsibility(idx)}
+                            title="Remove responsibility"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="cv-repeater-add"
+                      onClick={addResponsibility}
+                    >
+                      <Plus size={14} />
+                      Add Responsibility
+                    </button>
+                  </div>
                 </div>
               </section>
 
@@ -624,6 +676,7 @@ function CreateVacancyPage() {
                       workMode,
                       jobType,
                       selectedLocation,
+                      responsibilities: responsibilities.filter(Boolean),
                     },
                   })
                 }

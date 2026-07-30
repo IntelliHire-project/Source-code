@@ -431,6 +431,75 @@
   font-weight: 600;
 }
 
+/* ── Repeater (Key Responsibilities) ── */
+.cv-repeater {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cv-repeater-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cv-repeater-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--accent, #F0B90B);
+  flex-shrink: 0;
+}
+
+.cv-repeater-input {
+  flex: 1;
+}
+
+.cv-repeater-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #5C6070;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.cv-repeater-remove:hover {
+  background: rgba(230, 57, 70, 0.15);
+  color: #E63946;
+}
+
+.cv-repeater-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  margin-top: 4px;
+  border: 1.5px dashed var(--comm-border, #2A2C38);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #9599A6;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.cv-repeater-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(240, 185, 11, 0.06);
+}
+
 /* ── Assessment Test Toggle (2-col override) ── */
 .assessment-toggle-wrapper .pill-toggle-group {
   grid-template-columns: 1fr 1fr;

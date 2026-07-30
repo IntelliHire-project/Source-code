@@ -161,7 +161,7 @@ function PreviewVacancyPage() {
         workMode: WORK_MODE_LABELS[formState.workMode] || formState.workMode || SAMPLE_VACANCY.workMode,
         employmentType: JOB_TYPE_LABELS[formState.jobType] || formState.jobType || SAMPLE_VACANCY.employmentType,
         description: formState.jobDescription || SAMPLE_VACANCY.description,
-        responsibilities: SAMPLE_VACANCY.responsibilities,
+        responsibilities: formState.responsibilities || SAMPLE_VACANCY.responsibilities,
         qualifications: formState.qualifications
           ? formState.qualifications.split('\n').filter(Boolean)
           : SAMPLE_VACANCY.qualifications,
