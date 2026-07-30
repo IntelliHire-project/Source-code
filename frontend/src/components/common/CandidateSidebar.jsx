@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Sparkles,
-  Briefcase,
   FileText,
   KeyRound,
   Users,
@@ -17,7 +16,6 @@ import logo from '../../logo.png';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/candidate/dashboard', exact: true },
   { label: 'CV insights', icon: Sparkles, path: '/candidate/cv-insights' },
-  { label: 'Find jobs', icon: Briefcase, path: '/candidate/jobs' },
   { label: 'My applications', icon: FileText, path: '/candidate/applications' },
   { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
   { label: 'Community', icon: Users, path: '/candidate/community' },

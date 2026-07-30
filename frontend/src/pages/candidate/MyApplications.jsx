@@ -382,12 +382,6 @@ function MyApplications() {
     <div className="my-applications">
       {/* Header */}
       <div className="my-applications__header">
-        <div className="my-applications__header-left">
-          <h1 className="my-applications__title">My Applications</h1>
-          <p className="my-applications__subtext">
-            Track the status of jobs you've applied to
-          </p>
-        </div>
         <div className="my-applications__count-badge">
           <strong>{applications.length}</strong> Applications
         </div>
