@@ -387,30 +387,48 @@
   color: var(--primary, #16171F);
 }
 
-/* ── Select dropdown ── */
-.cv-select {
+/* ── Autocomplete Input ── */
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.autocomplete-input {
   width: 100%;
-  padding: 10px 14px;
-  background: var(--comm-bg, #13141C);
-  border: 1.5px solid var(--comm-border, #2A2C38);
-  border-radius: var(--radius-sm);
-  color: #FFFFFF;
-  font-family: inherit;
-  font-size: 0.88rem;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
-  cursor: pointer;
-  appearance: auto;
 }
 
-.cv-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.12);
-}
-
-.cv-select option {
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin: 4px 0 0;
+  padding: 6px 0;
+  list-style: none;
   background: var(--comm-surface, #1A1B27);
+  border: 1px solid var(--comm-border, #2A2C38);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.autocomplete-item {
+  padding: 8px 14px;
+  font-size: 0.88rem;
   color: #FFFFFF;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item--active {
+  background: rgba(240, 185, 11, 0.12);
+}
+
+.autocomplete-highlight {
+  color: var(--accent, #F0B90B);
+  font-weight: 600;
 }
 
 /* ── Assessment Test Toggle (2-col override) ── */

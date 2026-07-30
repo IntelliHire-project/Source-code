@@ -29,13 +29,17 @@ const EXPERIENCE_OPTIONS = [
   { label: 'Lead', value: 'lead' },
 ];
 
-const CATEGORY_OPTIONS = [
-  { label: 'Engineering', value: 'engineering' },
-  { label: 'Design', value: 'design' },
-  { label: 'Marketing', value: 'marketing' },
-  { label: 'Sales', value: 'sales' },
-  { label: 'HR', value: 'hr' },
-  { label: 'Other (type your own)', value: 'other' },
+const CATEGORY_SUGGESTIONS = [
+  'Engineering',
+  'Design',
+  'Marketing',
+  'Sales',
+  'HR',
+  'Finance',
+  'Operations',
+  'Legal',
+  'Product',
+  'Customer Support',
 ];
 
 const WORK_MODE_OPTIONS = [
@@ -51,12 +55,11 @@ const JOB_TYPE_OPTIONS = [
   { label: 'Internship', value: 'internship' },
 ];
 
-const COMPANY_LOCATIONS = [
-  { label: 'London, UK', value: 'London, UK' },
-  { label: 'New York, USA', value: 'New York, USA' },
-  { label: 'San Francisco, USA', value: 'San Francisco, USA' },
-  { label: 'Berlin, Germany', value: 'Berlin, Germany' },
-  { label: 'Other (type your own)', value: 'other' },
+const LOCATION_SUGGESTIONS = [
+  'London, UK',
+  'New York, USA',
+  'San Francisco, USA',
+  'Berlin, Germany',
 ];
 
 const INITIAL_SKILLS = ['React', 'TypeScript', 'REST APIs'];
@@ -65,6 +68,135 @@ const ASSESSMENT_OPTIONS = [
   { label: 'Yes', value: 'yes' },
   { label: 'No', value: 'no' },
 ];
+
+function AutocompleteInput({ suggestions, value, onChange, placeholder, label, hint, id }) {
+  const [inputValue, setInputValue] = useState(value || '');
+  const [filtered, setFiltered] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    setInputValue(value || '');
+  }, [value]);
+
+  useEffect(() => {
+    if (inputValue.length === 0) {
+      setFiltered([]);
+      setIsOpen(false);
+      return;
+    }
+    const matches = suggestions.filter(
+      (s) => s.toLowerCase().includes(inputValue.toLowerCase())
+    );
+    setFiltered(matches);
+    setIsOpen(matches.length > 0);
+    setActiveIdx(-1);
+  }, [inputValue, suggestions]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const select = (suggestion) => {
+    setInputValue(suggestion);
+    onChange(suggestion);
+    setIsOpen(false);
+    setActiveIdx(-1);
+  };
+
+  const handleChange = (e) => {
+    setInputValue(e.target.value);
+    onChange(e.target.value);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!isOpen) return;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIdx((prev) => Math.min(prev + 1, filtered.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIdx((prev) => Math.max(prev - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (activeIdx >= 0) {
+          select(filtered[activeIdx]);
+        }
+        break;
+      case 'Escape':
+        setIsOpen(false);
+        setActiveIdx(-1);
+        break;
+    }
+  };
+
+  const highlight = (text, query) => {
+    if (!query) return text;
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <strong className="autocomplete-highlight">{text.slice(idx, idx + query.length)}</strong>
+        {text.slice(idx + query.length)}
+      </>
+    );
+  };
+
+  return (
+    <div className="cv-field">
+      {label && (
+        <label className="cv-label" htmlFor={id}>
+          {label}
+        </label>
+      )}
+      {hint && (
+        <span className="cv-field-hint" style={{ marginBottom: 4 }}>
+          {hint}
+        </span>
+      )}
+      <div className="autocomplete-wrapper" ref={wrapperRef}>
+        <input
+          id={id}
+          type="text"
+          className="cv-input autocomplete-input"
+          value={inputValue}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (inputValue && filtered.length > 0) setIsOpen(true);
+          }}
+          placeholder={placeholder}
+          autoComplete="off"
+        />
+        {isOpen && (
+          <ul className="autocomplete-list">
+            {filtered.map((s, i) => (
+              <li
+                key={s}
+                className={`autocomplete-item ${i === activeIdx ? 'autocomplete-item--active' : ''}`}
+                onClick={() => select(s)}
+                onMouseEnter={() => setActiveIdx(i)}
+              >
+                {highlight(s, inputValue)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -86,8 +218,6 @@ function CreateVacancyPage() {
   const [workMode, setWorkMode] = useState('remote');
   const [jobType, setJobType] = useState('full-time');
   const [selectedLocation, setSelectedLocation] = useState('');
-  const [customLocation, setCustomLocation] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -98,7 +228,7 @@ function CreateVacancyPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setLastEdited((p) => p + 1), 60000);
     return () => clearInterval(timerRef.current);
-  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, category, workMode, jobType, selectedLocation, customLocation, customCategory]);
+  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, category, workMode, jobType, selectedLocation]);
 
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
@@ -160,10 +290,10 @@ function CreateVacancyPage() {
                       salaryMax,
                       deadline,
                       shortlistCount,
-                      category: category === 'other' ? customCategory : category,
+                      category,
                       workMode,
                       jobType,
-                      selectedLocation: selectedLocation === 'other' ? customLocation : selectedLocation,
+                      selectedLocation,
                     },
                   })
                 }
@@ -221,70 +351,24 @@ function CreateVacancyPage() {
                     </span>
                   </div>
 
-                  <div className="cv-field">
-                    <label className="cv-label" htmlFor="cv-location">
-                      Company Location
-                    </label>
-                    <span className="cv-field-hint" style={{ marginBottom: 4 }}>
-                      Fetched from company profile
-                    </span>
-                    <select
-                      id="cv-location"
-                      className="cv-select"
-                      value={selectedLocation}
-                      onChange={(e) => {
-                        setSelectedLocation(e.target.value);
-                        if (e.target.value !== 'other') setCustomLocation('');
-                      }}
-                    >
-                      <option value="">Select a location…</option>
-                      {COMPANY_LOCATIONS.map((loc) => (
-                        <option key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedLocation === 'other' && (
-                      <input
-                        type="text"
-                        className="cv-input"
-                        value={customLocation}
-                        onChange={(e) => setCustomLocation(e.target.value)}
-                        placeholder="Type your company location…"
-                      />
-                    )}
-                  </div>
+                  <AutocompleteInput
+                    id="cv-location"
+                    label="Company Location"
+                    hint="Fetched from company profile"
+                    placeholder="Type a location or select from your offices…"
+                    suggestions={LOCATION_SUGGESTIONS}
+                    value={selectedLocation}
+                    onChange={setSelectedLocation}
+                  />
 
-                  <div className="cv-field">
-                    <label className="cv-label" htmlFor="cv-category">
-                      Category / Department
-                    </label>
-                    <select
-                      id="cv-category"
-                      className="cv-select"
-                      value={category}
-                      onChange={(e) => {
-                        setCategory(e.target.value);
-                        if (e.target.value !== 'other') setCustomCategory('');
-                      }}
-                    >
-                      <option value="">Select a department…</option>
-                      {CATEGORY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    {category === 'other' && (
-                      <input
-                        type="text"
-                        className="cv-input"
-                        value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
-                        placeholder="Type your department name…"
-                      />
-                    )}
-                  </div>
+                  <AutocompleteInput
+                    id="cv-category"
+                    label="Category / Department"
+                    placeholder="Type a department or select from suggestions…"
+                    suggestions={CATEGORY_SUGGESTIONS}
+                    value={category}
+                    onChange={setCategory}
+                  />
                 </div>
               </section>
 
@@ -536,10 +620,10 @@ function CreateVacancyPage() {
                       salaryMax,
                       deadline,
                       shortlistCount,
-                      category: category === 'other' ? customCategory : category,
+                      category,
                       workMode,
                       jobType,
-                      selectedLocation: selectedLocation === 'other' ? customLocation : selectedLocation,
+                      selectedLocation,
                     },
                   })
                 }
