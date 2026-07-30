@@ -15,6 +15,11 @@ import {
   Upload,
   FileText,
   ChevronRight,
+  Bot,
+  AlertTriangle,
+  CheckCircle,
+  Lightbulb,
+  X,
 } from 'lucide-react';
 import './jobs.css';
 import ApplicationReviewModal from '../../../components/ApplicationReviewModal';
@@ -48,22 +53,24 @@ const MOCK_JOB = {
     'Hands-on experience designing AI or ML-powered features, including dashboards, recommendation UIs, or predictive data visualisations.',
     'Expert-level proficiency in Figma, prototyping tools, and design systems — you can move fluidly from wireframe to polished spec.',
   ],
-  perks: [
-    { label: 'Competitive Equity Package' },
-    { label: 'Annual Learning Budget ($3k)' },
-    { label: 'Premium Health Coverage' },
-    { label: 'Flexible Remote Policy' },
-    { label: 'M3 MacBook Pro Setup' },
-  ],
   skills: ['Product Design', 'AI/UX', 'Data Visualization', 'Figma', 'SaaS Strategy', 'User Research', 'Prototyping'],
   matchScore: 88,
 };
 
 const MOCK_CVS = [
   { id: 1, filename: 'SENIOR_PRODUCT_DES', uploadDate: 'Uploaded Jan 12, 2024', isActive: true },
-  { id: 2, filename: 'DEVOPS_FOCUSED_RESUME.PDF', uploadDate: 'Uploaded Nov 02, 2023', isActive: false },
-  { id: 3, filename: 'GENERAL_SOFTWARE_ENG.PDF', uploadDate: 'Uploaded Aug 15, 2023', isActive: false },
 ];
+
+const MOCK_CV_GAPS = {
+  matchScore: 68,
+  missingSkills: ['Data Visualization', 'SaaS Strategy', 'User Research'],
+  strengths: ['React Expertise', 'System Architecture', 'Team Leadership'],
+  recommendations: [
+    'Add a data visualization project to your portfolio to demonstrate relevant experience.',
+    'Highlight any SaaS product experience in your work history section.',
+    'Include user research methodologies you have used in past roles.',
+  ],
+};
 
 /* ── CVSelectorCard ── */
 
@@ -96,6 +103,7 @@ function JobDetail() {
   const navigate = useNavigate();
   const [selectedCvId, setSelectedCvId] = useState(1);
   const [showReview, setShowReview] = useState(false);
+  const [showCvPrompt, setShowCvPrompt] = useState(false);
   const job = MOCK_JOB;
 
   return (
@@ -161,18 +169,6 @@ function JobDetail() {
             </div>
           </section>
 
-          {/* Perks */}
-          <section className="job-detail__section">
-            <h2 className="job-detail__section-title">PERKS & BENEFITS</h2>
-            <div className="job-detail__perks-grid">
-              {job.perks.map((perk, i) => (
-                <div key={i} className="job-detail__perk-card">
-                  <div className="job-detail__perk-check"><Check size={15} /></div>
-                  <span>{perk.label}</span>
-                </div>
-              ))}
-            </div>
-          </section>
         </main>
 
         {/* ── Right Sidebar ── */}
@@ -232,12 +228,12 @@ function JobDetail() {
             <p className="job-detail__match-desc">
               Your profile matches {job.matchScore}% of the requirements for this role based on your resume.
             </p>
-            <button className="job-detail__match-link">Improve your score &gt;</button>
+            <button className="job-detail__match-link" onClick={() => setShowCvPrompt(true)}>Improve your score &gt;</button>
           </div>
 
           {/* CV Selector */}
           <div className="job-detail__card">
-            <h3 className="job-detail__card-title">SELECT CV FOR APPLICATION</h3>
+            <h3 className="job-detail__card-title">YOUR ACTIVE CV</h3>
             <div className="job-detail__cv-list">
               {MOCK_CVS.map((cv) => (
                 <CVSelectorCard
@@ -249,14 +245,11 @@ function JobDetail() {
                 />
               ))}
             </div>
-            <button className="job-detail__upload-btn">
+            <button className="job-detail__upload-btn" onClick={() => navigate('/candidate/cv-management')}>
               <Upload size={15} />
-              UPLOAD NEW CV
+              UPLOAD / CHANGE CV
             </button>
           </div>
-
-          {/* Apply */}
-          <button className="job-detail__begin-btn" onClick={() => setShowReview(true)}>BEGIN APPLICATION</button>
 
           {/* Verified */}
           <div className="job-detail__verified">
@@ -271,9 +264,72 @@ function JobDetail() {
 
       {showReview && (
         <ApplicationReviewModal
+          cv={MOCK_CVS.find((c) => c.id === selectedCvId)}
           onConfirm={() => { setShowReview(false); navigate('/candidate/application-confirmation'); }}
           onClose={() => setShowReview(false)}
         />
+      )}
+
+      {showCvPrompt && (
+        <div className="job-detail__overlay" onClick={() => setShowCvPrompt(false)}>
+          <div className="job-detail__prompt" onClick={(e) => e.stopPropagation()}>
+            <div className="job-detail__prompt-top">
+              <span className="job-detail__prompt-badge"><Bot size={13} />CV MATCH ANALYSIS</span>
+              <button className="job-detail__prompt-close" onClick={() => setShowCvPrompt(false)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <h2 className="job-detail__prompt-title">CV Gap Analysis</h2>
+            <p className="job-detail__prompt-subtitle">
+              Based on your active CV compared to this role's requirements.
+            </p>
+
+            <div className="job-detail__prompt-score-wrap">
+              <span className="job-detail__prompt-score">{MOCK_CV_GAPS.matchScore}%</span>
+              <span className="job-detail__prompt-score-label">Overall Match</span>
+            </div>
+
+            <div className="job-detail__prompt-body">
+              <div className="job-detail__prompt-group">
+                <span className="job-detail__prompt-heading">
+                  <AlertTriangle size={13} /> Missing Requirements
+                </span>
+                <div className="job-detail__prompt-tags">
+                  {MOCK_CV_GAPS.missingSkills.map((s) => (
+                    <span key={s} className="job-detail__prompt-tag job-detail__prompt-tag--missing">{s}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="job-detail__prompt-group">
+                <span className="job-detail__prompt-heading">
+                  <CheckCircle size={13} /> Your Strengths
+                </span>
+                <div className="job-detail__prompt-tags">
+                  {MOCK_CV_GAPS.strengths.map((s) => (
+                    <span key={s} className="job-detail__prompt-tag job-detail__prompt-tag--match">{s}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="job-detail__prompt-group">
+                <span className="job-detail__prompt-heading">
+                  <Lightbulb size={13} /> Recommendations
+                </span>
+                <ul className="job-detail__prompt-list">
+                  {MOCK_CV_GAPS.recommendations.map((r, i) => (
+                    <li key={i} className="job-detail__prompt-item">{r}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <button className="job-detail__prompt-btn" onClick={() => { setShowCvPrompt(false); navigate('/candidate/cv-insights'); }}>
+              <Bot size={14} />
+              Get Full CV Analysis
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
