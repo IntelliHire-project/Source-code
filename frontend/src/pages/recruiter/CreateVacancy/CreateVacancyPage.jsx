@@ -8,6 +8,10 @@ import {
   ChevronRight,
   AlertCircle,
   Calendar,
+  Building2,
+  Layers,
+  Globe,
+  Clock,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -23,6 +27,36 @@ const EXPERIENCE_OPTIONS = [
   { label: 'Mid-Level', value: 'mid-level' },
   { label: 'Senior', value: 'senior' },
   { label: 'Lead', value: 'lead' },
+];
+
+const CATEGORY_OPTIONS = [
+  { label: 'Engineering', value: 'engineering' },
+  { label: 'Design', value: 'design' },
+  { label: 'Marketing', value: 'marketing' },
+  { label: 'Sales', value: 'sales' },
+  { label: 'HR', value: 'hr' },
+  { label: 'Other (type your own)', value: 'other' },
+];
+
+const WORK_MODE_OPTIONS = [
+  { label: 'Remote', value: 'remote' },
+  { label: 'Hybrid', value: 'hybrid' },
+  { label: 'Onsite', value: 'onsite' },
+];
+
+const JOB_TYPE_OPTIONS = [
+  { label: 'Full-Time', value: 'full-time' },
+  { label: 'Part-Time', value: 'part-time' },
+  { label: 'Contract', value: 'contract' },
+  { label: 'Internship', value: 'internship' },
+];
+
+const COMPANY_LOCATIONS = [
+  { label: 'London, UK', value: 'London, UK' },
+  { label: 'New York, USA', value: 'New York, USA' },
+  { label: 'San Francisco, USA', value: 'San Francisco, USA' },
+  { label: 'Berlin, Germany', value: 'Berlin, Germany' },
+  { label: 'Other (type your own)', value: 'other' },
 ];
 
 const INITIAL_SKILLS = ['React', 'TypeScript', 'REST APIs'];
@@ -48,6 +82,12 @@ function CreateVacancyPage() {
   const [salaryMax, setSalaryMax] = useState('');
   const [deadline, setDeadline] = useState('');
   const [shortlistCount, setShortlistCount] = useState('');
+  const [category, setCategory] = useState('');
+  const [workMode, setWorkMode] = useState('remote');
+  const [jobType, setJobType] = useState('full-time');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [customLocation, setCustomLocation] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -58,7 +98,7 @@ function CreateVacancyPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setLastEdited((p) => p + 1), 60000);
     return () => clearInterval(timerRef.current);
-  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline]);
+  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, category, workMode, jobType, selectedLocation, customLocation, customCategory]);
 
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
@@ -106,7 +146,27 @@ function CreateVacancyPage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => navigate('/recruiter/vacancy-preview')}
+                onClick={() =>
+                  navigate('/recruiter/vacancy-preview', {
+                    state: {
+                      jobTitle,
+                      jobDescription,
+                      skills,
+                      qualifications,
+                      experienceLevel,
+                      requireAssessmentTest,
+                      openings,
+                      salaryMin,
+                      salaryMax,
+                      deadline,
+                      shortlistCount,
+                      category: category === 'other' ? customCategory : category,
+                      workMode,
+                      jobType,
+                      selectedLocation: selectedLocation === 'other' ? customLocation : selectedLocation,
+                    },
+                  })
+                }
               >
                 Preview Vacancy
               </button>
@@ -159,6 +219,110 @@ function CreateVacancyPage() {
                     <span className="cv-field-hint">
                       Tip: Be specific about daily responsibilities and team structure.
                     </span>
+                  </div>
+
+                  <div className="cv-field">
+                    <label className="cv-label" htmlFor="cv-location">
+                      Company Location
+                    </label>
+                    <span className="cv-field-hint" style={{ marginBottom: 4 }}>
+                      Fetched from company profile
+                    </span>
+                    <select
+                      id="cv-location"
+                      className="cv-select"
+                      value={selectedLocation}
+                      onChange={(e) => {
+                        setSelectedLocation(e.target.value);
+                        if (e.target.value !== 'other') setCustomLocation('');
+                      }}
+                    >
+                      <option value="">Select a location…</option>
+                      {COMPANY_LOCATIONS.map((loc) => (
+                        <option key={loc.value} value={loc.value}>
+                          {loc.label}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedLocation === 'other' && (
+                      <input
+                        type="text"
+                        className="cv-input"
+                        value={customLocation}
+                        onChange={(e) => setCustomLocation(e.target.value)}
+                        placeholder="Type your company location…"
+                      />
+                    )}
+                  </div>
+
+                  <div className="cv-field">
+                    <label className="cv-label" htmlFor="cv-category">
+                      Category / Department
+                    </label>
+                    <select
+                      id="cv-category"
+                      className="cv-select"
+                      value={category}
+                      onChange={(e) => {
+                        setCategory(e.target.value);
+                        if (e.target.value !== 'other') setCustomCategory('');
+                      }}
+                    >
+                      <option value="">Select a department…</option>
+                      {CATEGORY_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {category === 'other' && (
+                      <input
+                        type="text"
+                        className="cv-input"
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        placeholder="Type your department name…"
+                      />
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* Card 1.5 — Job Details */}
+              <section className="cv-card">
+                <div className="cv-card__header">
+                  <div className="cv-card__icon cv-card__icon--gold">
+                    <Layers size={18} />
+                  </div>
+                  <div>
+                    <h2 className="cv-card__title">Job Details</h2>
+                    <p className="cv-card__subtitle">Work mode, type, and other conditions</p>
+                  </div>
+                </div>
+
+                <div className="cv-card__body">
+                  <div className="cv-field">
+                    <label className="cv-label">Work Mode</label>
+                    <div className="work-mode-toggle-wrapper">
+                      <PillToggleGroup
+                        name="work-mode"
+                        options={WORK_MODE_OPTIONS}
+                        value={workMode}
+                        onChange={setWorkMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cv-field">
+                    <label className="cv-label">Job Type</label>
+                    <div className="job-type-toggle-wrapper">
+                      <PillToggleGroup
+                        name="job-type"
+                        options={JOB_TYPE_OPTIONS}
+                        value={jobType}
+                        onChange={setJobType}
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
@@ -358,7 +522,27 @@ function CreateVacancyPage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => navigate('/recruiter/vacancy-preview')}
+                onClick={() =>
+                  navigate('/recruiter/vacancy-preview', {
+                    state: {
+                      jobTitle,
+                      jobDescription,
+                      skills,
+                      qualifications,
+                      experienceLevel,
+                      requireAssessmentTest,
+                      openings,
+                      salaryMin,
+                      salaryMax,
+                      deadline,
+                      shortlistCount,
+                      category: category === 'other' ? customCategory : category,
+                      workMode,
+                      jobType,
+                      selectedLocation: selectedLocation === 'other' ? customLocation : selectedLocation,
+                    },
+                  })
+                }
               >
                 Preview Vacancy
               </button>

@@ -387,10 +387,48 @@
   color: var(--primary, #16171F);
 }
 
+/* ── Select dropdown ── */
+.cv-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--comm-bg, #13141C);
+  border: 1.5px solid var(--comm-border, #2A2C38);
+  border-radius: var(--radius-sm);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.88rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.cv-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.12);
+}
+
+.cv-select option {
+  background: var(--comm-surface, #1A1B27);
+  color: #FFFFFF;
+}
+
 /* ── Assessment Test Toggle (2-col override) ── */
 .assessment-toggle-wrapper .pill-toggle-group {
   grid-template-columns: 1fr 1fr;
   max-width: 220px;
+}
+
+/* ── Work Mode Toggle (3-col override) ── */
+.work-mode-toggle-wrapper .pill-toggle-group {
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 360px;
+}
+
+/* ── Job Type Toggle (4-col override) ── */
+.job-type-toggle-wrapper .pill-toggle-group {
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 480px;
 }
 
 /* ── Salary Range row ── */
