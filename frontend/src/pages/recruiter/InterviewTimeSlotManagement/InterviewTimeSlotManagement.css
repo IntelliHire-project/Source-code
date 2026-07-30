@@ -272,11 +272,12 @@
 }
 
 .page-title {
-  font-size: 1.75rem;
+  font-size: 1.65rem;
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: -0.4px;
   margin: 0 0 6px;
+  line-height: 1.2;
 }
 
 .page-subtitle {
