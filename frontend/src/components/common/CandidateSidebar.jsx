@@ -2,24 +2,29 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  BriefcaseBusiness,
-  Search,
-  MessageSquare,
-  Globe,
+  Sparkles,
+  Briefcase,
+  FileText,
+  KeyRound,
+  Users,
+  Bell,
   Settings,
   LogOut,
+  X,
 } from 'lucide-react';
 import logo from '../../logo.png';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/candidate/dashboard', exact: true },
-  { label: 'Job Search', icon: Search, path: '/candidate/jobs' },
-  { label: 'Applications', icon: BriefcaseBusiness, path: '/candidate/applications' },
-  { label: 'Messages', icon: MessageSquare, path: '/candidate/messages' },
-  { label: 'Community', icon: Globe, path: '/community' },
+  { label: 'CV insights', icon: Sparkles, path: '/candidate/cv-insights' },
+  { label: 'Find jobs', icon: Briefcase, path: '/candidate/jobs' },
+  { label: 'My applications', icon: FileText, path: '/candidate/applications' },
+  { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
+  { label: 'Community', icon: Users, path: '/candidate/community' },
 ];
 
 const BOTTOM_ITEMS = [
+  { label: 'Notifications', icon: Bell, path: '/candidate/notifications' },
   { label: 'Settings', icon: Settings, path: '/candidate/settings' },
 ];
 
@@ -36,13 +41,24 @@ function CandidateSidebar({ isOpen = false, onClose, user }) {
       {isOpen && (
         <div className="sidebar-overlay" onClick={onClose} aria-hidden="true" />
       )}
-      <aside className={`admin-sidebar ${isOpen ? 'is-open' : ''}`}>
+      <aside
+        className={`admin-sidebar ${isOpen ? 'is-open' : ''}`}
+        aria-label="Candidate navigation"
+      >
+        <button
+          type="button"
+          className="sidebar-close-btn"
+          onClick={onClose}
+          aria-label="Close navigation"
+        >
+          <X size={18} />
+        </button>
         <div className="admin-sidebar__logo">
           <img src={logo} alt="IntelliHire" style={{ height: '32px', width: 'auto', display: 'block' }} />
           <span className="admin-sidebar__logo-wordmark">IntelliHire</span>
         </div>
 
-        <nav className="admin-sidebar__nav">
+        <nav className="admin-sidebar__nav" aria-label="Candidate primary navigation">
           <ul className="admin-sidebar__list">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;

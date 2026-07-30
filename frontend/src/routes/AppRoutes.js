@@ -9,22 +9,46 @@ import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTi
 import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
 import InterviewCommunication from '../pages/recruiter/InterviewCommunication/InterviewCommunication';
 import InterviewEvaluationPage from '../pages/recruiter/InterviewEvaluation/InterviewEvaluation';
-import CommunityPage from '../pages/community/CommunityPage';
+import CommunityPage, {
+  CommunityProfilePage,
+  CreateDiscussionPage,
+  DiscussionPage,
+  GuidelinesPage,
+  SavedPostsPage,
+} from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
 import CandidateDashboard from '../pages/candidate/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
+import MyApplications from '../pages/candidate/MyApplications';
+import CVInsights from '../pages/candidate/CVInsights';
+import DashboardPage from '../pages/candidate/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
+import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
-import ApplicantAnalytics from '../pages/recruiter/Analytics/ApplicantAnalytics';
+import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
+import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
+import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
+import PaymentStatusPage from '../pages/recruiter/PaymentStatus/PaymentStatusPage';
+import ApplicantAnalytics from '../pages/recruiter/ApplicantAnalytics/ApplicantAnalytics';
+import ShortlistingAnalytics from '../pages/recruiter/ShortlistingAnalytics/ShortlistingAnalytics';
+import AssessmentAnalytics from '../pages/recruiter/AssessmentAnalytics/AssessmentAnalytics';
+import RecruitmentProgress from '../pages/recruiter/RecruitmentProgress/RecruitmentProgress';
+import AssessmentsPage from '../pages/recruiter/Assessments/AssessmentsPage';
+import QuestionBankPage from '../pages/recruiter/Assessments/QuestionBankPage';
+import CreateAssessmentPage from '../pages/recruiter/Assessments/CreateAssessmentPage';
+import CandidateReportPage from '../pages/recruiter/Assessments/CandidateReportPage';
+import AssessmentPreviewPage from '../pages/recruiter/Assessments/AssessmentPreviewPage';
+import AssessmentCandidatesPage from '../pages/recruiter/Assessments/AssessmentCandidatesPage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
+import VacancySelectorModal from '../components/common/VacancySelectorModal';
 import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
@@ -60,6 +84,16 @@ function PlaceholderApplicants({ title }) {
           <p style={{ color: '#a79e8c' }}>This page is currently under construction.</p>
         </div>
       </div>
+      <VacancySelectorModal />
+    </div>
+  );
+}
+
+function CandidatePlaceholder({ title }) {
+  return (
+    <div style={{ color: '#fff', textAlign: 'center', padding: '100px 20px', minHeight: 'calc(100vh - 64px)' }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>{title}</h1>
+      <p style={{ color: '#a79e8c' }}>This candidate page is currently under construction.</p>
     </div>
   );
 }
@@ -124,13 +158,25 @@ function AppRoutes() {
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
-          <Route index element={<Navigate to="/candidate/profile" replace />} />
+          <Route index element={<Navigate to="/candidate/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
           <Route path="profile/edit" element={<CandidateProfilePage initialMode="edit" />} />
           <Route path="cv-management" element={<CvManagementPage />} />
+          <Route path="cv-insights" element={<CVInsights />} />
           <Route path="jobs" element={<JobSearch />} />
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
+          <Route path="applications" element={<MyApplications />} />
+          <Route path="mock-interviews" element={<CandidatePlaceholder title="Mock interviews" />} />
+          <Route path="community" element={<CommunityPage roleOverride="candidate" />} />
+          <Route path="community/new" element={<CreateDiscussionPage roleOverride="candidate" />} />
+          <Route path="community/post/:postId" element={<DiscussionPage roleOverride="candidate" />} />
+          <Route path="community/profile/:slug" element={<CommunityProfilePage roleOverride="candidate" />} />
+          <Route path="community/saved" element={<SavedPostsPage roleOverride="candidate" />} />
+          <Route path="community/guidelines" element={<GuidelinesPage roleOverride="candidate" />} />
+          <Route path="notifications" element={<CandidatePlaceholder title="Notifications" />} />
+          <Route path="settings" element={<CandidatePlaceholder title="Settings" />} />
         </Route>
         <Route
           path="/recruiter/dashboard"
@@ -149,12 +195,62 @@ function AppRoutes() {
           element={<PreviewVacancyPage />}
         />
         <Route
+          path="/recruiter/select-payment"
+          element={<SelectPaymentMethodPage />}
+        />
+        <Route
+          path="/recruiter/complete-purchase"
+          element={<CompleteYourPurchasePage />}
+        />
+        <Route
+          path="/recruiter/otp-verification"
+          element={<OTPVerificationPage />}
+        />
+        <Route
+          path="/recruiter/payment-status"
+          element={<PaymentStatusPage />}
+        />
+        <Route
           path="/recruiter/payments"
           element={<PaymentBillingPage />}
         />
         <Route
           path="/recruiter/analytics"
+          element={<Navigate to="/recruiter/analytics/applicants" replace />}
+        />
+        <Route
+          path="/recruiter/analytics/applicants"
           element={<ApplicantAnalytics />}
+        />
+        <Route
+          path="/recruiter/analytics/shortlisting"
+          element={<ShortlistingAnalytics />}
+        />
+        <Route
+          path="/recruiter/analytics/assessment"
+          element={<AssessmentAnalytics />}
+        />
+        <Route
+          path="/recruiter/analytics/progress"
+          element={<RecruitmentProgress />}
+        />
+        <Route
+          path="/recruiter/assessments"
+          element={<AssessmentsPage />}
+        />
+        <Route path="/recruiter/question-bank" element={<QuestionBankPage />} />
+        <Route path="/recruiter/assessments/new" element={<CreateAssessmentPage />} />
+        <Route path="/recruiter/assessments/:assessmentId" element={<AssessmentPreviewPage />} />
+        <Route path="/recruiter/assessments/:assessmentId/edit" element={<CreateAssessmentPage />} />
+        <Route path="/recruiter/assessments/:assessmentId/candidates" element={<AssessmentCandidatesPage />} />
+        <Route path="/recruiter/assessments/report/:candidateId" element={<CandidateReportPage />} />
+        <Route
+          path="/recruiter/notifications"
+          element={<PlaceholderApplicants title="Notifications" />}
+        />
+        <Route
+          path="/recruiter/company-profile"
+          element={<PlaceholderApplicants title="Company profile" />}
         />
         <Route
           path="/recruiter/applicants/ranked"
@@ -170,7 +266,7 @@ function AppRoutes() {
         />
         <Route
           path="/recruiter/applicants/interviewed"
-          element={<PlaceholderApplicants title="Interviewed" />}
+          element={<InterviewedApplicants />}
         />
         <Route
           path="/dashboard"
@@ -269,7 +365,13 @@ function AppRoutes() {
           }
         />
         {/* Community Forum — shared for both recruiters and candidates */}
-        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/community" element={<Navigate to="/candidate/community" replace />} />
+        <Route path="/recruiter/community" element={<CommunityPage roleOverride="recruiter" />} />
+        <Route path="/recruiter/community/new" element={<CreateDiscussionPage roleOverride="recruiter" />} />
+        <Route path="/recruiter/community/post/:postId" element={<DiscussionPage roleOverride="recruiter" />} />
+        <Route path="/recruiter/community/profile/:slug" element={<CommunityProfilePage roleOverride="recruiter" />} />
+        <Route path="/recruiter/community/saved" element={<SavedPostsPage roleOverride="recruiter" />} />
+        <Route path="/recruiter/community/guidelines" element={<GuidelinesPage roleOverride="recruiter" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

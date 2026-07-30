@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Mail,
@@ -9,7 +9,6 @@ import {
   Filter,
   Plus,
   ExternalLink,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -22,6 +21,7 @@ import {
   FileText,
   AlertCircle,
   Check,
+  CalendarClock,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -37,8 +37,8 @@ const INITIAL_INVITATIONS = [
     email: 'alice.fernando@example.com',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
     roundType: 'Technical',
-    sentDate: '25 Jul 2026',
-    expiryDate: '28 Jul 2026',
+    sentDate: '03 Aug 2026',
+    expiryDate: '06 Aug 2026',
     status: 'Accepted',
     meetingLink: 'https://meet.google.com/tech-interview-alice',
   },
@@ -49,8 +49,8 @@ const INITIAL_INVITATIONS = [
     email: 'kamal.perera@example.com',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
     roundType: 'HR Portfolio Review',
-    sentDate: '25 Jul 2026',
-    expiryDate: '28 Jul 2026',
+    sentDate: '03 Aug 2026',
+    expiryDate: '06 Aug 2026',
     status: 'Pending Response',
     meetingLink: 'https://meet.google.com/portfolio-kamal',
   },
@@ -61,8 +61,8 @@ const INITIAL_INVITATIONS = [
     email: 'nimal.silva@example.com',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
     roundType: 'Final Cultural Fit',
-    sentDate: '26 Jul 2026',
-    expiryDate: '29 Jul 2026',
+    sentDate: '04 Aug 2026',
+    expiryDate: '07 Aug 2026',
     status: 'Sent',
     meetingLink: 'https://meet.google.com/cultural-fit-nimal',
   },
@@ -73,8 +73,8 @@ const INITIAL_INVITATIONS = [
     email: 'sara.j@example.com',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
     roundType: 'Technical Case Study',
-    sentDate: '27 Jul 2026',
-    expiryDate: '30 Jul 2026',
+    sentDate: '05 Aug 2026',
+    expiryDate: '08 Aug 2026',
     status: 'Declined',
     meetingLink: 'https://meet.google.com/case-study-sara',
   },
@@ -85,8 +85,8 @@ const INITIAL_INVITATIONS = [
     email: 'ruwan.bandara@example.com',
     avatar: null,
     roundType: 'HR Screening',
-    sentDate: '28 Jul 2026',
-    expiryDate: '31 Jul 2026',
+    sentDate: '06 Aug 2026',
+    expiryDate: '09 Aug 2026',
     status: 'Expired',
     meetingLink: 'https://meet.google.com/hr-screening-ruwan',
   },
@@ -97,8 +97,8 @@ const INITIAL_INVITATIONS = [
     email: 'dilhani.w@example.com',
     avatar: null,
     roundType: 'Architecture Final',
-    sentDate: '29 Jul 2026',
-    expiryDate: '01 Aug 2026',
+    sentDate: '07 Aug 2026',
+    expiryDate: '10 Aug 2026',
     status: 'Accepted',
     meetingLink: 'https://meet.google.com/architecture-dilhani',
   },
@@ -119,6 +119,12 @@ export default function InterviewCommunication() {
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedInvite, setSelectedInvite] = useState(null);
+  const [reschedulingInvite, setReschedulingInvite] = useState(null);
+  const [rescheduleData, setRescheduleData] = useState({
+    interviewDate: '2026-08-12',
+    startTime: '10:00',
+    meetingLink: '',
+  });
 
   // New Invite Form State
   const [newInvite, setNewInvite] = useState({
@@ -138,8 +144,26 @@ export default function InterviewCommunication() {
   const showToast = (msg, type = 'success') => {
     setToastMsg(msg);
     setToastType(type);
-    setTimeout(() => setToastMsg(''), 3500);
   };
+
+  useEffect(() => {
+    if (!toastMsg) return undefined;
+    const timeoutId = window.setTimeout(() => setToastMsg(''), 3500);
+    return () => window.clearTimeout(timeoutId);
+  }, [toastMsg]);
+
+  const invitationStats = useMemo(() => {
+    const accepted = invitations.filter((invitation) => invitation.status === 'Accepted').length;
+    const pending = invitations.filter(
+      (invitation) => invitation.status === 'Pending Response' || invitation.status === 'Sent'
+    ).length;
+    return {
+      total: invitations.length,
+      accepted,
+      pending,
+      completionRate: invitations.length ? Math.round((accepted / invitations.length) * 100) : 0,
+    };
+  }, [invitations]);
 
   // Filtered Invitations
   const filteredInvitations = useMemo(() => {
@@ -164,6 +188,14 @@ export default function InterviewCommunication() {
     return filteredInvitations.slice(start, start + itemsPerPage);
   }, [filteredInvitations, currentPage]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
   // Handle Send New Invite
   const handleCreateInvite = (e) => {
     e.preventDefault();
@@ -171,21 +203,32 @@ export default function InterviewCommunication() {
       showToast('Please fill in candidate name and email address.', 'error');
       return;
     }
+    const normalizedEmail = newInvite.email.trim().toLowerCase();
+    if (invitations.some((invitation) => invitation.email.toLowerCase() === normalizedEmail)) {
+      showToast('An invitation already exists for this email address.', 'error');
+      return;
+    }
+
+    const sentDate = new Date();
+    const expiryDate = new Date(sentDate);
+    expiryDate.setDate(expiryDate.getDate() + Number(newInvite.expiryDays));
+    const formatDisplayDate = (date) =>
+      date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
     const createdRecord = {
-      id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-      candidateName: newInvite.candidateName,
+      id: `INV-${String(Math.max(...invitations.map((invitation) => Number(invitation.id.split('-')[1]))) + 1)}`,
+      candidateName: newInvite.candidateName.trim(),
       candidateRole: newInvite.candidateRole,
-      email: newInvite.email,
+      email: normalizedEmail,
       avatar: null,
       roundType: newInvite.roundType,
-      sentDate: 'Today',
-      expiryDate: 'In 3 days',
+      sentDate: formatDisplayDate(sentDate),
+      expiryDate: formatDisplayDate(expiryDate),
       status: 'Sent',
       meetingLink: 'https://meet.google.com/interview-new-invite',
     };
 
-    setInvitations([createdRecord, ...invitations]);
+    setInvitations((current) => [createdRecord, ...current]);
     setIsSendModalOpen(false);
     showToast(`Interview invitation sent successfully to ${newInvite.email}!`, 'success');
     setNewInvite({
@@ -200,7 +243,60 @@ export default function InterviewCommunication() {
 
   // Handle Resend Email
   const handleResend = (invite) => {
+    if (invite.status === 'Accepted') {
+      showToast(`${invite.candidateName} has already accepted this invitation.`, 'error');
+      return;
+    }
+    setInvitations((current) =>
+      current.map((item) =>
+        item.id === invite.id ? { ...item, status: 'Sent', sentDate: 'Today' } : item
+      )
+    );
     showToast(`Invitation email re-sent to ${invite.candidateName} (${invite.email})`, 'success');
+  };
+
+  const openRescheduleModal = (invite) => {
+    setReschedulingInvite(invite);
+    setRescheduleData({
+      interviewDate: '2026-08-12',
+      startTime: '10:00',
+      meetingLink: invite.meetingLink,
+    });
+  };
+
+  const handleReschedule = (event) => {
+    event.preventDefault();
+    if (!rescheduleData.interviewDate || !rescheduleData.startTime || !rescheduleData.meetingLink.trim()) {
+      showToast('Date, time, and meeting link/location are required.', 'error');
+      return;
+    }
+    const selectedDate = new Date(`${rescheduleData.interviewDate}T00:00:00`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      showToast('The rescheduled interview date cannot be in the past.', 'error');
+      return;
+    }
+    const displayDate = selectedDate.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    setInvitations((current) =>
+      current.map((invitation) =>
+        invitation.id === reschedulingInvite.id
+          ? {
+              ...invitation,
+              interviewDate: displayDate,
+              interviewTime: rescheduleData.startTime,
+              meetingLink: rescheduleData.meetingLink.trim(),
+              status: 'Sent',
+            }
+          : invitation
+      )
+    );
+    setReschedulingInvite(null);
+    showToast(`Interview rescheduled and ${reschedulingInvite.candidateName} was notified.`);
   };
 
   // Render Status Badge
@@ -254,7 +350,6 @@ export default function InterviewCommunication() {
           user={{ name: 'Recruiter', role: 'Recruiter Account' }}
           notificationsCount={3}
           searchPlaceholder="Search assessments, roles, or candidates..."
-          onSearch={(q) => setSearchQuery(q)}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
@@ -293,6 +388,13 @@ export default function InterviewCommunication() {
             </button>
           </div>
 
+          <div className="comm-page-heading">
+            <h1 className="page-title">Interview Communication Management</h1>
+            <p className="page-subtitle">
+              Send interview invitations, monitor candidate responses, and manage schedule changes.
+            </p>
+          </div>
+
           {/* Toast Notification Alert */}
           {toastMsg && (
             <div className={`alert-toast alert-${toastType === 'error' ? 'danger' : 'success'}`}>
@@ -311,7 +413,7 @@ export default function InterviewCommunication() {
               <div className="comm-stat-card">
                 <div className="comm-stat-info">
                   <span className="comm-stat-label">TOTAL SENT</span>
-                  <span className="comm-stat-value">248</span>
+                  <span className="comm-stat-value">{invitationStats.total}</span>
                 </div>
                 <div className="comm-stat-icon-wrap">
                   <Mail size={24} />
@@ -321,7 +423,7 @@ export default function InterviewCommunication() {
               <div className="comm-stat-card">
                 <div className="comm-stat-info">
                   <span className="comm-stat-label">ACCEPTED</span>
-                  <span className="comm-stat-value">182</span>
+                  <span className="comm-stat-value">{invitationStats.accepted}</span>
                 </div>
                 <div className="comm-stat-icon-wrap success">
                   <CheckCircle size={24} />
@@ -331,7 +433,7 @@ export default function InterviewCommunication() {
               <div className="comm-stat-card">
                 <div className="comm-stat-info">
                   <span className="comm-stat-label">PENDING</span>
-                  <span className="comm-stat-value">42</span>
+                  <span className="comm-stat-value">{invitationStats.pending}</span>
                 </div>
                 <div className="comm-stat-icon-wrap pending">
                   <Clock size={24} />
@@ -341,7 +443,7 @@ export default function InterviewCommunication() {
               <div className="comm-stat-card">
                 <div className="comm-stat-info">
                   <span className="comm-stat-label">COMPLETION RATE</span>
-                  <span className="comm-stat-value">73%</span>
+                  <span className="comm-stat-value">{invitationStats.completionRate}%</span>
                 </div>
                 <div className="comm-stat-icon-wrap accent">
                   <TrendingUp size={24} />
@@ -450,19 +552,20 @@ export default function InterviewCommunication() {
                               </button>
                               <button
                                 type="button"
-                                className="action-icon-btn"
-                                title="Resend Email Invitation"
-                                onClick={() => handleResend(inv)}
+                                className="action-icon-btn action-reschedule"
+                                title="Reschedule Interview"
+                                onClick={() => openRescheduleModal(inv)}
                               >
-                                <Mail size={16} />
+                                <CalendarClock size={16} />
                               </button>
                               <button
                                 type="button"
                                 className="action-icon-btn"
-                                title="More Options"
-                                onClick={() => showToast(`Options for ${inv.candidateName}`)}
+                                title="Resend Email Invitation"
+                                disabled={inv.status === 'Accepted'}
+                                onClick={() => handleResend(inv)}
                               >
-                                <MoreVertical size={16} />
+                                <Mail size={16} />
                               </button>
                             </div>
                           </td>
@@ -479,8 +582,48 @@ export default function InterviewCommunication() {
                 </table>
               </div>
 
+              <div className="comm-mobile-list">
+                {paginatedInvitations.length === 0 && (
+                  <div className="comm-mobile-empty">No invitations found matching your criteria.</div>
+                )}
+                {paginatedInvitations.map((invitation) => (
+                  <article className="comm-mobile-card" key={`mobile-${invitation.id}`}>
+                    <div className="comm-mobile-card__header">
+                      <div className="cand-cell">
+                        <div className="cand-avatar">
+                          {invitation.avatar ? <img src={invitation.avatar} alt="" /> : invitation.candidateName.charAt(0)}
+                        </div>
+                        <div className="cand-meta">
+                          <span className="cand-name">{invitation.candidateName}</span>
+                          <span className="cand-role">{invitation.candidateRole}</span>
+                        </div>
+                      </div>
+                      {renderStatusBadge(invitation.status)}
+                    </div>
+                    <div className="comm-mobile-card__details">
+                      <span><Calendar size={14} /> {invitation.roundType}</span>
+                      <span>Sent: {invitation.sentDate}</span>
+                      <span>Expires: {invitation.expiryDate}</span>
+                    </div>
+                    <div className="comm-mobile-card__actions">
+                      <button type="button" onClick={() => {
+                        setSelectedInvite(invitation);
+                        setIsDetailModalOpen(true);
+                      }}><ExternalLink size={15} /> Details</button>
+                      <button type="button" onClick={() => openRescheduleModal(invitation)}>
+                        <CalendarClock size={15} /> Reschedule
+                      </button>
+                      <button type="button" disabled={invitation.status === 'Accepted'} onClick={() => handleResend(invitation)}>
+                        <Mail size={15} /> Resend
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
               {/* Table Pagination Footer */}
-              <div className="table-pagination-footer">
+              {filteredInvitations.length > itemsPerPage && (
+                <div className="table-pagination-footer">
                 <span className="pagination-info">
                   Showing <strong>{paginatedInvitations.length}</strong> of <strong>{filteredInvitations.length}</strong> invitations
                 </span>
@@ -515,7 +658,8 @@ export default function InterviewCommunication() {
                     <ChevronRight size={16} />
                   </button>
                 </div>
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Bottom Widgets (2 Cards Grid) */}
@@ -732,6 +876,66 @@ export default function InterviewCommunication() {
                 </button>
                 <button type="submit" className="btn-send-invite">
                   <Send size={16} /> Dispatch Invitation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Interview Modal */}
+      {reschedulingInvite && (
+        <div className="modal-overlay" onClick={() => setReschedulingInvite(null)}>
+          <div className="modal-dialog modal-dialog-sm" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Reschedule – {reschedulingInvite.candidateName}</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setReschedulingInvite(null)} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleReschedule}>
+              <div className="modal-body">
+                <div className="form-grid-2 comm-modal-grid">
+                  <div className="form-group">
+                    <label className="form-label">NEW INTERVIEW DATE</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={rescheduleData.interviewDate}
+                      onChange={(event) => setRescheduleData((current) => ({ ...current, interviewDate: event.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">START TIME</label>
+                    <input
+                      type="time"
+                      className="form-control"
+                      value={rescheduleData.startTime}
+                      onChange={(event) => setRescheduleData((current) => ({ ...current, startTime: event.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">MEETING LINK / LOCATION</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={rescheduleData.meetingLink}
+                    onChange={(event) => setRescheduleData((current) => ({ ...current, meetingLink: event.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="reschedule-notice">
+                  <AlertCircle size={16} />
+                  The candidate will receive an updated schedule notification.
+                </div>
+              </div>
+              <div className="modal-footer comm-modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setReschedulingInvite(null)}>Cancel</button>
+                <button type="submit" className="btn-send-invite">
+                  <CalendarClock size={16} /> Confirm Reschedule
                 </button>
               </div>
             </form>
