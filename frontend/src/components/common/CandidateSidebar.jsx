@@ -5,13 +5,11 @@ import {
   Sparkles,
   Briefcase,
   FileText,
-  FileCheck2,
   KeyRound,
   Users,
   Bell,
   Settings,
   LogOut,
-  UserRound,
   X,
 } from 'lucide-react';
 import logo from '../../logo.png';

@@ -170,7 +170,7 @@ function OTPVerificationPage() {
     setVerifying(true);
     setTimeout(() => {
       setVerifying(false);
-      navigate('/recruiter/payments');
+      navigate('/recruiter/payment-status', { state: { paymentStatus: 'success' } });
     }, 1200);
   }, [codeComplete, expired, navigate]);
 

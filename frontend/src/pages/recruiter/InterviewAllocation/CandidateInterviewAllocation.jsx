@@ -1,6 +1,23 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BriefcaseBusiness,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  RotateCcw,
+  Save,
+  Search,
+  Sparkles,
+  Star,
+  Users,
+  X,
+} from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import '../../../style.css';
@@ -8,28 +25,32 @@ import './CandidateInterviewAllocation.css';
 
 // Initial Mock Candidates Data
 const INITIAL_CANDIDATES = [
-  { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'SHORTLISTED', selected: false },
-  { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'SHORTLISTED', selected: false },
-  { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'SHORTLISTED', selected: false },
-  { id: 'APP-004', name: 'Sara Jayawardena', score: 75, status: 'PENDING', selected: false },
-  { id: 'APP-005', name: 'Ruwan Bandara', score: 71, status: 'SHORTLISTED', selected: false },
-  { id: 'APP-006', name: 'Dilhani Wickramasinghe', score: 68, status: 'SHORTLISTED', selected: false },
+  { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-004', name: 'Sara Jayawardena', score: 75, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-005', name: 'Ruwan Bandara', score: 71, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-006', name: 'Dilhani Wickramasinghe', score: 68, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-007', name: 'Ishara Gunasekara', score: 84, status: 'SHORTLISTED', jobPosition: 'UI/UX Designer', round: 'HR Portfolio Review', selected: false },
+  { id: 'APP-008', name: 'Malith Senanayake', score: 77, status: 'SHORTLISTED', jobPosition: 'QA Automation Engineer', round: 'Technical Interview', selected: false },
 ];
 
 // Initial Mock Time Slots Data
 const INITIAL_SLOTS = [
-  { id: 'SLOT-101', date: '25 Jul 2026', dateShort: '25 Jul', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 5, rem: 3, selected: false },
-  { id: 'SLOT-102', date: '25 Jul 2026', dateShort: '25 Jul', time: '11:00 AM', end: '12:00 PM', type: 'Physical', cap: 3, rem: 0, selected: false },
-  { id: 'SLOT-103', date: '26 Jul 2026', dateShort: '26 Jul', time: '02:00 PM', end: '03:00 PM', type: 'Online', cap: 4, rem: 2, selected: false },
-  { id: 'SLOT-104', date: '27 Jul 2026', dateShort: '27 Jul', time: '10:00 AM', end: '11:00 AM', type: 'Physical', cap: 2, rem: 2, selected: false },
-  { id: 'SLOT-105', date: '28 Jul 2026', dateShort: '28 Jul', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 6, rem: 4, selected: false },
+  { id: 'SLOT-101', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 5, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-102', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '11:00 AM', end: '12:00 PM', type: 'Physical', cap: 3, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-103', dateKey: '2026-08-04', date: '04 Aug 2026', dateShort: '04 Aug', time: '02:00 PM', end: '03:00 PM', type: 'Online', cap: 4, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-104', dateKey: '2026-08-05', date: '05 Aug 2026', dateShort: '05 Aug', time: '10:00 AM', end: '11:00 AM', type: 'Physical', cap: 1, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-105', dateKey: '2026-08-06', date: '06 Aug 2026', dateShort: '06 Aug', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 6, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-106', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '01:00 PM', end: '02:00 PM', type: 'Physical', cap: 3, jobPosition: 'UI/UX Designer', round: 'HR Portfolio Review' },
+  { id: 'SLOT-107', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 3, jobPosition: 'QA Automation Engineer', round: 'Technical Interview' },
 ];
 
 // Initial Allocation Results Data (Pre-populated to match wireframe)
 const INITIAL_ALLOCATIONS = [
-  { candidateId: 'APP-001', candidateName: 'Alice Fernando', slotId: 'SLOT-101', assignedTime: '09:00 AM', interviewDate: '25 Jul 2026', interviewType: 'Online', status: 'ALLOCATED' },
-  { candidateId: 'APP-002', candidateName: 'Kamal Perera', slotId: 'SLOT-103', assignedTime: '02:00 PM', interviewDate: '26 Jul 2026', interviewType: 'Online', status: 'ALLOCATED' },
-  { candidateId: 'APP-003', candidateName: 'Nimal Silva', slotId: 'SLOT-104', assignedTime: '10:00 AM', interviewDate: '27 Jul 2026', interviewType: 'Physical', status: 'ALLOCATED' },
+  { candidateId: 'APP-001', candidateName: 'Alice Fernando', slotId: 'SLOT-101', assignedTime: '09:00 AM', interviewDate: '03 Aug 2026', interviewType: 'Online', status: 'ALLOCATED' },
+  { candidateId: 'APP-002', candidateName: 'Kamal Perera', slotId: 'SLOT-103', assignedTime: '02:00 PM', interviewDate: '04 Aug 2026', interviewType: 'Online', status: 'ALLOCATED' },
+  { candidateId: 'APP-003', candidateName: 'Nimal Silva', slotId: 'SLOT-104', assignedTime: '10:00 AM', interviewDate: '05 Aug 2026', interviewType: 'Physical', status: 'ALLOCATED' },
   { candidateId: 'APP-004', candidateName: 'Sara Jayawardena', slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' },
 ];
 
@@ -39,17 +60,20 @@ export default function CandidateInterviewAllocationPage() {
   // State Management
   const [jobPosition, setJobPosition] = useState('Senior Software Engineer');
   const [interviewRound, setInterviewRound] = useState('Technical Interview');
-  const [interviewDate, setInterviewDate] = useState('2026-07-25');
-  const [allocationMethod, setAllocationMethod] = useState('Automatic (Optimized)');
+  const [interviewDate, setInterviewDate] = useState('2026-08-03');
 
   const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
-  const [slots, setSlots] = useState(INITIAL_SLOTS);
   const [allocations, setAllocations] = useState(INITIAL_ALLOCATIONS);
+  const [selectedSlotId, setSelectedSlotId] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pendingReallocation, setPendingReallocation] = useState(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [reschedulingAllocation, setReschedulingAllocation] = useState(null);
+  const [rescheduleSlotId, setRescheduleSlotId] = useState('');
   const itemsPerPage = 4;
 
   // Header Navigation Active Tab State
@@ -59,10 +83,54 @@ export default function CandidateInterviewAllocationPage() {
   const showToast = (msg, type = 'success') => {
     setToastMessage(msg);
     setToastType(type);
-    setTimeout(() => {
-      setToastMessage('');
-    }, 4000);
   };
+
+  useEffect(() => {
+    if (!toastMessage) return undefined;
+    const timeoutId = window.setTimeout(() => setToastMessage(''), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [toastMessage]);
+
+  const allocationByCandidate = useMemo(
+    () => new Map(allocations.map((allocation) => [allocation.candidateId, allocation])),
+    [allocations]
+  );
+
+  const slotsWithRemaining = useMemo(
+    () => INITIAL_SLOTS.map((slot) => {
+      const allocatedCount = allocations.filter(
+        (allocation) => allocation.status === 'ALLOCATED' && allocation.slotId === slot.id
+      ).length;
+      return { ...slot, rem: Math.max(0, slot.cap - allocatedCount) };
+    }),
+    [allocations]
+  );
+
+  const filteredCandidates = useMemo(
+    () => candidates.filter(
+      (candidate) =>
+        candidate.status === 'SHORTLISTED' &&
+        candidate.jobPosition === jobPosition &&
+        candidate.round === interviewRound
+    ),
+    [candidates, interviewRound, jobPosition]
+  );
+
+  const filteredSlots = useMemo(
+    () => slotsWithRemaining.filter(
+      (slot) =>
+        slot.jobPosition === jobPosition &&
+        slot.round === interviewRound &&
+        slot.dateKey === interviewDate
+    ),
+    [interviewDate, interviewRound, jobPosition, slotsWithRemaining]
+  );
+
+  useEffect(() => {
+    if (!filteredSlots.some((slot) => slot.id === selectedSlotId && slot.rem > 0)) {
+      setSelectedSlotId('');
+    }
+  }, [filteredSlots, selectedSlotId]);
 
   // Toggle selection for Candidate checkbox
   const handleToggleCandidateSelect = (id) => {
@@ -74,76 +142,88 @@ export default function CandidateInterviewAllocationPage() {
   // Select/Deselect All Candidates
   const handleSelectAllCandidates = (e) => {
     const isChecked = e.target.checked;
-    setCandidates((prev) => prev.map((c) => ({ ...c, selected: isChecked })));
+    const visibleIds = new Set(filteredCandidates.map((candidate) => candidate.id));
+    setCandidates((prev) =>
+      prev.map((candidate) =>
+        visibleIds.has(candidate.id) ? { ...candidate, selected: isChecked } : candidate
+      )
+    );
   };
 
-  // Toggle selection for Slot checkbox
-  const handleToggleSlotSelect = (id) => {
-    setSlots((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, selected: !s.selected } : s))
+  const buildAllocationRecord = (candidate, slot) => ({
+    candidateId: candidate.id,
+    candidateName: candidate.name,
+    slotId: slot.id,
+    assignedTime: slot.time,
+    interviewDate: slot.date,
+    interviewType: slot.type,
+    status: 'ALLOCATED',
+  });
+
+  const performManualAllocation = (selectedCands, slotToAssign) => {
+    const candidatesToMove = selectedCands.filter(
+      (candidate) => allocationByCandidate.get(candidate.id)?.slotId !== slotToAssign.id
+    );
+    if (candidatesToMove.length === 0) {
+      showToast('The selected candidate(s) are already allocated to this slot.', 'error');
+      return;
+    }
+    if (candidatesToMove.length > slotToAssign.rem) {
+      showToast(
+        `Only ${slotToAssign.rem} seat(s) remain in this slot. Reduce the candidate selection.`,
+        'error'
+      );
+      return;
+    }
+
+    setAllocations((current) => {
+      const next = [...current];
+      candidatesToMove.forEach((candidate) => {
+        const record = buildAllocationRecord(candidate, slotToAssign);
+        const existingIndex = next.findIndex((item) => item.candidateId === candidate.id);
+        if (existingIndex >= 0) next[existingIndex] = record;
+        else next.push(record);
+      });
+      return next;
+    });
+    setCandidates((current) =>
+      current.map((candidate) => candidate.selected ? { ...candidate, selected: false } : candidate)
+    );
+    setSelectedSlotId('');
+    setPendingReallocation(null);
+    showToast(
+      `Allocated ${candidatesToMove.length} candidate(s) to ${slotToAssign.time} on ${slotToAssign.dateShort}.`
     );
   };
 
   // Manual Allocate Button Action
   const handleManualAllocate = () => {
-    const selectedCands = candidates.filter((c) => c.selected);
-    const selectedSlotList = slots.filter((s) => s.selected);
-
+    const visibleIds = new Set(filteredCandidates.map((candidate) => candidate.id));
+    const selectedCands = candidates.filter(
+      (candidate) => candidate.selected && visibleIds.has(candidate.id)
+    );
+    const slotToAssign = filteredSlots.find((slot) => slot.id === selectedSlotId);
     if (selectedCands.length === 0) {
       showToast('Please select at least one candidate to allocate.', 'error');
       return;
     }
-    if (selectedSlotList.length === 0) {
+    if (!slotToAssign) {
       showToast('Please select an available time slot.', 'error');
       return;
     }
-
-    const slotToAssign = selectedSlotList[0];
     if (slotToAssign.rem <= 0) {
       showToast(`Slot ${slotToAssign.time} (${slotToAssign.dateShort}) is fully booked!`, 'error');
       return;
     }
-
-    let updatedAllocations = [...allocations];
-    let allocatedCount = 0;
-
-    selectedCands.forEach((cand) => {
-      // Check if candidate already has an allocation
-      const existingIdx = updatedAllocations.findIndex((a) => a.candidateId === cand.id);
-      const newRecord = {
-        candidateId: cand.id,
-        candidateName: cand.name,
-        slotId: slotToAssign.id,
-        assignedTime: slotToAssign.time,
-        interviewDate: slotToAssign.date,
-        interviewType: slotToAssign.type,
-        status: 'ALLOCATED',
-      };
-
-      if (existingIdx >= 0) {
-        updatedAllocations[existingIdx] = newRecord;
-      } else {
-        updatedAllocations.push(newRecord);
-      }
-      allocatedCount++;
+    const reallocations = selectedCands.filter((candidate) => {
+      const existing = allocationByCandidate.get(candidate.id);
+      return existing?.status === 'ALLOCATED' && existing.slotId !== slotToAssign.id;
     });
-
-    // Update slot remaining capacity
-    setSlots((prev) =>
-      prev.map((s) =>
-        s.id === slotToAssign.id
-          ? { ...s, rem: Math.max(0, s.rem - allocatedCount), selected: false }
-          : s
-      )
-    );
-
-    // Unselect allocated candidates
-    setCandidates((prev) =>
-      prev.map((c) => (c.selected ? { ...c, selected: false } : c))
-    );
-
-    setAllocations(updatedAllocations);
-    showToast(`Allocated ${allocatedCount} candidate(s) to slot ${slotToAssign.time} (${slotToAssign.dateShort}).`);
+    if (reallocations.length > 0) {
+      setPendingReallocation({ candidates: selectedCands, slot: slotToAssign });
+      return;
+    }
+    performManualAllocation(selectedCands, slotToAssign);
   };
 
   // Remove Allocation Action
@@ -160,26 +240,21 @@ export default function CandidateInterviewAllocationPage() {
 
   // Auto Allocate Algorithm
   const handleAutoAllocate = () => {
-    // Sort candidates by score descending
-    const eligibleCandidates = [...candidates].sort((a, b) => b.score - a.score);
-    let tempSlots = slots.map((s) => ({ ...s }));
-    let newAllocations = [];
+    const eligibleCandidates = [...filteredCandidates].sort((a, b) => b.score - a.score);
+    const availableSlots = filteredSlots.map((slot) => ({ ...slot, rem: slot.cap }));
+    if (eligibleCandidates.length === 0 || availableSlots.length === 0) {
+      showToast('No eligible candidates or matching time slots are available.', 'error');
+      return;
+    }
+    const visibleIds = new Set(eligibleCandidates.map((candidate) => candidate.id));
+    const newAllocations = allocations.filter((allocation) => !visibleIds.has(allocation.candidateId));
 
     eligibleCandidates.forEach((cand) => {
-      // Find first available slot with remaining capacity > 0
-      const availableSlot = tempSlots.find((s) => s.rem > 0);
+      const availableSlot = availableSlots.find((slot) => slot.rem > 0);
 
       if (availableSlot) {
         availableSlot.rem -= 1;
-        newAllocations.push({
-          candidateId: cand.id,
-          candidateName: cand.name,
-          slotId: availableSlot.id,
-          assignedTime: availableSlot.time,
-          interviewDate: availableSlot.date,
-          interviewType: availableSlot.type,
-          status: 'ALLOCATED',
-        });
+        newAllocations.push(buildAllocationRecord(cand, availableSlot));
       } else {
         newAllocations.push({
           candidateId: cand.id,
@@ -193,17 +268,45 @@ export default function CandidateInterviewAllocationPage() {
       }
     });
 
-    setSlots(tempSlots);
     setAllocations(newAllocations);
-    showToast('Auto-allocation completed based on candidate score priority & slot availability!⚡');
+    setCandidates((current) => current.map((candidate) => ({ ...candidate, selected: false })));
+    setSelectedSlotId('');
+    showToast('Auto-allocation completed using score priority and current slot capacity.');
   };
 
   // Reset Allocations
   const handleResetAllocations = () => {
     setCandidates(INITIAL_CANDIDATES);
-    setSlots(INITIAL_SLOTS);
     setAllocations(INITIAL_ALLOCATIONS);
+    setSelectedSlotId('');
+    setShowResetConfirm(false);
     showToast('Allocations reset to initial state.', 'info');
+  };
+
+  const handleConfirmReschedule = () => {
+    const candidate = candidates.find(
+      (item) => item.id === reschedulingAllocation?.candidateId
+    );
+    const targetSlot = slotsWithRemaining.find((slot) => slot.id === rescheduleSlotId);
+    if (!candidate || !targetSlot) {
+      showToast('Select an available slot to reschedule this candidate.', 'error');
+      return;
+    }
+    const isCurrentSlot = reschedulingAllocation.slotId === targetSlot.id;
+    if (!isCurrentSlot && targetSlot.rem <= 0) {
+      showToast('The selected slot is fully booked.', 'error');
+      return;
+    }
+    setAllocations((current) =>
+      current.map((allocation) =>
+        allocation.candidateId === candidate.id
+          ? buildAllocationRecord(candidate, targetSlot)
+          : allocation
+      )
+    );
+    setReschedulingAllocation(null);
+    setRescheduleSlotId('');
+    showToast(`${candidate.name}'s interview was rescheduled successfully.`);
   };
 
   // Save Allocations
@@ -213,13 +316,21 @@ export default function CandidateInterviewAllocationPage() {
 
   // Filtered Allocations for display
   const filteredAllocations = useMemo(() => {
-    if (!searchQuery) return allocations;
-    return allocations.filter((a) =>
+    const visibleCandidateIds = new Set(
+      candidates
+        .filter((candidate) => candidate.jobPosition === jobPosition)
+        .map((candidate) => candidate.id)
+    );
+    const contextualAllocations = allocations.filter((allocation) =>
+      visibleCandidateIds.has(allocation.candidateId)
+    );
+    if (!searchQuery) return contextualAllocations;
+    return contextualAllocations.filter((a) =>
       a.candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.interviewType.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.status.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [allocations, searchQuery]);
+  }, [allocations, candidates, jobPosition, searchQuery]);
 
   // Pagination calculations
   const totalResults = filteredAllocations.length;
@@ -229,7 +340,29 @@ export default function CandidateInterviewAllocationPage() {
     return filteredAllocations.slice(startIdx, startIdx + itemsPerPage);
   }, [filteredAllocations, currentPage, itemsPerPage]);
 
-  const allCandidatesSelected = candidates.length > 0 && candidates.every((c) => c.selected);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [jobPosition, searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const selectedVisibleCandidates = filteredCandidates.filter((candidate) => candidate.selected);
+  const selectedSlot = filteredSlots.find((slot) => slot.id === selectedSlotId);
+  const rescheduleCandidate = candidates.find(
+    (candidate) => candidate.id === reschedulingAllocation?.candidateId
+  );
+  const rescheduleOptions = rescheduleCandidate
+    ? slotsWithRemaining.filter(
+        (slot) =>
+          slot.jobPosition === rescheduleCandidate.jobPosition &&
+          slot.round === rescheduleCandidate.round &&
+          (slot.rem > 0 || slot.id === reschedulingAllocation?.slotId)
+      )
+    : [];
+  const allCandidatesSelected =
+    filteredCandidates.length > 0 && filteredCandidates.every((candidate) => candidate.selected);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -246,7 +379,6 @@ export default function CandidateInterviewAllocationPage() {
           user={{ name: 'Recruiter', role: 'Recruiter Account' }}
           notificationsCount={3}
           searchPlaceholder="Search vacancies, candidates, or interviews..."
-          onSearch={(q) => setSearchQuery(q)}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
@@ -294,9 +426,7 @@ export default function CandidateInterviewAllocationPage() {
               </p>
             </div>
             <button type="button" className="btn-auto-allocate" onClick={handleAutoAllocate}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
+              <Sparkles size={16} />
               <span>Auto Allocate</span>
             </button>
           </div>
@@ -315,10 +445,7 @@ export default function CandidateInterviewAllocationPage() {
           <div className="card-surface filter-card-row">
             <div className="filter-item">
               <label className="filter-item-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                </svg>
+                <BriefcaseBusiness size={14} />
                 <span>JOB POSITION</span>
               </label>
               <div className="select-input-wrap">
@@ -340,9 +467,7 @@ export default function CandidateInterviewAllocationPage() {
 
             <div className="filter-item">
               <label className="filter-item-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+                <Star size={14} />
                 <span>INTERVIEW ROUND</span>
               </label>
               <div className="select-input-wrap">
@@ -363,12 +488,7 @@ export default function CandidateInterviewAllocationPage() {
 
             <div className="filter-item">
               <label className="filter-item-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
+                <CalendarDays size={14} />
                 <span>INTERVIEW DATE</span>
               </label>
               <input
@@ -379,26 +499,6 @@ export default function CandidateInterviewAllocationPage() {
               />
             </div>
 
-            <div className="filter-item">
-              <label className="filter-item-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                </svg>
-                <span>ALLOCATION METHOD</span>
-              </label>
-              <div className="select-input-wrap">
-                <select
-                  value={allocationMethod}
-                  onChange={(e) => setAllocationMethod(e.target.value)}
-                  className="form-control"
-                >
-                  <option value="Automatic (Optimized)">Automatic (Optimized)</option>
-                  <option value="Score-Based First">Score-Based First</option>
-                  <option value="Manual Priority">Manual Priority</option>
-                </select>
-                <span className="select-arrow">▼</span>
-              </div>
-            </div>
           </div>
 
           {/* ── Dual Workspace Grid: Shortlisted Candidates | Action Buttons | Available Time Slots ── */}
@@ -408,13 +508,10 @@ export default function CandidateInterviewAllocationPage() {
             <div className="card-surface candidate-list-card">
               <div className="card-header-bar flex-between">
                 <div className="card-title-group">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                  </svg>
+                  <Users size={16} />
                   <h3 className="card-title">Shortlisted Candidates</h3>
                 </div>
-                <span className="count-badge">{candidates.length} TOTAL</span>
+                <span className="count-badge">{filteredCandidates.length} TOTAL</span>
               </div>
 
               <div className="table-responsive">
@@ -436,7 +533,7 @@ export default function CandidateInterviewAllocationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {candidates.map((cand) => (
+                    {filteredCandidates.map((cand) => (
                       <tr
                         key={cand.id}
                         className={cand.selected ? 'row-selected' : ''}
@@ -467,35 +564,68 @@ export default function CandidateInterviewAllocationPage() {
                   </tbody>
                 </table>
               </div>
+              <div className="allocation-mobile-list">
+                {filteredCandidates.map((candidate) => (
+                  <button
+                    type="button"
+                    key={`mobile-${candidate.id}`}
+                    className={`allocation-mobile-card candidate-mobile-card ${candidate.selected ? 'is-selected' : ''}`}
+                    onClick={() => handleToggleCandidateSelect(candidate.id)}
+                  >
+                    <span className="mobile-selection-indicator">
+                      {candidate.selected && <Check size={13} />}
+                    </span>
+                    <span>
+                      <strong>{candidate.name}</strong>
+                      <small>{candidate.id}</small>
+                    </span>
+                    <span className="score-badge">{candidate.score}%</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Middle Action Controls */}
             <div className="middle-action-column">
+              <div className="allocation-selection-summary">
+                <strong>{selectedVisibleCandidates.length}</strong>
+                <span>candidate{selectedVisibleCandidates.length === 1 ? '' : 's'}</span>
+                <small>{selectedSlot ? `${selectedSlot.dateShort}, ${selectedSlot.time}` : 'No slot selected'}</small>
+              </div>
               <button
                 type="button"
                 className="btn-primary-accent btn-allocate"
                 onClick={handleManualAllocate}
               >
                 <span>Allocate</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
+                <ArrowRight size={14} />
               </button>
               <button
                 type="button"
                 className="btn-ghost-dark btn-remove-alloc"
                 onClick={() => {
-                  const selected = candidates.filter((c) => c.selected);
+                  const selected = selectedVisibleCandidates;
                   if (selected.length === 0) {
                     showToast('Select a candidate to remove allocation.', 'error');
                   } else {
-                    selected.forEach((c) => handleRemoveAllocation(c.id));
+                    const selectedIds = new Set(selected.map((candidate) => candidate.id));
+                    setAllocations((current) =>
+                      current.map((allocation) =>
+                        selectedIds.has(allocation.candidateId)
+                          ? { ...allocation, slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' }
+                          : allocation
+                      )
+                    );
+                    setCandidates((current) =>
+                      current.map((candidate) =>
+                        selectedIds.has(candidate.id) ? { ...candidate, selected: false } : candidate
+                      )
+                    );
+                    showToast(`Removed allocations for ${selected.length} candidate(s).`);
                   }
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
+                <ArrowLeft size={14} />
                 <span>Remove</span>
               </button>
             </div>
@@ -504,14 +634,10 @@ export default function CandidateInterviewAllocationPage() {
             <div className="card-surface slots-list-card">
               <div className="card-header-bar flex-between">
                 <div className="card-title-group">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                  </svg>
+                  <CalendarDays size={16} />
                   <h3 className="card-title">Available Time Slots</h3>
                 </div>
-                <span className="count-badge">{slots.length} SLOTS</span>
+                <span className="count-badge">{filteredSlots.length} SLOTS</span>
               </div>
 
               <div className="table-responsive">
@@ -527,26 +653,30 @@ export default function CandidateInterviewAllocationPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {slots.map((slot) => (
+                    {filteredSlots.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="allocation-empty-cell">No slots match the selected filters.</td>
+                      </tr>
+                    )}
+                    {filteredSlots.map((slot) => (
                       <tr
                         key={slot.id}
-                        className={slot.selected ? 'row-selected' : ''}
-                        onClick={() => handleToggleSlotSelect(slot.id)}
+                        className={`${selectedSlotId === slot.id ? 'row-selected' : ''} ${slot.rem === 0 ? 'row-disabled' : ''}`}
+                        onClick={() => slot.rem > 0 && setSelectedSlotId(slot.id)}
                       >
                         <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                           <input
-                            type="checkbox"
-                            checked={slot.selected}
-                            onChange={() => handleToggleSlotSelect(slot.id)}
+                            type="radio"
+                            name="allocation-slot"
+                            checked={selectedSlotId === slot.id}
+                            disabled={slot.rem === 0}
+                            onChange={() => setSelectedSlotId(slot.id)}
                             className="styled-checkbox"
                           />
                         </td>
                         <td className="slot-date-cell">{slot.dateShort}</td>
                         <td className="slot-time-cell">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                          </svg>
+                          <Clock3 size={12} />
                           <span>{slot.time}</span>
                         </td>
                         <td>
@@ -556,14 +686,39 @@ export default function CandidateInterviewAllocationPage() {
                         </td>
                         <td className="font-bold">{slot.cap}</td>
                         <td>
-                          <span className={`rem-count ${slot.rem === 0 ? 'rem-zero' : ''}`}>
-                            {slot.rem}
-                          </span>
+                          {slot.rem === 0 ? (
+                            <span className="slot-full-badge">FULL</span>
+                          ) : (
+                            <span className="rem-count">{slot.rem}</span>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="allocation-mobile-list">
+                {filteredSlots.length === 0 && (
+                  <div className="allocation-mobile-empty">No slots match the selected filters.</div>
+                )}
+                {filteredSlots.map((slot) => (
+                  <button
+                    type="button"
+                    key={`mobile-${slot.id}`}
+                    disabled={slot.rem === 0}
+                    className={`allocation-mobile-card slot-mobile-card ${selectedSlotId === slot.id ? 'is-selected' : ''}`}
+                    onClick={() => setSelectedSlotId(slot.id)}
+                  >
+                    <span>
+                      <strong>{slot.dateShort}</strong>
+                      <small>{slot.time} – {slot.end}</small>
+                    </span>
+                    <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
+                      {slot.type}
+                    </span>
+                    {slot.rem === 0 ? <span className="slot-full-badge">FULL</span> : <span>{slot.rem} left</span>}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -578,19 +733,22 @@ export default function CandidateInterviewAllocationPage() {
               </div>
 
               <div className="action-buttons-group">
-                <button type="button" className="btn-ghost-dark" onClick={handleResetAllocations}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="1 4 1 10 7 10"></polyline>
-                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                  </svg>
+                <div className="allocation-results-search">
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search results..."
+                    aria-label="Search allocation results"
+                  />
+                </div>
+                <button type="button" className="btn-ghost-dark" onClick={() => setShowResetConfirm(true)}>
+                  <RotateCcw size={14} />
                   <span>Reset</span>
                 </button>
                 <button type="button" className="btn-primary-accent" onClick={handleSaveAllocations}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                    <polyline points="7 3 7 8 15 8"></polyline>
-                  </svg>
+                  <Save size={14} />
                   <span>Save Allocation</span>
                 </button>
               </div>
@@ -615,10 +773,7 @@ export default function CandidateInterviewAllocationPage() {
                       <td className="font-bold cand-name-cell">{item.candidateName}</td>
                       <td className="time-slot-cell">
                         {item.assignedTime !== '—' && (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                          </svg>
+                          <Clock3 size={14} />
                         )}
                         <span>{item.assignedTime}</span>
                       </td>
@@ -632,17 +787,12 @@ export default function CandidateInterviewAllocationPage() {
                         >
                           {item.status === 'ALLOCATED' ? (
                             <>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                              </svg>
+                              <CheckCircle2 size={12} />
                               <span>ALLOCATED</span>
                             </>
                           ) : (
                             <>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                              </svg>
+                              <Clock3 size={12} />
                               <span>PENDING</span>
                             </>
                           )}
@@ -650,14 +800,26 @@ export default function CandidateInterviewAllocationPage() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         {item.status === 'ALLOCATED' && (
-                          <button
-                            type="button"
-                            className="btn-unassign-row"
-                            onClick={() => handleRemoveAllocation(item.candidateId)}
-                            title="Unassign this candidate"
-                          >
-                            Unassign
-                          </button>
+                          <div className="result-row-actions">
+                            <button
+                              type="button"
+                              className="btn-reschedule-row"
+                              onClick={() => {
+                                setReschedulingAllocation(item);
+                                setRescheduleSlotId(item.slotId);
+                              }}
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-unassign-row"
+                              onClick={() => handleRemoveAllocation(item.candidateId)}
+                              title="Unassign this candidate"
+                            >
+                              Unassign
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -665,9 +827,38 @@ export default function CandidateInterviewAllocationPage() {
                 </tbody>
               </table>
             </div>
+            <div className="allocation-mobile-list results-mobile-list">
+              {paginatedAllocations.map((item) => (
+                <article className="allocation-result-mobile-card" key={`mobile-${item.candidateId}`}>
+                  <div>
+                    <strong>{item.candidateName}</strong>
+                    <span className={`status-result-badge ${item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <dl>
+                    <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
+                    <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
+                    <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
+                  </dl>
+                  {item.status === 'ALLOCATED' && (
+                    <div className="result-row-actions">
+                      <button type="button" className="btn-reschedule-row" onClick={() => {
+                        setReschedulingAllocation(item);
+                        setRescheduleSlotId(item.slotId);
+                      }}>Reschedule</button>
+                      <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId)}>
+                        Unassign
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
 
             {/* Pagination Footer */}
-            <div className="table-pagination-footer">
+            {filteredAllocations.length > itemsPerPage && (
+              <div className="table-pagination-footer">
               <span className="pagination-info">
                 Showing <strong>{paginatedAllocations.length}</strong> of <strong>{filteredAllocations.length}</strong> allocation results
               </span>
@@ -702,11 +893,101 @@ export default function CandidateInterviewAllocationPage() {
                   <ChevronRight size={16} />
                 </button>
               </div>
-            </div>
+              </div>
+            )}
           </div>
 
         </div>
       </div>
+
+      {pendingReallocation && (
+        <div className="allocation-modal-backdrop" onClick={() => setPendingReallocation(null)}>
+          <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="allocation-modal__header">
+              <h3>Confirm Reallocation</h3>
+              <button type="button" onClick={() => setPendingReallocation(null)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="allocation-modal__body">
+              <p>
+                {pendingReallocation.candidates.filter((candidate) =>
+                  allocationByCandidate.get(candidate.id)?.status === 'ALLOCATED'
+                ).length} selected candidate(s) already have an interview slot.
+              </p>
+              <p>Their previous capacity will be restored when they are moved.</p>
+            </div>
+            <div className="allocation-modal__actions">
+              <button type="button" className="allocation-modal-cancel" onClick={() => setPendingReallocation(null)}>Cancel</button>
+              <button
+                type="button"
+                className="allocation-modal-confirm"
+                onClick={() => performManualAllocation(pendingReallocation.candidates, pendingReallocation.slot)}
+              >
+                Confirm Reallocation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResetConfirm && (
+        <div className="allocation-modal-backdrop" onClick={() => setShowResetConfirm(false)}>
+          <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="allocation-modal__header">
+              <h3>Reset Allocations?</h3>
+              <button type="button" onClick={() => setShowResetConfirm(false)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="allocation-modal__body">
+              <p>This will discard the current allocation changes and restore the initial demo records.</p>
+            </div>
+            <div className="allocation-modal__actions">
+              <button type="button" className="allocation-modal-cancel" onClick={() => setShowResetConfirm(false)}>Cancel</button>
+              <button type="button" className="allocation-modal-confirm allocation-modal-danger" onClick={handleResetAllocations}>
+                Reset Allocations
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reschedulingAllocation && (
+        <div className="allocation-modal-backdrop" onClick={() => setReschedulingAllocation(null)}>
+          <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="allocation-modal__header">
+              <h3>Reschedule Interview</h3>
+              <button type="button" onClick={() => setReschedulingAllocation(null)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="allocation-modal__body">
+              <p>Select a new slot for <strong>{reschedulingAllocation.candidateName}</strong>.</p>
+              <label className="reschedule-slot-label" htmlFor="reschedule-slot">Available time slot</label>
+              <select
+                id="reschedule-slot"
+                className="form-control"
+                value={rescheduleSlotId}
+                onChange={(event) => setRescheduleSlotId(event.target.value)}
+              >
+                <option value="">Select a slot</option>
+                {rescheduleOptions.map((slot) => (
+                  <option key={slot.id} value={slot.id}>
+                    {slot.date} · {slot.time}–{slot.end} · {slot.type} · {slot.rem} available
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="allocation-modal__actions">
+              <button type="button" className="allocation-modal-cancel" onClick={() => setReschedulingAllocation(null)}>Cancel</button>
+              <button type="button" className="allocation-modal-confirm" onClick={handleConfirmReschedule}>
+                Confirm Reschedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

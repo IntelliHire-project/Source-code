@@ -7,6 +7,7 @@ import {
   Info,
   ChevronRight,
   AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -26,6 +27,11 @@ const EXPERIENCE_OPTIONS = [
 
 const INITIAL_SKILLS = ['React', 'TypeScript', 'REST APIs'];
 
+const ASSESSMENT_OPTIONS = [
+  { label: 'Yes', value: 'yes' },
+  { label: 'No', value: 'no' },
+];
+
 function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -36,8 +42,12 @@ function CreateVacancyPage() {
   const [skills, setSkills] = useState(INITIAL_SKILLS);
   const [qualifications, setQualifications] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('senior');
+  const [requireAssessmentTest, setRequireAssessmentTest] = useState('no');
   const [openings, setOpenings] = useState('3');
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [shortlistCount, setShortlistCount] = useState('');
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -48,7 +58,7 @@ function CreateVacancyPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setLastEdited((p) => p + 1), 60000);
     return () => clearInterval(timerRef.current);
-  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, deadline]);
+  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline]);
 
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
@@ -179,6 +189,18 @@ function CreateVacancyPage() {
                   </div>
 
                   <div className="cv-field">
+                    <label className="cv-label">Require Assessment Test?</label>
+                    <div className="assessment-toggle-wrapper">
+                      <PillToggleGroup
+                        name="assessment-test"
+                        options={ASSESSMENT_OPTIONS}
+                        value={requireAssessmentTest}
+                        onChange={setRequireAssessmentTest}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cv-field">
                     <label className="cv-label" htmlFor="cv-qualifications">
                       Minimum Qualifications
                     </label>
@@ -193,6 +215,16 @@ function CreateVacancyPage() {
                   </div>
                 </div>
               </section>
+
+              <button
+                type="button"
+                className="cv-schedule-btn"
+                onClick={() => navigate('/recruiter/interviews')}
+              >
+                <Calendar size={16} />
+                Schedule Interview Panels &amp; Time Slots
+                <ChevronRight size={14} />
+              </button>
             </div>
 
             {/* ── Right: rail ── */}
@@ -226,6 +258,37 @@ function CreateVacancyPage() {
                 </div>
 
                 <div className="cv-field">
+                  <label className="cv-label">Salary Range</label>
+                  <div className="cv-salary-row">
+                    <div className="cv-salary-field">
+                      <span className="cv-salary-prefix">$</span>
+                      <input
+                        id="cv-salary-min"
+                        className="cv-input cv-input--salary"
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={salaryMin}
+                        onChange={(e) => setSalaryMin(e.target.value)}
+                      />
+                    </div>
+                    <span className="cv-salary-separator">–</span>
+                    <div className="cv-salary-field">
+                      <span className="cv-salary-prefix">$</span>
+                      <input
+                        id="cv-salary-max"
+                        className="cv-input cv-input--salary"
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={salaryMax}
+                        onChange={(e) => setSalaryMax(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="cv-field">
                   <label className="cv-label" htmlFor="cv-deadline">
                     Application Deadline
                   </label>
@@ -235,6 +298,20 @@ function CreateVacancyPage() {
                     type="date"
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
+                  />
+                </div>
+
+                <div className="cv-field">
+                  <label className="cv-label" htmlFor="cv-shortlist-count">
+                    Number of Candidates to Shortlist
+                  </label>
+                  <input
+                    id="cv-shortlist-count"
+                    className="cv-input"
+                    type="number"
+                    min="1"
+                    value={shortlistCount}
+                    onChange={(e) => setShortlistCount(e.target.value)}
                   />
                 </div>
               </section>

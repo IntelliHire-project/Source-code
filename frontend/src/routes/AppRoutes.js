@@ -27,6 +27,7 @@ import CVInsights from '../pages/candidate/CVInsights';
 import DashboardPage from '../pages/candidate/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
+import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
@@ -34,6 +35,7 @@ import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBilling
 import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
 import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
+import PaymentStatusPage from '../pages/recruiter/PaymentStatus/PaymentStatusPage';
 import ApplicantAnalytics from '../pages/recruiter/ApplicantAnalytics/ApplicantAnalytics';
 import ShortlistingAnalytics from '../pages/recruiter/ShortlistingAnalytics/ShortlistingAnalytics';
 import AssessmentAnalytics from '../pages/recruiter/AssessmentAnalytics/AssessmentAnalytics';
@@ -205,6 +207,10 @@ function AppRoutes() {
           element={<OTPVerificationPage />}
         />
         <Route
+          path="/recruiter/payment-status"
+          element={<PaymentStatusPage />}
+        />
+        <Route
           path="/recruiter/payments"
           element={<PaymentBillingPage />}
         />
@@ -260,7 +266,7 @@ function AppRoutes() {
         />
         <Route
           path="/recruiter/applicants/interviewed"
-          element={<PlaceholderApplicants title="Interviewed" />}
+          element={<InterviewedApplicants />}
         />
         <Route
           path="/dashboard"
