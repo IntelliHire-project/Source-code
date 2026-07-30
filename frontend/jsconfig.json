@@ -6,6 +6,8 @@
     "jsx": "react-jsx",
     "checkJs": false,
     "allowJs": true,
+    "noResolve": true,
+    "types": [],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "strict": false

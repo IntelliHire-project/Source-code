@@ -22,7 +22,7 @@ const NAV_ITEMS = [
   { label: 'Find jobs', icon: Briefcase, path: '/candidate/jobs' },
   { label: 'My applications', icon: FileText, path: '/candidate/applications' },
   { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
-  { label: 'Community', icon: Users, path: '/community' },
+  { label: 'Community', icon: Users, path: '/candidate/community' },
 ];
 
 const BOTTOM_ITEMS = [
