@@ -327,19 +327,7 @@ function CVInsights() {
 
   return (
     <div className="cv-insights">
-      {/* Header */}
-      <div className="cv-insights__header">
-        <div className="cv-insights__header-left">
-          <h1 className="cv-insights__title">
-            <Sparkles size={28} className="cv-insights__title-icon" />
-            CV Insights
-          </h1>
-          <p className="cv-insights__subtext">
-            Get AI-powered feedback on your CV to improve your match rate
-          </p>
-        </div>
-
-        <div className="cv-insights__cv-selector">
+      <div className="cv-insights__cv-selector">
           <div className="cv-insights__cv-selector-wrap">
             <button
               className="cv-insights__cv-trigger"
