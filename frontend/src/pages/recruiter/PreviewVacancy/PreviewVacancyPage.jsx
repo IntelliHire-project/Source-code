@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   Edit3,
@@ -67,19 +67,33 @@ const SAMPLE_VACANCY = {
   deadline: '2026-08-30',
 };
 
-const META_ITEMS = [
-  { icon: Building2, label: 'Engineering' },
-  { icon: MapPin, label: 'London, UK' },
-  { icon: Globe, label: 'Remote Friendly' },
-  { icon: Clock, label: 'Full-Time' },
-];
+const CATEGORY_LABELS = {
+  engineering: 'Engineering',
+  design: 'Design',
+  marketing: 'Marketing',
+  sales: 'Sales',
+  hr: 'HR',
+};
 
-const SUMMARY_STATS = [
-  { icon: Layers, label: 'EXPERIENCE LEVEL', value: 'Senior' },
-  { icon: Briefcase, label: 'OPENINGS', value: '3 positions' },
-  { icon: CalendarDays, label: 'APPLICATION DEADLINE', value: '30 Aug 2026' },
-  { icon: Globe, label: 'WORK MODE', value: 'Remote Friendly' },
-];
+const WORK_MODE_LABELS = {
+  remote: 'Remote',
+  hybrid: 'Hybrid',
+  onsite: 'Onsite',
+};
+
+const JOB_TYPE_LABELS = {
+  'full-time': 'Full-Time',
+  'part-time': 'Part-Time',
+  'contract': 'Contract',
+  'internship': 'Internship',
+};
+
+const EXPERIENCE_LABELS = {
+  junior: 'Junior',
+  'mid-level': 'Mid-Level',
+  senior: 'Senior',
+  lead: 'Lead',
+};
 
 function StatusBadge({ label }) {
   return (
@@ -132,7 +146,52 @@ function PreviewVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const navigate = useNavigate();
-  const v = SAMPLE_VACANCY;
+  const location = useLocation();
+  const formState = location.state;
+
+  const v = formState
+    ? {
+        jobTitle: formState.jobTitle || SAMPLE_VACANCY.jobTitle,
+        salaryRange:
+          formState.salaryMin && formState.salaryMax
+            ? `$${Number(formState.salaryMin).toLocaleString()} – $${Number(formState.salaryMax).toLocaleString()}`
+            : SAMPLE_VACANCY.salaryRange,
+        department: CATEGORY_LABELS[formState.category] || formState.category || SAMPLE_VACANCY.department,
+        location: formState.selectedLocation || SAMPLE_VACANCY.location,
+        workMode: WORK_MODE_LABELS[formState.workMode] || formState.workMode || SAMPLE_VACANCY.workMode,
+        employmentType: JOB_TYPE_LABELS[formState.jobType] || formState.jobType || SAMPLE_VACANCY.employmentType,
+        description: formState.jobDescription || SAMPLE_VACANCY.description,
+        responsibilities: formState.responsibilities || SAMPLE_VACANCY.responsibilities,
+        qualifications: formState.qualifications
+          ? formState.qualifications.split('\n').filter(Boolean)
+          : SAMPLE_VACANCY.qualifications,
+        perks: SAMPLE_VACANCY.perks,
+        skills: formState.skills || SAMPLE_VACANCY.skills,
+        experienceLevel: EXPERIENCE_LABELS[formState.experienceLevel] || formState.experienceLevel || SAMPLE_VACANCY.experienceLevel,
+        openings: formState.openings || SAMPLE_VACANCY.openings,
+        deadline: formState.deadline || SAMPLE_VACANCY.deadline,
+      }
+    : SAMPLE_VACANCY;
+
+  const META_ITEMS = [
+    { icon: Building2, label: v.department },
+    { icon: MapPin, label: v.location },
+    { icon: Globe, label: v.workMode },
+    { icon: Clock, label: v.employmentType },
+  ];
+
+  const SUMMARY_STATS = [
+    { icon: Layers, label: 'EXPERIENCE LEVEL', value: v.experienceLevel },
+    { icon: Briefcase, label: 'OPENINGS', value: `${v.openings} position${v.openings !== '1' ? 's' : ''}` },
+    {
+      icon: CalendarDays,
+      label: 'APPLICATION DEADLINE',
+      value: v.deadline
+        ? new Date(v.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Not set',
+    },
+    { icon: Globe, label: 'WORK MODE', value: v.workMode },
+  ];
 
   return (
     <div className="create-vacancy pv-shell">

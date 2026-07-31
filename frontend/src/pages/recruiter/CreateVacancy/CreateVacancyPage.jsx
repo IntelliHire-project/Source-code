@@ -8,6 +8,12 @@ import {
   ChevronRight,
   AlertCircle,
   Calendar,
+  Building2,
+  Layers,
+  Globe,
+  Clock,
+  Plus,
+  X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -25,12 +31,174 @@ const EXPERIENCE_OPTIONS = [
   { label: 'Lead', value: 'lead' },
 ];
 
+const CATEGORY_SUGGESTIONS = [
+  'Engineering',
+  'Design',
+  'Marketing',
+  'Sales',
+  'HR',
+  'Finance',
+  'Operations',
+  'Legal',
+  'Product',
+  'Customer Support',
+];
+
+const WORK_MODE_OPTIONS = [
+  { label: 'Remote', value: 'remote' },
+  { label: 'Hybrid', value: 'hybrid' },
+  { label: 'Onsite', value: 'onsite' },
+];
+
+const JOB_TYPE_OPTIONS = [
+  { label: 'Full-Time', value: 'full-time' },
+  { label: 'Part-Time', value: 'part-time' },
+  { label: 'Contract', value: 'contract' },
+  { label: 'Internship', value: 'internship' },
+];
+
+const LOCATION_SUGGESTIONS = [
+  'London, UK',
+  'New York, USA',
+  'San Francisco, USA',
+  'Berlin, Germany',
+];
+
 const INITIAL_SKILLS = ['React', 'TypeScript', 'REST APIs'];
 
 const ASSESSMENT_OPTIONS = [
   { label: 'Yes', value: 'yes' },
   { label: 'No', value: 'no' },
 ];
+
+function AutocompleteInput({ suggestions, value, onChange, placeholder, label, hint, id }) {
+  const [inputValue, setInputValue] = useState(value || '');
+  const [filtered, setFiltered] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    setInputValue(value || '');
+  }, [value]);
+
+  useEffect(() => {
+    if (inputValue.length === 0) {
+      setFiltered([]);
+      setIsOpen(false);
+      return;
+    }
+    const matches = suggestions.filter(
+      (s) => s.toLowerCase().includes(inputValue.toLowerCase())
+    );
+    setFiltered(matches);
+    setIsOpen(matches.length > 0);
+    setActiveIdx(-1);
+  }, [inputValue, suggestions]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const select = (suggestion) => {
+    setInputValue(suggestion);
+    onChange(suggestion);
+    setIsOpen(false);
+    setActiveIdx(-1);
+  };
+
+  const handleChange = (e) => {
+    setInputValue(e.target.value);
+    onChange(e.target.value);
+  };
+
+  const handleKeyDown = (e) => {
+    if (!isOpen) return;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setActiveIdx((prev) => Math.min(prev + 1, filtered.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIdx((prev) => Math.max(prev - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (activeIdx >= 0) {
+          select(filtered[activeIdx]);
+        }
+        break;
+      case 'Escape':
+        setIsOpen(false);
+        setActiveIdx(-1);
+        break;
+    }
+  };
+
+  const highlight = (text, query) => {
+    if (!query) return text;
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <strong className="autocomplete-highlight">{text.slice(idx, idx + query.length)}</strong>
+        {text.slice(idx + query.length)}
+      </>
+    );
+  };
+
+  return (
+    <div className="cv-field">
+      {label && (
+        <label className="cv-label" htmlFor={id}>
+          {label}
+        </label>
+      )}
+      {hint && (
+        <span className="cv-field-hint" style={{ marginBottom: 4 }}>
+          {hint}
+        </span>
+      )}
+      <div className="autocomplete-wrapper" ref={wrapperRef}>
+        <input
+          id={id}
+          type="text"
+          className="cv-input autocomplete-input"
+          value={inputValue}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => {
+            if (inputValue && filtered.length > 0) setIsOpen(true);
+          }}
+          placeholder={placeholder}
+          autoComplete="off"
+        />
+        {isOpen && (
+          <ul className="autocomplete-list">
+            {filtered.map((s, i) => (
+              <li
+                key={s}
+                className={`autocomplete-item ${i === activeIdx ? 'autocomplete-item--active' : ''}`}
+                onClick={() => select(s)}
+                onMouseEnter={() => setActiveIdx(i)}
+              >
+                {highlight(s, inputValue)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -48,6 +216,11 @@ function CreateVacancyPage() {
   const [salaryMax, setSalaryMax] = useState('');
   const [deadline, setDeadline] = useState('');
   const [shortlistCount, setShortlistCount] = useState('');
+  const [category, setCategory] = useState('');
+  const [workMode, setWorkMode] = useState('remote');
+  const [jobType, setJobType] = useState('full-time');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [responsibilities, setResponsibilities] = useState(['']);
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -58,7 +231,18 @@ function CreateVacancyPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setLastEdited((p) => p + 1), 60000);
     return () => clearInterval(timerRef.current);
-  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline]);
+  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, category, workMode, jobType, selectedLocation, responsibilities]);
+
+  const addResponsibility = () => setResponsibilities([...responsibilities, '']);
+  const removeResponsibility = (idx) => {
+    const updated = responsibilities.filter((_, i) => i !== idx);
+    setResponsibilities(updated.length ? updated : ['']);
+  };
+  const updateResponsibility = (idx, value) => {
+    const updated = [...responsibilities];
+    updated[idx] = value;
+    setResponsibilities(updated);
+  };
 
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
@@ -106,7 +290,28 @@ function CreateVacancyPage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => navigate('/recruiter/vacancy-preview')}
+                onClick={() =>
+                  navigate('/recruiter/vacancy-preview', {
+                    state: {
+                      jobTitle,
+                      jobDescription,
+                      skills,
+                      qualifications,
+                      experienceLevel,
+                      requireAssessmentTest,
+                      openings,
+                      salaryMin,
+                      salaryMax,
+                      deadline,
+                      shortlistCount,
+                      category,
+                      workMode,
+                      jobType,
+                      selectedLocation,
+                      responsibilities: responsibilities.filter(Boolean),
+                    },
+                  })
+                }
               >
                 Preview Vacancy
               </button>
@@ -159,6 +364,101 @@ function CreateVacancyPage() {
                     <span className="cv-field-hint">
                       Tip: Be specific about daily responsibilities and team structure.
                     </span>
+                  </div>
+
+                  <AutocompleteInput
+                    id="cv-location"
+                    label="Company Location"
+                    hint="Fetched from company profile"
+                    placeholder="Type a location or select from your offices…"
+                    suggestions={LOCATION_SUGGESTIONS}
+                    value={selectedLocation}
+                    onChange={setSelectedLocation}
+                  />
+
+                  <AutocompleteInput
+                    id="cv-category"
+                    label="Category / Department"
+                    placeholder="Type a department or select from suggestions…"
+                    suggestions={CATEGORY_SUGGESTIONS}
+                    value={category}
+                    onChange={setCategory}
+                  />
+
+                  <div className="cv-field">
+                    <label className="cv-label">Key Responsibilities</label>
+                    <span className="cv-field-hint" style={{ marginBottom: 4 }}>
+                      Add each responsibility as a separate bullet point
+                    </span>
+                    <div className="cv-repeater">
+                      {responsibilities.map((item, idx) => (
+                        <div key={idx} className="cv-repeater-item">
+                          <span className="cv-repeater-bullet" aria-hidden="true" />
+                          <input
+                            type="text"
+                            className="cv-input cv-repeater-input"
+                            value={item}
+                            onChange={(e) => updateResponsibility(idx, e.target.value)}
+                            placeholder="e.g. Lead the design and implementation of…"
+                          />
+                          <button
+                            type="button"
+                            className="cv-repeater-remove"
+                            onClick={() => removeResponsibility(idx)}
+                            title="Remove responsibility"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="cv-repeater-add"
+                      onClick={addResponsibility}
+                    >
+                      <Plus size={14} />
+                      Add Responsibility
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Card 1.5 — Job Details */}
+              <section className="cv-card">
+                <div className="cv-card__header">
+                  <div className="cv-card__icon cv-card__icon--gold">
+                    <Layers size={18} />
+                  </div>
+                  <div>
+                    <h2 className="cv-card__title">Job Details</h2>
+                    <p className="cv-card__subtitle">Work mode, type, and other conditions</p>
+                  </div>
+                </div>
+
+                <div className="cv-card__body">
+                  <div className="cv-field">
+                    <label className="cv-label">Work Mode</label>
+                    <div className="work-mode-toggle-wrapper">
+                      <PillToggleGroup
+                        name="work-mode"
+                        options={WORK_MODE_OPTIONS}
+                        value={workMode}
+                        onChange={setWorkMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="cv-field">
+                    <label className="cv-label">Job Type</label>
+                    <div className="job-type-toggle-wrapper">
+                      <PillToggleGroup
+                        name="job-type"
+                        options={JOB_TYPE_OPTIONS}
+                        value={jobType}
+                        onChange={setJobType}
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
@@ -358,7 +658,28 @@ function CreateVacancyPage() {
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => navigate('/recruiter/vacancy-preview')}
+                onClick={() =>
+                  navigate('/recruiter/vacancy-preview', {
+                    state: {
+                      jobTitle,
+                      jobDescription,
+                      skills,
+                      qualifications,
+                      experienceLevel,
+                      requireAssessmentTest,
+                      openings,
+                      salaryMin,
+                      salaryMax,
+                      deadline,
+                      shortlistCount,
+                      category,
+                      workMode,
+                      jobType,
+                      selectedLocation,
+                      responsibilities: responsibilities.filter(Boolean),
+                    },
+                  })
+                }
               >
                 Preview Vacancy
               </button>
