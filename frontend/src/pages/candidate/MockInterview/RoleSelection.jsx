@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Check, Plus, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, DatabaseZap } from 'lucide-react';
 import './RoleSelection.css';
 
@@ -36,10 +37,21 @@ const ROLES = [
 ];
 
 export default function MockInterviewRoleSelection() {
+  const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState('frontend');
   const [searchQuery, setSearchQuery] = useState('');
 
   const currentRole = ROLES.find(r => r.id === selectedRole);
+
+  const handleContinue = () => {
+    navigate('/candidate/mock-interviews/questions', {
+      state: { roleId: selectedRole, roleTitle: currentRole?.title }
+    });
+  };
+
+  const handleBack = () => {
+    navigate('/candidate/dashboard');
+  };
 
   return (
     <div className="role-selection-container">
@@ -109,7 +121,7 @@ export default function MockInterviewRoleSelection() {
       </div>
 
       <div className="bottom-action-bar">
-        <button className="back-btn">&larr; Back</button>
+        <button type="button" className="back-btn" onClick={handleBack}>&larr; Back</button>
         <div className="right-actions">
           {currentRole && (
             <div className="currently-selected">
@@ -117,7 +129,7 @@ export default function MockInterviewRoleSelection() {
               <span className="value">{currentRole.title}</span>
             </div>
           )}
-          <button className="continue-btn">Continue &gt;</button>
+          <button type="button" className="continue-btn" onClick={handleContinue}>Continue &gt;</button>
         </div>
       </div>
     </div>
