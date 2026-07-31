@@ -31,6 +31,7 @@ import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/Inte
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
+import VacancyDetailPage from '../pages/recruiter/VacancyDetail/VacancyDetailPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
 import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
@@ -186,6 +187,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/vacancies"
           element={<VacancyManagementPage />}
+        />
+        <Route
+          path="/vacancies/:id"
+          element={<VacancyDetailPage />}
         />
         <Route
           path="/recruiter/create-vacancy"

@@ -70,6 +70,31 @@
 > [!CAUTION]
 > Never use raw hex values in new CSS. Always reference the CSS variable (e.g. `var(--accent)`).
 
+### Status → Token Color Map
+
+Single source of truth: `frontend/src/utils/statusColors.js` (`STATUS_COLORS`).
+All status/decision badges and state-driven components (progress tracker,
+funnel bars, steppers) resolve status labels to the tokens below and apply
+them via `var(--status-color)`. Color is never the only signal — every badge
+renders its text label alongside the color.
+
+| Status label | Token |
+|--------------|-------|
+| `published`, `hired`, `approved`, `completed`, `filled` | `--success` |
+| `draft`, `pending`, `changes requested` / `changes_requested`, `offer`, `rescheduled` | `--warning` |
+| `shortlisted`, `interviewed`, `scheduled`, `still open` | `--accent-info` |
+| `rejected`, `dropped` | `--crisis` |
+| `closed`, `cancelled`, `applied`, `closed unfilled` | `--text-on-dark-muted` |
+| Fallback for any unmapped status | `--text-on-dark-muted` |
+
+Generic tracker tones (`STATUS_TONES`): `success → --success`,
+`warning → --warning`, `danger → --crisis`, `info → --accent-info`,
+`neutral → --text-on-dark-muted`.
+
+> [!NOTE]
+> To support a NEW status label, extend the map in `statusColors.js` to point
+> at one of the tokens above — never hardcode a new color.
+
 ---
 
 ## 2. Typography
