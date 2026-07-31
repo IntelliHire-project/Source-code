@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -11,6 +11,7 @@ import {
   Check,
   ChevronRight,
 } from 'lucide-react';
+import { CandidatePageContext } from './CandidateDashboard';
 import './applications.css';
 
 /* ── Mock Data ── */
@@ -293,11 +294,16 @@ export function WithdrawConfirmModal({ application, onConfirm, onCancel }) {
 
 function MyApplications() {
   const navigate = useNavigate();
+  const { setPageLabel } = useContext(CandidatePageContext);
   const [applications, setApplications] = useState(MOCK_APPLICATIONS);
   const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [withdrawTarget, setWithdrawTarget] = useState(null);
+
+  useEffect(() => {
+    setPageLabel('MY APPLICATIONS');
+  }, [setPageLabel]);
 
   const tabs = useMemo(() => {
     const counts = { All: applications.length };
@@ -382,12 +388,6 @@ function MyApplications() {
     <div className="my-applications">
       {/* Header */}
       <div className="my-applications__header">
-        <div className="my-applications__header-left">
-          <h1 className="my-applications__title">My Applications</h1>
-          <p className="my-applications__subtext">
-            Track the status of jobs you've applied to
-          </p>
-        </div>
         <div className="my-applications__count-badge">
           <strong>{applications.length}</strong> Applications
         </div>

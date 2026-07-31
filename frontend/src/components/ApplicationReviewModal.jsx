@@ -9,10 +9,11 @@ import {
   Briefcase,
   CalendarDays,
   Tag,
+  FileText,
 } from 'lucide-react';
 import './ApplicationReviewModal.css';
 
-function ApplicationReviewModal({ onConfirm, onClose }) {
+function ApplicationReviewModal({ onConfirm, onClose, cv }) {
   return (
     <div className="arm-overlay" onClick={onClose}>
       <div className="arm-modal" onClick={(e) => e.stopPropagation()}>
@@ -96,6 +97,20 @@ function ApplicationReviewModal({ onConfirm, onClose }) {
                 <span className="arm-modal__skill-tag">System Architecture</span>
                 <span className="arm-modal__skill-tag">AWS</span>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CV Being Applied */}
+        <section className="arm-modal__section">
+          <h3 className="arm-modal__section-header">
+            <FileText size={15} />
+            CV BEING APPLIED
+          </h3>
+          <div className="arm-modal__card">
+            <div className="arm-modal__row arm-modal__row--last">
+              <span className="arm-modal__row-label">Selected CV</span>
+              <span className="arm-modal__row-value">{cv?.filename || 'No CV selected'}</span>
             </div>
           </div>
         </section>
