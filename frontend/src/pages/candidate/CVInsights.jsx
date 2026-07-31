@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   Sparkles,
   Check,
@@ -7,10 +7,9 @@ import {
   Bot,
   FileText,
   ChevronDown,
-  Download,
-  RefreshCw,
   Zap,
 } from 'lucide-react';
+import { CandidatePageContext } from './CandidateDashboard';
 import './cv-insights.css';
 
 /* ── Mock Data ── */
@@ -290,6 +289,7 @@ const ANALYSIS_TABS = [
 ];
 
 function CVInsights() {
+  const { setPageLabel } = useContext(CandidatePageContext);
   const [selectedCvId, setSelectedCvId] = useState(1);
   const [cvDropdownOpen, setCvDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('strengths');
@@ -297,7 +297,10 @@ function CVInsights() {
     { role: 'ai', text: 'Hi! I\'m your CV assistant. Ask me anything about improving your CV — I can help with summaries, keywords, ATS issues, and more.' },
   ]);
   const [isChatTyping, setIsChatTyping] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  useEffect(() => {
+    setPageLabel('CV INSIGHTS');
+  }, [setPageLabel]);
 
   const selectedCv = MOCK_CVS.find((cv) => cv.id === selectedCvId) || MOCK_CVS[0];
 
@@ -312,28 +315,9 @@ function CVInsights() {
     }, 1500);
   }
 
-  function handleReanalyze() {
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-    }, 2000);
-  }
-
   return (
     <div className="cv-insights">
-      {/* Header */}
-      <div className="cv-insights__header">
-        <div className="cv-insights__header-left">
-          <h1 className="cv-insights__title">
-            <Sparkles size={28} className="cv-insights__title-icon" />
-            CV Insights
-          </h1>
-          <p className="cv-insights__subtext">
-            Get AI-powered feedback on your CV to improve your match rate
-          </p>
-        </div>
-
-        <div className="cv-insights__cv-selector">
+      <div className="cv-insights__cv-selector">
           <div className="cv-insights__cv-selector-wrap">
             <button
               className="cv-insights__cv-trigger"
@@ -387,7 +371,6 @@ function CVInsights() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Body */}
       <div className="cv-insights__body">
@@ -431,25 +414,6 @@ function CVInsights() {
         </div>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="cv-insights__bottom">
-        <button
-          className="cv-insights__btn cv-insights__btn--primary"
-          onClick={handleReanalyze}
-          disabled={isAnalyzing}
-        >
-          {isAnalyzing ? (
-            <span className="cv-insights__btn-spinner" />
-          ) : (
-            <RefreshCw size={16} />
-          )}
-          {isAnalyzing ? 'Analyzing...' : 'Re-analyze CV'}
-        </button>
-        <button className="cv-insights__btn cv-insights__btn--outline">
-          <Download size={16} />
-          Download Full Report
-        </button>
-      </div>
     </div>
   );
 }

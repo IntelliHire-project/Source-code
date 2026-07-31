@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -7,14 +7,11 @@ import {
   GraduationCap,
   X,
   Sparkles,
-  Zap,
   ArrowDown,
-  Bell,
-  Bookmark,
-  DollarSign,
   Clock,
   ChevronRight,
 } from 'lucide-react';
+import { CandidatePageContext } from '../CandidateDashboard';
 import './jobs.css';
 
 /* ── Mock Data ── */
@@ -25,51 +22,47 @@ const MOCK_JOBS = [
     title: 'Senior Frontend Engineer',
     company: 'TechFlow Systems',
     location: 'Remote (NYC Based)',
-    salaryRange: '$140k - $180k',
+    salaryRange: 'Rs 250,000 - Rs 350,000',
     postedTime: '2 hours ago',
     skills: ['React', 'TypeScript', 'Node.js'],
+    matchScore: 95,
   },
   {
     id: 2,
     title: 'Product Designer',
     company: 'Nexus Creative',
     location: 'San Francisco, CA',
-    salaryRange: '$120k - $160k',
+    salaryRange: 'Rs 220,000 - Rs 300,000',
     postedTime: '5 hours ago',
     skills: ['Figma', 'UI/UX', 'Design Systems'],
+    matchScore: 82,
   },
   {
     id: 3,
     title: 'Full Stack Developer',
     company: 'Financier AI',
     location: 'London, UK',
-    salaryRange: '£70k - £95k',
+    salaryRange: 'Rs 180,000 - Rs 260,000',
     postedTime: '1 day ago',
     skills: ['Python', 'PostgreSQL', 'Next.js'],
+    matchScore: 60,
   },
   {
     id: 4,
     title: 'Cloud Architect',
     company: 'SkyScale Solutions',
     location: 'Austin, TX',
-    salaryRange: '$100 - $130/hr',
     postedTime: '2 days ago',
     skills: ['AWS', 'Terraform', 'Kubernetes'],
+    matchScore: 45,
   },
 ];
 
 const MOCK_TOP_MATCHES = [
-  { id: 1, title: 'Senior React Developer', company: 'InnovaTech', matchPercent: 98, reasoning: 'Strong React/TypeScript match with your 8+ years of frontend experience' },
-  { id: 2, title: 'Lead UI Engineer', company: 'Starlight', matchPercent: 95, reasoning: 'Aligns with your design systems expertise and leadership skills' },
-  { id: 3, title: 'Software Engineer III', company: 'GlobalBank', matchPercent: 92, reasoning: 'Your Node.js and cloud skills are a strong match for this role' },
-  { id: 4, title: 'Frontend Specialist', company: 'Growth Labs', matchPercent: 89, reasoning: 'Perfect fit for your React and performance optimization experience' },
-  { id: 5, title: 'Full Stack Engineer', company: 'EcoConnect', matchPercent: 88, reasoning: 'Matches your full-stack profile with Python and Next.js skills' },
-];
-
-const TABS = [
-  { label: 'Recommended', count: 24 },
-  { label: 'Saved Jobs', count: 8 },
-  { label: 'Applied', count: 3 },
+  { id: 1, title: 'Senior Frontend Engineer', company: 'TechFlow Systems', matchPercent: 98 },
+  { id: 2, title: 'Product Designer', company: 'Nexus Creative', matchPercent: 95 },
+  { id: 3, title: 'Full Stack Developer', company: 'Financier AI', matchPercent: 88 },
+  { id: 4, title: 'Cloud Architect', company: 'SkyScale Solutions', matchPercent: 85 },
 ];
 
 /* ── Inline Components ── */
@@ -85,10 +78,9 @@ function JobCard({ title, company, location, salaryRange, postedTime, skills = [
             <span className="job-card__location"><MapPin size={13} />{location}</span>
           </p>
         </div>
-        <button className="job-card__bookmark" aria-label="Save job"><Bookmark size={18} /></button>
       </div>
       <div className="job-card__badges">
-        <span className="job-card__badge"><DollarSign size={13} />{salaryRange}</span>
+        {salaryRange && <span className="job-card__badge">{salaryRange}</span>}
         <span className="job-card__badge"><Clock size={13} />{postedTime}</span>
       </div>
       {skills.length > 0 && (
@@ -103,7 +95,7 @@ function JobCard({ title, company, location, salaryRange, postedTime, skills = [
   );
 }
 
-function TopMatchItem({ title, company, matchPercent, reasoning, onClick }) {
+function TopMatchItem({ title, company, matchPercent, onClick }) {
   return (
     <div className="top-match__item" onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}>
       <div className="top-match__item-header">
@@ -113,12 +105,6 @@ function TopMatchItem({ title, company, matchPercent, reasoning, onClick }) {
         </div>
         <span className="top-match__item-percent">{matchPercent}%</span>
       </div>
-      {reasoning && (
-        <div className="top-match__item-reason">
-          <Zap size={12} />
-          <span>{reasoning}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -127,33 +113,39 @@ function TopMatchItem({ title, company, matchPercent, reasoning, onClick }) {
 
 function JobSearch() {
   const navigate = useNavigate();
+  const { setPageLabel } = useContext(CandidatePageContext);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState(0);
-  const [locationFilter, setLocationFilter] = useState('All Locations');
   const [typeFilter, setTypeFilter] = useState('All Types');
   const [experienceFilter, setExperienceFilter] = useState('Any Experience');
 
-  const hasActiveFilters = locationFilter !== 'All Locations' || typeFilter !== 'All Types' || experienceFilter !== 'Any Experience' || searchQuery;
+  useEffect(() => {
+    setPageLabel('FIND JOBS');
+  }, [setPageLabel]);
+
+  const hasActiveFilters = typeFilter !== 'All Types' || experienceFilter !== 'Any Experience' || searchQuery;
 
   function handleClearAll() {
     setSearchQuery('');
-    setLocationFilter('All Locations');
     setTypeFilter('All Types');
     setExperienceFilter('Any Experience');
   }
 
+  const filteredJobs = MOCK_JOBS.filter((job) => {
+    if (typeFilter !== 'All Types' && job.type !== typeFilter) return false;
+    if (experienceFilter !== 'Any Experience' && job.experience !== experienceFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (
+        !job.title.toLowerCase().includes(q) &&
+        !job.company.toLowerCase().includes(q) &&
+        !job.skills.some((s) => s.toLowerCase().includes(q))
+      ) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="job-search">
-      {/* Hero */}
-      <section className="job-search__hero">
-        <h1 className="job-search__hero-title">
-          Find Your Next <em className="job-search__hero-gold">Career Move</em>
-        </h1>
-        <p className="job-search__hero-sub">
-          AI-powered job searching that prioritises roles matching your unique skill set and career aspirations.
-        </p>
-      </section>
-
       {/* Search & Filters */}
       <section className="job-search__filters">
         <div className="job-search__search-wrap">
@@ -168,12 +160,6 @@ function JobSearch() {
         </div>
         <div className="job-search__filter-row">
           <div className="job-search__filter-dropdowns">
-            <div className="job-search__dropdown">
-              <MapPin size={15} />
-              <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
-                <option>All Locations</option><option>Remote</option><option>New York</option><option>San Francisco</option><option>London</option><option>Austin</option>
-              </select>
-            </div>
             <div className="job-search__dropdown">
               <Briefcase size={15} />
               <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
@@ -195,42 +181,28 @@ function JobSearch() {
         </div>
       </section>
 
-      {/* Tabs */}
-      <section className="job-search__tabs-section">
-        <div className="job-search__tabs">
-          {TABS.map((tab, i) => (
-            <button key={tab.label} className={`job-search__tab ${activeTab === i ? 'job-search__tab--active' : ''}`} onClick={() => setActiveTab(i)}>
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-        <p className="job-search__profile-note">Showing results based on your profile completeness (<strong>92%</strong>)</p>
-      </section>
-
       {/* Body */}
       <div className="job-search__body">
         <main className="job-search__main">
-          {MOCK_JOBS.map((job) => (
+          {filteredJobs.map((job) => (
             <JobCard key={job.id} {...job} onViewDetails={() => navigate(`/candidate/jobs/${job.id}`)} />
           ))}
+          {filteredJobs.length === 0 && (
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0' }}>No jobs match your current filters.</p>
+          )}
           <button className="job-search__load-more">Load more opportunities<ArrowDown size={16} /></button>
         </main>
 
         <aside className="job-search__sidebar">
           <div className="job-search__sidebar-card">
-            <div className="job-search__sidebar-header"><Sparkles size={18} /><h3>Top 10 For You</h3></div>
-            <p className="job-search__sidebar-caption">REFINED BY AI BASED ON YOUR 'CV MANAGEMENT' INSIGHTS</p>
+            <div className="job-search__sidebar-header"><Sparkles size={18} /><h3>Top Jobs For You</h3></div>
+            <p className="job-search__sidebar-caption">Recommended jobs based on your current active CV</p>
             <div className="job-search__match-list">
               {MOCK_TOP_MATCHES.map((match) => (
-                <TopMatchItem key={match.id} {...match} onClick={() => console.log('View match:', match.id)} />
+                <TopMatchItem key={match.id} {...match} onClick={() => navigate(`/candidate/jobs/${match.id}`)} />
               ))}
             </div>
-            <button className="job-search__cv-score-btn">Improve CV Score</button>
-          </div>
-          <div className="job-search__alerts-card">
-            <div className="job-search__alerts-header"><Zap size={18} /><h4>Job Alerts Active</h4></div>
-            <p className="job-search__alerts-desc">You have 3 active alerts for roles matching your profile. Get notified when new opportunities are posted.</p>
-            <button className="job-search__alerts-link"><Bell size={14} />Manage notification settings</button>
+            <button className="job-search__cv-score-btn" onClick={() => navigate('/candidate/cv-management')}>CV Management</button>
           </div>
         </aside>
       </div>
