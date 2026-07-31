@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CandidatePageContext } from '../CandidateDashboard';
 import {
@@ -15,8 +15,26 @@ import {
   ChevronRight,
   Filter,
   Download,
+  Check,
 } from 'lucide-react';
 import './InterviewHistory.css';
+
+const ROLE_OPTIONS = [
+  { id: 'all',      label: 'All Roles' },
+  { id: 'frontend', label: 'Frontend Engineer' },
+  { id: 'designer', label: 'Product Designer' },
+  { id: 'fullstack',label: 'Fullstack Developer' },
+  { id: 'devops',   label: 'DevOps Lead' },
+  { id: 'ux',       label: 'UX Researcher' },
+];
+
+const DATE_OPTIONS = [
+  { id: 'all',       label: 'All Time' },
+  { id: 'thisMonth', label: 'This Month' },
+  { id: 'last3',     label: 'Last 3 Months' },
+  { id: 'last6',     label: 'Last 6 Months' },
+  { id: 'thisYear',  label: 'This Year' },
+];
 
 const EVALUATIONS_DATA = [
   {
@@ -81,15 +99,36 @@ export default function InterviewHistory() {
       pageCtx.setPageLabel('MOCK INTERVIEWS');
     }
   }, [pageCtx]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('History');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [selectedRole, setSelectedRole]  = useState('all');
+  const [selectedDate, setSelectedDate]  = useState('thisMonth');
+  const [showRoleDD, setShowRoleDD]      = useState(false);
+  const [showDateDD, setShowDateDD]      = useState(false);
+  const [showAdvanced, setShowAdvanced]  = useState(false);
+  const roleRef = useRef(null);
+  const dateRef = useRef(null);
 
-  const filteredEvaluations = EVALUATIONS_DATA.filter(
-    (item) =>
-      item.candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.jobRole.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    const close = (e) => {
+      if (roleRef.current && !roleRef.current.contains(e.target)) setShowRoleDD(false);
+      if (dateRef.current && !dateRef.current.contains(e.target)) setShowDateDD(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  const activeRoleLabel = ROLE_OPTIONS.find(r => r.id === selectedRole)?.label || 'All Roles';
+  const activeDateLabel = DATE_OPTIONS.find(d => d.id === selectedDate)?.label || 'This Month';
+
+  const filteredEvaluations = EVALUATIONS_DATA.filter((item) => {
+    const q = searchQuery.toLowerCase();
+    const matchSearch = item.candidateName.toLowerCase().includes(q) || item.jobRole.toLowerCase().includes(q);
+    const matchRole =
+      selectedRole === 'all' ||
+      item.jobRole.toLowerCase().includes(ROLE_OPTIONS.find(r => r.id === selectedRole)?.label.split(' ')[0].toLowerCase() || '');
+    return matchSearch && matchRole;
+  });
 
   const handleNewInterview = () => {
     navigate('/candidate/mock-interviews/roleselection');
@@ -193,24 +232,93 @@ export default function InterviewHistory() {
           </div>
 
           <div className="filters-right-group">
-            <div className="filter-dropdown">
-              <Briefcase size={15} />
-              <span>All Roles</span>
-              <ChevronDown size={14} />
+            {/* All Roles dropdown */}
+            <div className="filter-dropdown-wrap" ref={roleRef}>
+              <div
+                className={`filter-dropdown ${showRoleDD ? 'open' : ''}`}
+                onClick={() => { setShowRoleDD(p => !p); setShowDateDD(false); }}
+              >
+                <Briefcase size={15} />
+                <span>{activeRoleLabel}</span>
+                <ChevronDown size={14} className={`fd-chevron ${showRoleDD ? 'rotated' : ''}`} />
+              </div>
+              {showRoleDD && (
+                <ul className="fd-menu">
+                  {ROLE_OPTIONS.map(opt => (
+                    <li
+                      key={opt.id}
+                      className={`fd-option ${selectedRole === opt.id ? 'active' : ''}`}
+                      onClick={() => { setSelectedRole(opt.id); setShowRoleDD(false); }}
+                    >
+                      {opt.label}
+                      {selectedRole === opt.id && <Check size={13} />}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            <div className="filter-dropdown">
-              <Calendar size={15} />
-              <span>This Month</span>
-              <ChevronDown size={14} />
+            {/* This Month dropdown */}
+            <div className="filter-dropdown-wrap" ref={dateRef}>
+              <div
+                className={`filter-dropdown ${showDateDD ? 'open' : ''}`}
+                onClick={() => { setShowDateDD(p => !p); setShowRoleDD(false); }}
+              >
+                <Calendar size={15} />
+                <span>{activeDateLabel}</span>
+                <ChevronDown size={14} className={`fd-chevron ${showDateDD ? 'rotated' : ''}`} />
+              </div>
+              {showDateDD && (
+                <ul className="fd-menu">
+                  {DATE_OPTIONS.map(opt => (
+                    <li
+                      key={opt.id}
+                      className={`fd-option ${selectedDate === opt.id ? 'active' : ''}`}
+                      onClick={() => { setSelectedDate(opt.id); setShowDateDD(false); }}
+                    >
+                      {opt.label}
+                      {selectedDate === opt.id && <Check size={13} />}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
-            <button type="button" className="filter-action-btn">
+            {/* Advanced toggle */}
+            <button
+              type="button"
+              className={`filter-action-btn ${showAdvanced ? 'active' : ''}`}
+              onClick={() => setShowAdvanced(p => !p)}
+            >
               <SlidersHorizontal size={15} />
               <span>Advanced</span>
             </button>
           </div>
         </div>
+
+        {/* Advanced Filter Panel */}
+        {showAdvanced && (
+          <div className="advanced-filter-panel">
+            <div className="adv-group">
+              <label className="adv-label">STATUS</label>
+              <div className="adv-chips">
+                {['Hired', 'Round 2', 'Rejected', 'Offer Sent', 'Pending'].map(s => (
+                  <span key={s} className="adv-chip">{s}</span>
+                ))}
+              </div>
+            </div>
+            <div className="adv-group">
+              <label className="adv-label">SCORE RANGE</label>
+              <div className="adv-score-range">
+                <input type="range" min="0" max="100" defaultValue="0" className="adv-slider" />
+                <span className="adv-range-label">0 – 100</span>
+              </div>
+            </div>
+            <button className="adv-reset-btn" onClick={() => { setSelectedRole('all'); setSelectedDate('thisMonth'); setShowAdvanced(false); }}>
+              Reset Filters
+            </button>
+          </div>
+        )}
 
         {/* Workspace Layout Grid: Left Table & Right Analytics */}
         <div className="history-content-grid">
