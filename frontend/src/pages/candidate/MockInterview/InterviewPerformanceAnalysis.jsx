@@ -9,8 +9,6 @@ import {
   RotateCcw,
   Download,
   ArrowLeft,
-  Search,
-  Bell,
   Award,
 } from 'lucide-react';
 import './InterviewPerformanceAnalysis.css';
@@ -65,15 +63,7 @@ export default function InterviewPerformanceAnalysis() {
           <span className="bc-active">{roleTitle}</span>
         </div>
 
-        <div className="nav-right-controls">
-          <div className="search-bar-small">
-            <Search size={15} className="search-icon" />
-            <input type="text" placeholder="Search feedback..." />
-          </div>
-          <button type="button" className="icon-notice-btn">
-            <Bell size={16} />
-          </button>
-        </div>
+
       </div>
 
       <div className="analysis-content">

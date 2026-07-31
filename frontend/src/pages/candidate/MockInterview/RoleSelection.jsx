@@ -1,8 +1,24 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronDown, Check, Plus, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, DatabaseZap } from 'lucide-react';
+import { Search, ChevronDown, Check, Plus, X, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, Sparkles } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard';
 import './RoleSelection.css';
+
+const CATEGORIES = [
+  { id: 'all',       label: 'All Categories' },
+  { id: 'engineering', label: 'Engineering' },
+  { id: 'design',    label: 'Design' },
+  { id: 'data',      label: 'Data & Analytics' },
+  { id: 'qa',        label: 'QA & Testing' },
+];
+
+const ROLE_CATEGORY_MAP = {
+  backend:  'engineering',
+  frontend: 'engineering',
+  uiux:     'design',
+  qa:       'qa',
+  data:     'data',
+};
 
 const ROLES = [
   {
@@ -49,8 +65,53 @@ export default function MockInterviewRoleSelection() {
 
   const [selectedRole, setSelectedRole] = useState('frontend');
   const [searchQuery, setSearchQuery] = useState('');
+  const [customRoles, setCustomRoles] = useState([]);
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customInput, setCustomInput] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const categoryDropdownRef = useRef(null);
 
-  const currentRole = ROLES.find(r => r.id === selectedRole);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
+        setShowCategoryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const allRoles = [...ROLES, ...customRoles];
+
+  const filteredRoles = allRoles.filter((role) => {
+    const matchesSearch =
+      role.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      role.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === 'all' ||
+      role.isCustom ||
+      ROLE_CATEGORY_MAP[role.id] === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const currentRole = allRoles.find(r => r.id === selectedRole);
+  const activeCategoryLabel = CATEGORIES.find(c => c.id === selectedCategory)?.label || 'All Categories';
+
+  const handleAddCustomRole = () => {
+    if (!customInput.trim()) return;
+    const id = `custom-${Date.now()}`;
+    setCustomRoles(prev => [...prev, {
+      id,
+      title: customInput.trim(),
+      description: 'Custom role defined by you for a personalised mock interview experience.',
+      icon: Sparkles,
+      isCustom: true,
+    }]);
+    setSelectedRole(id);
+    setCustomInput('');
+    setShowCustomModal(false);
+  };
 
   const handleContinue = () => {
     navigate('/candidate/mock-interviews/questions', {
@@ -81,9 +142,31 @@ export default function MockInterviewRoleSelection() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="category-dropdown">
-            <span>All Categories</span>
-            <ChevronDown size={18} />
+          <div className="category-dropdown" ref={categoryDropdownRef}>
+            <div
+              className={`category-dropdown-trigger ${showCategoryDropdown ? 'open' : ''}`}
+              onClick={() => setShowCategoryDropdown(prev => !prev)}
+            >
+              <span>{activeCategoryLabel}</span>
+              <ChevronDown size={16} className={`dropdown-chevron ${showCategoryDropdown ? 'rotated' : ''}`} />
+            </div>
+            {showCategoryDropdown && (
+              <ul className="category-dropdown-menu">
+                {CATEGORIES.map((cat) => (
+                  <li
+                    key={cat.id}
+                    className={`category-option ${selectedCategory === cat.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedCategory(cat.id);
+                      setShowCategoryDropdown(false);
+                    }}
+                  >
+                    {cat.label}
+                    {selectedCategory === cat.id && <Check size={14} className="option-check" />}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
@@ -96,7 +179,7 @@ export default function MockInterviewRoleSelection() {
         </div>
 
         <div className="roles-grid">
-          {ROLES.map((role) => {
+          {filteredRoles.map((role) => {
             const Icon = role.icon;
             const isSelected = selectedRole === role.id;
             return (
@@ -119,7 +202,7 @@ export default function MockInterviewRoleSelection() {
             );
           })}
           
-          <div className="role-card custom-role-card">
+          <div className="role-card custom-role-card" onClick={() => setShowCustomModal(true)}>
             <div className="role-icon-wrapper custom">
               <Plus size={24} />
             </div>
@@ -141,6 +224,42 @@ export default function MockInterviewRoleSelection() {
           <button type="button" className="continue-btn" onClick={handleContinue}>Continue &gt;</button>
         </div>
       </div>
+      {/* Custom Role Modal */}
+      {showCustomModal && (
+        <div className="custom-role-modal-overlay" onClick={() => setShowCustomModal(false)}>
+          <div className="custom-role-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon-wrap">
+                <Sparkles size={22} />
+              </div>
+              <button className="modal-close-btn" onClick={() => setShowCustomModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <h2 className="modal-title">Define a Custom Role</h2>
+            <p className="modal-subtitle">Enter the job title you want to be interviewed for and we'll generate tailored questions.</p>
+            <input
+              className="modal-input"
+              type="text"
+              placeholder="e.g. Machine Learning Engineer, Growth Hacker..."
+              value={customInput}
+              onChange={e => setCustomInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddCustomRole()}
+              autoFocus
+            />
+            <div className="modal-actions">
+              <button className="modal-cancel-btn" onClick={() => setShowCustomModal(false)}>Cancel</button>
+              <button
+                className="modal-submit-btn"
+                onClick={handleAddCustomRole}
+                disabled={!customInput.trim()}
+              >
+                <Plus size={16} /> Add Role
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

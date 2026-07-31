@@ -109,59 +109,7 @@ export default function InterviewHistory() {
 
   return (
     <div className="interview-history-container">
-      {/* Top Header Navigation */}
-      <header className="history-top-nav">
-        <div className="nav-brand-group">
-          <div className="brand-logo-icon">
-            <span className="logo-symbol">&#x2B22;</span>
-          </div>
-          <span className="brand-name">IntelliHire</span>
 
-          <nav className="top-nav-links">
-            <button
-              type="button"
-              className={`nav-tab-btn ${activeTab === 'History' ? 'active' : ''}`}
-              onClick={() => setActiveTab('History')}
-            >
-              History
-            </button>
-            <button
-              type="button"
-              className={`nav-tab-btn ${activeTab === 'Jobs' ? 'active' : ''}`}
-              onClick={() => navigate('/candidate/jobs')}
-            >
-              Jobs
-            </button>
-            <button
-              type="button"
-              className={`nav-tab-btn ${activeTab === 'Candidates' ? 'active' : ''}`}
-              onClick={() => setActiveTab('Candidates')}
-            >
-              Candidates
-            </button>
-            <button
-              type="button"
-              className={`nav-tab-btn ${activeTab === 'Analytics' ? 'active' : ''}`}
-              onClick={() => setActiveTab('Analytics')}
-            >
-              Analytics
-            </button>
-          </nav>
-        </div>
-
-        <div className="top-nav-right">
-          <button type="button" className="nav-icon-button" title="Session Clock">
-            <Clock size={16} />
-          </button>
-          <div className="nav-user-avatar">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-              alt="User Avatar"
-            />
-            <span className="online-dot"></span>
-          </div>
-        </div>
-      </header>
 
       {/* Main Content Workspace */}
       <div className="history-main-content">
