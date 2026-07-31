@@ -131,8 +131,15 @@ export default function MockInterviewSession() {
 
   const confirmFinalize = () => {
     setShowSubmitConfirm(false);
-    alert('Interview submitted successfully! Redirecting to evaluation dashboard...');
-    navigate('/candidate/mock-interviews/roleselection');
+    navigate('/candidate/mock-interviews/feedback', {
+      state: {
+        roleTitle: roleTitle,
+        sessionId: '#INT-99218',
+        dateStr: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        candidateName: candidateName,
+        score: 84,
+      },
+    });
   };
 
   const handleEndEarly = () => {
