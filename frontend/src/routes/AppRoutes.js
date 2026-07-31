@@ -17,14 +17,14 @@ import CommunityPage, {
   SavedPostsPage,
 } from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
-import CandidateDashboard from '../pages/candidate/CandidateDashboard';
+import CandidateDashboard from '../pages/candidate/CandidateDashboard/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
-import MyApplications from '../pages/candidate/MyApplications';
-import CVInsights from '../pages/candidate/CVInsights';
-import DashboardPage from '../pages/candidate/DashboardPage';
+import MyApplications from '../pages/candidate/MyApplications/MyApplications';
+import CVInsights from '../pages/candidate/CVInsights/CVInsights';
+import DashboardPage from '../pages/candidate/DashboardPage/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';

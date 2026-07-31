@@ -8,7 +8,7 @@ import {
   CalendarDays,
   Home,
 } from 'lucide-react';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import './jobs.css';
 
 function ApplicationConfirmation() {

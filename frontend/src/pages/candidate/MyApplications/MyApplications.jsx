@@ -11,7 +11,8 @@ import {
   Check,
   ChevronRight,
 } from 'lucide-react';
-import { CandidatePageContext } from './CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
+import ApplicationDetailCard from './ApplicationDetailCard';
 import './applications.css';
 
 /* ── Mock Data ── */
@@ -300,6 +301,7 @@ function MyApplications() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [withdrawTarget, setWithdrawTarget] = useState(null);
+  const [detailApplication, setDetailApplication] = useState(null);
 
   useEffect(() => {
     setPageLabel('MY APPLICATIONS');
@@ -363,7 +365,7 @@ function MyApplications() {
   }, [applications, activeTab, searchQuery, sortBy]);
 
   function handleViewDetails(application) {
-    console.log('View details:', application.id);
+    setDetailApplication(application);
   }
 
   function handleWithdraw(application) {
@@ -467,6 +469,19 @@ function MyApplications() {
             <ChevronRight size={16} />
           </button>
         </div>
+      )}
+
+      {/* Detail Modal */}
+      {detailApplication && (
+        <ApplicationDetailCard
+          application={detailApplication}
+          onClose={() => setDetailApplication(null)}
+          onWithdraw={(app) => {
+            setDetailApplication(null);
+            handleWithdraw(app);
+          }}
+          onMessageRecruiter={(app) => console.log('Message recruiter:', app.id)}
+        />
       )}
 
       {/* Withdraw Modal */}

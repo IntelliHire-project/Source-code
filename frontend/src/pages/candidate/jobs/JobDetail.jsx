@@ -22,7 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import './jobs.css';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import ApplicationReviewModal from '../../../components/ApplicationReviewModal';
 
 /* ── Mock Data ── */

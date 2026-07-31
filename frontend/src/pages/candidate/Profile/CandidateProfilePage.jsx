@@ -23,7 +23,7 @@ import {
   UserCircle2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 
 const INITIAL_PROFILE = {
   fullName: 'Alex Rivera',

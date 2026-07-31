@@ -9,7 +9,7 @@ import {
   ChevronDown,
   Zap,
 } from 'lucide-react';
-import { CandidatePageContext } from './CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import './cv-insights.css';
 
 /* ── Mock Data ── */
