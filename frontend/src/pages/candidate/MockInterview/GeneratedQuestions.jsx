@@ -82,7 +82,19 @@ export default function GeneratedQuestions() {
   };
 
   const handleStartInterview = (question) => {
-    alert(`Starting Mock Interview for: ${question.topic || question.title}`);
+    navigate('/candidate/mock-interviews/session', {
+      state: {
+        roleTitle: roleName !== 'Selected Role' ? `${roleName} Interview` : 'Technical Strategy Lead Interview',
+        selectedQuestion: question,
+        questionsList: questions.map((q) => ({
+          id: q.id,
+          category: q.topic || 'Scenario Based',
+          question: q.description,
+          hint: `Focus on technical depth, trade-off analysis, and clear communication strategy for ${q.topic}.`
+        })),
+        startIndex: question ? questions.findIndex((q) => q.id === question.id) : 0,
+      },
+    });
   };
 
   return (
