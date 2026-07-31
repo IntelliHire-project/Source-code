@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { label: 'CV insights', icon: Sparkles, path: '/candidate/cv-insights' },
   { label: 'Find jobs', icon: Briefcase, path: '/candidate/jobs' },
   { label: 'My applications', icon: FileText, path: '/candidate/applications' },
-  { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews/roleselection' },
+  { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
   { label: 'Community', icon: Users, path: '/candidate/community' },
 ];
 

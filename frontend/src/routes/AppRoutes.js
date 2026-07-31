@@ -58,6 +58,10 @@ import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
 import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import Payments from '../pages/admin/Payments/Payments';
 import RoleSelection from '../pages/candidate/MockInterview/RoleSelection';
+import GeneratedQuestions from '../pages/candidate/MockInterview/GeneratedQuestions';
+import MockInterviewSession from '../pages/candidate/MockInterview/MockInterviewSession';
+import InterviewPerformanceAnalysis from '../pages/candidate/MockInterview/InterviewPerformanceAnalysis';
+import InterviewHistory from '../pages/candidate/MockInterview/InterviewHistory';
 import ProtectedRoute from './ProtectedRoute';
 import AdminSidebar from '../components/common/AdminSidebar';
 import { Menu } from 'lucide-react';
@@ -169,7 +173,13 @@ function AppRoutes() {
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
           <Route path="applications" element={<MyApplications />} />
-          <Route path="candidate/mock-interviews/roleselection" element={<RoleSelection roleOverride="candidate"/>} />
+          <Route path="mock-interviews" element={<Navigate to="/candidate/mock-interviews/roleselection" replace />} />
+          <Route path="mock-interviews/roleselection" element={<RoleSelection roleOverride="candidate" />} />
+          <Route path="mock-interviews/questions" element={<GeneratedQuestions roleOverride="candidate" />} />
+          <Route path="mock-interviews/session" element={<MockInterviewSession roleOverride="candidate" />} />
+          <Route path="mock-interviews/feedback" element={<InterviewPerformanceAnalysis roleOverride="candidate" />} />
+          <Route path="mock-interviews/history" element={<InterviewHistory roleOverride="candidate" />} />
+          <Route path="interview-history" element={<InterviewHistory roleOverride="candidate" />} />
           <Route path="community" element={<CommunityPage roleOverride="candidate" />} />
           <Route path="community/new" element={<CreateDiscussionPage roleOverride="candidate" />} />
           <Route path="community/post/:postId" element={<DiscussionPage roleOverride="candidate" />} />
