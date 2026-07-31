@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Clock, RotateCcw, Play, ArrowLeft, HelpCircle, Sparkles } from 'lucide-react';
+import { CandidatePageContext } from '../CandidateDashboard';
 import './GeneratedQuestions.css';
 
 const DEFAULT_QUESTIONS = [
@@ -54,6 +55,14 @@ const DEFAULT_QUESTIONS = [
 export default function GeneratedQuestions() {
   const location = useLocation();
   const navigate = useNavigate();
+  const pageCtx = useContext(CandidatePageContext);
+
+  useEffect(() => {
+    if (pageCtx?.setPageLabel) {
+      pageCtx.setPageLabel('MOCK INTERVIEWS');
+    }
+  }, [pageCtx]);
+
   const roleName = location.state?.roleTitle || 'Selected Role';
   
   const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { CandidatePageContext } from '../CandidateDashboard';
 import {
   Clock,
   CheckCircle2,
@@ -58,6 +59,13 @@ const DEFAULT_SESSION_QUESTIONS = [
 export default function MockInterviewSession() {
   const location = useLocation();
   const navigate = useNavigate();
+  const pageCtx = useContext(CandidatePageContext);
+
+  useEffect(() => {
+    if (pageCtx?.setPageLabel) {
+      pageCtx.setPageLabel('MOCK INTERVIEWS');
+    }
+  }, [pageCtx]);
 
   const roleTitle = location.state?.roleTitle || 'Technical Strategy Lead Interview';
   const candidateName = location.state?.candidateName || 'Alexander Wright';

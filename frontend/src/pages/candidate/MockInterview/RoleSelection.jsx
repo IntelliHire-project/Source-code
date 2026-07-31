@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Check, Plus, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, DatabaseZap } from 'lucide-react';
+import { CandidatePageContext } from '../CandidateDashboard';
 import './RoleSelection.css';
 
 const ROLES = [
@@ -38,6 +39,14 @@ const ROLES = [
 
 export default function MockInterviewRoleSelection() {
   const navigate = useNavigate();
+  const pageCtx = useContext(CandidatePageContext);
+
+  useEffect(() => {
+    if (pageCtx?.setPageLabel) {
+      pageCtx.setPageLabel('MOCK INTERVIEWS');
+    }
+  }, [pageCtx]);
+
   const [selectedRole, setSelectedRole] = useState('frontend');
   const [searchQuery, setSearchQuery] = useState('');
 

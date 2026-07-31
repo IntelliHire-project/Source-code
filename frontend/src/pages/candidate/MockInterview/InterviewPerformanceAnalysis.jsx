@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { CandidatePageContext } from '../CandidateDashboard';
 import {
   CheckCircle2,
   XCircle,
@@ -17,6 +18,13 @@ import './InterviewPerformanceAnalysis.css';
 export default function InterviewPerformanceAnalysis() {
   const location = useLocation();
   const navigate = useNavigate();
+  const pageCtx = useContext(CandidatePageContext);
+
+  useEffect(() => {
+    if (pageCtx?.setPageLabel) {
+      pageCtx.setPageLabel('MOCK INTERVIEWS');
+    }
+  }, [pageCtx]);
 
   const roleTitle = location.state?.roleTitle || 'Senior Software Engineer Feedback';
   const sessionId = location.state?.sessionId || '#INT-99218';
