@@ -43,6 +43,22 @@ const MOCK_APPLICATIONS = [
       'Portfolio and resume submitted. Shortlisted after initial screening round.',
     nextStep: 'Technical interview scheduled. Prepare design challenge.',
     timeline: { submitted: 'Oct 20, 2024', reviewed: 'Oct 24, 2024', interview: 'Oct 28, 2024' },
+    interview: {
+      phase: 'Portfolio Review',
+      phaseNumber: 1,
+      totalPhases: 2,
+      date: 'Nov 5, 2024',
+      time: '11:00 AM',
+      mode: 'Virtual — Google Meet',
+      with: 'Product & Design Team',
+    },
+    assessment: {
+      name: 'Design Challenge',
+      score: 78,
+      maxScore: 100,
+      passed: true,
+      takenOn: 'Oct 27, 2024',
+    },
   },
   {
     id: 3,
@@ -56,6 +72,13 @@ const MOCK_APPLICATIONS = [
       'Completed technical assessment but did not meet experience requirements for senior-level role.',
     nextStep: 'Consider reapplying for mid-level roles in the future.',
     timeline: { submitted: 'Oct 10, 2024', reviewed: 'Oct 16, 2024' },
+    assessment: {
+      name: 'Technical Assessment',
+      score: 64,
+      maxScore: 100,
+      passed: false,
+      takenOn: 'Oct 14, 2024',
+    },
   },
   {
     id: 4,

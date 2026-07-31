@@ -106,11 +106,22 @@ function JobDetail() {
   const [selectedCvId, setSelectedCvId] = useState(1);
   const [showReview, setShowReview] = useState(false);
   const [showCvPrompt, setShowCvPrompt] = useState(false);
+  const [showCvRequired, setShowCvRequired] = useState(false);
   const job = MOCK_JOB;
 
   useEffect(() => {
     setPageLabel('JOB DETAIL');
   }, [setPageLabel]);
+
+  const selectedCv = MOCK_CVS.find((c) => c.id === selectedCvId);
+
+  function handleApply() {
+    if (!selectedCv) {
+      setShowCvRequired(true);
+      return;
+    }
+    setShowReview(true);
+  }
 
   return (
     <div className="job-detail">
@@ -139,7 +150,7 @@ function JobDetail() {
             <div className="job-detail__header-actions">
               <button className="job-detail__icon-btn" aria-label="Save job"><Bookmark size={18} /></button>
               <button className="job-detail__icon-btn" aria-label="Share job"><Share2 size={18} /></button>
-              <button className="job-detail__apply-btn" onClick={() => setShowReview(true)}>Apply Now<ChevronRight size={15} /></button>
+              <button className="job-detail__apply-btn" onClick={handleApply}>Apply Now<ChevronRight size={15} /></button>
             </div>
           </header>
 
@@ -270,10 +281,36 @@ function JobDetail() {
 
       {showReview && (
         <ApplicationReviewModal
-          cv={MOCK_CVS.find((c) => c.id === selectedCvId)}
+          cv={selectedCv}
           onConfirm={() => { setShowReview(false); navigate('/candidate/application-confirmation'); }}
           onClose={() => setShowReview(false)}
         />
+      )}
+
+      {showCvRequired && (
+        <div className="job-detail__overlay" onClick={() => setShowCvRequired(false)}>
+          <div className="job-detail__prompt" onClick={(e) => e.stopPropagation()}>
+            <div className="job-detail__prompt-top">
+              <span className="job-detail__prompt-badge"><FileText size={13} />CV REQUIRED</span>
+              <button className="job-detail__prompt-close" onClick={() => setShowCvRequired(false)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </div>
+            <h2 className="job-detail__prompt-title">A CV is required to apply</h2>
+            <p className="job-detail__prompt-subtitle">
+              You must upload a CV before applying for this role. Employers rely on your CV to
+              evaluate your match against the role's requirements.
+            </p>
+
+            <button
+              className="job-detail__prompt-btn"
+              onClick={() => { setShowCvRequired(false); navigate('/candidate/cv-management'); }}
+            >
+              <Upload size={14} />
+              Upload Your CV
+            </button>
+          </div>
+        </div>
       )}
 
       {showCvPrompt && (

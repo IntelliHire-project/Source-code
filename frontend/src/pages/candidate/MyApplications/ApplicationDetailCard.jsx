@@ -5,6 +5,7 @@ import {
   MapPin,
   Clock,
   CalendarDays,
+  CalendarClock,
   FileText,
   Check,
   ChevronDown,
@@ -19,6 +20,10 @@ import {
   StickyNote,
   MessageSquare,
   XCircle,
+  Video,
+  Users,
+  ClipboardCheck,
+  Award,
 } from 'lucide-react';
 
 /* ── Mock Data ── */
@@ -43,6 +48,22 @@ export const MOCK_APPLICATION = {
     { label: 'Interview', date: 'Nov 15' },
     { label: 'Decision', date: null },
   ],
+  interview: {
+    phase: 'Technical Interview',
+    phaseNumber: 2,
+    totalPhases: 3,
+    date: 'Nov 15, 2024',
+    time: '2:00 PM',
+    mode: 'Virtual — Google Meet',
+    with: 'Engineering Team',
+  },
+  assessment: {
+    name: 'Coding Challenge',
+    score: 82,
+    maxScore: 100,
+    passed: true,
+    takenOn: 'Nov 4, 2024',
+  },
   personalInfo: {
     fullName: 'Michael Chen',
     email: 'michael.chen@example.com',
@@ -225,7 +246,7 @@ function ApplicationDetailCard({
   const canMessage = status === 'Interview Scheduled';
   const showNotes = status === 'Interview Scheduled' || status === 'Rejected';
 
-  const { submittedCv = {}, personalInfo = {}, professionalSummary = {}, jobPosting = {} } = application;
+  const { submittedCv = {}, personalInfo = {}, professionalSummary = {}, jobPosting = {}, interview, assessment } = application;
   const timeline = buildTimeline(application);
 
   return (
@@ -339,6 +360,85 @@ function ApplicationDetailCard({
           </div>
         </section>
 
+        {/* ── Upcoming Interview ── */}
+        {interview && (
+          <section className="border-b border-border-dark px-6 py-5">
+            <SectionHeading icon={<CalendarClock size={14} />}>Upcoming Interview</SectionHeading>
+            <div className="mt-4 rounded-lg border border-[rgba(107,140,255,0.35)] bg-[rgba(107,140,255,0.08)] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[rgba(107,140,255,0.15)] text-accent-info">
+                    <Video size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-text-on-dark">
+                      {interview.phase}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      {interview.mode} · {interview.with}
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex shrink-0 items-center rounded-full border border-[rgba(107,140,255,0.35)] bg-[rgba(107,140,255,0.12)] px-3 py-1 text-[0.7rem] font-bold text-accent-info">
+                  Phase {interview.phaseNumber} of {interview.totalPhases}
+                </span>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <InfoRow icon={<CalendarDays size={13} />} label="Date" value={interview.date} />
+                <InfoRow icon={<Clock size={13} />} label="Time" value={interview.time} />
+                <InfoRow icon={<Video size={13} />} label="Mode" value={interview.mode} />
+                <InfoRow icon={<Users size={13} />} label="With" value={interview.with} />
+              </div>
+
+              <div className="mt-4 flex items-center">
+                {Array.from({ length: interview.totalPhases || 0 }, (_, i) => {
+                  const phaseNum = i + 1;
+                  const isDone = phaseNum < interview.phaseNumber;
+                  const isCurrent = phaseNum === interview.phaseNumber;
+                  return (
+                    <Fragment key={phaseNum}>
+                      {i > 0 && (
+                        <div
+                          className={`h-0.5 flex-1 ${
+                            isDone ? 'bg-accent-info' : 'bg-border-dark'
+                          }`}
+                        />
+                      )}
+                      <div className="flex shrink-0 flex-col items-center">
+                        <div
+                          className={`grid h-6 w-6 place-items-center rounded-full border-2 text-[0.65rem] font-bold ${
+                            isDone
+                              ? 'border-accent-info bg-[rgba(107,140,255,0.15)] text-accent-info'
+                              : isCurrent
+                              ? 'border-accent-info bg-accent-info text-primary'
+                              : 'border-border-dark text-text-muted'
+                          }`}
+                        >
+                          {isDone ? (
+                            <Check size={13} />
+                          ) : isCurrent ? (
+                            <span className="h-2 w-2 rounded-full bg-primary" />
+                          ) : (
+                            phaseNum
+                          )}
+                        </div>
+                        <span
+                          className={`mt-1.5 text-[0.6rem] font-bold whitespace-nowrap ${
+                            isCurrent ? 'text-accent-info' : 'text-text-muted'
+                          }`}
+                        >
+                          Phase {phaseNum}
+                        </span>
+                      </div>
+                    </Fragment>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ── Submitted CV ── */}
         <section className="border-b border-border-dark px-6 py-5">
           <SectionHeading icon={<FileText size={14} />}>Submitted CV</SectionHeading>
@@ -412,6 +512,70 @@ function ApplicationDetailCard({
             </SummaryCard>
           </div>
         </section>
+
+        {/* ── Assessment Result ── */}
+        {assessment && (
+          <section className="border-b border-border-dark px-6 py-5">
+            <SectionHeading icon={<ClipboardCheck size={14} />}>Assessment Result</SectionHeading>
+            <div className="mt-4 rounded-lg border border-border-dark bg-primary-light p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${
+                      assessment.passed
+                        ? 'bg-[rgba(34,197,94,0.12)] text-accent-success'
+                        : 'bg-[rgba(230,57,70,0.12)] text-crisis'
+                    }`}
+                  >
+                    <Award size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-text-on-dark">
+                      {assessment.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      Taken {assessment.takenOn || '—'}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[0.7rem] font-bold ${
+                    assessment.passed
+                      ? 'border-[rgba(34,197,94,0.35)] bg-[rgba(34,197,94,0.12)] text-accent-success'
+                      : 'border-[rgba(230,57,70,0.35)] bg-[rgba(230,57,70,0.12)] text-crisis'
+                  }`}
+                >
+                  {assessment.passed ? 'PASSED' : 'NOT PASSED'}
+                </span>
+              </div>
+
+              <div className="mt-4">
+                <div className="flex items-end justify-between gap-3">
+                  <span className="text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-text-muted">
+                    Score
+                  </span>
+                  <span className="text-sm font-bold text-text-on-dark">
+                    {assessment.score}
+                    <span className="text-text-muted"> / {assessment.maxScore}</span>
+                  </span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-primary">
+                  <div
+                    className={`h-2 rounded-full ${
+                      assessment.passed ? 'bg-accent-success' : 'bg-crisis'
+                    }`}
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(((assessment.score || 0) / (assessment.maxScore || 1)) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ── Recruiter / Company Notes ── */}
         {showNotes && application.note && (
