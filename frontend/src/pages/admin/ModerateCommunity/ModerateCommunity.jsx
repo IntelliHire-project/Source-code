@@ -9,8 +9,6 @@ import {
   MessageSquare,
   Search,
   Filter,
-  CheckSquare,
-  FileDown
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -202,14 +200,6 @@ function ModerateContent() {
     setPendingCount((prev) => Math.max(0, prev - 1));
   };
 
-  const handleResolveSelected = () => {
-    const count = checkedIds.length;
-    setReports((prev) => prev.filter((r) => !checkedIds.includes(r.id)));
-    setPendingCount((prev) => Math.max(0, prev - count));
-    setTotalReported((prev) => Math.max(0, prev - count));
-    setCheckedIds([]);
-  };
-
   // Modal actions
   const handleIgnoreReport = (id) => {
     handleResolveSingle(id);
@@ -239,19 +229,6 @@ function ModerateContent() {
     setSelectedReport(null);
 
     alert(`User ${author} has been permanently banned and all their contributions purged.`);
-  };
-
-  const handleExportCSV = () => {
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + ["Report ID,Title,Category,Reported By,Date,Severity,Source"].join(",") + "\n"
-      + reports.map(r => `${r.id},"${r.title}",${r.category},${r.reportedBy},${r.date},${r.severity},${r.source}`).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `intellihire_moderation_reports_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleResetFilters = () => {
@@ -286,18 +263,6 @@ function ModerateContent() {
               <p>Manage and resolve reported content across the ecosystem.</p>
             </div>
             <div className="moderation-header__actions">
-              <button className="btn-export" onClick={handleExportCSV}>
-                <FileDown size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                Export CSV
-              </button>
-              <button 
-                className="btn-resolve-all" 
-                onClick={handleResolveSelected}
-                disabled={checkedIds.length === 0}
-              >
-                <CheckSquare size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                Resolve Selected
-              </button>
             </div>
           </div>
 
