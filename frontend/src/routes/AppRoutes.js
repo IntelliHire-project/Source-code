@@ -47,6 +47,7 @@ import CreateAssessmentPage from '../pages/recruiter/Assessments/CreateAssessmen
 import CandidateReportPage from '../pages/recruiter/Assessments/CandidateReportPage';
 import AssessmentPreviewPage from '../pages/recruiter/Assessments/AssessmentPreviewPage';
 import AssessmentCandidatesPage from '../pages/recruiter/Assessments/AssessmentCandidatesPage';
+import RecruiterProfilePage from '../pages/recruiter/RecruiterProfile/RecruiterProfilePage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import VacancySelectorModal from '../components/common/VacancySelectorModal';
@@ -226,6 +227,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/payments"
           element={<PaymentBillingPage />}
+        />
+        <Route
+          path="/recruiter/profile"
+          element={<RecruiterProfilePage />}
         />
         <Route
           path="/recruiter/analytics"
