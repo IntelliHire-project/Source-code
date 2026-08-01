@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search,
   Filter,
-  Download,
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
@@ -74,6 +73,8 @@ const RECENT_REFUNDS = [
   { id: 'TRX-77321-YY', company: 'CloudScale', time: '1D AGO', amount: 500.0, status: 'Review Needed' },
 ];
 
+const STATUS_FILTERS = ['All Status', 'successful', 'failed', 'refunded', 'pending'];
+
 const fmt = (n) =>
   '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -83,19 +84,35 @@ export default function Payments() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [refundTransaction, setRefundTransaction] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const filterMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleDocumentClick = (event) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) {
+        setShowFilterMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleDocumentClick);
+    return () => document.removeEventListener('mousedown', handleDocumentClick);
+  }, []);
 
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return ALL_TRANSACTIONS.filter((t) => {
-      return (
+      const matchesStatus = statusFilter === 'All Status' || t.status === statusFilter;
+      const matchesQuery =
         !q ||
         t.id.toLowerCase().includes(q) ||
         t.company.toLowerCase().includes(q) ||
-        t.jobTitle.toLowerCase().includes(q)
-      );
+        t.jobTitle.toLowerCase().includes(q);
+
+      return matchesStatus && matchesQuery;
     });
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter]);
 
   return (
     <div className="admin-theme admin-dashboard">
@@ -174,15 +191,37 @@ export default function Payments() {
                 />
               </div>
               <div className="txn-actions">
-                <button className="txn-btn-outline">
-                  <Filter size={16} /> FILTER
-                </button>
-                <button className="txn-btn-outline">
-                  <Download size={16} /> EXPORT CSV
-                </button>
-                <button className="txn-btn-primary">
-                  Manual Transaction
-                </button>
+                <div className="txn-filter-wrap" ref={filterMenuRef}>
+                  <button
+                    className="txn-btn-outline"
+                    type="button"
+                    onClick={() => setShowFilterMenu((prev) => !prev)}
+                    aria-haspopup="menu"
+                    aria-expanded={showFilterMenu}
+                  >
+                    <Filter size={16} /> FILTER
+                  </button>
+
+                  {showFilterMenu && (
+                    <div className="txn-filter-menu" role="menu" aria-label="Transaction status filter">
+                      <div className="txn-filter-menu__title">Status</div>
+                      {STATUS_FILTERS.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          className={`txn-filter-menu__item ${statusFilter === option ? 'active' : ''}`}
+                          onClick={() => {
+                            setStatusFilter(option);
+                            setCurrentPage(1);
+                            setShowFilterMenu(false);
+                          }}
+                        >
+                          {option === 'All Status' ? 'All Status' : option.charAt(0).toUpperCase() + option.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

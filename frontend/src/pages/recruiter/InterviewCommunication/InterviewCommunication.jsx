@@ -389,7 +389,7 @@ export default function InterviewCommunication() {
           </div>
 
           <div className="comm-page-heading">
-            <h1 className="page-title">Interview Communication Management</h1>
+            <h1 className="interview-page-title">Interview Communication Management</h1>
             <p className="page-subtitle">
               Send interview invitations, monitor candidate responses, and manage schedule changes.
             </p>
