@@ -116,6 +116,12 @@ function RecruiterProfilePage() {
                   <span><Mail size={15} /> {profile.workEmail}</span>
                 </div>
 
+                <div className="profile-highlights">
+                  <span className="highlight-chip">AI-assisted recruiting</span>
+                  <span className="highlight-chip">Hiring strategy</span>
+                  <span className="highlight-chip">Pipeline management</span>
+                </div>
+
                 <div className="profile-progress-card">
                   <div className="progress-labels">
                     <span>Profile completion</span>
@@ -133,7 +139,13 @@ function RecruiterProfilePage() {
           <div className="content-grid">
             <section className="profile-card">
               <div className="section-heading">
-                <h2>Personal Information</h2>
+                <div className="section-title-group">
+                  <div className="section-icon"><UserRoundCheck size={16} /></div>
+                  <div>
+                    <h2>Personal Information</h2>
+                    <p>Keep your core contact details current for smooth collaboration.</p>
+                  </div>
+                </div>
                 <span className="muted-pill">Editable</span>
               </div>
               <div className="form-grid">
@@ -170,7 +182,13 @@ function RecruiterProfilePage() {
 
             <section className="profile-card">
               <div className="section-heading">
-                <h2>Company Information</h2>
+                <div className="section-title-group">
+                  <div className="section-icon"><Building2 size={16} /></div>
+                  <div>
+                    <h2>Company Information</h2>
+                    <p>Define the organization profile that supports candidate trust.</p>
+                  </div>
+                </div>
                 <span className="muted-pill">Corporate</span>
               </div>
               <div className="company-card">
@@ -208,7 +226,13 @@ function RecruiterProfilePage() {
 
             <section className="profile-card">
               <div className="section-heading">
-                <h2>Professional Information</h2>
+                <div className="section-title-group">
+                  <div className="section-icon"><Briefcase size={16} /></div>
+                  <div>
+                    <h2>Professional Information</h2>
+                    <p>Capture your recruiting expertise and hiring focus areas.</p>
+                  </div>
+                </div>
                 <span className="muted-pill">Talent Strategy</span>
               </div>
               <div className="form-grid">
@@ -237,7 +261,13 @@ function RecruiterProfilePage() {
 
             <section className="profile-card">
               <div className="section-heading">
-                <h2>Notification Preferences</h2>
+                <div className="section-title-group">
+                  <div className="section-icon"><BellRing size={16} /></div>
+                  <div>
+                    <h2>Notification Preferences</h2>
+                    <p>Control how updates and recruitment alerts reach you.</p>
+                  </div>
+                </div>
                 <span className="muted-pill">Alerts</span>
               </div>
               <div className="toggle-list">
@@ -265,7 +295,13 @@ function RecruiterProfilePage() {
 
             <section className="profile-card">
               <div className="section-heading">
-                <h2>Security & Account Settings</h2>
+                <div className="section-title-group">
+                  <div className="section-icon"><ShieldCheck size={16} /></div>
+                  <div>
+                    <h2>Security & Account Settings</h2>
+                    <p>Protect your account and review access details.</p>
+                  </div>
+                </div>
                 <span className="muted-pill">Secure</span>
               </div>
               <div className="settings-stack">
@@ -309,7 +345,13 @@ function RecruiterProfilePage() {
 
             <section className="profile-card">
               <div className="section-heading">
-                <h2>Professional Links</h2>
+                <div className="section-title-group">
+                  <div className="section-icon"><Globe2 size={16} /></div>
+                  <div>
+                    <h2>Professional Links</h2>
+                    <p>Connect your public professional profiles and company presence.</p>
+                  </div>
+                </div>
                 <span className="muted-pill">External</span>
               </div>
               <div className="link-stack">
