@@ -181,7 +181,7 @@ function ViewAuditLogs() {
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Audit Logs"
+        activeItem="Reports"
       />
 
       <div className="admin-dashboard__main audit-page">

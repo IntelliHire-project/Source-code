@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
-import './ModerateContent.css';
+import './ModerateCommunity.css';
 
 // Initial Mock Reports matching mockup layout & fields
 const INITIAL_REPORTS = [
@@ -266,7 +266,7 @@ function ModerateContent() {
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Content Moderation"
+        activeItem="Community mod."
       />
 
       <div className="admin-dashboard__main">
@@ -282,7 +282,7 @@ function ModerateContent() {
           {/* Header section */}
           <div className="moderation-header">
             <div className="moderation-header__title-group">
-              <h1>Content Moderation</h1>
+              <h1>Community Moderation</h1>
               <p>Manage and resolve reported content across the ecosystem.</p>
             </div>
             <div className="moderation-header__actions">
