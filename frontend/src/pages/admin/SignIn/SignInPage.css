@@ -1,0 +1,426 @@
+/* Admin Sign In UI Stylesheet */
+
+.admin-signin-shell {
+  --admin-bg: #000000;
+  --admin-topbar-bg: #000000;
+  --admin-topbar-border: #14151b;
+  --admin-card-bg: #0c0e12;
+  --admin-card-border: #1c1e26;
+  --admin-border-subtle: #232630;
+  --admin-border-hover: #383c4b;
+  --admin-input-bg: #000000;
+  
+  --admin-text-white: #ffffff;
+  --admin-text-label: #ffffff;
+  --admin-text-muted: #8c8f96;
+  --admin-text-muted-dark: #6a6c75;
+  --admin-placeholder: #555760;
+  --admin-copyright-text: #45474f;
+  
+  --admin-accent: #a38753;
+  --admin-accent-hover: #b3935d;
+  --admin-accent-badge-bg: rgba(240, 185, 11, 0.1);
+  --admin-accent-badge-border: rgba(240, 185, 11, 0.25);
+  --admin-accent-badge-text: #f0b90b;
+  --admin-accent-link: #a38753;
+  --admin-accent-link-hover: #c0a46d;
+  --admin-accent-btn: #ffd35c;
+  --admin-accent-btn-hover: #ffd866;
+  
+  --admin-warning-bg: rgba(239, 68, 68, 0.04);
+  --admin-warning-border: rgba(239, 68, 68, 0.2);
+  --admin-warning-icon-color: #ef4444;
+  --admin-warning-text-color: #fca5a5;
+  
+  --admin-status-success-bg: rgba(34, 197, 94, 0.1);
+  --admin-status-success-border: rgba(34, 197, 94, 0.2);
+  --admin-status-success-text: #4ade80;
+  --admin-status-error-bg: rgba(239, 68, 68, 0.1);
+  --admin-status-error-border: rgba(239, 68, 68, 0.2);
+  --admin-status-error-text: #fca5a5;
+
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--admin-bg);
+  background-image: radial-gradient(circle at top, rgba(240, 185, 11, 0.05) 0%, transparent 60%);
+  color: var(--admin-text-white);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Header / Top Bar */
+.admin-topbar {
+  height: 64px;
+  background-color: var(--admin-topbar-bg);
+  border-bottom: 1px solid var(--admin-topbar-border);
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  width: 100%;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.admin-brand-logo {
+  width: 24px;
+  height: 24px;
+  color: var(--admin-text-white);
+}
+
+.admin-brand-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--admin-text-white);
+  letter-spacing: -0.3px;
+}
+
+.admin-brand-badge {
+  background-color: var(--admin-accent-badge-bg);
+  border: 1px solid var(--admin-accent-badge-border);
+  color: var(--admin-accent-badge-text);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 4px;
+}
+
+/* Main Content Area */
+.admin-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  width: 100%;
+}
+
+.admin-wrapper {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Card Styling */
+.admin-card {
+  width: 100%;
+  background-color: var(--admin-card-bg);
+  border: 1px solid var(--admin-card-border);
+  border-radius: var(--radius-xl, 16px);
+  padding: 36px 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.admin-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.admin-icon-circle {
+  width: 56px;
+  height: 56px;
+  background-color: var(--admin-text-white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.04);
+}
+
+.admin-card-logo {
+  width: 24px;
+  height: 24px;
+  color: var(--admin-bg);
+}
+
+.admin-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--admin-text-white);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* Form Layout */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.admin-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-text-label);
+}
+
+.admin-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-input-icon {
+  position: absolute;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  color: var(--admin-text-muted-dark);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.admin-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px 0 40px;
+  background-color: var(--admin-input-bg);
+  border: 1px solid var(--admin-border-subtle);
+  border-radius: var(--radius-sm, 8px);
+  font-size: 14px;
+  color: var(--admin-text-white);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.admin-input::placeholder {
+  color: var(--admin-placeholder);
+}
+
+.admin-input:hover {
+  border-color: var(--admin-border-hover);
+}
+
+.admin-input:focus {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px rgba(163, 135, 83, 0.15);
+}
+
+.admin-input:focus + .admin-input-icon {
+  color: var(--admin-accent);
+}
+
+/* Password eye toggle button */
+.admin-input-eye {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--admin-text-muted-dark);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.admin-input-eye:hover {
+  color: var(--admin-text-white);
+}
+
+.admin-input-eye-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Checkbox Row */
+.admin-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.admin-checkbox-input {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--admin-border-subtle);
+  background-color: var(--admin-input-bg);
+  accent-color: var(--admin-accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.admin-checkbox-label {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  user-select: none;
+}
+
+/* Submit Button - Solid Gold/Yellow */
+.admin-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 46px;
+  background-color: var(--admin-accent-btn);
+  color: var(--admin-card-bg);
+  border: none;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 10px;
+}
+
+.admin-submit-btn:hover {
+  background-color: var(--admin-accent-btn-hover);
+  box-shadow: 0 4px 12px rgba(255, 211, 92, 0.25);
+}
+
+.admin-submit-btn:active {
+  transform: translateY(0.5px);
+}
+
+.admin-submit-btn:disabled {
+  background-color: var(--primary-light, #383a45);
+  color: var(--admin-text-muted-dark);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Warning & Subtext below card */
+.admin-warning-box {
+  margin-top: 24px;
+  padding: 12px 16px;
+  background-color: var(--admin-warning-bg);
+  border: 1px dashed var(--admin-warning-border);
+  border-radius: var(--radius-sm, 8px);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.admin-warning-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--admin-warning-icon-color);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.admin-warning-text {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--admin-warning-text-color);
+  margin: 0;
+}
+
+/* Form Status Messages */
+.admin-status {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.admin-status.success {
+  background-color: var(--admin-status-success-bg);
+  border: 1px solid var(--admin-status-success-border);
+  color: var(--admin-status-success-text);
+}
+
+.admin-status.error {
+  background-color: var(--admin-status-error-bg);
+  border: 1px solid var(--admin-status-error-border);
+  color: var(--admin-status-error-text);
+}
+
+/* Back to Portal link */
+.admin-back-portal {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.admin-portal-link {
+  font-size: 13px;
+  color: var(--admin-accent-link);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.admin-portal-link:hover {
+  color: var(--admin-accent-link-hover);
+}
+
+/* Footer Section */
+.admin-footer {
+  padding: 24px 20px 32px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.admin-footer-links {
+  display: flex;
+  gap: 16px;
+}
+
+.admin-footer-link {
+  font-size: 12px;
+  color: var(--admin-text-muted-dark);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.admin-footer-link:hover {
+  color: var(--admin-accent);
+}
+
+.admin-copyright {
+  font-size: 11px;
+  color: var(--admin-copyright-text);
+  margin: 0;
+}
+
+/* Responsive adjust */
+@media (max-width: 500px) {
+  .admin-topbar {
+    padding: 0 20px;
+  }
+  
+  .admin-card {
+    padding: 28px 20px;
+    border-radius: var(--radius-md, 12px);
+  }
+  
+  .admin-main {
+    padding: 24px 16px;
+  }
+}

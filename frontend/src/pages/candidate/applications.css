@@ -1,0 +1,757 @@
+/* ============================================================
+   My Applications
+   ============================================================ */
+
+.my-applications {
+  background: var(--primary-dark);
+  color: var(--text-on-dark);
+  min-height: calc(100vh - 64px);
+  padding: 28px 32px 48px;
+  max-width: 1320px;
+  margin: 0 auto;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ── Header ── */
+
+.my-applications__header {
+  margin-bottom: 28px;
+}
+
+.my-applications__count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-dark);
+  background: var(--primary);
+  color: var(--text-on-dark);
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.my-applications__count-badge strong {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* ── Tabs ── */
+
+.my-applications__tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-dark);
+  margin-bottom: 22px;
+  overflow-x: auto;
+}
+
+.my-applications__tab {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.my-applications__tab:hover {
+  color: var(--text-on-dark);
+}
+
+.my-applications__tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Controls (Search + Sort) ── */
+
+.my-applications__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.my-applications__search-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.my-applications__search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.my-applications__search-input {
+  width: 100%;
+  padding: 12px 18px 12px 46px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-dark);
+  background: var(--primary);
+  color: var(--text-on-dark);
+  font-size: 0.88rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.my-applications__search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.my-applications__search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.12);
+}
+
+.my-applications__sort-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-dark);
+  background: var(--primary);
+  color: var(--text-on-dark-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.my-applications__sort-wrap svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.my-applications__sort-select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-on-dark);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  padding-right: 4px;
+}
+
+.my-applications__sort-select option {
+  background: var(--primary);
+  color: var(--text-on-dark);
+}
+
+/* ── List ── */
+
+.my-applications__list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Application Card ── */
+
+.app-card {
+  background: var(--primary);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.app-card:hover {
+  border-color: rgba(240, 185, 11, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.app-card--muted {
+  opacity: 0.48;
+}
+
+.app-card--muted:hover {
+  border-color: var(--border-dark);
+  box-shadow: none;
+}
+
+.app-card__body {
+  display: flex;
+  gap: 18px;
+}
+
+.app-card__logo {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.app-card__logo svg {
+  width: 24px;
+  height: 24px;
+}
+
+.app-card__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-card__top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-card__info {
+  min-width: 0;
+}
+
+.app-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-on-dark);
+  line-height: 1.3;
+}
+
+.app-card__company {
+  margin: 3px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-on-dark-muted);
+  font-size: 0.82rem;
+  opacity: 0.7;
+  flex-wrap: wrap;
+}
+
+.app-card__company-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-card__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.app-card__status-badge--under-review {
+  border-color: rgba(240, 185, 11, 0.3);
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--accent);
+}
+
+.app-card__status-badge--interview {
+  border-color: rgba(107, 140, 255, 0.3);
+  background: rgba(107, 140, 255, 0.12);
+  color: var(--accent-info);
+}
+
+.app-card__status-badge--rejected {
+  border-color: rgba(230, 57, 70, 0.3);
+  background: rgba(230, 57, 70, 0.12);
+  color: var(--crisis);
+}
+
+.app-card__status-badge--withdrawn {
+  border-color: rgba(110, 112, 121, 0.3);
+  background: rgba(110, 112, 121, 0.12);
+  color: var(--text-muted);
+}
+
+.app-card__status-badge--offer {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--accent-success);
+}
+
+.app-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.78rem;
+  color: var(--text-on-dark-muted);
+  opacity: 0.6;
+  flex-wrap: wrap;
+}
+
+.app-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.app-card__meta-item svg {
+  opacity: 0.6;
+}
+
+/* ── Progress Tracker ── */
+
+.app-card__progress {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 6px 0 2px;
+}
+
+.app-card__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.app-card__step-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--border-dark);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.app-card__step-circle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.app-card__step-circle--done {
+  background: rgba(240, 185, 11, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.app-card__step-circle--current {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--primary);
+}
+
+.app-card__step-circle--current svg {
+  width: 10px;
+  height: 10px;
+}
+
+.app-card__step-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.app-card__step-label--active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.app-card__step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-dark);
+  margin: 0 4px;
+  margin-bottom: 18px;
+  min-width: 16px;
+  max-width: 48px;
+}
+
+.app-card__step-line--done {
+  background: var(--accent);
+}
+
+/* ── Actions ── */
+
+.app-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.app-card__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.app-card__btn:hover {
+  transform: translateY(-1px);
+}
+
+.app-card__btn--outline {
+  border: 1px solid var(--border-dark);
+  background: transparent;
+  color: var(--text-on-dark);
+}
+
+.app-card__btn--outline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.app-card__btn--withdraw {
+  border: 1px solid rgba(230, 57, 70, 0.25);
+  background: transparent;
+  color: var(--crisis);
+  opacity: 0.7;
+}
+
+.app-card__btn--withdraw:hover {
+  border-color: var(--crisis);
+  background: rgba(230, 57, 70, 0.1);
+  opacity: 1;
+}
+
+/* ── Summary (expandable) ── */
+
+.app-card__summary {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.app-card__summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-card__summary-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.app-card__summary-text {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-on-dark-muted);
+  line-height: 1.6;
+  opacity: 0.8;
+}
+
+.app-card__summary-dates {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.app-card__summary-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-card__summary-date-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.app-card__summary-date-value {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-on-dark);
+}
+
+/* ── Empty State ── */
+
+.my-applications__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.my-applications__empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(240, 185, 11, 0.08);
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+
+.my-applications__empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.my-applications__empty-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-on-dark);
+}
+
+.my-applications__empty-desc {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+  color: var(--text-on-dark-muted);
+  opacity: 0.65;
+  max-width: 360px;
+}
+
+.my-applications__empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 22px;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--primary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.my-applications__empty-btn:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   Withdraw Confirm Modal
+   ============================================================ */
+
+.withdraw-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+
+.withdraw-modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--primary);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  text-align: center;
+}
+
+.withdraw-modal__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(230, 57, 70, 0.12);
+  color: var(--crisis);
+  margin-bottom: 18px;
+}
+
+.withdraw-modal__icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.withdraw-modal__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-on-dark);
+}
+
+.withdraw-modal__text {
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+  color: var(--text-on-dark-muted);
+  opacity: 0.65;
+  line-height: 1.55;
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.withdraw-modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.withdraw-modal__btn {
+  padding: 11px 22px;
+  border-radius: var(--radius-md);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.withdraw-modal__btn:hover {
+  transform: translateY(-1px);
+}
+
+.withdraw-modal__btn--cancel {
+  border: 1px solid var(--border-dark);
+  background: transparent;
+  color: var(--text-on-dark);
+}
+
+.withdraw-modal__btn--cancel:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.withdraw-modal__btn--withdraw {
+  border: 1px solid var(--crisis);
+  background: var(--crisis);
+  color: #fff;
+}
+
+.withdraw-modal__btn--withdraw:hover {
+  background: #c12e3a;
+  border-color: #c12e3a;
+}
+
+/* ============================================================
+   Loading State
+   ============================================================ */
+
+.my-applications__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  color: var(--text-muted);
+  gap: 14px;
+}
+
+.my-applications__loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-dark);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: my-app-spin 0.7s linear infinite;
+}
+
+@keyframes my-app-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .my-applications {
+    padding: 16px 14px 36px;
+  }
+
+  .my-applications__header {
+    flex-direction: column;
+  }
+
+  .my-applications__title {
+    font-size: 1.5rem;
+  }
+
+  .my-applications__controls {
+    flex-direction: column;
+  }
+
+  .my-applications__sort-wrap {
+    width: 100%;
+  }
+
+  .my-applications__sort-select {
+    width: 100%;
+  }
+
+  .app-card__body {
+    flex-direction: column;
+  }
+
+  .app-card__top-row {
+    flex-direction: column;
+  }
+
+  .app-card__status-badge {
+    align-self: flex-start;
+  }
+
+  .app-card__actions {
+    flex-direction: column;
+  }
+
+  .app-card__btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .withdraw-modal {
+    padding: 24px 20px;
+  }
+
+  .withdraw-modal__actions {
+    flex-direction: column;
+  }
+
+  .withdraw-modal__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -17,10 +17,10 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const signup = async (fullName, email, password, confirmPassword) => {
+  const signup = async (fullName, email, phone, password, confirmPassword) => {
     setLoading(true);
     try {
-      const data = await apiSignup(fullName, email, password, confirmPassword);
+      const data = await apiSignup(fullName, email, phone, password, confirmPassword);
       // Auto session storage if token returned
       if (data.token) {
         setToken(data.token);
@@ -29,6 +29,8 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user);
         saveUserToStorage(data.user);
       }
+      sessionStorage.removeItem('hasChosenVacancy');
+      sessionStorage.removeItem('selectedVacancyId');
       return data;
     } finally {
       setLoading(false);
@@ -46,6 +48,8 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user);
         saveUserToStorage(data.user);
       }
+      sessionStorage.removeItem('hasChosenVacancy');
+      sessionStorage.removeItem('selectedVacancyId');
       return data;
     } finally {
       setLoading(false);
@@ -55,6 +59,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     clearAuthSession();
     setUser(null);
+    sessionStorage.removeItem('hasChosenVacancy');
+    sessionStorage.removeItem('selectedVacancyId');
   };
 
   const value = {
