@@ -4,8 +4,6 @@ import {
   Users,
   UserCheck,
   Calendar,
-  Award,
-  Gauge,
   MoreVertical,
   MapPin,
   Building2,
@@ -68,18 +66,6 @@ function initials(name = '') {
     .slice(0, 2)
     .map((part) => part[0].toUpperCase())
     .join('');
-}
-
-function StatCard({ icon: Icon, label, value, variant }) {
-  return (
-    <div className="vd-stat-card">
-      <div className={`vd-stat-card__icon vd-stat-card__icon--${variant}`}>
-        <Icon size={18} />
-      </div>
-      <span className="vd-stat-card__label">{label}</span>
-      <span className="vd-stat-card__value">{value}</span>
-    </div>
-  );
 }
 
 function toneForState(state) {
@@ -799,7 +785,6 @@ export default function VacancyDetailPage() {
   }, [id]);
 
   const funnel = vacancy ? getFunnel(vacancy) : null;
-  const avgScore = vacancy ? getAvgMatchScore(vacancy) : null;
   const outcome = vacancy ? getOutcome(vacancy) : null;
 
   const TABS = vacancy
@@ -815,16 +800,6 @@ export default function VacancyDetailPage() {
         { id: 'attendees', label: 'Attendees', count: (vacancy.attendees || []).length },
         { id: 'admin', label: 'Admin Review', count: (vacancy.adminReviews || []).length },
         { id: 'summary', label: 'Summary' },
-      ]
-    : [];
-
-  const stats = vacancy
-    ? [
-        { icon: Users, label: 'Total Applicants', value: funnel.total, variant: 'info' },
-        { icon: UserCheck, label: 'Shortlisted', value: funnel.shortlisted, variant: 'gold' },
-        { icon: Calendar, label: 'Interviewed', value: funnel.interviewed, variant: 'info' },
-        { icon: Award, label: 'Hired', value: funnel.hired, variant: 'success' },
-        { icon: Gauge, label: 'Avg. Match Score', value: avgScore ?? '—', variant: 'neutral' },
       ]
     : [];
 
@@ -956,13 +931,6 @@ export default function VacancyDetailPage() {
                     ]}
                   />
                 </div>
-              </div>
-
-              {/* ── Stat tiles ── */}
-              <div className="vd-stats-row">
-                {stats.map((card) => (
-                  <StatCard key={card.label} {...card} />
-                ))}
               </div>
 
               {/* ── Progress tracker (always visible) ── */}
