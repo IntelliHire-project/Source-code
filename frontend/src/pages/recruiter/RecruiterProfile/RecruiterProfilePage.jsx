@@ -47,16 +47,6 @@ const initialProfile = {
   accountStatus: 'Active',
 };
 
-const stats = [
-  { label: 'Total Jobs Posted', value: '48', icon: Briefcase, accent: 'amber' },
-  { label: 'Active Job Postings', value: '12', icon: Sparkles, accent: 'violet' },
-  { label: 'Applicants Reviewed', value: '1,284', icon: Users, accent: 'cyan' },
-  { label: 'Candidates Shortlisted', value: '186', icon: UserRoundCheck, accent: 'green' },
-  { label: 'Interviews Conducted', value: '74', icon: CalendarDays, accent: 'blue' },
-  { label: 'Successful Hires', value: '31', icon: CheckCircle2, accent: 'emerald' },
-  { label: 'Average Time to Hire', value: '14 days', icon: TrendingUp, accent: 'orange' },
-];
-
 function RecruiterProfilePage() {
   const [profile, setProfile] = useState(initialProfile);
   const [notifications, setNotifications] = useState({
@@ -137,29 +127,6 @@ function RecruiterProfilePage() {
                   <p>Complete company details and security settings to unlock deeper analytics.</p>
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section className="stats-section" aria-label="Recruiter statistics">
-            <div className="section-heading">
-              <h2>Recruiter Statistics</h2>
-              <p>Read-only performance snapshot</p>
-            </div>
-            <div className="stats-grid">
-              {stats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <article key={stat.label} className={`stat-card ${stat.accent}`}>
-                    <div className="stat-icon">
-                      <Icon size={18} />
-                    </div>
-                    <div>
-                      <p className="stat-label">{stat.label}</p>
-                      <h3>{stat.value}</h3>
-                    </div>
-                  </article>
-                );
-              })}
             </div>
           </section>
 
