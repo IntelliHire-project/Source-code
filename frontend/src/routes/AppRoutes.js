@@ -23,6 +23,7 @@ import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
 import MyApplications from '../pages/candidate/MyApplications/MyApplications';
+import ApplicationDetails from '../pages/candidate/ApplicationDetails/ApplicationDetails';
 import CVInsights from '../pages/candidate/CVInsights/CVInsights';
 import DashboardPage from '../pages/candidate/DashboardPage/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
@@ -169,6 +170,7 @@ function AppRoutes() {
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
           <Route path="applications" element={<MyApplications />} />
+          <Route path="applications/:applicationId" element={<ApplicationDetails />} />
           <Route path="candidate/mock-interviews/roleselection" element={<RoleSelection roleOverride="candidate"/>} />
           <Route path="community" element={<CommunityPage roleOverride="candidate" />} />
           <Route path="community/new" element={<CreateDiscussionPage roleOverride="candidate" />} />
