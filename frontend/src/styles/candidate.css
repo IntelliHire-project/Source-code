@@ -356,6 +356,29 @@
   line-height: 1.55;
 }
 
+.candidate-entry__remove {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.candidate-entry__remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.candidate-form-stack--entry {
+  margin-top: 12px;
+}
+
 /* ── Info rows ── */
 
 .candidate-info-stack,

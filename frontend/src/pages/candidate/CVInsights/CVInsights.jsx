@@ -8,6 +8,7 @@ import {
   FileText,
   ChevronDown,
   Zap,
+  Upload,
 } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import './cv-insights.css';
@@ -44,6 +45,60 @@ const MOCK_ANALYSIS = {
   presentKeywords: ['React', 'TypeScript', 'Node.js', 'AWS', 'PostgreSQL', 'Docker', 'REST APIs'],
   missingKeywords: ['Kubernetes', 'GraphQL', 'CI/CD', 'Microservices', 'Redis', 'Terraform', 'Next.js'],
 };
+
+const ANALYSIS_VARIANTS = [
+  MOCK_ANALYSIS,
+  {
+    strengths: [
+      'Clear career progression with consistent, promotion-worthy roles',
+      'Strong leadership and mentorship signals in experience descriptions',
+      'Efficient use of whitespace makes the CV easy to scan quickly',
+      'Technical certifications are prominently highlighted',
+      'Consistent use of active language across all sections',
+    ],
+    weaknesses: [
+      'Objective section is vague and does not target a specific role',
+      'List of technologies is scattered instead of grouped by category',
+      'Some bullet points exceed two lines, reducing readability',
+      'Contact details missing a phone number for quick recruiter reach',
+    ],
+    suggestions: [
+      { text: 'Rewrite the objective to name your target role and key differentiators', link: 'Learn More' },
+      { text: 'Group technologies into Languages / Frameworks / Cloud categories', link: 'Apply Suggestion' },
+      { text: 'Trim bullets to two lines or fewer to keep the recruiter engaged', link: 'Apply Suggestion' },
+      { text: 'Add a phone number and direct email to the header', link: 'Apply Suggestion' },
+    ],
+    presentKeywords: ['JavaScript', 'React', 'Node.js', 'SQL', 'Git', 'Agile', 'REST APIs'],
+    missingKeywords: ['TypeScript', 'GraphQL', 'Docker', 'CI/CD', 'Terraform', 'Redis', 'Microservices'],
+  },
+  {
+    strengths: [
+      'Excellent quantification of results with hard numbers and percentages',
+      'Clear, modern formatting that parses well with ATS tools',
+      'Relevant projects showcased with outcomes and tech stack',
+      'Concise bullets that highlight impact over responsibilities',
+      'Strong keywords aligned with senior engineering roles',
+    ],
+    weaknesses: [
+      'Missing an executive summary tailored to the applied role',
+      'No dedicated achievements section to separate wins from duties',
+      'Employment gaps are not explained or addressed',
+      'Only one professional reference provided',
+    ],
+    suggestions: [
+      { text: 'Add a role-specific executive summary at the top of the document', link: 'Learn More' },
+      { text: 'Create a separate Achievements section with quantifiable wins', link: 'Apply Suggestion' },
+      { text: 'Briefly explain employment gaps in a professional summary line', link: 'Apply Suggestion' },
+      { text: 'Add 2-3 professional references or a "References available" note', link: 'Apply Suggestion' },
+    ],
+    presentKeywords: ['Python', 'Django', 'PostgreSQL', 'Docker', 'AWS', 'Celery', 'REST APIs'],
+    missingKeywords: ['React', 'TypeScript', 'Kubernetes', 'GraphQL', 'Terraform', 'Kafka', 'CI/CD'],
+  },
+];
+
+function buildAnalysisForCv(cv) {
+  return ANALYSIS_VARIANTS[(cv.id - 1) % ANALYSIS_VARIANTS.length];
+}
 
 const MOCK_AI_RESPONSES = [
   {
@@ -290,9 +345,13 @@ const ANALYSIS_TABS = [
 
 function CVInsights() {
   const { setPageLabel } = useContext(CandidatePageContext);
+  const fileInputRef = useRef(null);
+  const [cvList, setCvList] = useState(MOCK_CVS);
   const [selectedCvId, setSelectedCvId] = useState(1);
   const [cvDropdownOpen, setCvDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('strengths');
+  const [analysis, setAnalysis] = useState(MOCK_ANALYSIS);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     { role: 'ai', text: 'Hi! I\'m your CV assistant. Ask me anything about improving your CV — I can help with summaries, keywords, ATS issues, and more.' },
   ]);
@@ -302,7 +361,47 @@ function CVInsights() {
     setPageLabel('CV INSIGHTS');
   }, [setPageLabel]);
 
-  const selectedCv = MOCK_CVS.find((cv) => cv.id === selectedCvId) || MOCK_CVS[0];
+  const selectedCv = cvList.find((cv) => cv.id === selectedCvId) || cvList[0];
+
+  function runAnalysis(cv, onComplete) {
+    setIsAnalyzing(true);
+    setActiveTab('strengths');
+    setTimeout(() => {
+      setAnalysis(buildAnalysisForCv(cv));
+      setIsAnalyzing(false);
+      onComplete?.();
+    }, 1400);
+  }
+
+  function handleCvSelect(cv) {
+    setSelectedCvId(cv.id);
+    setCvDropdownOpen(false);
+    runAnalysis(cv);
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const newCv = {
+      id: Date.now(),
+      filename: file.name.replace(/\.[^.]+$/, '').toUpperCase(),
+      uploadDate: 'Uploaded just now',
+    };
+    setCvList((prev) => [newCv, ...prev]);
+    setSelectedCvId(newCv.id);
+    setCvDropdownOpen(false);
+    setChatMessages((prev) => [
+      ...prev,
+      { role: 'user', text: `Please analyze my new CV: ${file.name}` },
+    ]);
+    runAnalysis(newCv, () => {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: 'ai', text: `I've finished analyzing "${newCv.filename}". It scans well overall — check the tabs above for strengths, weaknesses, suggestions, and keyword gaps, or ask me anything specific below.` },
+      ]);
+    });
+    e.target.value = '';
+  }
 
   function handleSend(text) {
     setChatMessages((prev) => [...prev, { role: 'user', text }]);
@@ -317,7 +416,8 @@ function CVInsights() {
 
   return (
     <div className="cv-insights">
-      <div className="cv-insights__cv-selector">
+      <div className="cv-insights__toolbar">
+        <div className="cv-insights__cv-selector">
           <div className="cv-insights__cv-selector-wrap">
             <button
               className="cv-insights__cv-trigger"
@@ -344,16 +444,13 @@ function CVInsights() {
 
             {cvDropdownOpen && (
               <div className="cv-insights__cv-dropdown">
-                {MOCK_CVS.map((cv) => (
+                {cvList.map((cv) => (
                   <div
                     key={cv.id}
                     className={`cv-insights__cv-option ${
                       selectedCvId === cv.id ? 'cv-insights__cv-option--active' : ''
                     }`}
-                    onClick={() => {
-                      setSelectedCvId(cv.id);
-                      setCvDropdownOpen(false);
-                    }}
+                    onClick={() => handleCvSelect(cv)}
                   >
                     <div className="cv-insights__cv-option-radio">
                       <div className="cv-insights__cv-option-dot" />
@@ -371,6 +468,23 @@ function CVInsights() {
             )}
           </div>
         </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.docx,.txt"
+          className="cv-insights__file-input"
+          onChange={handleFileChange}
+        />
+        <button
+          type="button"
+          className="cv-insights__upload-btn"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload size={14} />
+          Upload New CV
+        </button>
+      </div>
 
       {/* Body */}
       <div className="cv-insights__body">
@@ -396,12 +510,24 @@ function CVInsights() {
             ))}
           </div>
 
-          <InsightList
-            type={activeTab}
-            items={MOCK_ANALYSIS[activeTab]}
-            presentKeywords={MOCK_ANALYSIS.presentKeywords}
-            missingKeywords={MOCK_ANALYSIS.missingKeywords}
-          />
+          <div className="cv-insights__analysis-body">
+            {isAnalyzing ? (
+              <div className="cv-insights__skeleton">
+                <div className="cv-insights__skeleton-line cv-insights__skeleton-line--medium" />
+                <div className="cv-insights__skeleton-line cv-insights__skeleton-line--long" />
+                <div className="cv-insights__skeleton-line cv-insights__skeleton-line--short" />
+                <div className="cv-insights__skeleton-line cv-insights__skeleton-line--long" />
+                <div className="cv-insights__skeleton-line cv-insights__skeleton-line--medium" />
+              </div>
+            ) : (
+              <InsightList
+                type={activeTab}
+                items={analysis[activeTab]}
+                presentKeywords={analysis.presentKeywords}
+                missingKeywords={analysis.missingKeywords}
+              />
+            )}
+          </div>
         </div>
 
         {/* Chat Panel */}
