@@ -53,7 +53,7 @@ import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
-import ModerateContent from '../pages/admin/ModerateContent/ModerateContent';
+import ModerateContent from '../pages/admin/ModerateCommunity/ModerateCommunity';
 import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
 import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import Payments from '../pages/admin/Payments/Payments';
@@ -344,7 +344,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/admin/reports"
+          path="/admin/audit-log"
           element={
             <ProtectedRoute>
               <ViewAuditLogs />

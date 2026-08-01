@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   { label: 'Job moderation', icon: Briefcase, path: '/admin/job-moderation' },
   { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
   { label: 'Community mod.', icon: Flag, path: '/admin/community-mod' },
-  { label: 'Reports', icon: BookOpen, path: '/admin/reports' },
+  { label: 'Audit Log', icon: BookOpen, path: '/admin/audit-log' },
   { label: 'System health', icon: Activity, path: '/admin/system-health' },
 ];
 

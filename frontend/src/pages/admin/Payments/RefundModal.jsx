@@ -1,9 +1,42 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, X, Info } from 'lucide-react';
 import './RefundModal.css';
 
+const REFUND_REASONS = [
+  { value: 'duplicate', label: 'Duplicate Charge' },
+  { value: 'fraud', label: 'Fraudulent Activity' },
+  { value: 'user_requested', label: 'User Requested' },
+  { value: 'service_issue', label: 'Service Issue' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function RefundModal({ refund, onClose }) {
+  const [selectedReason, setSelectedReason] = useState('');
+  const [isReasonOpen, setIsReasonOpen] = useState(false);
+  const reasonMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (reasonMenuRef.current && !reasonMenuRef.current.contains(event.target)) {
+        setIsReasonOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    if (refund) {
+      setSelectedReason('');
+      setIsReasonOpen(false);
+    }
+  }, [refund]);
+
   if (!refund) return null;
+
+  const selectedReasonLabel =
+    REFUND_REASONS.find((reason) => reason.value === selectedReason)?.label || 'Select a reason...';
 
   return (
     <div className="refund-modal-overlay" onClick={onClose}>
@@ -44,15 +77,40 @@ export default function RefundModal({ refund, onClose }) {
               <em> {refund.company || 'Nexus Global Talent'}</em> for Transaction <u>{refund.id || 'TRX-99281-XC'}</u>?
             </p>
 
-            <div className="refund-reason-group">
+            <div className="refund-reason-group" ref={reasonMenuRef}>
               <label>REASON FOR REFUND</label>
-              <select className="refund-reason-select">
-                <option value="">Select a reason...</option>
-                <option value="duplicate">Duplicate Charge</option>
-                <option value="fraud">Fraudulent Activity</option>
-                <option value="user_requested">User Requested</option>
-                <option value="other">Other</option>
-              </select>
+              <button
+                type="button"
+                className="refund-reason-select"
+                onClick={() => setIsReasonOpen((prev) => !prev)}
+                aria-haspopup="listbox"
+                aria-expanded={isReasonOpen}
+              >
+                <span className={`refund-reason-value ${selectedReason ? 'has-value' : ''}`}>
+                  {selectedReasonLabel}
+                </span>
+                <span className={`refund-reason-caret ${isReasonOpen ? 'open' : ''}`} aria-hidden="true">
+                  ▾
+                </span>
+              </button>
+
+              {isReasonOpen && (
+                <div className="refund-reason-menu" role="listbox" aria-label="Refund reason options">
+                  {REFUND_REASONS.map((reason) => (
+                    <button
+                      key={reason.value}
+                      type="button"
+                      className={`refund-reason-option ${selectedReason === reason.value ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedReason(reason.value);
+                        setIsReasonOpen(false);
+                      }}
+                    >
+                      {reason.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="refund-info-box">

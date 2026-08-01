@@ -154,6 +154,7 @@
   flex-direction: column;
   gap: 8px;
   margin-bottom: 24px;
+  position: relative;
 }
 
 .refund-reason-group label {
@@ -165,6 +166,7 @@
 
 .refund-reason-select {
   width: 100%;
+  min-height: 44px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
@@ -173,9 +175,65 @@
   font-size: 0.85rem;
   cursor: pointer;
   outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
 }
 .refund-reason-select:focus {
   border-color: #F0B90B;
+}
+
+.refund-reason-value {
+  color: #c9d1d9;
+}
+
+.refund-reason-value.has-value {
+  color: #fff;
+}
+
+.refund-reason-caret {
+  color: #8b949e;
+  transition: transform 0.15s ease;
+}
+
+.refund-reason-caret.open {
+  transform: rotate(180deg);
+}
+
+.refund-reason-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #111217;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 10;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.35);
+}
+
+.refund-reason-option {
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  background: transparent;
+  color: #c9d1d9;
+  text-align: left;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.refund-reason-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.refund-reason-option.active {
+  background: rgba(240, 185, 11, 0.14);
+  color: #F0B90B;
 }
 
 .refund-info-box {
