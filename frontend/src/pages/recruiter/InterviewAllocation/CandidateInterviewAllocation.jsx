@@ -420,7 +420,7 @@ export default function CandidateInterviewAllocationPage() {
           {/* ── Page Heading Block + Auto Allocate Button ── */}
           <div className="page-heading-block heading-with-action">
             <div>
-              <h1 className="page-title">Candidate Interview Allocation</h1>
+              <h1 className="interview-page-title">Candidate Interview Allocation</h1>
               <p className="page-subtitle">
                 Automatically assign shortlisted candidates to available interview slots based on priority and availability.
               </p>

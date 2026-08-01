@@ -504,7 +504,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
           {/* ── Clean Page Heading ── */}
           <div className="page-heading-block">
             <div>
-              <h1 className="page-title">Interview Time Slot Management</h1>
+              <h1 className="interview-page-title">Interview Time Slot Management</h1>
               <p className="page-subtitle">
                 Create, manage, and schedule interview availability for shortlisted candidates.
               </p>
