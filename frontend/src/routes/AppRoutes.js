@@ -344,7 +344,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/admin/reports"
+          path="/admin/audit-log"
           element={
             <ProtectedRoute>
               <ViewAuditLogs />

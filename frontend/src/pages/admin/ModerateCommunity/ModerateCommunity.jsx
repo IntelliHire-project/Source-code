@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   AlertTriangle,
   Check,
@@ -7,8 +7,9 @@ import {
   X,
   SlidersHorizontal,
   MessageSquare,
-  Search,
-  Filter,
+  User,
+  Calendar,
+  Zap,
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -127,6 +128,36 @@ const INITIAL_COMMENTS = [
   }
 ];
 
+const AUTOMATED_REPORTERS = ['bot_hunter', 'system_ai'];
+
+const USER_FILTER_OPTIONS = [
+  { value: 'all', label: 'All Personnel' },
+  { value: 'automated', label: 'Automated Reports' },
+  { value: 'human', label: 'Human Users' },
+];
+
+const DATE_FILTER_OPTIONS = [
+  { value: '24h', label: 'Last 24 Hours' },
+  { value: '7d', label: 'Last 7 Days' },
+  { value: '30d', label: 'Last 30 Days' },
+  { value: 'all', label: 'All Time' },
+];
+
+const ACTION_FILTER_OPTIONS = [
+  { value: 'all', label: 'Any Interaction' },
+  { value: 'spam', label: 'Spam' },
+  { value: 'hate-speech', label: 'Hate Speech' },
+  { value: 'inappropriate', label: 'Inappropriate' },
+  { value: 'harassment', label: 'Harassment' },
+];
+
+const parseModerationDate = (value) => {
+  const parsed = new Date(value.replace(' ', 'T') + ':00');
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const toFilterKey = (value) => value.toLowerCase().replace(/\s+/g, '-');
+
 function ModerateContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [reports, setReports] = useState(INITIAL_REPORTS);
@@ -136,8 +167,9 @@ function ModerateContent() {
   // Selection and filter states
   const [checkedIds, setCheckedIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [severityFilter, setSeverityFilter] = useState(null); // 'High', 'Medium', 'Low'
-  const [sourceFilter, setSourceFilter] = useState(null); // 'Web', 'Mobile App', 'API'
+  const [userFilter, setUserFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('24h');
+  const [actionFilter, setActionFilter] = useState('all');
   
   // Stats counters (simulating larger numbers)
   const [totalReported, setTotalReported] = useState(1248);
@@ -146,21 +178,70 @@ function ModerateContent() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
+  const [openFilter, setOpenFilter] = useState(null);
+  const filterBarRef = useRef(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, userFilter, dateFilter, actionFilter]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (filterBarRef.current && !filterBarRef.current.contains(event.target)) {
+        setOpenFilter(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const latestReportDate = useMemo(() => {
+    const dates = reports
+      .map((report) => parseModerationDate(report.date))
+      .filter(Boolean);
+
+    return dates.length > 0 ? new Date(Math.max(...dates.map((date) => date.getTime()))) : null;
+  }, [reports]);
 
   // Filtered reports
   const filteredReports = useMemo(() => {
+    const dateWindowMs =
+      dateFilter === '24h'
+        ? 24 * 60 * 60 * 1000
+        : dateFilter === '7d'
+          ? 7 * 24 * 60 * 60 * 1000
+          : dateFilter === '30d'
+            ? 30 * 24 * 60 * 60 * 1000
+            : null;
+
     return reports.filter((report) => {
       const matchesSearch =
         report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         report.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.reportedBy.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesSeverity = !severityFilter || report.severity === severityFilter;
-      const matchesSource = !sourceFilter || report.source === sourceFilter;
+        report.reportedBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.category.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return matchesSearch && matchesSeverity && matchesSource;
+      const matchesUser =
+        userFilter === 'all' ||
+        (userFilter === 'automated'
+          ? AUTOMATED_REPORTERS.includes(report.reportedBy)
+          : !AUTOMATED_REPORTERS.includes(report.reportedBy));
+
+      const reportDate = parseModerationDate(report.date);
+      const matchesDate =
+        dateWindowMs === null ||
+        !latestReportDate ||
+        !reportDate ||
+        (latestReportDate.getTime() - reportDate.getTime() >= 0 &&
+          latestReportDate.getTime() - reportDate.getTime() <= dateWindowMs);
+
+      const matchesAction =
+        actionFilter === 'all' || toFilterKey(report.category) === actionFilter;
+
+      return matchesSearch && matchesUser && matchesDate && matchesAction;
     });
-  }, [reports, searchQuery, severityFilter, sourceFilter]);
+  }, [reports, searchQuery, userFilter, dateFilter, actionFilter, latestReportDate]);
 
   // Paginated reports
   const paginatedReports = useMemo(() => {
@@ -200,6 +281,17 @@ function ModerateContent() {
     setPendingCount((prev) => Math.max(0, prev - 1));
   };
 
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setUserFilter('all');
+    setDateFilter('24h');
+    setActionFilter('all');
+    setCurrentPage(1);
+    setOpenFilter(null);
+  };
+
+  const getFilterLabel = (options, value) => options.find((option) => option.value === value)?.label;
+
   // Modal actions
   const handleIgnoreReport = (id) => {
     handleResolveSingle(id);
@@ -231,13 +323,6 @@ function ModerateContent() {
     alert(`User ${author} has been permanently banned and all their contributions purged.`);
   };
 
-  const handleResetFilters = () => {
-    setSeverityFilter(null);
-    setSourceFilter(null);
-    setSearchQuery('');
-    setCurrentPage(1);
-  };
-
   return (
     <div className="admin-theme admin-dashboard">
       <AdminSidebar
@@ -251,7 +336,10 @@ function ModerateContent() {
           user={{ name: 'Arthur V. Gold', role: 'HEAD MODERATOR' }}
           notificationsCount={5}
           searchPlaceholder="Search reports, users, or post IDs..."
-          onSearch={(q) => setSearchQuery(q)}
+          onSearch={(q) => {
+            setSearchQuery(q);
+            setCurrentPage(1);
+          }}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
@@ -413,45 +501,121 @@ function ModerateContent() {
             {/* Right side: widgets */}
             <aside className="widgets-section">
               {/* Filter controls widget */}
-              <div className="widget-card">
+              <div className="widget-card" ref={filterBarRef}>
                 <h3 className="widget-title">
                   <SlidersHorizontal size={14} />
-                  Queue Control
+                  Queue Filters
                 </h3>
-                
-                <div className="filter-group">
-                  <div className="filter-group-title">Severity Level</div>
-                  <div className="filter-badge-list">
-                    {['High', 'Medium', 'Low'].map((sev) => (
+
+                <div className="queue-filters">
+                  <div className="queue-filter-group">
+                    <span className="queue-filter-label">User</span>
+                    <div className="queue-select-wrapper">
                       <button
-                        key={sev}
-                        className={`filter-pill ${severityFilter === sev ? 'active' : ''}`}
-                        onClick={() => setSeverityFilter(severityFilter === sev ? null : sev)}
+                        type="button"
+                        className="queue-select queue-select-btn"
+                        onClick={() => setOpenFilter((current) => (current === 'user' ? null : 'user'))}
+                        aria-haspopup="listbox"
+                        aria-expanded={openFilter === 'user'}
                       >
-                        {sev}
+                        <span className="queue-select-btn__left">
+                          <User size={14} className="queue-select-icon" />
+                          <span>{getFilterLabel(USER_FILTER_OPTIONS, userFilter)}</span>
+                        </span>
+                        <span className={`queue-select-chevron ${openFilter === 'user' ? 'open' : ''}`}>▾</span>
                       </button>
-                    ))}
+                      {openFilter === 'user' && (
+                        <div className="queue-select-menu" role="listbox" aria-label="User filter options">
+                          {USER_FILTER_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={`queue-select-option ${userFilter === option.value ? 'active' : ''}`}
+                              onClick={() => {
+                                setUserFilter(option.value);
+                                setOpenFilter(null);
+                              }}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="queue-filter-group">
+                    <span className="queue-filter-label">Date</span>
+                    <div className="queue-select-wrapper">
+                      <button
+                        type="button"
+                        className="queue-select queue-select-btn"
+                        onClick={() => setOpenFilter((current) => (current === 'date' ? null : 'date'))}
+                        aria-haspopup="listbox"
+                        aria-expanded={openFilter === 'date'}
+                      >
+                        <span className="queue-select-btn__left">
+                          <Calendar size={14} className="queue-select-icon" />
+                          <span>{getFilterLabel(DATE_FILTER_OPTIONS, dateFilter)}</span>
+                        </span>
+                        <span className={`queue-select-chevron ${openFilter === 'date' ? 'open' : ''}`}>▾</span>
+                      </button>
+                      {openFilter === 'date' && (
+                        <div className="queue-select-menu" role="listbox" aria-label="Date filter options">
+                          {DATE_FILTER_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={`queue-select-option ${dateFilter === option.value ? 'active' : ''}`}
+                              onClick={() => {
+                                setDateFilter(option.value);
+                                setOpenFilter(null);
+                              }}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="queue-filter-group">
+                    <span className="queue-filter-label">Action</span>
+                    <div className="queue-select-wrapper">
+                      <button
+                        type="button"
+                        className="queue-select queue-select-btn"
+                        onClick={() => setOpenFilter((current) => (current === 'action' ? null : 'action'))}
+                        aria-haspopup="listbox"
+                        aria-expanded={openFilter === 'action'}
+                      >
+                        <span className="queue-select-btn__left">
+                          <Zap size={14} className="queue-select-icon" />
+                          <span>{getFilterLabel(ACTION_FILTER_OPTIONS, actionFilter)}</span>
+                        </span>
+                        <span className={`queue-select-chevron ${openFilter === 'action' ? 'open' : ''}`}>▾</span>
+                      </button>
+                      {openFilter === 'action' && (
+                        <div className="queue-select-menu" role="listbox" aria-label="Action filter options">
+                          {ACTION_FILTER_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              className={`queue-select-option ${actionFilter === option.value ? 'active' : ''}`}
+                              onClick={() => {
+                                setActionFilter(option.value);
+                                setOpenFilter(null);
+                              }}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                <div className="widget-divider" />
-
-                <div className="filter-group">
-                  <div className="filter-group-title">Content Source</div>
-                  <div className="filter-badge-list">
-                    {['Web', 'Mobile App', 'API'].map((src) => (
-                      <button
-                        key={src}
-                        className={`filter-pill ${sourceFilter === src ? 'active' : ''}`}
-                        onClick={() => setSourceFilter(sourceFilter === src ? null : src)}
-                      >
-                        {src}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="widget-divider" />
 
                 <button className="btn-reset-filters" onClick={handleResetFilters}>
                   Reset Filters
