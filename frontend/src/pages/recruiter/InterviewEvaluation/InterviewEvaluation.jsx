@@ -594,7 +594,7 @@ function InterviewEvaluationPage() {
           {/* ── Page Heading + Action Button ── */}
           <div className="eval-page-header">
             <div className="eval-heading-copy">
-              <h1 className="page-title">Interview Panel &amp; Evaluation Management</h1>
+              <h1 className="interview-page-title">Interview Panel &amp; Evaluation Management</h1>
               <p className="page-subtitle">
                 Assign interview panels and record candidate evaluation results.
               </p>
