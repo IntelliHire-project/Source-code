@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -60,6 +60,8 @@ const MOCK_JOB = {
 
 const MOCK_CVS = [
   { id: 1, filename: 'SENIOR_PRODUCT_DES', uploadDate: 'Uploaded Jan 12, 2024', isActive: true },
+  { id: 2, filename: 'ALEX_CV_2024_DRAFT', uploadDate: 'Uploaded Apr 28, 2024', isActive: false },
+  { id: 3, filename: 'ALEX_RESUME_2023', uploadDate: 'Uploaded Dec 15, 2023', isActive: false },
 ];
 
 const MOCK_CV_GAPS = {
@@ -103,6 +105,8 @@ function CVSelectorCard({ filename, uploadDate, isActive, onSelect }) {
 function JobDetail() {
   const navigate = useNavigate();
   const { setPageLabel } = useContext(CandidatePageContext);
+  const fileInputRef = useRef(null);
+  const [cvList, setCvList] = useState(MOCK_CVS);
   const [selectedCvId, setSelectedCvId] = useState(1);
   const [showReview, setShowReview] = useState(false);
   const [showCvPrompt, setShowCvPrompt] = useState(false);
@@ -113,7 +117,7 @@ function JobDetail() {
     setPageLabel('JOB DETAIL');
   }, [setPageLabel]);
 
-  const selectedCv = MOCK_CVS.find((c) => c.id === selectedCvId);
+  const selectedCv = cvList.find((c) => c.id === selectedCvId);
 
   function handleApply() {
     if (!selectedCv) {
@@ -121,6 +125,20 @@ function JobDetail() {
       return;
     }
     setShowReview(true);
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const newCv = {
+      id: Date.now(),
+      filename: file.name.replace(/\.[^.]+$/, '').toUpperCase(),
+      uploadDate: 'Uploaded just now',
+      isActive: false,
+    };
+    setCvList((prev) => [newCv, ...prev]);
+    setSelectedCvId(newCv.id);
+    e.target.value = '';
   }
 
   return (
@@ -250,9 +268,9 @@ function JobDetail() {
 
           {/* CV Selector */}
           <div className="job-detail__card">
-            <h3 className="job-detail__card-title">YOUR ACTIVE CV</h3>
+            <h3 className="job-detail__card-title">SELECT CV FOR THIS APPLICATION</h3>
             <div className="job-detail__cv-list">
-              {MOCK_CVS.map((cv) => (
+              {cvList.map((cv) => (
                 <CVSelectorCard
                   key={cv.id}
                   filename={cv.filename}
@@ -262,9 +280,16 @@ function JobDetail() {
                 />
               ))}
             </div>
-            <button className="job-detail__upload-btn" onClick={() => navigate('/candidate/cv-management')}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.docx,.txt"
+              className="job-detail__file-input"
+              onChange={handleFileChange}
+            />
+            <button className="job-detail__upload-btn" onClick={() => fileInputRef.current?.click()}>
               <Upload size={15} />
-              UPLOAD / CHANGE CV
+              UPLOAD NEW CV FOR THIS APPLICATION
             </button>
           </div>
 
@@ -273,9 +298,6 @@ function JobDetail() {
             <ShieldCheck size={16} />
             <span>IntelliHire Verified Job. This employer has undergone our identity verification process.</span>
           </div>
-
-          {/* Report */}
-          <button className="job-detail__report-btn">Report Job Posting</button>
         </aside>
       </div>
 
@@ -337,22 +359,22 @@ function JobDetail() {
                 <span className="job-detail__prompt-heading">
                   <AlertTriangle size={13} /> Missing Requirements
                 </span>
-                <div className="job-detail__prompt-tags">
-                  {MOCK_CV_GAPS.missingSkills.map((s) => (
-                    <span key={s} className="job-detail__prompt-tag job-detail__prompt-tag--missing">{s}</span>
+                <ul className="job-detail__prompt-list">
+                  {MOCK_CV_GAPS.missingSkills.map((s, i) => (
+                    <li key={i} className="job-detail__prompt-item">{s}</li>
                   ))}
-                </div>
+                </ul>
               </div>
 
               <div className="job-detail__prompt-group">
                 <span className="job-detail__prompt-heading">
                   <CheckCircle size={13} /> Your Strengths
                 </span>
-                <div className="job-detail__prompt-tags">
-                  {MOCK_CV_GAPS.strengths.map((s) => (
-                    <span key={s} className="job-detail__prompt-tag job-detail__prompt-tag--match">{s}</span>
+                <ul className="job-detail__prompt-list">
+                  {MOCK_CV_GAPS.strengths.map((s, i) => (
+                    <li key={i} className="job-detail__prompt-item">{s}</li>
                   ))}
-                </div>
+                </ul>
               </div>
 
               <div className="job-detail__prompt-group">
