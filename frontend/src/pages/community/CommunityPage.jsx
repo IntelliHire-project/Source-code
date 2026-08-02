@@ -11,7 +11,7 @@ import {
 import useAuth from '../../hooks/useAuth';
 import RecruiterSidebar from '../../components/common/RecruiterSidebar';
 import CandidateSidebar from '../../components/common/CandidateSidebar';
-import { CandidatePageContext } from '../candidate/CandidateDashboard';
+import { CandidatePageContext } from '../candidate/CandidateDashboard/CandidateDashboard';
 import './CommunityPage.css';
 
 const POSTS = [

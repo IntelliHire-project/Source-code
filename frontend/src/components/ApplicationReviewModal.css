@@ -222,6 +222,17 @@
   border-color: var(--accent-dark);
 }
 
+.arm-modal__btn--gold:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.arm-modal__btn--gold:disabled:hover {
+  transform: none;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 640px) {

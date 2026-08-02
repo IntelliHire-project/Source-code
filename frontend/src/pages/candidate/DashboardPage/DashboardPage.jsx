@@ -10,7 +10,7 @@ import {
   Eye,
   TrendingUp,
 } from 'lucide-react';
-import { CandidatePageContext } from './CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import './DashboardPage.css';
 
 /* ── Mock Data ── */

@@ -11,7 +11,7 @@ import {
   Clock,
   ChevronRight,
 } from 'lucide-react';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import './jobs.css';
 
 /* ── Mock Data ── */
@@ -21,7 +21,7 @@ const MOCK_JOBS = [
     id: 1,
     title: 'Senior Frontend Engineer',
     company: 'TechFlow Systems',
-    location: 'Remote (NYC Based)',
+    location: 'Colombo, Sri Lanka',
     salaryRange: 'Rs 250,000 - Rs 350,000',
     postedTime: '2 hours ago',
     skills: ['React', 'TypeScript', 'Node.js'],
@@ -31,7 +31,7 @@ const MOCK_JOBS = [
     id: 2,
     title: 'Product Designer',
     company: 'Nexus Creative',
-    location: 'San Francisco, CA',
+    location: 'Nugegoda, Sri Lanka',
     salaryRange: 'Rs 220,000 - Rs 300,000',
     postedTime: '5 hours ago',
     skills: ['Figma', 'UI/UX', 'Design Systems'],
@@ -41,7 +41,7 @@ const MOCK_JOBS = [
     id: 3,
     title: 'Full Stack Developer',
     company: 'Financier AI',
-    location: 'London, UK',
+    location: 'Kandy, Sri Lanka',
     salaryRange: 'Rs 180,000 - Rs 260,000',
     postedTime: '1 day ago',
     skills: ['Python', 'PostgreSQL', 'Next.js'],
@@ -51,11 +51,25 @@ const MOCK_JOBS = [
     id: 4,
     title: 'Cloud Architect',
     company: 'SkyScale Solutions',
-    location: 'Austin, TX',
+    location: 'Remote',
     postedTime: '2 days ago',
     skills: ['AWS', 'Terraform', 'Kubernetes'],
     matchScore: 45,
   },
+];
+
+const LOCATION_OPTIONS = [
+  'Any Location',
+  'Remote',
+  'Colombo, Sri Lanka',
+  'Kandy, Sri Lanka',
+  'Galle, Sri Lanka',
+  'Negombo, Sri Lanka',
+  'Nugegoda, Sri Lanka',
+  'Kurunegala, Sri Lanka',
+  'Battaramulla, Sri Lanka',
+  'Jaffna, Sri Lanka',
+  'Matara, Sri Lanka',
 ];
 
 const MOCK_TOP_MATCHES = [
@@ -117,22 +131,31 @@ function JobSearch() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All Types');
   const [experienceFilter, setExperienceFilter] = useState('Any Experience');
+  const [locationFilter, setLocationFilter] = useState('Any Location');
+
+  const locations = LOCATION_OPTIONS;
 
   useEffect(() => {
     setPageLabel('FIND JOBS');
   }, [setPageLabel]);
 
-  const hasActiveFilters = typeFilter !== 'All Types' || experienceFilter !== 'Any Experience' || searchQuery;
+  const hasActiveFilters =
+    typeFilter !== 'All Types' ||
+    experienceFilter !== 'Any Experience' ||
+    locationFilter !== 'Any Location' ||
+    searchQuery;
 
   function handleClearAll() {
     setSearchQuery('');
     setTypeFilter('All Types');
     setExperienceFilter('Any Experience');
+    setLocationFilter('Any Location');
   }
 
   const filteredJobs = MOCK_JOBS.filter((job) => {
     if (typeFilter !== 'All Types' && job.type !== typeFilter) return false;
     if (experienceFilter !== 'Any Experience' && job.experience !== experienceFilter) return false;
+    if (locationFilter !== 'Any Location' && job.location !== locationFilter) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (
@@ -170,6 +193,14 @@ function JobSearch() {
               <GraduationCap size={15} />
               <select value={experienceFilter} onChange={(e) => setExperienceFilter(e.target.value)}>
                 <option>Any Experience</option><option>Entry Level</option><option>Mid Level</option><option>Senior Level</option><option>Lead</option>
+              </select>
+            </div>
+            <div className="job-search__dropdown">
+              <MapPin size={15} />
+              <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+                {locations.map((loc) => (
+                  <option key={loc}>{loc}</option>
+                ))}
               </select>
             </div>
           </div>

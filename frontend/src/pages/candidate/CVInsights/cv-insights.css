@@ -5,19 +5,57 @@
 .cv-insights {
   background: var(--primary-dark);
   color: var(--text-on-dark);
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px - 48px);
   padding: 28px 32px 48px;
   max-width: 1320px;
   margin: 0 auto;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ── Header ── */
 
 /* ── CV Selector ── */
 
+.cv-insights__toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
 .cv-insights__cv-selector {
   min-width: 260px;
+  max-width: 480px;
+  flex: 1;
+}
+
+.cv-insights__file-input {
+  display: none;
+}
+
+.cv-insights__upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--accent);
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cv-insights__upload-btn:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
 }
 
 .cv-insights__cv-trigger {
@@ -266,11 +304,13 @@
 /* ── Body (2-col) ── */
 
 .cv-insights__body {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 1fr 360px;
   gap: 24px;
-  align-items: start;
-  margin-bottom: 28px;
+  align-items: stretch;
+  margin-bottom: 0;
 }
 
 /* ── Analysis Panel ── */
@@ -280,6 +320,30 @@
   border: 1px solid var(--border-dark);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cv-insights__analysis-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-dark) transparent;
+}
+
+.cv-insights__analysis-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cv-insights__analysis-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cv-insights__analysis-body::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: 999px;
 }
 
 .cv-insights__analysis-header {
@@ -474,8 +538,8 @@
 /* ── Chat Panel ── */
 
 .cv-insights__chat {
-  position: sticky;
-  top: 24px;
+  display: flex;
+  min-height: 0;
 }
 
 .chat-panel {
@@ -484,7 +548,8 @@
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  height: 520px;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -770,16 +835,22 @@
    ============================================================ */
 
 @media (max-width: 1100px) {
+  .cv-insights {
+    height: auto;
+    overflow: visible;
+  }
+
   .cv-insights__body {
     grid-template-columns: 1fr;
   }
 
   .cv-insights__chat {
-    position: static;
+    display: block;
   }
 
   .chat-panel {
     height: 440px;
+    flex: none;
   }
 
   .cv-insights__scores {
@@ -792,6 +863,14 @@
     padding: 16px 14px 36px;
   }
 
+  .cv-insights__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .cv-insights__upload-btn {
+    width: 100%;
+    justify-content: center;
+  }
 
   .cv-insights__cv-selector {
     width: 100%;
