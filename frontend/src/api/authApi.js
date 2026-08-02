@@ -3,11 +3,10 @@ import apiInstance from './apiInstance';
 /**
  * Sends a signup request to the backend.
  */
-export const signup = async (fullName, email, phone, password, confirmPassword) => {
+export const signup = async (fullName, email, password, confirmPassword) => {
   const response = await apiInstance.post('/auth/create-account', {
     fullName,
     email,
-    phone,
     password,
     confirmPassword,
   });
