@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import {
   Clock,
   CheckCircle2,

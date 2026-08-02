@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Clock, RotateCcw, Play, ArrowLeft, HelpCircle, Sparkles } from 'lucide-react';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import './GeneratedQuestions.css';
 
 const DEFAULT_QUESTIONS = [
