@@ -17,14 +17,15 @@ import CommunityPage, {
   SavedPostsPage,
 } from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
-import CandidateDashboard from '../pages/candidate/CandidateDashboard';
+import CandidateDashboard from '../pages/candidate/CandidateDashboard/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
-import MyApplications from '../pages/candidate/MyApplications';
-import CVInsights from '../pages/candidate/CVInsights';
-import DashboardPage from '../pages/candidate/DashboardPage';
+import MyApplications from '../pages/candidate/MyApplications/MyApplications';
+import ApplicationDetails from '../pages/candidate/ApplicationDetails/ApplicationDetails';
+import CVInsights from '../pages/candidate/CVInsights/CVInsights';
+import DashboardPage from '../pages/candidate/DashboardPage/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';
@@ -174,6 +175,7 @@ function AppRoutes() {
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
           <Route path="applications" element={<MyApplications />} />
+          <Route path="applications/:applicationId" element={<ApplicationDetails />} />
           <Route path="mock-interviews" element={<Navigate to="/candidate/mock-interviews/roleselection" replace />} />
           <Route path="mock-interviews/roleselection" element={<RoleSelection roleOverride="candidate" />} />
           <Route path="mock-interviews/questions" element={<GeneratedQuestions roleOverride="candidate" />} />
