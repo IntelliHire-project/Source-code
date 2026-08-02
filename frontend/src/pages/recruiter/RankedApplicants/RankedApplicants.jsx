@@ -892,15 +892,24 @@ function RankedApplicants() {
 
                   <div className="filter-actions">
                     {activeTab === 'Shortlisted' && (
-                      <button
-                        className="btn-schedule-interviews"
-                        onClick={() => {
-                          setSelectedMethod(null);
-                          setShowScheduleModal(true);
-                        }}
-                      >
-                        <Calendar size={16} /> Schedule Interviews
-                      </button>
+                      <>
+                        <button
+                          className="btn-schedule-interviews"
+                          onClick={() => {
+                            setSelectedMethod(null);
+                            setShowScheduleModal(true);
+                          }}
+                        >
+                          <Calendar size={16} /> Schedule Interviews
+                        </button>
+                        <button
+                          className="btn-schedule-interviews"
+                          style={{ marginLeft: '10px' }}
+                          onClick={() => navigate('/recruiter/assessments')}
+                        >
+                          <FileText size={16} /> Schedule Assessment
+                        </button>
+                      </>
                     )}
                     <div style={{ position: 'relative' }}>
                       <button
