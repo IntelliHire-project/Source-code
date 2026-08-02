@@ -6,9 +6,7 @@ import {
   Briefcase,
   MapPin,
   Calendar,
-  Clock,
   AlertTriangle,
-  Check,
   ChevronRight,
 } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
@@ -42,22 +40,6 @@ const MOCK_APPLICATIONS = [
       'Portfolio and resume submitted. Shortlisted after initial screening round.',
     nextStep: 'Technical interview scheduled. Prepare design challenge.',
     timeline: { submitted: 'Oct 20, 2024', reviewed: 'Oct 24, 2024', interview: 'Oct 28, 2024' },
-    interview: {
-      phase: 'Portfolio Review',
-      phaseNumber: 1,
-      totalPhases: 2,
-      date: 'Nov 5, 2024',
-      time: '11:00 AM',
-      mode: 'Virtual — Google Meet',
-      with: 'Product & Design Team',
-    },
-    assessment: {
-      name: 'Design Challenge',
-      score: 78,
-      maxScore: 100,
-      passed: true,
-      takenOn: 'Oct 27, 2024',
-    },
   },
   {
     id: 3,
@@ -71,13 +53,6 @@ const MOCK_APPLICATIONS = [
       'Completed technical assessment but did not meet experience requirements for senior-level role.',
     nextStep: 'Consider reapplying for mid-level roles in the future.',
     timeline: { submitted: 'Oct 10, 2024', reviewed: 'Oct 16, 2024' },
-    assessment: {
-      name: 'Technical Assessment',
-      score: 64,
-      maxScore: 100,
-      passed: false,
-      takenOn: 'Oct 14, 2024',
-    },
   },
   {
     id: 4,
@@ -94,16 +69,6 @@ const MOCK_APPLICATIONS = [
   },
 ];
 
-const STATUS_STEPS = ['Applied', 'Under Review', 'Interview', 'Decision'];
-
-const STATUS_STEP_INDEX = {
-  'Under Review': 1,
-  'Interview Scheduled': 2,
-  'Rejected': 1,
-  'Withdrawn': 0,
-  'Offer Received': 3,
-};
-
 const SORT_OPTIONS = [
   { label: 'Most Recent', value: 'newest' },
   { label: 'Oldest', value: 'oldest' },
@@ -112,174 +77,43 @@ const SORT_OPTIONS = [
 
 /* ── Sub-components ── */
 
-function getStatusBadgeClass(status) {
-  switch (status) {
-    case 'Under Review':
-      return 'app-card__status-badge--under-review';
-    case 'Interview Scheduled':
-      return 'app-card__status-badge--interview';
-    case 'Rejected':
-      return 'app-card__status-badge--rejected';
-    case 'Withdrawn':
-      return 'app-card__status-badge--withdrawn';
-    case 'Offer Received':
-      return 'app-card__status-badge--offer';
-    default:
-      return '';
-  }
-}
-
-function getCompanyInitial(company) {
-  return company ? company.charAt(0).toUpperCase() : '?';
-}
-
-function getCurrentStep(status) {
-  return STATUS_STEP_INDEX[status] ?? 0;
-}
-
-export function ApplicationCard({ application, onViewDetails, onWithdraw }) {
-  const [expanded, setExpanded] = useState(false);
+export function ApplicationCard({ application, onViewDetails }) {
   const isMuted = application.status === 'Rejected' || application.status === 'Withdrawn';
-  const currentStep = getCurrentStep(application.status);
-
-  function handleViewDetails() {
-    if (onViewDetails) {
-      onViewDetails(application);
-    } else {
-      setExpanded((prev) => !prev);
-    }
-  }
-
-  const canWithdraw =
-    application.status !== 'Rejected' &&
-    application.status !== 'Withdrawn' &&
-    application.status !== 'Offer Received';
 
   return (
     <div className={`app-card ${isMuted ? 'app-card--muted' : ''}`}>
-      <div className="app-card__body">
-        <div className="app-card__logo">
-          {getCompanyInitial(application.company)}
+      <div className="app-card__content">
+        <div className="app-card__top-row">
+          <div className="app-card__info">
+            <h3 className="app-card__title">{application.title}</h3>
+            <p className="app-card__company">
+              {application.company}
+              <span className="app-card__company-location">
+                <MapPin size={12} />
+                {application.location}
+              </span>
+            </p>
+          </div>
+          <span className="app-card__status-badge">{application.status}</span>
         </div>
 
-        <div className="app-card__content">
-          <div className="app-card__top-row">
-            <div className="app-card__info">
-              <h3 className="app-card__title">{application.title}</h3>
-              <p className="app-card__company">
-                {application.company}
-                <span className="app-card__company-location">
-                  <MapPin size={12} />
-                  {application.location}
-                </span>
-              </p>
-            </div>
-            <span
-              className={`app-card__status-badge ${getStatusBadgeClass(application.status)}`}
-            >
-              {application.status}
-            </span>
-          </div>
-
-          <div className="app-card__meta">
-            <span className="app-card__meta-item">
-              <Calendar size={13} />
-              Applied on {application.appliedDate}
-            </span>
-            <span className="app-card__meta-item">
-              <Clock size={13} />
-              {application.applicationId}
-            </span>
-          </div>
-
-          <div className="app-card__progress">
-            {STATUS_STEPS.map((step, i) => (
-              <React.Fragment key={step}>
-                {i > 0 && (
-                  <div
-                    className={`app-card__step-line ${
-                      i <= currentStep ? 'app-card__step-line--done' : ''
-                    }`}
-                  />
-                )}
-                <div className="app-card__step">
-                  <div
-                    className={`app-card__step-circle ${
-                      i < currentStep
-                        ? 'app-card__step-circle--done'
-                        : i === currentStep
-                        ? 'app-card__step-circle--current'
-                        : ''
-                    }`}
-                  >
-                    {i < currentStep ? (
-                      <Check size={12} />
-                    ) : i === currentStep ? (
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
-                    ) : null}
-                  </div>
-                  <span
-                    className={`app-card__step-label ${
-                      i === currentStep ? 'app-card__step-label--active' : ''
-                    }`}
-                  >
-                    {step}
-                  </span>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
+        <div className="app-card__meta">
+          <span className="app-card__meta-item">
+            <Calendar size={13} />
+            Applied on {application.appliedDate}
+          </span>
         </div>
       </div>
 
-      {expanded && (
-        <div className="app-card__summary">
-          {application.about && (
-            <div className="app-card__summary-section">
-              <span className="app-card__summary-label">Application Summary</span>
-              <p className="app-card__summary-text">{application.about}</p>
-            </div>
-          )}
-          {application.nextStep && (
-            <div className="app-card__summary-section">
-              <span className="app-card__summary-label">Next Step</span>
-              <p className="app-card__summary-text">{application.nextStep}</p>
-            </div>
-          )}
-          {application.timeline && (
-            <div className="app-card__summary-section">
-              <span className="app-card__summary-label">Timeline</span>
-              <div className="app-card__summary-dates">
-                {Object.entries(application.timeline).map(([key, value]) => (
-                  <div key={key} className="app-card__summary-date">
-                    <span className="app-card__summary-date-label">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <span className="app-card__summary-date-value">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="app-card__actions">
-        <button className="app-card__btn app-card__btn--outline" onClick={handleViewDetails}>
-          {expanded ? 'Hide Details' : 'View Details'}
-          <ChevronRight
-            size={14}
-            style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
-          />
+        <button
+          type="button"
+          className="app-card__btn app-card__btn--outline"
+          onClick={() => onViewDetails && onViewDetails(application)}
+        >
+          View Details
+          <ChevronRight size={14} />
         </button>
-        {canWithdraw && (
-          <button
-            className="app-card__btn app-card__btn--withdraw"
-            onClick={() => onWithdraw && onWithdraw(application)}
-          >
-            Withdraw Application
-          </button>
-        )}
       </div>
     </div>
   );
@@ -318,11 +152,10 @@ export function WithdrawConfirmModal({ application, onConfirm, onCancel }) {
 function MyApplications() {
   const navigate = useNavigate();
   const { setPageLabel } = useContext(CandidatePageContext);
-  const [applications, setApplications] = useState(MOCK_APPLICATIONS);
+  const [applications] = useState(MOCK_APPLICATIONS);
   const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [withdrawTarget, setWithdrawTarget] = useState(null);
 
   useEffect(() => {
     setPageLabel('MY APPLICATIONS');
@@ -389,24 +222,6 @@ function MyApplications() {
     navigate(`/candidate/applications/${application.id}`);
   }
 
-  function handleWithdraw(application) {
-    setWithdrawTarget(application);
-  }
-
-  function confirmWithdraw() {
-    if (!withdrawTarget) return;
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === withdrawTarget.id ? { ...app, status: 'Withdrawn' } : app
-      )
-    );
-    setWithdrawTarget(null);
-  }
-
-  function cancelWithdraw() {
-    setWithdrawTarget(null);
-  }
-
   return (
     <div className="my-applications">
       {/* Header */}
@@ -467,7 +282,6 @@ function MyApplications() {
               key={app.id}
               application={app}
               onViewDetails={handleViewDetails}
-              onWithdraw={handleWithdraw}
             />
           ))}
         </div>
@@ -490,15 +304,6 @@ function MyApplications() {
             <ChevronRight size={16} />
           </button>
         </div>
-      )}
-
-      {/* Withdraw Modal */}
-      {withdrawTarget && (
-        <WithdrawConfirmModal
-          application={withdrawTarget}
-          onConfirm={confirmWithdraw}
-          onCancel={cancelWithdraw}
-        />
       )}
     </div>
   );

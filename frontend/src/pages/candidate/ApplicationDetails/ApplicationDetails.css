@@ -48,25 +48,12 @@
   margin-bottom: 20px;
 }
 
-.application-detail__logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  background: rgba(240, 185, 11, 0.12);
-  color: var(--accent);
-  font-size: 1.4rem;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
 .application-detail__header-info {
   min-width: 0;
 }
 
 .application-detail__title {
-  margin: 10px 0 4px;
+  margin: 0 0 4px;
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--text-on-dark);
@@ -112,9 +99,10 @@
 
 .application-detail__grid {
   display: grid;
-  grid-template-columns: 1fr 1.15fr;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   align-items: start;
+  margin-bottom: 20px;
 }
 
 .application-detail__column {
@@ -133,6 +121,26 @@
 
 .application-detail__status-card {
   margin-bottom: 20px;
+}
+
+.application-detail__status-card .application-detail__card-header {
+  justify-content: center;
+}
+
+.application-detail__status-card .app-card__progress {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+.application-detail__status-card .app-card__step {
+  width: 104px;
+}
+
+.application-detail__status-card .app-card__step-line {
+  flex: none;
+  width: 36px;
 }
 
 .application-detail__card-header {
@@ -215,31 +223,7 @@
   font-weight: 700;
 }
 
-/* ── Verdict / Assessment ── */
-
-.application-detail__verdict {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-.application-detail__verdict--passed {
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  color: var(--accent-success);
-}
-
-.application-detail__verdict--failed {
-  background: rgba(230, 57, 70, 0.12);
-  border: 1px solid rgba(230, 57, 70, 0.3);
-  color: var(--crisis);
-}
+/* ── Assessment ── */
 
 .application-detail__assessment-top {
   display: flex;
@@ -304,42 +288,6 @@
   background: var(--accent-success);
 }
 
-.application-detail__assessment-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-dark);
-}
-
-.application-detail__assessment-section-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 0.78rem;
-  color: var(--text-on-dark-muted);
-  margin-bottom: 6px;
-}
-
-.application-detail__assessment-section-top strong {
-  color: var(--accent);
-  font-weight: 800;
-}
-
-.application-detail__assessment-section-bar {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--primary-light);
-  overflow: hidden;
-}
-
-.application-detail__assessment-section-bar div {
-  height: 100%;
-  border-radius: 999px;
-  background: rgba(240, 185, 11, 0.6);
-}
-
 /* ── Interview Phase ── */
 
 .application-detail__phase-summary {
@@ -373,68 +321,13 @@
   letter-spacing: 0.06em;
 }
 
-.application-detail__phase-steps {
-  display: flex;
-  align-items: flex-start;
-}
-
-.application-detail__phase-step {
+.application-detail__upcoming {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-dark);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.application-detail__phase-circle {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  border: 2px solid var(--border-dark);
-  background: var(--primary);
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 800;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.application-detail__phase-step--done .application-detail__phase-circle {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--primary);
-}
-
-.application-detail__phase-step--current .application-detail__phase-circle {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.application-detail__phase-label {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.3;
-  padding: 0 4px;
-}
-
-.application-detail__phase-step--current .application-detail__phase-label {
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.application-detail__phase-line {
-  flex: 1;
-  height: 2px;
-  margin-top: 14px;
-  background: var(--border-dark);
-}
-
-.application-detail__phase-line--done {
-  background: var(--accent);
+  gap: 12px;
 }
 
 /* ── Upcoming Interviews ── */
@@ -514,6 +407,36 @@
   background: rgba(240, 185, 11, 0.1);
 }
 
+/* ── Withdraw ── */
+
+.application-detail__withdraw-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.application-detail__withdraw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-dark);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.application-detail__withdraw-btn:hover {
+  opacity: 1;
+  color: var(--crisis);
+  border-color: rgba(230, 57, 70, 0.4);
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 900px) {
@@ -525,6 +448,14 @@
 @media (max-width: 640px) {
   .application-detail {
     padding: 16px 14px 36px;
+  }
+
+  .application-detail__status-card .app-card__step {
+    width: 72px;
+  }
+
+  .application-detail__status-card .app-card__step-line {
+    width: 16px;
   }
 
   .application-detail__header {

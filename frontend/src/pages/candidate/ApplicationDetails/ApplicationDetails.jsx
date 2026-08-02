@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -7,15 +7,14 @@ import {
   Clock,
   Briefcase,
   Check,
-  CheckCircle2,
-  XCircle,
-  Video,
-  CalendarClock,
   ClipboardCheck,
   FileText,
+  Video,
+  CalendarClock,
   ChevronRight,
 } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
+import { WithdrawConfirmModal } from '../MyApplications/MyApplications';
 import '../MyApplications/applications.css';
 import './ApplicationDetails.css';
 
@@ -29,6 +28,7 @@ const STATUS_STEP_INDEX = {
   'Rejected': 1,
   'Withdrawn': 0,
   'Offer Received': 3,
+  'Accepted': 3,
 };
 
 const MOCK_DETAILS = {
@@ -49,11 +49,6 @@ const MOCK_DETAILS = {
       maxScore: 100,
       passed: true,
       completedDate: 'Oct 29, 2024',
-      sections: [
-        { label: 'Coding Challenge', score: 82 },
-        { label: 'Frontend Fundamentals', score: 76 },
-        { label: 'Problem Solving', score: 74 },
-      ],
     },
     interviews: {
       total: 3,
@@ -79,11 +74,6 @@ const MOCK_DETAILS = {
       maxScore: 100,
       passed: true,
       completedDate: 'Oct 25, 2024',
-      sections: [
-        { label: 'UX Case Study', score: 94 },
-        { label: 'Visual Design', score: 90 },
-        { label: 'Design Systems', score: 91 },
-      ],
     },
     interviews: {
       total: 3,
@@ -126,11 +116,6 @@ const MOCK_DETAILS = {
       maxScore: 100,
       passed: false,
       completedDate: 'Oct 14, 2024',
-      sections: [
-        { label: 'Backend Challenge', score: 58 },
-        { label: 'Frontend Challenge', score: 51 },
-        { label: 'System Design', score: 53 },
-      ],
     },
     interviews: {
       total: 0,
@@ -161,29 +146,8 @@ const MOCK_DETAILS = {
 
 /* ── Helpers ── */
 
-function getStatusBadgeClass(status) {
-  switch (status) {
-    case 'Under Review':
-      return 'app-card__status-badge--under-review';
-    case 'Interview Scheduled':
-      return 'app-card__status-badge--interview';
-    case 'Rejected':
-      return 'app-card__status-badge--rejected';
-    case 'Withdrawn':
-      return 'app-card__status-badge--withdrawn';
-    case 'Offer Received':
-      return 'app-card__status-badge--offer';
-    default:
-      return '';
-  }
-}
-
 function getCurrentStep(status) {
   return STATUS_STEP_INDEX[status] ?? 0;
-}
-
-function getCompanyInitial(company) {
-  return company ? company.charAt(0).toUpperCase() : '?';
 }
 
 /* ── Cards ── */
@@ -193,7 +157,10 @@ function AssessmentCard({ assessment }) {
     return (
       <section className="application-detail__card">
         <div className="application-detail__card-header">
-          <h3 className="application-detail__card-title">Assessment</h3>
+          <h3 className="application-detail__card-title">
+            <ClipboardCheck size={16} />
+            Assessment
+          </h3>
         </div>
         <p className="application-detail__muted">No assessment taken for this application.</p>
       </section>
@@ -207,16 +174,8 @@ function AssessmentCard({ assessment }) {
       <div className="application-detail__card-header">
         <h3 className="application-detail__card-title">
           <ClipboardCheck size={16} />
-          Assessment Results
+          Assessment
         </h3>
-        <span
-          className={`application-detail__verdict ${
-            assessment.passed ? 'application-detail__verdict--passed' : 'application-detail__verdict--failed'
-          }`}
-        >
-          {assessment.passed ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-          {assessment.passed ? 'PASSED' : 'NOT PASSED'}
-        </span>
       </div>
 
       <div className="application-detail__assessment">
@@ -241,27 +200,11 @@ function AssessmentCard({ assessment }) {
           />
         </div>
       </div>
-
-      {assessment.sections && assessment.sections.length > 0 && (
-        <div className="application-detail__assessment-sections">
-          {assessment.sections.map((section) => (
-            <div key={section.label} className="application-detail__assessment-section">
-              <div className="application-detail__assessment-section-top">
-                <span>{section.label}</span>
-                <strong>{section.score}%</strong>
-              </div>
-              <div className="application-detail__assessment-section-bar">
-                <div style={{ width: `${section.score}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </section>
   );
 }
 
-function InterviewPhaseCard({ interviews }) {
+function InterviewPhaseCard({ interviews, upcoming }) {
   if (!interviews || interviews.total === 0) {
     return (
       <section className="application-detail__card">
@@ -276,7 +219,9 @@ function InterviewPhaseCard({ interviews }) {
     );
   }
 
-  const { total, currentRound, rounds } = interviews;
+  const total = interviews.total;
+  const taken = Math.min(interviews.currentRound, total);
+  const left = Math.max(total - taken, 0);
 
   return (
     <section className="application-detail__card">
@@ -293,92 +238,45 @@ function InterviewPhaseCard({ interviews }) {
           <span>Total Interviews</span>
         </div>
         <div className="application-detail__phase-stat">
-          <strong>{currentRound > 0 ? currentRound : '—'}</strong>
-          <span>Current Round</span>
+          <strong>{taken}</strong>
+          <span>Taken</span>
+        </div>
+        <div className="application-detail__phase-stat">
+          <strong>{left}</strong>
+          <span>Left</span>
         </div>
       </div>
 
-      <div className="application-detail__phase-steps">
-        {rounds.map((round, i) => {
-          const idx = i + 1;
-          const done = idx < currentRound;
-          const current = idx === currentRound;
-          return (
-            <React.Fragment key={round}>
-              {i > 0 && (
-                <div
-                  className={`application-detail__phase-line ${
-                    idx <= currentRound ? 'application-detail__phase-line--done' : ''
-                  }`}
-                />
-              )}
-              <div
-                className={`application-detail__phase-step ${
-                  done ? 'application-detail__phase-step--done' : ''
-                } ${current ? 'application-detail__phase-step--current' : ''}`}
-              >
-                <div className="application-detail__phase-circle">
-                  {done ? <Check size={12} /> : idx}
+      <div className="application-detail__upcoming">
+        <span className="application-detail__summary-label">Upcoming Interviews</span>
+        {upcoming && upcoming.length > 0 ? (
+          <div className="application-detail__interview-list">
+            {upcoming.map((interview, i) => (
+              <div key={i} className="application-detail__interview">
+                <div className="application-detail__interview-icon">
+                  <Video size={16} />
                 </div>
-                <span className="application-detail__phase-label">
-                  Round {idx} — {round}
-                </span>
+                <div className="application-detail__interview-info">
+                  <span className="application-detail__interview-round">{interview.round}</span>
+                  <span className="application-detail__interview-meta">
+                    <CalendarClock size={12} />
+                    {interview.date} • {interview.time}
+                  </span>
+                  <span className="application-detail__interview-meta">
+                    <Briefcase size={12} />
+                    {interview.format} • Interviewer: {interview.interviewer}
+                  </span>
+                </div>
+                <button type="button" className="application-detail__interview-join">
+                  Join Link
+                  <ChevronRight size={13} />
+                </button>
               </div>
-            </React.Fragment>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function UpcomingInterviewsCard({ interviews }) {
-  if (!interviews || interviews.length === 0) {
-    return (
-      <section className="application-detail__card">
-        <div className="application-detail__card-header">
-          <h3 className="application-detail__card-title">
-            <CalendarClock size={16} />
-            Upcoming Interviews
-          </h3>
-        </div>
-        <p className="application-detail__muted">No upcoming interviews scheduled.</p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="application-detail__card">
-      <div className="application-detail__card-header">
-        <h3 className="application-detail__card-title">
-          <CalendarClock size={16} />
-          Upcoming Interviews
-        </h3>
-      </div>
-
-      <div className="application-detail__interview-list">
-        {interviews.map((interview, i) => (
-          <div key={i} className="application-detail__interview">
-            <div className="application-detail__interview-icon">
-              <Video size={16} />
-            </div>
-            <div className="application-detail__interview-info">
-              <span className="application-detail__interview-round">{interview.round}</span>
-              <span className="application-detail__interview-meta">
-                <CalendarClock size={12} />
-                {interview.date} • {interview.time}
-              </span>
-              <span className="application-detail__interview-meta">
-                <Briefcase size={12} />
-                {interview.format} • Interviewer: {interview.interviewer}
-              </span>
-            </div>
-            <button type="button" className="application-detail__interview-join">
-              Join Link
-              <ChevronRight size={13} />
-            </button>
+            ))}
           </div>
-        ))}
+        ) : (
+          <p className="application-detail__muted">No upcoming interviews scheduled.</p>
+        )}
       </div>
     </section>
   );
@@ -430,13 +328,26 @@ function ApplicationDetails() {
   const navigate = useNavigate();
   const { applicationId } = useParams();
   const { setPageLabel } = useContext(CandidatePageContext);
+  const [detail, setDetail] = useState(
+    () => MOCK_DETAILS[applicationId] || MOCK_DETAILS[1]
+  );
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
-  const detail = MOCK_DETAILS[applicationId] || MOCK_DETAILS[1];
   const currentStep = getCurrentStep(detail.status);
+  const canWithdraw =
+    detail.status !== 'Rejected' &&
+    detail.status !== 'Withdrawn' &&
+    detail.status !== 'Accepted' &&
+    detail.status !== 'Offer Received';
 
   useEffect(() => {
     setPageLabel('APPLICATION DETAILS');
   }, [setPageLabel]);
+
+  function confirmWithdraw() {
+    setDetail((prev) => ({ ...prev, status: 'Withdrawn' }));
+    setShowWithdrawModal(false);
+  }
 
   return (
     <div className="application-detail">
@@ -451,13 +362,7 @@ function ApplicationDetails() {
 
       {/* Header */}
       <header className="application-detail__header">
-        <div className="application-detail__logo">{getCompanyInitial(detail.company)}</div>
         <div className="application-detail__header-info">
-          <span
-            className={`app-card__status-badge ${getStatusBadgeClass(detail.status)}`}
-          >
-            {detail.status}
-          </span>
           <h1 className="application-detail__title">{detail.title}</h1>
           <p className="application-detail__company">
             {detail.company}
@@ -537,10 +442,34 @@ function ApplicationDetails() {
         </div>
         <div className="application-detail__column">
           <AssessmentCard assessment={detail.assessment} />
-          <InterviewPhaseCard interviews={detail.interviews} />
-          <UpcomingInterviewsCard interviews={detail.upcomingInterviews} />
         </div>
       </div>
+
+      <InterviewPhaseCard
+        interviews={detail.interviews}
+        upcoming={detail.upcomingInterviews}
+      />
+
+      {canWithdraw && (
+        <div className="application-detail__withdraw-row">
+          <button
+            type="button"
+            className="application-detail__withdraw-btn"
+            onClick={() => setShowWithdrawModal(true)}
+          >
+            Withdraw Application
+          </button>
+        </div>
+      )}
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && (
+        <WithdrawConfirmModal
+          application={detail}
+          onConfirm={confirmWithdraw}
+          onCancel={() => setShowWithdrawModal(false)}
+        />
+      )}
     </div>
   );
 }
