@@ -281,10 +281,10 @@
 }
 
 .page-subtitle {
-  font-size: 0.9rem;
-  color: var(--text-secondary, #9CA0A8);
+  font-size: 0.88rem;
+  color: #9599A6;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* ── Action Bar (Add New Slot button container) ── */

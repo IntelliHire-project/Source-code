@@ -302,8 +302,9 @@
 
 .page-subtitle {
   font-size: 0.88rem;
-  color: var(--text-secondary, #9CA0A8);
+  color: #9599A6;
   margin: 0;
+  line-height: 1.4;
 }
 
 /* ⚡ Auto Allocate Button */
