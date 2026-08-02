@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   BellRing,
   Briefcase,
@@ -9,14 +9,9 @@ import {
   Globe2,
   Lock,
   Mail,
-  MapPin,
-  Phone,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
-  Users,
-  CalendarDays,
   UserRoundCheck,
+  ShieldCheck,
+  X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -57,23 +52,51 @@ function RecruiterProfilePage() {
     reports: false,
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState(initialProfile);
+  const [activeTab, setActiveTab] = useState('personal');
   const completionPercent = 84;
 
-  const handleChange = (event) => {
+  const handleChange = useCallback((event) => {
     const { name, value } = event.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const toggleNotification = (key) => {
+  const toggleNotification = useCallback((key) => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  }, []);
+
+  const handleSidebarToggle = useCallback(() => setSidebarOpen((prev) => !prev), []);
+  const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
+
+  const handleEditClick = useCallback(() => {
+    setEditFormData(profile);
+    setEditModalOpen(true);
+  }, [profile]);
+
+  const handleEditClose = useCallback(() => {
+    setEditModalOpen(false);
+  }, []);
+
+  const handleEditChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleSaveProfile = useCallback(() => {
+    setProfile(editFormData);
+    setEditModalOpen(false);
+  }, [editFormData]);
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
 
   return (
     <div className="create-vacancy vm-shell">
       <RecruiterSidebar
         isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        onClose={handleSidebarClose}
         activeItem="Profile"
       />
 
@@ -83,296 +106,690 @@ function RecruiterProfilePage() {
           notificationsCount={3}
           breadcrumbItems={[{ label: 'Recruiter Profile' }]}
           searchPlaceholder="Search profile details"
-          onHamburgerClick={() => setSidebarOpen(true)}
+          onHamburgerClick={handleSidebarToggle}
         />
 
         <main className="recruiter-profile-page">
-          <section className="profile-hero-card">
-            <div className="profile-hero-main">
-              <div className="profile-avatar-wrap">
+          {/* Profile Header Section */}
+          <section className="profile-header">
+            <div className="profile-header__content">
+              <div className="profile-avatar-section">
                 <div className="profile-avatar">SP</div>
-                <button className="profile-photo-btn" type="button" aria-label="Upload profile picture">
+                <button className="avatar-edit-btn" type="button" aria-label="Upload profile picture">
                   <Camera size={16} />
                 </button>
               </div>
-
-              <div className="profile-hero-content">
-                <div className="profile-header-row">
+              <div className="profile-info">
+                <div className="profile-info__header">
                   <div>
-                    <p className="profile-eyebrow">IntelliHire Recruiter</p>
-                    <h1>{profile.firstName} {profile.lastName}</h1>
-                    <p className="profile-title">{profile.jobTitle}</p>
+                    <span className="profile-badge">Active Recruiter</span>
+                    <h1 className="profile-name">{profile.firstName} {profile.lastName}</h1>
+                    <p className="profile-role">{profile.jobTitle}</p>
                   </div>
-                  <div className="profile-action-group">
-                    <button className="ghost-action" type="button">
-                      <Edit3 size={15} /> Edit Profile
-                    </button>
-                  </div>
+                  <button className="edit-profile-btn" type="button" onClick={handleEditClick}>
+                    <Edit3 size={14} /> Edit Profile
+                  </button>
                 </div>
-
-                <div className="profile-meta-row">
-                  <span><Building2 size={15} /> {profile.department}</span>
-                  <span><Briefcase size={15} /> {profile.companyName}</span>
-                  <span><Mail size={15} /> {profile.workEmail}</span>
-                </div>
-
-                <div className="profile-highlights">
-                  <span className="highlight-chip">AI-assisted recruiting</span>
-                  <span className="highlight-chip">Hiring strategy</span>
-                  <span className="highlight-chip">Pipeline management</span>
-                </div>
-
-                <div className="profile-progress-card">
-                  <div className="progress-labels">
-                    <span>Profile completion</span>
-                    <strong>{completionPercent}%</strong>
-                  </div>
-                  <div className="progress-bar">
-                    <span style={{ width: `${completionPercent}%` }} />
-                  </div>
-                  <p>Complete company details and security settings to unlock deeper analytics.</p>
+                <div className="profile-meta">
+                  <span className="meta-item"><Building2 size={14} /> {profile.department}</span>
+                  <span className="meta-item"><Briefcase size={14} /> {profile.companyName}</span>
+                  <span className="meta-item"><Mail size={14} /> {profile.workEmail}</span>
                 </div>
               </div>
             </div>
+            <div className="profile-completion">
+              <div className="completion-header">
+                <span className="completion-label">Profile Completion</span>
+                <span className="completion-percent">{completionPercent}%</span>
+              </div>
+              <div className="completion-bar">
+                <div className="completion-fill" style={{ width: `${completionPercent}%` }} />
+              </div>
+              <p className="completion-text">Complete your profile to unlock all features</p>
+            </div>
           </section>
 
-          <div className="content-grid">
-            <section className="profile-card">
-              <div className="section-heading">
-                <div className="section-title-group">
-                  <div className="section-icon"><UserRoundCheck size={16} /></div>
-                  <div>
-                    <h2>Personal Information</h2>
-                    <p>Keep your core contact details current for smooth collaboration.</p>
+          {/* Main Content Grid */}
+          <div className="profile-layout">
+            {/* Left Column - Primary Information */}
+            <div className="profile-layout__main">
+              {/* Personal Information Card */}
+              <section className="info-card">
+                <div className="info-card__header">
+                  <div className="info-card__title">
+                    <UserRoundCheck size={20} />
+                    <div>
+                      <h2>Personal Information</h2>
+                      <p>Update your personal contact details</p>
+                    </div>
                   </div>
                 </div>
-                <span className="muted-pill">Editable</span>
-              </div>
-              <div className="form-grid">
-                <label>
-                  <span>First Name</span>
-                  <input name="firstName" value={profile.firstName} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Last Name</span>
-                  <input name="lastName" value={profile.lastName} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Work Email</span>
-                  <input name="workEmail" value={profile.workEmail} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Contact Number</span>
-                  <input name="contactNumber" value={profile.contactNumber} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Job Title</span>
-                  <input name="jobTitle" value={profile.jobTitle} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Department</span>
-                  <input name="department" value={profile.department} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Employee ID</span>
-                  <input name="employeeId" value={profile.employeeId} onChange={handleChange} />
-                </label>
-              </div>
-            </section>
+                <div className="info-card__body">
+                  <div className="form-section">
+                    <h3 className="form-section__title">Basic Details</h3>
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label htmlFor="firstName">First Name</label>
+                        <input
+                          id="firstName"
+                          name="firstName"
+                          value={profile.firstName}
+                          onChange={handleChange}
+                          placeholder="Enter first name"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="lastName">Last Name</label>
+                        <input
+                          id="lastName"
+                          name="lastName"
+                          value={profile.lastName}
+                          onChange={handleChange}
+                          placeholder="Enter last name"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label htmlFor="workEmail">Work Email</label>
+                        <input
+                          id="workEmail"
+                          name="workEmail"
+                          type="email"
+                          value={profile.workEmail}
+                          onChange={handleChange}
+                          placeholder="Enter work email"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="contactNumber">Contact Number</label>
+                        <input
+                          id="contactNumber"
+                          name="contactNumber"
+                          type="tel"
+                          value={profile.contactNumber}
+                          onChange={handleChange}
+                          placeholder="Enter contact number"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="form-section">
+                    <h3 className="form-section__title">Work Details</h3>
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label htmlFor="jobTitle">Job Title</label>
+                        <input
+                          id="jobTitle"
+                          name="jobTitle"
+                          value={profile.jobTitle}
+                          onChange={handleChange}
+                          placeholder="Enter job title"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="department">Department</label>
+                        <input
+                          id="department"
+                          name="department"
+                          value={profile.department}
+                          onChange={handleChange}
+                          placeholder="Enter department"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="employeeId">Employee ID</label>
+                      <input
+                        id="employeeId"
+                        name="employeeId"
+                        value={profile.employeeId}
+                        onChange={handleChange}
+                        placeholder="Enter employee ID"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-            <section className="profile-card">
-              <div className="section-heading">
-                <div className="section-title-group">
-                  <div className="section-icon"><Building2 size={16} /></div>
-                  <div>
-                    <h2>Company Information</h2>
-                    <p>Define the organization profile that supports candidate trust.</p>
+              {/* Company Information Card */}
+              <section className="info-card">
+                <div className="info-card__header">
+                  <div className="info-card__title">
+                    <Building2 size={20} />
+                    <div>
+                      <h2>Company Information</h2>
+                      <p>Manage your organization details</p>
+                    </div>
                   </div>
                 </div>
-                <span className="muted-pill">Corporate</span>
-              </div>
-              <div className="company-card">
-                <div className="company-logo">
-                  <Building2 size={22} />
+                <div className="info-card__body">
+                  <div className="company-preview">
+                    <div className="company-preview__icon">
+                      <Building2 size={24} />
+                    </div>
+                    <div className="company-preview__info">
+                      <h3>{profile.companyName}</h3>
+                      <p>{profile.industry}</p>
+                    </div>
+                  </div>
+                  <div className="form-section">
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label htmlFor="companyName">Company Name</label>
+                        <input
+                          id="companyName"
+                          name="companyName"
+                          value={profile.companyName}
+                          onChange={handleChange}
+                          placeholder="Enter company name"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="industry">Industry</label>
+                        <input
+                          id="industry"
+                          name="industry"
+                          value={profile.industry}
+                          onChange={handleChange}
+                          placeholder="Enter industry"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label htmlFor="companyWebsite">Company Website</label>
+                        <input
+                          id="companyWebsite"
+                          name="companyWebsite"
+                          type="url"
+                          value={profile.companyWebsite}
+                          onChange={handleChange}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="companyAddress">Company Address</label>
+                        <input
+                          id="companyAddress"
+                          name="companyAddress"
+                          value={profile.companyAddress}
+                          onChange={handleChange}
+                          placeholder="Enter company address"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="companyDescription">Company Description</label>
+                      <textarea
+                        id="companyDescription"
+                        name="companyDescription"
+                        value={profile.companyDescription}
+                        onChange={handleChange}
+                        rows="3"
+                        placeholder="Brief company description"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="company-card-content">
-                  <h3>{profile.companyName}</h3>
-                  <p>{profile.industry}</p>
-                </div>
-              </div>
-              <div className="form-grid compact">
-                <label>
-                  <span>Company Name</span>
-                  <input name="companyName" value={profile.companyName} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Industry</span>
-                  <input name="industry" value={profile.industry} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Company Website</span>
-                  <input name="companyWebsite" value={profile.companyWebsite} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Company Address</span>
-                  <input name="companyAddress" value={profile.companyAddress} onChange={handleChange} />
-                </label>
-                <label className="full-width">
-                  <span>Short Company Description</span>
-                  <textarea name="companyDescription" value={profile.companyDescription} onChange={handleChange} rows="3" />
-                </label>
-              </div>
-            </section>
+              </section>
 
-            <section className="profile-card">
-              <div className="section-heading">
-                <div className="section-title-group">
-                  <div className="section-icon"><Briefcase size={16} /></div>
-                  <div>
-                    <h2>Professional Information</h2>
-                    <p>Capture your recruiting expertise and hiring focus areas.</p>
+              {/* Professional Information Card */}
+              <section className="info-card">
+                <div className="info-card__header">
+                  <div className="info-card__title">
+                    <Briefcase size={20} />
+                    <div>
+                      <h2>Professional Information</h2>
+                      <p>Your expertise and hiring focus</p>
+                    </div>
                   </div>
                 </div>
-                <span className="muted-pill">Talent Strategy</span>
-              </div>
-              <div className="form-grid">
-                <label>
-                  <span>Years of Recruitment Experience</span>
-                  <input name="yearsExperience" value={profile.yearsExperience} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Hiring Specializations</span>
-                  <input name="hiringSpecializations" value={profile.hiringSpecializations} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Preferred Hiring Locations</span>
-                  <input name="preferredLocations" value={profile.preferredLocations} onChange={handleChange} />
-                </label>
-                <label>
-                  <span>Employment Types Managed</span>
-                  <input name="employmentTypes" value={profile.employmentTypes.join(', ')} onChange={handleChange} />
-                </label>
-                <label className="full-width">
-                  <span>Professional Bio</span>
-                  <textarea name="bio" value={profile.bio} onChange={handleChange} rows="4" />
-                </label>
-              </div>
-            </section>
+                <div className="info-card__body">
+                  <div className="form-section">
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label htmlFor="yearsExperience">Years of Experience</label>
+                        <input
+                          id="yearsExperience"
+                          name="yearsExperience"
+                          value={profile.yearsExperience}
+                          onChange={handleChange}
+                          placeholder="e.g., 5+"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="hiringSpecializations">Specializations</label>
+                        <input
+                          id="hiringSpecializations"
+                          name="hiringSpecializations"
+                          value={profile.hiringSpecializations}
+                          onChange={handleChange}
+                          placeholder="e.g., Engineering, Design"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-field">
+                        <label htmlFor="preferredLocations">Preferred Locations</label>
+                        <input
+                          id="preferredLocations"
+                          name="preferredLocations"
+                          value={profile.preferredLocations}
+                          onChange={handleChange}
+                          placeholder="e.g., Colombo, Remote"
+                        />
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="employmentTypes">Employment Types</label>
+                        <input
+                          id="employmentTypes"
+                          name="employmentTypes"
+                          value={profile.employmentTypes.join(', ')}
+                          onChange={handleChange}
+                          placeholder="e.g., Full-time, Part-time"
+                        />
+                      </div>
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="bio">Professional Bio</label>
+                      <textarea
+                        id="bio"
+                        name="bio"
+                        value={profile.bio}
+                        onChange={handleChange}
+                        rows="4"
+                        placeholder="Write a brief professional bio"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
 
-            <section className="profile-card">
-              <div className="section-heading">
-                <div className="section-title-group">
-                  <div className="section-icon"><BellRing size={16} /></div>
+            {/* Right Column - Settings & Preferences */}
+            <div className="profile-layout__sidebar">
+              {/* Notification Preferences */}
+              <section className="settings-card">
+                <div className="settings-card__header">
+                  <BellRing size={20} />
                   <div>
-                    <h2>Notification Preferences</h2>
-                    <p>Control how updates and recruitment alerts reach you.</p>
+                    <h2>Notifications</h2>
+                    <p>Control your alert preferences</p>
                   </div>
                 </div>
-                <span className="muted-pill">Alerts</span>
-              </div>
-              <div className="toggle-list">
-                {[
-                  ['email', 'Email Notifications'],
-                  ['alerts', 'New Application Alerts'],
-                  ['reminders', 'Interview Reminders'],
-                  ['aiMatches', 'AI Match Notifications'],
-                  ['reports', 'Weekly Recruitment Reports'],
-                ].map(([key, label]) => (
-                  <label key={key} className="toggle-row">
-                    <span>{label}</span>
-                    <button
-                      type="button"
-                      className={`toggle-switch ${notifications[key] ? 'active' : ''}`}
-                      onClick={() => toggleNotification(key)}
-                      aria-pressed={notifications[key]}
-                    >
-                      <span />
-                    </button>
-                  </label>
-                ))}
-              </div>
-            </section>
+                <div className="settings-card__body">
+                  {[
+                    ['email', 'Email Notifications'],
+                    ['alerts', 'Application Alerts'],
+                    ['reminders', 'Interview Reminders'],
+                    ['aiMatches', 'AI Match Alerts'],
+                    ['reports', 'Weekly Reports'],
+                  ].map(([key, label]) => (
+                    <div key={key} className="setting-toggle">
+                      <span className="setting-toggle__label">{label}</span>
+                      <button
+                        type="button"
+                        className={`toggle-btn ${notifications[key] ? 'toggle-btn--active' : ''}`}
+                        onClick={() => toggleNotification(key)}
+                        aria-pressed={notifications[key]}
+                      >
+                        <span className="toggle-btn__thumb" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
-            <section className="profile-card">
-              <div className="section-heading">
-                <div className="section-title-group">
-                  <div className="section-icon"><ShieldCheck size={16} /></div>
+              {/* Security Settings */}
+              <section className="settings-card">
+                <div className="settings-card__header">
+                  <ShieldCheck size={20} />
                   <div>
-                    <h2>Security & Account Settings</h2>
-                    <p>Protect your account and review access details.</p>
+                    <h2>Security</h2>
+                    <p>Account security settings</p>
                   </div>
                 </div>
-                <span className="muted-pill">Secure</span>
-              </div>
-              <div className="settings-stack">
-                <div className="setting-item">
-                  <span className="setting-icon"><ShieldCheck size={16} /></span>
-                  <div>
-                    <strong>Username</strong>
-                    <p>{profile.username}</p>
+                <div className="settings-card__body">
+                  <div className="security-item">
+                    <div className="security-item__icon">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div className="security-item__content">
+                      <strong>Username</strong>
+                      <span>{profile.username}</span>
+                    </div>
+                  </div>
+                  <div className="security-item">
+                    <div className="security-item__icon">
+                      <Lock size={18} />
+                    </div>
+                    <div className="security-item__content">
+                      <strong>Password</strong>
+                      <span>••••••••</span>
+                    </div>
+                    <button className="security-item__action">Change</button>
+                  </div>
+                  <div className="security-item">
+                    <div className="security-item__icon">
+                      <CheckCircle2 size={18} />
+                    </div>
+                    <div className="security-item__content">
+                      <strong>2FA Status</strong>
+                      <span className="status-badge status-badge--success">Enabled</span>
+                    </div>
+                  </div>
+                  <div className="security-item">
+                    <div className="security-item__icon">
+                      <BellRing size={18} />
+                    </div>
+                    <div className="security-item__content">
+                      <strong>Last Login</strong>
+                      <span>{profile.lastLogin}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="setting-item">
-                  <span className="setting-icon"><Lock size={16} /></span>
-                  <div>
-                    <strong>Change Password</strong>
-                    <p>Update credentials regularly</p>
-                  </div>
-                </div>
-                <div className="setting-item">
-                  <span className="setting-icon"><ShieldCheck size={16} /></span>
-                  <div>
-                    <strong>Two-Factor Authentication</strong>
-                    <p>Enabled</p>
-                  </div>
-                </div>
-                <div className="setting-item">
-                  <span className="setting-icon"><BellRing size={16} /></span>
-                  <div>
-                    <strong>Last Login</strong>
-                    <p>{profile.lastLogin}</p>
-                  </div>
-                </div>
-                <div className="setting-item">
-                  <span className="setting-icon"><CheckCircle2 size={16} /></span>
-                  <div>
-                    <strong>Account Status</strong>
-                    <p>{profile.accountStatus}</p>
-                  </div>
-                </div>
-              </div>
-            </section>
+              </section>
 
-            <section className="profile-card">
-              <div className="section-heading">
-                <div className="section-title-group">
-                  <div className="section-icon"><Globe2 size={16} /></div>
+              {/* Professional Links */}
+              <section className="settings-card">
+                <div className="settings-card__header">
+                  <Globe2 size={20} />
                   <div>
-                    <h2>Professional Links</h2>
-                    <p>Connect your public professional profiles and company presence.</p>
+                    <h2>Links</h2>
+                    <p>Connected profiles</p>
                   </div>
                 </div>
-                <span className="muted-pill">External</span>
-              </div>
-              <div className="link-stack">
-                <a href={profile.linkedin} target="_blank" rel="noreferrer">
-                  <span><Globe2 size={15} /></span> LinkedIn Profile
-                </a>
-                <a href={profile.companyWebsite} target="_blank" rel="noreferrer">
-                  <span><MapPin size={15} /></span> Company Website
-                </a>
-              </div>
-            </section>
+                <div className="settings-card__body">
+                  <a
+                    href={profile.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link-item"
+                  >
+                    <Globe2 size={16} />
+                    <span>LinkedIn Profile</span>
+                  </a>
+                  <a
+                    href={profile.companyWebsite}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link-item"
+                  >
+                    <Globe2 size={16} />
+                    <span>Company Website</span>
+                  </a>
+                </div>
+              </section>
+            </div>
           </div>
 
-          <section className="profile-card action-card">
-            <div className="action-buttons">
-              <button className="primary-action" type="button">Save Changes</button>
-              <button className="secondary-action" type="button">Cancel</button>
-              <button className="secondary-action" type="button">Change Password</button>
-              <button className="secondary-action" type="button">Upload Profile Picture</button>
-            </div>
+          {/* Action Buttons */}
+          <section className="profile-actions">
+            <button className="btn btn--primary" type="button" onClick={handleEditClick}>Save Changes</button>
+            <button className="btn btn--secondary" type="button" onClick={() => setProfile(initialProfile)}>Cancel</button>
           </section>
+
+          {/* Edit Profile Modal */}
+          {editModalOpen && (
+            <div className="modal-overlay" onClick={handleEditClose}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div className="modal-header__title">
+                    <Edit3 size={20} />
+                    <div>
+                      <h2>Edit Profile</h2>
+                      <p>Update your profile information</p>
+                    </div>
+                  </div>
+                  <button className="modal-close-btn" type="button" onClick={handleEditClose}>
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="modal-tabs">
+                    <button 
+                      className={`modal-tab ${activeTab === 'personal' ? 'modal-tab--active' : ''}`} 
+                      onClick={() => handleTabChange('personal')}
+                    >
+                      Personal
+                    </button>
+                    <button 
+                      className={`modal-tab ${activeTab === 'company' ? 'modal-tab--active' : ''}`} 
+                      onClick={() => handleTabChange('company')}
+                    >
+                      Company
+                    </button>
+                    <button 
+                      className={`modal-tab ${activeTab === 'professional' ? 'modal-tab--active' : ''}`} 
+                      onClick={() => handleTabChange('professional')}
+                    >
+                      Professional
+                    </button>
+                  </div>
+                  <div className="modal-form">
+                    {activeTab === 'personal' && (
+                      <>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Basic Information</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editFirstName">First Name</label>
+                              <input
+                                id="editFirstName"
+                                name="firstName"
+                                value={editFormData.firstName}
+                                onChange={handleEditChange}
+                                placeholder="Enter first name"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editLastName">Last Name</label>
+                              <input
+                                id="editLastName"
+                                name="lastName"
+                                value={editFormData.lastName}
+                                onChange={handleEditChange}
+                                placeholder="Enter last name"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editWorkEmail">Work Email</label>
+                              <input
+                                id="editWorkEmail"
+                                name="workEmail"
+                                type="email"
+                                value={editFormData.workEmail}
+                                onChange={handleEditChange}
+                                placeholder="Enter work email"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editContactNumber">Contact Number</label>
+                              <input
+                                id="editContactNumber"
+                                name="contactNumber"
+                                type="tel"
+                                value={editFormData.contactNumber}
+                                onChange={handleEditChange}
+                                placeholder="Enter contact number"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Work Details</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editJobTitle">Job Title</label>
+                              <input
+                                id="editJobTitle"
+                                name="jobTitle"
+                                value={editFormData.jobTitle}
+                                onChange={handleEditChange}
+                                placeholder="Enter job title"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editDepartment">Department</label>
+                              <input
+                                id="editDepartment"
+                                name="department"
+                                value={editFormData.department}
+                                onChange={handleEditChange}
+                                placeholder="Enter department"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor="editEmployeeId">Employee ID</label>
+                            <input
+                              id="editEmployeeId"
+                              name="employeeId"
+                              value={editFormData.employeeId}
+                              onChange={handleEditChange}
+                              placeholder="Enter employee ID"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {activeTab === 'company' && (
+                      <>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Company Information</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editCompanyName">Company Name</label>
+                              <input
+                                id="editCompanyName"
+                                name="companyName"
+                                value={editFormData.companyName}
+                                onChange={handleEditChange}
+                                placeholder="Enter company name"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editIndustry">Industry</label>
+                              <input
+                                id="editIndustry"
+                                name="industry"
+                                value={editFormData.industry}
+                                onChange={handleEditChange}
+                                placeholder="Enter industry"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editCompanyWebsite">Company Website</label>
+                              <input
+                                id="editCompanyWebsite"
+                                name="companyWebsite"
+                                type="url"
+                                value={editFormData.companyWebsite}
+                                onChange={handleEditChange}
+                                placeholder="https://example.com"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editCompanyAddress">Company Address</label>
+                              <input
+                                id="editCompanyAddress"
+                                name="companyAddress"
+                                value={editFormData.companyAddress}
+                                onChange={handleEditChange}
+                                placeholder="Enter company address"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor="editCompanyDescription">Company Description</label>
+                            <textarea
+                              id="editCompanyDescription"
+                              name="companyDescription"
+                              value={editFormData.companyDescription}
+                              onChange={handleEditChange}
+                              rows="3"
+                              placeholder="Brief company description"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {activeTab === 'professional' && (
+                      <>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Professional Details</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editYearsExperience">Years of Experience</label>
+                              <input
+                                id="editYearsExperience"
+                                name="yearsExperience"
+                                value={editFormData.yearsExperience}
+                                onChange={handleEditChange}
+                                placeholder="e.g., 5+"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editHiringSpecializations">Specializations</label>
+                              <input
+                                id="editHiringSpecializations"
+                                name="hiringSpecializations"
+                                value={editFormData.hiringSpecializations}
+                                onChange={handleEditChange}
+                                placeholder="e.g., Engineering, Design"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editPreferredLocations">Preferred Locations</label>
+                              <input
+                                id="editPreferredLocations"
+                                name="preferredLocations"
+                                value={editFormData.preferredLocations}
+                                onChange={handleEditChange}
+                                placeholder="e.g., Colombo, Remote"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editEmploymentTypes">Employment Types</label>
+                              <input
+                                id="editEmploymentTypes"
+                                name="employmentTypes"
+                                value={editFormData.employmentTypes.join(', ')}
+                                onChange={handleEditChange}
+                                placeholder="e.g., Full-time, Part-time"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor="editBio">Professional Bio</label>
+                            <textarea
+                              id="editBio"
+                              name="bio"
+                              value={editFormData.bio}
+                              onChange={handleEditChange}
+                              rows="4"
+                              placeholder="Write a brief professional bio"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn--secondary" type="button" onClick={handleEditClose}>Cancel</button>
+                  <button className="btn btn--primary" type="button" onClick={handleSaveProfile}>Save Changes</button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
