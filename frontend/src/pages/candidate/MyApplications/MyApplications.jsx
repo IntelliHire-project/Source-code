@@ -24,11 +24,19 @@ const MOCK_APPLICATIONS = [
     location: 'Remote (NYC Based)',
     appliedDate: 'Oct 28, 2024',
     applicationId: 'APP-99281-X',
-    status: 'Under Review',
+    status: 'Assessment Invited',
     about:
       'Submitted application with CV and cover letter highlighting React and TypeScript expertise.',
-    nextStep: 'Awaiting recruiter review. Expected response within 5–7 business days.',
-    timeline: { submitted: 'Oct 28, 2024', reviewed: 'Oct 30, 2024' },
+    nextStep: 'You were shortlisted and invited to complete the assessment before the first interview.',
+    timeline: { submitted: 'Oct 28, 2024', reviewed: 'Oct 30, 2024', assessment: 'Nov 1, 2024' },
+    assessment: {
+      name: 'Technical Skills Assessment',
+      mode: 'Optional',
+      dueDate: 'Nov 1, 2024',
+      duration: '90 minutes',
+      attempts: 1,
+      link: 'intellihire.test/a/shortlist-2048',
+    },
   },
   {
     id: 2,
@@ -94,14 +102,17 @@ const MOCK_APPLICATIONS = [
   },
 ];
 
-const STATUS_STEPS = ['Applied', 'Under Review', 'Interview', 'Decision'];
+const STATUS_STEPS = ['Applied', 'Under Review', 'Assessment', 'Interview', 'Decision'];
 
 const STATUS_STEP_INDEX = {
   'Under Review': 1,
-  'Interview Scheduled': 2,
+  'Assessment Invited': 2,
+  'Assessment In Progress': 2,
+  'Assessment Completed': 2,
+  'Interview Scheduled': 3,
   'Rejected': 1,
   'Withdrawn': 0,
-  'Offer Received': 3,
+  'Offer Received': 4,
 };
 
 const SORT_OPTIONS = [
@@ -116,6 +127,10 @@ function getStatusBadgeClass(status) {
   switch (status) {
     case 'Under Review':
       return 'app-card__status-badge--under-review';
+    case 'Assessment Invited':
+    case 'Assessment In Progress':
+    case 'Assessment Completed':
+      return 'app-card__status-badge--assessment';
     case 'Interview Scheduled':
       return 'app-card__status-badge--interview';
     case 'Rejected':

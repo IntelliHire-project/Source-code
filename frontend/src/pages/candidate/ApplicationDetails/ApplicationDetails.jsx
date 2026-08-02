@@ -21,14 +21,17 @@ import './ApplicationDetails.css';
 
 /* ── Mock Data ── */
 
-const STATUS_STEPS = ['Applied', 'Under Review', 'Interview', 'Decision'];
+const STATUS_STEPS = ['Applied', 'Under Review', 'Assessment', 'Interview', 'Decision'];
 
 const STATUS_STEP_INDEX = {
   'Under Review': 1,
-  'Interview Scheduled': 2,
+  'Assessment Invited': 2,
+  'Assessment In Progress': 2,
+  'Assessment Completed': 2,
+  'Interview Scheduled': 3,
   'Rejected': 1,
   'Withdrawn': 0,
-  'Offer Received': 3,
+  'Offer Received': 4,
 };
 
 const MOCK_DETAILS = {
@@ -38,27 +41,25 @@ const MOCK_DETAILS = {
     location: 'Remote (NYC Based)',
     appliedDate: 'Oct 28, 2024',
     applicationId: 'APP-99281-X',
-    status: 'Under Review',
+    status: 'Assessment Invited',
     about:
-      'Submitted application with CV and cover letter highlighting React and TypeScript expertise. Selected for assessment after recruiter screening.',
-    nextStep: 'Awaiting recruiter review. Expected response within 5–7 business days.',
-    timeline: { submitted: 'Oct 28, 2024', reviewed: 'Oct 30, 2024' },
+      'Submitted application with CV and cover letter highlighting React and TypeScript expertise. Shortlisted and invited to complete an assessment before the first interview.',
+    nextStep: 'Your recruiter has sent an optional assessment invite with a secure link and deadline.',
+    timeline: { submitted: 'Oct 28, 2024', reviewed: 'Oct 30, 2024', assessment: 'Nov 1, 2024' },
     assessment: {
       name: 'Technical Skills Assessment',
-      score: 78,
-      maxScore: 100,
-      passed: true,
-      completedDate: 'Oct 29, 2024',
-      sections: [
-        { label: 'Coding Challenge', score: 82 },
-        { label: 'Frontend Fundamentals', score: 76 },
-        { label: 'Problem Solving', score: 74 },
-      ],
+      state: 'invited',
+      mode: 'Optional',
+      dueDate: 'Nov 1, 2024',
+      duration: '90 minutes',
+      attempts: 1,
+      startLink: 'intellihire.test/a/shortlist-2048',
+      message: 'You can start anytime before the deadline. The link has also been sent to your email and in-app notifications.',
     },
     interviews: {
       total: 3,
       currentRound: 0,
-      rounds: ['Technical Round', 'System Design', 'HR & Culture'],
+      rounds: ['Assessment Review', 'Technical Round', 'HR & Culture'],
     },
     upcomingInterviews: [],
   },
@@ -165,6 +166,10 @@ function getStatusBadgeClass(status) {
   switch (status) {
     case 'Under Review':
       return 'app-card__status-badge--under-review';
+    case 'Assessment Invited':
+    case 'Assessment In Progress':
+    case 'Assessment Completed':
+      return 'app-card__status-badge--assessment';
     case 'Interview Scheduled':
       return 'app-card__status-badge--interview';
     case 'Rejected':
@@ -196,6 +201,60 @@ function AssessmentCard({ assessment }) {
           <h3 className="application-detail__card-title">Assessment</h3>
         </div>
         <p className="application-detail__muted">No assessment taken for this application.</p>
+      </section>
+    );
+  }
+
+  if (assessment.state === 'invited') {
+    return (
+      <section className="application-detail__card application-detail__invite-card">
+        <div className="application-detail__card-header">
+          <h3 className="application-detail__card-title">
+            <ClipboardCheck size={16} />
+            Assessment Invitation
+          </h3>
+          <span className="application-detail__invite-mode">{assessment.mode}</span>
+        </div>
+
+        <div className="application-detail__invite-hero">
+          <div>
+            <p className="application-detail__invite-kicker">Shortlisted before first interview</p>
+            <h2 className="application-detail__invite-title">{assessment.name}</h2>
+            <p className="application-detail__text">{assessment.message}</p>
+          </div>
+          <div className="application-detail__invite-linkbox">
+            <span>Secure link</span>
+            <strong>{assessment.startLink}</strong>
+          </div>
+        </div>
+
+        <div className="application-detail__invite-grid">
+          <article>
+            <small>Duration</small>
+            <strong>{assessment.duration}</strong>
+          </article>
+          <article>
+            <small>Deadline</small>
+            <strong>{assessment.dueDate}</strong>
+          </article>
+          <article>
+            <small>Attempts</small>
+            <strong>{assessment.attempts}</strong>
+          </article>
+          <article>
+            <small>Delivery</small>
+            <strong>Email + in-app</strong>
+          </article>
+        </div>
+
+        <div className="application-detail__invite-actions">
+          <button type="button" className="application-detail__invite-primary">Start assessment</button>
+          <button type="button" className="application-detail__invite-secondary">Review instructions</button>
+        </div>
+
+        <p className="application-detail__invite-note">
+          The recruiter will see when you open, start, or complete the assessment.
+        </p>
       </section>
     );
   }
