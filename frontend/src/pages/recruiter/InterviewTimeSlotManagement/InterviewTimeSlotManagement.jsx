@@ -506,7 +506,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             <div>
               <h1 className="interview-page-title">Interview Time Slot Management</h1>
               <p className="page-subtitle">
-                Create, manage, and schedule interview availability for shortlisted candidates.
+                Create, manage, and schedule interview availability for candidates.
               </p>
             </div>
             {!showForm && (

@@ -391,7 +391,7 @@ export default function InterviewCommunication() {
           <div className="comm-page-heading">
             <h1 className="interview-page-title">Interview Communication Management</h1>
             <p className="page-subtitle">
-              Send interview invitations, monitor candidate responses, and manage schedule changes.
+              Send interview invitations, monitor responses, and manage schedules.
             </p>
           </div>
 
