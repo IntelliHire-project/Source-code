@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
   Briefcase,
@@ -11,85 +11,29 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Lightbulb,
-  Activity,
   Eye,
   MoreVertical,
-  MapPin,
   BarChart3,
+  Pencil,
+  Copy,
+  X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import InsightPanel from '../../../components/common/InsightPanel';
+import StatusBadge from '../../../components/common/StatusBadge';
+import DropdownMenu from '../../../components/common/DropdownMenu';
+import { VACANCIES } from '../../../data/vacancies';
 import '../../../style.css';
 import './VacancyManagementPage.css';
 
-const VACANCIES = [
-  {
-    id: 'VAC-001',
-    title: 'Senior Frontend Engineer',
-    department: 'Engineering',
-    status: 'published',
-    applicants: 87,
-    dateCreated: '12 Jul 2026',
-    location: 'London, UK',
-  },
-  {
-    id: 'VAC-002',
-    title: 'Product Designer',
-    department: 'Design',
-    status: 'published',
-    applicants: 64,
-    dateCreated: '08 Jul 2026',
-    location: 'Remote',
-  },
-  {
-    id: 'VAC-003',
-    title: 'Backend Engineer',
-    department: 'Engineering',
-    status: 'published',
-    applicants: 52,
-    dateCreated: '01 Jul 2026',
-    location: 'London, UK',
-  },
-  {
-    id: 'VAC-004',
-    title: 'Data Analyst',
-    department: 'Analytics',
-    status: 'draft',
-    applicants: 23,
-    dateCreated: '20 Jun 2026',
-    location: 'Remote',
-  },
-  {
-    id: 'VAC-005',
-    title: 'DevOps Engineer',
-    department: 'Engineering',
-    status: 'closed',
-    applicants: 10,
-    dateCreated: '05 Jun 2026',
-    location: 'Manchester, UK',
-  },
-];
-
-const STAT_CARDS = [
-  { icon: Briefcase, label: 'TOTAL VACANCIES', value: '5', variant: 'gold' },
-  { icon: BarChart3, label: 'ACTIVE LISTINGS', value: '3', variant: 'info' },
-  { icon: Users, label: 'TOTAL APPLICANTS', value: '236', variant: 'success' },
-  { icon: FileText, label: 'PENDING DRAFTS', value: '1', variant: 'muted' },
-];
-
 const PAGE_SIZE = 5;
 
-function StatusBadge({ status }) {
-  const map = {
-    published: { className: 'vm-badge vm-badge--published', label: 'Published' },
-    draft: { className: 'vm-badge vm-badge--draft', label: 'Draft' },
-    closed: { className: 'vm-badge vm-badge--closed', label: 'Closed' },
-  };
-  const { className, label } = map[status] || map.draft;
-  return <span className={className}>{label}</span>;
-}
+const STATUS_LABELS = {
+  published: 'Published',
+  draft: 'Draft',
+  closed: 'Closed',
+};
 
 function StatCard({ icon: Icon, label, value, variant }) {
   return (
@@ -108,6 +52,29 @@ function VacancyManagementPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
+
+  const statCards = useMemo(() => {
+    const totalApplicants = VACANCIES.reduce(
+      (sum, vacancy) => sum + (vacancy.candidates || []).length,
+      0,
+    );
+    return [
+      { icon: Briefcase, label: 'TOTAL VACANCIES', value: VACANCIES.length, variant: 'gold' },
+      {
+        icon: BarChart3,
+        label: 'ACTIVE LISTINGS',
+        value: VACANCIES.filter((v) => v.status === 'published').length,
+        variant: 'info',
+      },
+      { icon: Users, label: 'TOTAL APPLICANTS', value: totalApplicants, variant: 'success' },
+      {
+        icon: FileText,
+        label: 'PENDING DRAFTS',
+        value: VACANCIES.filter((v) => v.status === 'draft').length,
+        variant: 'muted',
+      },
+    ];
+  }, []);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return VACANCIES;
@@ -167,7 +134,7 @@ function VacancyManagementPage() {
 
           {/* ── Stat Cards ── */}
           <div className="vm-stats-row">
-            {STAT_CARDS.map((card) => (
+            {statCards.map((card) => (
               <StatCard key={card.label} {...card} />
             ))}
           </div>
@@ -215,43 +182,66 @@ function VacancyManagementPage() {
                 </thead>
                 <tbody>
                   {paginated.map((v) => (
-                    <tr
-                      key={v.id}
-                      className="vm-table__row"
-                      onClick={() => navigate('/recruiter/vacancy-preview')}
-                    >
+                    <tr key={v.id} className="vm-table__row">
                       <td>
-                        <div className="vm-table__title-cell">
-                          <span className="vm-table__job-title">{v.title}</span>
-                          <span className="vm-table__job-meta">
-                            {v.id} · {v.location}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="vm-table__dept">{v.department}</span>
-                      </td>
-                      <td>
-                        <StatusBadge status={v.status} />
-                      </td>
-                      <td>
-                        <div className="vm-table__applicants">
-                          <Users size={14} />
-                          <span>{v.applicants}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="vm-table__date">{v.dateCreated}</span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="vm-table__action-btn"
-                          aria-label={`Actions for ${v.title}`}
-                          onClick={(e) => e.stopPropagation()}
+                        <Link
+                          to={`/vacancies/${v.id}`}
+                          className="vm-table__link"
+                          aria-label={`Open ${v.title}`}
                         >
-                          <MoreVertical size={16} />
-                        </button>
+                          <div className="vm-table__title-cell">
+                            <span className="vm-table__job-title">{v.title}</span>
+                            <span className="vm-table__job-meta">
+                              {v.id} · {v.location}
+                            </span>
+                          </div>
+                        </Link>
+                      </td>
+                      <td>
+                        <Link to={`/vacancies/${v.id}`} className="vm-table__link">
+                          <span className="vm-table__dept">{v.department}</span>
+                        </Link>
+                      </td>
+                      <td>
+                        <Link to={`/vacancies/${v.id}`} className="vm-table__link">
+                          <StatusBadge
+                            status={v.status}
+                            label={STATUS_LABELS[v.status] || v.status}
+                          />
+                        </Link>
+                      </td>
+                      <td>
+                        <Link to={`/vacancies/${v.id}`} className="vm-table__link">
+                          <div className="vm-table__applicants">
+                            <Users size={14} />
+                            <span>{(v.candidates || []).length}</span>
+                          </div>
+                        </Link>
+                      </td>
+                      <td>
+                        <Link to={`/vacancies/${v.id}`} className="vm-table__link">
+                          <span className="vm-table__date">{v.dateCreated}</span>
+                        </Link>
+                      </td>
+                      <td>
+                        <DropdownMenu
+                          trigger={<MoreVertical size={16} />}
+                          ariaLabel={`Actions for ${v.title}`}
+                          items={[
+                            {
+                              label: 'View Details',
+                              icon: Eye,
+                              onClick: () => navigate(`/vacancies/${v.id}`),
+                            },
+                            {
+                              label: 'Edit Vacancy',
+                              icon: Pencil,
+                              onClick: () => navigate('/recruiter/create-vacancy'),
+                            },
+                            { label: 'Duplicate', icon: Copy },
+                            { label: 'Close Vacancy', icon: X, danger: true },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
