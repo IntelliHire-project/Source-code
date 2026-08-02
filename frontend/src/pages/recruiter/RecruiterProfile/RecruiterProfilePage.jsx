@@ -11,6 +11,7 @@ import {
   Mail,
   UserRoundCheck,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -51,6 +52,9 @@ function RecruiterProfilePage() {
     reports: false,
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState(initialProfile);
+  const [activeTab, setActiveTab] = useState('personal');
   const completionPercent = 84;
 
   const handleChange = useCallback((event) => {
@@ -64,6 +68,29 @@ function RecruiterProfilePage() {
 
   const handleSidebarToggle = useCallback(() => setSidebarOpen((prev) => !prev), []);
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
+
+  const handleEditClick = useCallback(() => {
+    setEditFormData(profile);
+    setEditModalOpen(true);
+  }, [profile]);
+
+  const handleEditClose = useCallback(() => {
+    setEditModalOpen(false);
+  }, []);
+
+  const handleEditChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setEditFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleSaveProfile = useCallback(() => {
+    setProfile(editFormData);
+    setEditModalOpen(false);
+  }, [editFormData]);
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
 
   return (
     <div className="create-vacancy vm-shell">
@@ -99,7 +126,7 @@ function RecruiterProfilePage() {
                     <h1 className="profile-name">{profile.firstName} {profile.lastName}</h1>
                     <p className="profile-role">{profile.jobTitle}</p>
                   </div>
-                  <button className="edit-profile-btn" type="button">
+                  <button className="edit-profile-btn" type="button" onClick={handleEditClick}>
                     <Edit3 size={14} /> Edit Profile
                   </button>
                 </div>
@@ -499,9 +526,270 @@ function RecruiterProfilePage() {
 
           {/* Action Buttons */}
           <section className="profile-actions">
-            <button className="btn btn--primary" type="button">Save Changes</button>
-            <button className="btn btn--secondary" type="button">Cancel</button>
+            <button className="btn btn--primary" type="button" onClick={handleEditClick}>Save Changes</button>
+            <button className="btn btn--secondary" type="button" onClick={() => setProfile(initialProfile)}>Cancel</button>
           </section>
+
+          {/* Edit Profile Modal */}
+          {editModalOpen && (
+            <div className="modal-overlay" onClick={handleEditClose}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div className="modal-header__title">
+                    <Edit3 size={20} />
+                    <div>
+                      <h2>Edit Profile</h2>
+                      <p>Update your profile information</p>
+                    </div>
+                  </div>
+                  <button className="modal-close-btn" type="button" onClick={handleEditClose}>
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="modal-tabs">
+                    <button 
+                      className={`modal-tab ${activeTab === 'personal' ? 'modal-tab--active' : ''}`} 
+                      onClick={() => handleTabChange('personal')}
+                    >
+                      Personal
+                    </button>
+                    <button 
+                      className={`modal-tab ${activeTab === 'company' ? 'modal-tab--active' : ''}`} 
+                      onClick={() => handleTabChange('company')}
+                    >
+                      Company
+                    </button>
+                    <button 
+                      className={`modal-tab ${activeTab === 'professional' ? 'modal-tab--active' : ''}`} 
+                      onClick={() => handleTabChange('professional')}
+                    >
+                      Professional
+                    </button>
+                  </div>
+                  <div className="modal-form">
+                    {activeTab === 'personal' && (
+                      <>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Basic Information</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editFirstName">First Name</label>
+                              <input
+                                id="editFirstName"
+                                name="firstName"
+                                value={editFormData.firstName}
+                                onChange={handleEditChange}
+                                placeholder="Enter first name"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editLastName">Last Name</label>
+                              <input
+                                id="editLastName"
+                                name="lastName"
+                                value={editFormData.lastName}
+                                onChange={handleEditChange}
+                                placeholder="Enter last name"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editWorkEmail">Work Email</label>
+                              <input
+                                id="editWorkEmail"
+                                name="workEmail"
+                                type="email"
+                                value={editFormData.workEmail}
+                                onChange={handleEditChange}
+                                placeholder="Enter work email"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editContactNumber">Contact Number</label>
+                              <input
+                                id="editContactNumber"
+                                name="contactNumber"
+                                type="tel"
+                                value={editFormData.contactNumber}
+                                onChange={handleEditChange}
+                                placeholder="Enter contact number"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Work Details</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editJobTitle">Job Title</label>
+                              <input
+                                id="editJobTitle"
+                                name="jobTitle"
+                                value={editFormData.jobTitle}
+                                onChange={handleEditChange}
+                                placeholder="Enter job title"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editDepartment">Department</label>
+                              <input
+                                id="editDepartment"
+                                name="department"
+                                value={editFormData.department}
+                                onChange={handleEditChange}
+                                placeholder="Enter department"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor="editEmployeeId">Employee ID</label>
+                            <input
+                              id="editEmployeeId"
+                              name="employeeId"
+                              value={editFormData.employeeId}
+                              onChange={handleEditChange}
+                              placeholder="Enter employee ID"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {activeTab === 'company' && (
+                      <>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Company Information</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editCompanyName">Company Name</label>
+                              <input
+                                id="editCompanyName"
+                                name="companyName"
+                                value={editFormData.companyName}
+                                onChange={handleEditChange}
+                                placeholder="Enter company name"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editIndustry">Industry</label>
+                              <input
+                                id="editIndustry"
+                                name="industry"
+                                value={editFormData.industry}
+                                onChange={handleEditChange}
+                                placeholder="Enter industry"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editCompanyWebsite">Company Website</label>
+                              <input
+                                id="editCompanyWebsite"
+                                name="companyWebsite"
+                                type="url"
+                                value={editFormData.companyWebsite}
+                                onChange={handleEditChange}
+                                placeholder="https://example.com"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editCompanyAddress">Company Address</label>
+                              <input
+                                id="editCompanyAddress"
+                                name="companyAddress"
+                                value={editFormData.companyAddress}
+                                onChange={handleEditChange}
+                                placeholder="Enter company address"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor="editCompanyDescription">Company Description</label>
+                            <textarea
+                              id="editCompanyDescription"
+                              name="companyDescription"
+                              value={editFormData.companyDescription}
+                              onChange={handleEditChange}
+                              rows="3"
+                              placeholder="Brief company description"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {activeTab === 'professional' && (
+                      <>
+                        <div className="form-section">
+                          <h3 className="form-section__title">Professional Details</h3>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editYearsExperience">Years of Experience</label>
+                              <input
+                                id="editYearsExperience"
+                                name="yearsExperience"
+                                value={editFormData.yearsExperience}
+                                onChange={handleEditChange}
+                                placeholder="e.g., 5+"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editHiringSpecializations">Specializations</label>
+                              <input
+                                id="editHiringSpecializations"
+                                name="hiringSpecializations"
+                                value={editFormData.hiringSpecializations}
+                                onChange={handleEditChange}
+                                placeholder="e.g., Engineering, Design"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label htmlFor="editPreferredLocations">Preferred Locations</label>
+                              <input
+                                id="editPreferredLocations"
+                                name="preferredLocations"
+                                value={editFormData.preferredLocations}
+                                onChange={handleEditChange}
+                                placeholder="e.g., Colombo, Remote"
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label htmlFor="editEmploymentTypes">Employment Types</label>
+                              <input
+                                id="editEmploymentTypes"
+                                name="employmentTypes"
+                                value={editFormData.employmentTypes.join(', ')}
+                                onChange={handleEditChange}
+                                placeholder="e.g., Full-time, Part-time"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-field">
+                            <label htmlFor="editBio">Professional Bio</label>
+                            <textarea
+                              id="editBio"
+                              name="bio"
+                              value={editFormData.bio}
+                              onChange={handleEditChange}
+                              rows="4"
+                              placeholder="Write a brief professional bio"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn--secondary" type="button" onClick={handleEditClose}>Cancel</button>
+                  <button className="btn btn--primary" type="button" onClick={handleSaveProfile}>Save Changes</button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
