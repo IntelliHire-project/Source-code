@@ -13,6 +13,7 @@ const KEYS = {
   TRANSACTIONS: 'ih_admin_transactions',
   JOB_LISTINGS: 'ih_admin_job_listings',
   AUDIT_LOGS:   'ih_admin_audit_logs',
+  ADMIN_PROFILE:'ih_admin_profile',
 };
 
 // ── Internal helpers ───────────────────────────────────────────────────
@@ -212,4 +213,17 @@ export function getDashboardStats() {
     pendingRecruiters,
     pendingReports,
   };
+}
+
+// ── Admin Profile ─────────────────────────────────────────────────────
+
+export function getAdminProfile(initialData) {
+  const stored = safeGet(KEYS.ADMIN_PROFILE);
+  if (stored !== null) return stored;
+  if (initialData) safeSet(KEYS.ADMIN_PROFILE, initialData);
+  return initialData || {};
+}
+
+export function saveAdminProfile(profile) {
+  safeSet(KEYS.ADMIN_PROFILE, profile);
 }
