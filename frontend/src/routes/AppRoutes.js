@@ -60,6 +60,7 @@ import ModerateContent from '../pages/admin/ModerateCommunity/ModerateCommunity'
 import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
 import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import Payments from '../pages/admin/Payments/Payments';
+import JobModeration from '../pages/admin/JobModeration/JobModeration';
 import RoleSelection from '../pages/candidate/MockInterview/RoleSelection';
 import GeneratedQuestions from '../pages/candidate/MockInterview/GeneratedQuestions';
 import MockInterviewSession from '../pages/candidate/MockInterview/MockInterviewSession';
@@ -335,7 +336,7 @@ function AppRoutes() {
           path="/admin/job-moderation"
           element={
             <ProtectedRoute>
-              <AdminPlaceholder title="Job moderation" />
+              <JobModeration />
             </ProtectedRoute>
           }
         />

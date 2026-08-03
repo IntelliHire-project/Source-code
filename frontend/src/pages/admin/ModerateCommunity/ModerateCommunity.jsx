@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import AdminToast from '../../../components/common/AdminToast';
+import { getReports, saveReports, getComments, saveComments, appendAuditLog } from '../../../services/adminStorage';
 import './ModerateCommunity.css';
 
 // Initial Mock Reports matching mockup layout & fields
@@ -160,9 +162,11 @@ const toFilterKey = (value) => value.toLowerCase().replace(/\s+/g, '-');
 
 function ModerateContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [reports, setReports] = useState(INITIAL_REPORTS);
-  const [comments, setComments] = useState(INITIAL_COMMENTS);
+  // Initialize from localStorage; seeds with initial data on first visit
+  const [reports, setReports] = useState(() => getReports(INITIAL_REPORTS));
+  const [comments, setComments] = useState(() => getComments(INITIAL_COMMENTS));
   const [selectedReport, setSelectedReport] = useState(null);
+  const [toast, setToast] = useState(null);
   
   // Selection and filter states
   const [checkedIds, setCheckedIds] = useState([]);
@@ -269,14 +273,18 @@ function ModerateContent() {
 
   // Row operations
   const handleResolveSingle = (id) => {
-    setReports((prev) => prev.filter((r) => r.id !== id));
+    const updatedReports = reports.filter((r) => r.id !== id);
+    setReports(updatedReports);
+    saveReports(updatedReports);
     setCheckedIds((prev) => prev.filter((itemId) => itemId !== id));
     setPendingCount((prev) => Math.max(0, prev - 1));
     setTotalReported((prev) => Math.max(0, prev - 1));
   };
 
   const handleDeleteSingle = (id) => {
-    setReports((prev) => prev.filter((r) => r.id !== id));
+    const updatedReports = reports.filter((r) => r.id !== id);
+    setReports(updatedReports);
+    saveReports(updatedReports);
     setCheckedIds((prev) => prev.filter((itemId) => itemId !== id));
     setPendingCount((prev) => Math.max(0, prev - 1));
   };
@@ -296,17 +304,22 @@ function ModerateContent() {
   const handleIgnoreReport = (id) => {
     handleResolveSingle(id);
     setSelectedReport(null);
+    setToast({ type: 'info', message: 'Report dismissed. No action taken.' });
+    appendAuditLog({ actionType: 'Report Dismissed', module: 'COMMUNITY_MOD' });
   };
 
   const handleKeepAndWarn = (id) => {
     handleResolveSingle(id);
     setSelectedReport(null);
-    alert(`A warnings notification has been dispatched to the author of post #${id}.`);
+    setToast({ type: 'warning', message: `Warning notification dispatched to the author of post #${id}.` });
+    appendAuditLog({ actionType: 'Author Warned', module: 'COMMUNITY_MOD' });
   };
 
   const handleRemovePost = (id) => {
     handleDeleteSingle(id);
     setSelectedReport(null);
+    setToast({ type: 'success', message: `Post #${id} has been removed from the platform.` });
+    appendAuditLog({ actionType: 'Post Removed', module: 'COMMUNITY_MOD', status: 'success' });
   };
 
   const handleBanUserAndPurge = (report) => {
@@ -314,17 +327,22 @@ function ModerateContent() {
     const postsByAuthor = reports.filter((r) => r.reportedBy === author);
     const count = postsByAuthor.length;
 
-    setReports((prev) => prev.filter((r) => r.reportedBy !== author));
-    setComments((prev) => prev.filter((c) => c.author !== author));
+    const updatedReports = reports.filter((r) => r.reportedBy !== author);
+    const updatedComments = comments.filter((c) => c.author !== author);
+    setReports(updatedReports);
+    saveReports(updatedReports);
+    setComments(updatedComments);
+    saveComments(updatedComments);
     setPendingCount((prev) => Math.max(0, prev - count));
     setCheckedIds((prev) => prev.filter((id) => !postsByAuthor.some((p) => p.id === id)));
     setSelectedReport(null);
-
-    alert(`User ${author} has been permanently banned and all their contributions purged.`);
+    setToast({ type: 'error', message: `User "${author}" has been permanently banned and all content purged.` });
+    appendAuditLog({ actionType: 'User Banned & Purged', module: 'COMMUNITY_MOD', status: 'failure' });
   };
 
   return (
     <div className="admin-theme admin-dashboard">
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

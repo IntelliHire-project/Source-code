@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getAuditLogs } from '../../../services/adminStorage';
 import '../../../styles/admin.css';
 import './ViewAuditLogs.css';
 
@@ -165,6 +166,8 @@ function ViewAuditLogs() {
   const [currentPage, setCurrentPage] = useState(1);
   const [openFilter, setOpenFilter] = useState(null);
   const filterBarRef = useRef(null);
+  // Load logs from localStorage, seeding with MOCK_LOGS on first visit
+  const [logs, setLogs] = useState(() => getAuditLogs(MOCK_LOGS));
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -182,9 +185,9 @@ function ViewAuditLogs() {
   }, [searchQuery, userFilter, dateFilter, actionFilter]);
 
   const latestLogDate = useMemo(() => {
-    const dates = MOCK_LOGS.map((log) => parseAuditDate(log.timestamp)).filter(Boolean);
+    const dates = logs.map((log) => parseAuditDate(log.timestamp)).filter(Boolean);
     return dates.length ? new Date(Math.max(...dates.map((date) => date.getTime()))) : null;
-  }, []);
+  }, [logs]);
 
   // Filtered + paginated logs
   const filteredLogs = useMemo(() => {
@@ -197,7 +200,7 @@ function ViewAuditLogs() {
             ? 30 * 24 * 60 * 60 * 1000
             : null;
 
-    return MOCK_LOGS.filter((log) => {
+    return logs.filter((log) => {
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         !q ||
@@ -227,7 +230,7 @@ function ViewAuditLogs() {
 
       return matchesSearch && matchesUser && matchesDate && matchesAction;
     });
-  }, [searchQuery, userFilter, dateFilter, actionFilter, latestLogDate]);
+  }, [searchQuery, userFilter, dateFilter, actionFilter, latestLogDate, logs]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE));
   const pageLogs = filteredLogs.slice(
@@ -256,7 +259,7 @@ function ViewAuditLogs() {
   const handleResetFilters = () => {
     setSearchQuery('');
     setUserFilter('all');
-    setDateFilter('24h');
+    setDateFilter('all');
     setActionFilter('all');
     setCurrentPage(1);
     setOpenFilter(null);
