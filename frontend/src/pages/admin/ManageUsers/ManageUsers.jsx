@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import AdminToast from '../../../components/common/AdminToast';
+import { getUsers, saveUsers, appendAuditLog } from '../../../services/adminStorage';
 import './ManageUsers.css';
 
 // Initial Mock Users data matching mockup + some pagination filler
@@ -33,7 +35,9 @@ const INITIAL_USERS = [
 
 function ManageUsers() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [users, setUsers] = useState(INITIAL_USERS);
+  // Initialize from localStorage; seeds with INITIAL_USERS on first visit
+  const [users, setUsers] = useState(() => getUsers(INITIAL_USERS));
+  const [toast, setToast] = useState(null);
   
   // Search, Filter, Sort and Pagination State
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,16 +153,27 @@ function ManageUsers() {
         createdDate: new Date().toISOString().split('T')[0],
         avatarColor: randomColor,
       };
-      setUsers((prev) => [newUser, ...prev]);
+      const updatedUsers = [newUser, ...users];
+      setUsers(updatedUsers);
+      saveUsers(updatedUsers);
+      appendAuditLog({ actionType: 'User Created', module: 'USER_MGMT' });
+      setToast({ type: 'success', message: `User "${newUser.name}" added successfully.` });
     } else {
       // Edit mode or quick role assign mode
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === selectedUser.id
-            ? { ...u, name: formData.name.trim(), email: formData.email.trim(), role: formData.role, status: formData.status }
-            : u
-        )
+      const updatedUsers = users.map((u) =>
+        u.id === selectedUser.id
+          ? { ...u, name: formData.name.trim(), email: formData.email.trim(), role: formData.role, status: formData.status }
+          : u
       );
+      setUsers(updatedUsers);
+      saveUsers(updatedUsers);
+      if (modalMode === 'assign') {
+        appendAuditLog({ actionType: 'Role Assigned', module: 'USER_MGMT' });
+        setToast({ type: 'info', message: `Role updated to "${formData.role}" for ${formData.name}.` });
+      } else {
+        appendAuditLog({ actionType: 'User Updated', module: 'USER_MGMT' });
+        setToast({ type: 'success', message: `User "${formData.name.trim()}" updated successfully.` });
+      }
     }
     setModalOpen(false);
   };
@@ -171,11 +186,15 @@ function ManageUsers() {
 
   const handleConfirmDelete = () => {
     if (userToDelete) {
-      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+      const updatedUsers = users.filter((u) => u.id !== userToDelete.id);
+      setUsers(updatedUsers);
+      saveUsers(updatedUsers);
+      appendAuditLog({ actionType: 'User Deleted', module: 'USER_MGMT', status: 'success' });
+      setToast({ type: 'warning', message: `Access revoked for "${userToDelete.name}".` });
       setDeleteConfirmOpen(false);
       setUserToDelete(null);
       // Reset page if it exceeds total pages
-      const totalPagesAfterDelete = Math.ceil((users.length - 1) / itemsPerPage);
+      const totalPagesAfterDelete = Math.ceil((updatedUsers.length) / itemsPerPage);
       if (currentPage > totalPagesAfterDelete && totalPagesAfterDelete > 0) {
         setCurrentPage(totalPagesAfterDelete);
       }
@@ -506,6 +525,8 @@ function ManageUsers() {
             <span>Admin Support</span>
           </div>
         </footer>
+        {/* Toast Notifications */}
+        <AdminToast toast={toast} onDismiss={() => setToast(null)} />
       </div>
 
       {/* Form Dialog Modal (Add/Edit/Assign Role) */}

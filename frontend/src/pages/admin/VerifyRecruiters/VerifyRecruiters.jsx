@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminSidebar from '../../../components/common/AdminSidebar';
+import AdminToast from '../../../components/common/AdminToast';
+import { getRecruiters, saveRecruiters, appendAuditLog } from '../../../services/adminStorage';
 import './VerifyRecruiters.css';
 
 // Seeding Mock Verification Requests
@@ -239,13 +241,15 @@ const INITIAL_REQUESTS = [
 
 function VerifyRecruiters() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
-  const [selectedId, setSelectedId] = useState(1); // Default to Nexus Talent Partners
-  const [activeTab, setActiveTab] = useState('Pending'); // 'Pending', 'Reviewing', 'Flagged'
+  // Initialize from localStorage; seeds with INITIAL_REQUESTS on first visit
+  const [requests, setRequests] = useState(() => getRecruiters(INITIAL_REQUESTS));
+  const [selectedId, setSelectedId] = useState(1);
+  const [activeTab, setActiveTab] = useState('Pending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [toast, setToast] = useState(null);
   
   // Modals for actions
-  const [actionModal, setActionModal] = useState({ open: false, type: '', data: null }); // type: 'Approve' | 'Reject'
+  const [actionModal, setActionModal] = useState({ open: false, type: '', data: null });
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [newNoteText, setNewNoteText] = useState('');
 
@@ -308,21 +312,21 @@ function VerifyRecruiters() {
 
     const newNote = {
       id: Date.now(),
-      author: 'Julian Thorne',
+      author: 'Admin User',
       time: 'JUST NOW',
       text: newNoteText.trim()
     };
 
-    setRequests(prev => prev.map(r => {
+    const updatedRequests = requests.map(r => {
       if (r.id === selectedRecruiter.id) {
-        return {
-          ...r,
-          notes: [newNote, ...r.notes]
-        };
+        return { ...r, notes: [newNote, ...r.notes] };
       }
       return r;
-    }));
-
+    });
+    setRequests(updatedRequests);
+    saveRecruiters(updatedRequests);
+    appendAuditLog({ actionType: 'Review Note Added', module: 'RECRUITER_VERIFY' });
+    setToast({ type: 'info', message: `Note added to ${selectedRecruiter.companyName}.` });
     setNewNoteText('');
     setNoteModalOpen(false);
   };
@@ -336,19 +340,31 @@ function VerifyRecruiters() {
     const { type, data } = actionModal;
     if (!data) return;
 
-    setRequests(prev => prev.map(r => {
+    const newStatus = type === 'Approve' ? 'Approved' : 'Rejected';
+    const updatedRequests = requests.map(r => {
       if (r.id === data.id) {
-        // If approved, we can change status to 'Approved'
-        // If rejected, we can change status to 'Rejected'
-        return {
-          ...r,
-          status: type === 'Approve' ? 'Approved' : 'Rejected'
-        };
+        return { ...r, status: newStatus };
       }
       return r;
-    }));
+    });
+    setRequests(updatedRequests);
+    saveRecruiters(updatedRequests);
 
-    // Find next available item in the filtered list to auto-select
+    // Log the action in the audit trail
+    appendAuditLog({
+      actionType: `Recruiter ${type}d`,
+      module: 'RECRUITER_VERIFY',
+      status: type === 'Approve' ? 'success' : 'failure',
+    });
+
+    setToast({
+      type: type === 'Approve' ? 'success' : 'error',
+      message: type === 'Approve'
+        ? `${data.companyName} has been approved for marketplace access.`
+        : `${data.companyName} request has been rejected.`,
+    });
+
+    // Auto-select next item in queue
     const currentIndex = filteredRequests.findIndex(r => r.id === data.id);
     let nextSelectedId = null;
     if (filteredRequests.length > 1) {
@@ -358,16 +374,14 @@ function VerifyRecruiters() {
         nextSelectedId = filteredRequests[currentIndex - 1].id;
       }
     }
-    
-    if (nextSelectedId) {
-      setSelectedId(nextSelectedId);
-    }
+    if (nextSelectedId) setSelectedId(nextSelectedId);
 
     setActionModal({ open: false, type: '', data: null });
   };
 
   return (
     <div className="admin-theme admin-dashboard">
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

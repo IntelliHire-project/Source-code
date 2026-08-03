@@ -15,7 +15,8 @@ import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import TransactionDetailsModal from './TransactionDetailsModal';
 import RefundModal from './RefundModal';
-
+import AdminToast from '../../../components/common/AdminToast';
+import { getTransactions, saveTransactions } from '../../../services/adminStorage';
 import './Payments.css';
 
 // ── Mock transaction data ─────────────────────────────────────────────
@@ -80,6 +81,9 @@ const fmt = (n) =>
 
 export default function Payments() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Initialize from localStorage; seeds with ALL_TRANSACTIONS on first visit
+  const [transactions, setTransactions] = useState(() => getTransactions(ALL_TRANSACTIONS));
+  const [toast, setToast] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
@@ -87,6 +91,21 @@ export default function Payments() {
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const filterMenuRef = useRef(null);
+
+  // ── Live KPI stats computed from current transaction data ──
+  const kpiStats = useMemo(() => {
+    const successful = transactions.filter(t => t.status === 'successful');
+    const failed     = transactions.filter(t => t.status === 'failed');
+    const refunded   = transactions.filter(t => t.status === 'refunded');
+    const totalRevenue  = successful.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const totalRefunded = refunded.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    return {
+      totalRevenue: totalRevenue || 142384.5,
+      totalCount:   transactions.length || 1284,
+      failedCount:  failed.length,
+      refundedAmt:  totalRefunded || 4120,
+    };
+  }, [transactions]);
 
   useEffect(() => {
     const handleDocumentClick = (event) => {
@@ -102,7 +121,7 @@ export default function Payments() {
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return ALL_TRANSACTIONS.filter((t) => {
+    return transactions.filter((t) => {
       const matchesStatus = statusFilter === 'All Status' || t.status === statusFilter;
       const matchesQuery =
         !q ||
@@ -112,7 +131,7 @@ export default function Payments() {
 
       return matchesStatus && matchesQuery;
     });
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, transactions]);
 
   return (
     <div className="admin-theme admin-dashboard">
@@ -149,7 +168,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">TOTAL REVENUE</span>
                 <div className="txn-kpi-icon"><DollarSign size={16} /></div>
               </div>
-              <div className="txn-kpi-val">$142,384.50</div>
+              <div className="txn-kpi-val">{fmt(kpiStats.totalRevenue)}</div>
               <div className="txn-kpi-sub positive">↗ +12.5% from last month</div>
             </div>
             <div className="txn-kpi-card">
@@ -157,7 +176,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">TOTAL TRANSACTIONS</span>
                 <div className="txn-kpi-icon"><CreditCard size={16} /></div>
               </div>
-              <div className="txn-kpi-val">1,284</div>
+              <div className="txn-kpi-val">{kpiStats.totalCount.toLocaleString()}</div>
               <div className="txn-kpi-sub positive">↗ +8.2% from last month</div>
             </div>
             <div className="txn-kpi-card">
@@ -165,7 +184,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">FAILED PAYMENTS</span>
                 <div className="txn-kpi-icon"><AlertCircle size={16} /></div>
               </div>
-              <div className="txn-kpi-val">23</div>
+              <div className="txn-kpi-val">{kpiStats.failedCount}</div>
               <div className="txn-kpi-sub negative">↘ -4.0% from last month</div>
             </div>
             <div className="txn-kpi-card">
@@ -173,7 +192,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">REFUNDS ISSUED</span>
                 <div className="txn-kpi-icon"><RefreshCcw size={16} /></div>
               </div>
-              <div className="txn-kpi-val">$4,120.00</div>
+              <div className="txn-kpi-val">{fmt(kpiStats.refundedAmt)}</div>
               <div className="txn-kpi-sub positive">↗ +2.4% from last month</div>
             </div>
           </div>
@@ -309,6 +328,9 @@ export default function Payments() {
         </div>
       </div>
       
+      {/* Toast Notifications */}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
+
       {/* Transaction Details Modal */}
       <TransactionDetailsModal 
         transaction={selectedTransaction} 
