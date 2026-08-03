@@ -298,6 +298,8 @@ function TopBar({
                   setDropdownOpen(false);
                   if (onProfileClick) {
                     onProfileClick();
+                  } else if (location.pathname.startsWith('/admin')) {
+                    navigate('/admin/profile');
                   } else if (location.pathname.startsWith('/recruiter')) {
                     navigate('/recruiter/profile');
                   } else if (location.pathname.startsWith('/candidate')) {
