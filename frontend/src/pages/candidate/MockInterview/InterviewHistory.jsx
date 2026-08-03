@@ -8,7 +8,6 @@ import {
   Clock,
   Search,
   ChevronDown,
-  SlidersHorizontal,
   Calendar,
   ExternalLink,
   ChevronLeft,
@@ -105,7 +104,6 @@ export default function InterviewHistory() {
   const [selectedDate, setSelectedDate]  = useState('thisMonth');
   const [showRoleDD, setShowRoleDD]      = useState(false);
   const [showDateDD, setShowDateDD]      = useState(false);
-  const [showAdvanced, setShowAdvanced]  = useState(false);
   const roleRef = useRef(null);
   const dateRef = useRef(null);
 
@@ -196,18 +194,6 @@ export default function InterviewHistory() {
 
           <div className="kpi-card">
             <div className="kpi-header">
-              <span className="kpi-label">HIRING RATE</span>
-              <div className="kpi-icon-box">
-                <Briefcase size={16} />
-              </div>
-            </div>
-            <div className="kpi-value-row">
-              <span className="kpi-value">24%</span>
-            </div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-header">
               <span className="kpi-label">ACTIVE ROUNDS</span>
               <div className="kpi-icon-box">
                 <Clock size={16} />
@@ -284,41 +270,11 @@ export default function InterviewHistory() {
               )}
             </div>
 
-            {/* Advanced toggle */}
-            <button
-              type="button"
-              className={`filter-action-btn ${showAdvanced ? 'active' : ''}`}
-              onClick={() => setShowAdvanced(p => !p)}
-            >
-              <SlidersHorizontal size={15} />
-              <span>Advanced</span>
-            </button>
+
           </div>
         </div>
 
-        {/* Advanced Filter Panel */}
-        {showAdvanced && (
-          <div className="advanced-filter-panel">
-            <div className="adv-group">
-              <label className="adv-label">STATUS</label>
-              <div className="adv-chips">
-                {['Hired', 'Round 2', 'Rejected', 'Offer Sent', 'Pending'].map(s => (
-                  <span key={s} className="adv-chip">{s}</span>
-                ))}
-              </div>
-            </div>
-            <div className="adv-group">
-              <label className="adv-label">SCORE RANGE</label>
-              <div className="adv-score-range">
-                <input type="range" min="0" max="100" defaultValue="0" className="adv-slider" />
-                <span className="adv-range-label">0 – 100</span>
-              </div>
-            </div>
-            <button className="adv-reset-btn" onClick={() => { setSelectedRole('all'); setSelectedDate('thisMonth'); setShowAdvanced(false); }}>
-              Reset Filters
-            </button>
-          </div>
-        )}
+
 
         {/* Workspace Layout Grid: Left Table & Right Analytics */}
         <div className="history-content-grid">
@@ -326,9 +282,6 @@ export default function InterviewHistory() {
           <div className="evaluations-table-card">
             <div className="table-card-header">
               <h3 className="card-heading">Recent Evaluations</h3>
-              <button type="button" className="export-csv-btn">
-                Export CSV
-              </button>
             </div>
 
             <div className="table-responsive-wrapper">
@@ -339,7 +292,6 @@ export default function InterviewHistory() {
                     <th>JOB ROLE</th>
                     <th>INTERVIEW DATE</th>
                     <th>SCORE</th>
-                    <th>STATUS</th>
                     <th>ACTION</th>
                   </tr>
                 </thead>
@@ -363,11 +315,7 @@ export default function InterviewHistory() {
                           {item.score}
                         </span>
                       </td>
-                      <td>
-                        <span className={`status-pill ${item.statusClass}`}>
-                          {item.status}
-                        </span>
-                      </td>
+
                       <td>
                         <button
                           type="button"
@@ -510,18 +458,7 @@ export default function InterviewHistory() {
               </div>
             </div>
 
-            {/* Hiring Insights Card */}
-            <div className="hiring-insights-card">
-              <div className="insights-header">
-                <h4>Hiring Insights</h4>
-              </div>
-              <p className="insights-body">
-                Your candidate evaluation scores have increased by <strong>5.2%</strong> compared to last month. Consider reviewing candidates with scores above <strong>85</strong> for expedited final rounds.
-              </p>
-              <button type="button" className="generate-report-btn">
-                Generate Full Report
-              </button>
-            </div>
+
           </div>
         </div>
       </div>
