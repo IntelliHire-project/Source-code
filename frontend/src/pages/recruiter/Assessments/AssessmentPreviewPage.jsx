@@ -19,6 +19,17 @@ function AssessmentPreviewPage() {
   const { assessmentId } = useParams();
   const [openQuestion, setOpenQuestion] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [inviteMode, setInviteMode] = useState('Optional');
+  const [inviteSent, setInviteSent] = useState(false);
+  const candidateLink = `https://intellihire.test/a/${assessmentId}?mode=${inviteMode.toLowerCase()}`;
+
+  const sendInvite = () => {
+    setInviteSent(true);
+    if (inviteMode !== 'Skip') {
+      navigator.clipboard?.writeText(candidateLink);
+      setCopied(true);
+    }
+  };
 
   return (
     <AssessmentShell currentPage="Assessment Preview">
@@ -26,8 +37,8 @@ function AssessmentPreviewPage() {
         <div className="ap-header">
           <div>
             <span className="af-eyebrow">Assessment ID: {assessmentId}</span>
-            <div className="ap-title-row"><h1>Senior Fullstack Engineering Challenge</h1><span>Active</span></div>
-            <p>Technical evaluation for senior software engineering candidates.</p>
+            <div className="ap-title-row"><h1>Senior Fullstack Engineering Challenge</h1><span>Shortlist Ready</span></div>
+            <p>Send a secure assessment link to shortlisted candidates before the first interview.</p>
           </div>
           <div className="af-title-actions">
             <button className="af-secondary" onClick={() => { navigator.clipboard?.writeText(window.location.href); setCopied(true); }}><Share2 size={16} /> {copied ? 'Link Copied' : 'Share'}</button>
@@ -61,7 +72,51 @@ function AssessmentPreviewPage() {
           <aside className="ap-side">
             <section><h2>Assessment Settings</h2><dl><div><dt>Target role</dt><dd>Senior Software Engineer</dd></div><div><dt>Difficulty</dt><dd>Senior</dd></div><div><dt>Pass score</dt><dd>70%</dd></div><div><dt>Question order</dt><dd>Randomized</dd></div><div><dt>Attempts allowed</dt><dd>1 attempt</dd></div></dl></section>
             <section><h2>Schedule</h2><p><CalendarDays size={17} /> Created July 18, 2026</p><p><CheckCircle2 size={17} /> Accepting candidates</p></section>
-            <section className="ap-link"><h2>Candidate Link</h2><p>Share this link to invite candidates.</p><button onClick={() => { navigator.clipboard?.writeText('https://intellihire.test/a/sfe-2026'); setCopied(true); }}><span>intellihire.test/a/sfe-2026</span><Copy size={16} /></button></section>
+            <section className="ap-delivery">
+              <div className="ap-section-head">
+                <div>
+                  <h2>Assessment Delivery</h2>
+                  <p>Choose whether this invite is mandatory or optional for the shortlisted candidate.</p>
+                </div>
+                <span className="ap-chip">Shortlist Only</span>
+              </div>
+              <div className="ap-mode-group" role="tablist" aria-label="Assessment invite mode">
+                {['Mandatory', 'Optional', 'Skip'].map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={inviteMode === mode ? 'is-active' : ''}
+                    onClick={() => setInviteMode(mode)}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+              <ul className="ap-checklist">
+                <li>Email notification to the candidate</li>
+                <li>In-app notification with a secure link</li>
+                <li>Link expires in 72 hours</li>
+                <li>Recruiter can resend or waive later</li>
+              </ul>
+              <button className="af-primary ap-send-btn" type="button" onClick={sendInvite}>
+                <PlayCircle size={16} />
+                {inviteSent ? (inviteMode === 'Skip' ? 'Marked as Skipped' : 'Invitation Sent') : inviteMode === 'Skip' ? 'Skip Assessment' : `Send ${inviteMode} Invite`}
+              </button>
+              {inviteSent && (
+                <div className="af-success ap-success">
+                  {inviteMode === 'Skip'
+                    ? 'Assessment skipped for this role. The candidate will not receive an invite.'
+                    : 'Invite sent to the shortlisted candidate and copied to clipboard.'}
+                </div>
+              )}
+              <div className="ap-link">
+                <span>Candidate link</span>
+                <button type="button" onClick={() => { navigator.clipboard?.writeText(candidateLink); setCopied(true); }}>
+                  <span>{candidateLink.replace('https://', '')}</span>
+                  <Copy size={16} />
+                </button>
+              </div>
+            </section>
           </aside>
         </div>
       </main>

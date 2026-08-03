@@ -805,6 +805,10 @@
   gap: 8px;
 }
 
+.job-detail__file-input {
+  display: none;
+}
+
 .job-detail__upload-btn {
   width: 100%;
   margin-top: 8px;
@@ -863,25 +867,6 @@
 .job-detail__verified svg {
   flex-shrink: 0;
   margin-top: 1px;
-}
-
-.job-detail__report-btn {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.74rem;
-  text-align: center;
-  cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.2s ease, color 0.2s ease;
-}
-
-.job-detail__report-btn:hover {
-  opacity: 1;
-  color: var(--crisis);
 }
 
 /* ── CV Match Prompt ── */
@@ -1019,31 +1004,6 @@
 
 .job-detail__prompt-heading svg {
   flex-shrink: 0;
-}
-
-.job-detail__prompt-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.job-detail__prompt-tag {
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
-.job-detail__prompt-tag--missing {
-  background: rgba(230, 57, 70, 0.12);
-  color: var(--crisis);
-  border: 1px solid rgba(230, 57, 70, 0.2);
-}
-
-.job-detail__prompt-tag--match {
-  background: rgba(34, 197, 94, 0.12);
-  color: var(--accent-success);
-  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .job-detail__prompt-list {

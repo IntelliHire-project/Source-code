@@ -1,10 +1,10 @@
 import React, { useState, createContext } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import CandidateSidebar from '../../components/common/CandidateSidebar';
-import TopBar from '../../components/TopBar/TopBar';
-import '../../styles/tokens.css';
-import '../../styles/admin.css';
-import '../../styles/candidate.css';
+import CandidateSidebar from '../../../components/common/CandidateSidebar';
+import TopBar from '../../../components/TopBar/TopBar';
+import '../../../styles/tokens.css';
+import '../../../styles/admin.css';
+import '../../../styles/candidate.css';
 
 export const CandidatePageContext = createContext();
 

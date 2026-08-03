@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Search,
   Bell,
@@ -112,6 +112,7 @@ function TopBar({
   className = '',
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -295,7 +296,13 @@ function TopBar({
                 onClick={(e) => {
                   e.stopPropagation();
                   setDropdownOpen(false);
-                  if (onProfileClick) onProfileClick();
+                  if (onProfileClick) {
+                    onProfileClick();
+                  } else if (location.pathname.startsWith('/recruiter')) {
+                    navigate('/recruiter/profile');
+                  } else if (location.pathname.startsWith('/candidate')) {
+                    navigate('/candidate/profile');
+                  }
                 }}
                 role="menuitem"
                 type="button"

@@ -17,20 +17,22 @@ import CommunityPage, {
   SavedPostsPage,
 } from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
-import CandidateDashboard from '../pages/candidate/CandidateDashboard';
+import CandidateDashboard from '../pages/candidate/CandidateDashboard/CandidateDashboard';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
 import ApplicationConfirmation from '../pages/candidate/jobs/ApplicationConfirmation';
-import MyApplications from '../pages/candidate/MyApplications';
-import CVInsights from '../pages/candidate/CVInsights';
-import DashboardPage from '../pages/candidate/DashboardPage';
+import MyApplications from '../pages/candidate/MyApplications/MyApplications';
+import ApplicationDetails from '../pages/candidate/ApplicationDetails/ApplicationDetails';
+import CVInsights from '../pages/candidate/CVInsights/CVInsights';
+import DashboardPage from '../pages/candidate/DashboardPage/DashboardPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';
 import CreateVacancyPage from '../pages/recruiter/CreateVacancy/CreateVacancyPage';
 import PreviewVacancyPage from '../pages/recruiter/PreviewVacancy/PreviewVacancyPage';
 import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyManagementPage';
+import VacancyDetailPage from '../pages/recruiter/VacancyDetail/VacancyDetailPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
 import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
@@ -46,6 +48,7 @@ import CreateAssessmentPage from '../pages/recruiter/Assessments/CreateAssessmen
 import CandidateReportPage from '../pages/recruiter/Assessments/CandidateReportPage';
 import AssessmentPreviewPage from '../pages/recruiter/Assessments/AssessmentPreviewPage';
 import AssessmentCandidatesPage from '../pages/recruiter/Assessments/AssessmentCandidatesPage';
+import RecruiterProfilePage from '../pages/recruiter/RecruiterProfile/RecruiterProfilePage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import VacancySelectorModal from '../components/common/VacancySelectorModal';
@@ -53,7 +56,7 @@ import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
-import ModerateContent from '../pages/admin/ModerateContent/ModerateContent';
+import ModerateContent from '../pages/admin/ModerateCommunity/ModerateCommunity';
 import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
 import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import Payments from '../pages/admin/Payments/Payments';
@@ -173,6 +176,7 @@ function AppRoutes() {
           <Route path="jobs/:jobId" element={<JobDetail />} />
           <Route path="application-confirmation" element={<ApplicationConfirmation />} />
           <Route path="applications" element={<MyApplications />} />
+          <Route path="applications/:applicationId" element={<ApplicationDetails />} />
           <Route path="mock-interviews" element={<Navigate to="/candidate/mock-interviews/roleselection" replace />} />
           <Route path="mock-interviews/roleselection" element={<RoleSelection roleOverride="candidate" />} />
           <Route path="mock-interviews/questions" element={<GeneratedQuestions roleOverride="candidate" />} />
@@ -196,6 +200,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/vacancies"
           element={<VacancyManagementPage />}
+        />
+        <Route
+          path="/vacancies/:id"
+          element={<VacancyDetailPage />}
         />
         <Route
           path="/recruiter/create-vacancy"
@@ -224,6 +232,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/payments"
           element={<PaymentBillingPage />}
+        />
+        <Route
+          path="/recruiter/profile"
+          element={<RecruiterProfilePage />}
         />
         <Route
           path="/recruiter/analytics"
@@ -344,7 +356,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/admin/reports"
+          path="/admin/audit-log"
           element={
             <ProtectedRoute>
               <ViewAuditLogs />

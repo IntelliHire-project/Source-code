@@ -613,7 +613,7 @@ function InterviewEvaluationPage() {
               }}
             >
               {showForm ? <X size={15} /> : <Plus size={15} />}
-              <span>{showForm ? 'Close Evaluation Form' : 'Assign Interview Panel'}</span>
+              <span>{showForm ? 'Close Evaluation Form' : 'New Evaluation'}</span>
             </button>
           </div>
 

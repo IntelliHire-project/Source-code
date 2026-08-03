@@ -16,6 +16,14 @@
   font-weight: 700;
   letter-spacing: -0.4px;
   line-height: 1.2;
+  margin: 0 0 6px 0;
+}
+
+.page-subtitle {
+  font-size: 0.88rem;
+  color: #9599A6;
+  margin: 0;
+  line-height: 1.4;
 }
 
 /* ── Stat Cards Grid (4 Columns) ── */
@@ -549,6 +557,7 @@
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
