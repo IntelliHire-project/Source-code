@@ -526,33 +526,7 @@
   margin: 0;
 }
 
-.export-csv-btn {
-  background: none;
-  border: none;
-  color: #8c93a0;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.export-csv-btn:hover {
-  color: #ffffff;
-}
-
-.table-responsive-wrapper {
-  overflow-x: auto;
-}
-
-.evaluations-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
 .evaluations-table th {
-  font-size: 0.72rem;
-  font-weight: 700;
   color: #717888;
   letter-spacing: 0.6px;
   padding: 12px 16px 12px 0;
