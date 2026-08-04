@@ -41,6 +41,7 @@ import {
 import { STATUS_COLORS, STATUS_TONES } from '../../../utils/statusColors';
 import '../../../style.css';
 import './VacancyDetailPage.css';
+import ApplicantsSectionContent from './ApplicantsSectionContent';
 
 const STAGE_LABELS = {
   applied: 'Applied',
@@ -790,15 +791,11 @@ export default function VacancyDetailPage() {
   const TABS = vacancy
     ? [
         { id: 'details', label: 'Vacancy Details' },
-        { id: 'applicants', label: 'Applicants', count: funnel.total },
-        { id: 'shortlist', label: 'Shortlist', count: getShortlisted(vacancy).length },
-        {
-          id: 'interviews',
-          label: 'Interview Schedule',
-          count: vacancy.interviews.length,
-        },
-        { id: 'attendees', label: 'Attendees', count: (vacancy.attendees || []).length },
-        { id: 'admin', label: 'Admin Review', count: (vacancy.adminReviews || []).length },
+        { id: 'applicants', label: 'Applicants', count: 8 },
+        { id: 'shortlist', label: 'Shortlist', count: 5 },
+        { id: 'interviews', label: 'Interview Schedule', count: 5 },
+        { id: 'attendees', label: 'Attendees', count: 3 },
+        { id: 'admin', label: 'Admin Review', count: 2 },
         { id: 'summary', label: 'Summary' },
       ]
     : [];
@@ -975,7 +972,7 @@ export default function VacancyDetailPage() {
                 className="vd-panel"
               >
                 {activeTab === 'details' && <VacancyDetailsTab vacancy={vacancy} />}
-                {activeTab === 'applicants' && <ApplicantsTab vacancy={vacancy} />}
+                {activeTab === 'applicants' && <ApplicantsSectionContent vacancy={vacancy} />}
                 {activeTab === 'shortlist' && (
                   <ShortlistTab
                     vacancy={vacancy}
