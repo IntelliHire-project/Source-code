@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import {
   Clock,
   CheckCircle2,
@@ -9,9 +9,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Monitor,
-  Mic,
-  Sliders,
   AlertCircle,
   X,
 } from 'lucide-react';
@@ -87,7 +84,6 @@ export default function MockInterviewSession() {
 
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
-  const [showAvModal, setShowAvModal] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   // 15 Minutes countdown timer
@@ -169,45 +165,6 @@ export default function MockInterviewSession() {
         </div>
 
         <div className="session-header-right">
-          <div className="av-controls">
-            <button
-              type="button"
-              className="av-btn"
-              title="Screen Sharing"
-              onClick={() => setShowAvModal(true)}
-            >
-              <Monitor size={15} />
-            </button>
-            <button
-              type="button"
-              className="av-btn"
-              title="Microphone"
-              onClick={() => setShowAvModal(true)}
-            >
-              <Mic size={15} />
-            </button>
-            <button
-              type="button"
-              className="av-settings-btn"
-              onClick={() => setShowAvModal(true)}
-            >
-              <Sliders size={14} />
-              <span>AV Settings</span>
-            </button>
-          </div>
-
-          <div className="candidate-user-info">
-            <div className="user-text">
-              <span className="candidate-name">{candidateName}</span>
-              <span className="candidate-id">CANDIDATE ID: {candidateId}</span>
-            </div>
-            <div className="user-avatar-circle">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                alt={candidateName}
-              />
-            </div>
-          </div>
         </div>
       </header>
 
@@ -396,30 +353,6 @@ export default function MockInterviewSession() {
             </div>
             <div className="modal-body">
               <p>{currentQ.hint || 'No specific hint provided for this question.'}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AV Settings Modal */}
-      {showAvModal && (
-        <div className="modal-backdrop" onClick={() => setShowAvModal(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>AV Settings &amp; Hardware Controls</h3>
-              <button type="button" className="close-btn" onClick={() => setShowAvModal(false)}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="av-status-row">
-                <Monitor size={18} />
-                <span>Screen Capture: Connected (1080p)</span>
-              </div>
-              <div className="av-status-row">
-                <Mic size={18} />
-                <span>Microphone: Default Input Device (Active)</span>
-              </div>
             </div>
           </div>
         </div>

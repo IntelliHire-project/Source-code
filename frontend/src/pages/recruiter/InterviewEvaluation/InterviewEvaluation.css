@@ -49,7 +49,7 @@
   margin-bottom: 24px;
 }
 
-.page-title {
+.interview-page-title {
   font-size: 1.65rem;
   font-weight: 700;
   color: #FFFFFF;
@@ -81,7 +81,7 @@
   align-items: flex-start;
 }
 
-.eval-heading-copy .page-title {
+.eval-heading-copy .interview-page-title {
   margin: 0 0 6px;
 }
 

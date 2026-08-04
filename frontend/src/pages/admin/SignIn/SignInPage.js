@@ -52,7 +52,7 @@ function AdminSignInPage() {
 
       // Redirect to dashboard after successful admin login
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/admin/dashboard');
       }, 1200);
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'System access denied. Invalid credentials.';

@@ -181,29 +181,6 @@
   box-shadow: none;
 }
 
-.app-card__body {
-  display: flex;
-  gap: 18px;
-}
-
-.app-card__logo {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-md);
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  background: rgba(240, 185, 11, 0.12);
-  color: var(--accent);
-  font-size: 1.1rem;
-  font-weight: 800;
-}
-
-.app-card__logo svg {
-  width: 24px;
-  height: 24px;
-}
-
 .app-card__content {
   flex: 1;
   min-width: 0;
@@ -257,14 +234,15 @@
   font-size: 0.72rem;
   font-weight: 700;
   white-space: nowrap;
-  border: 1px solid transparent;
-  flex-shrink: 0;
-}
-
-.app-card__status-badge--under-review {
-  border-color: rgba(240, 185, 11, 0.3);
+  border: 1px solid rgba(240, 185, 11, 0.3);
   background: rgba(240, 185, 11, 0.12);
   color: var(--accent);
+}
+
+.app-card__status-badge--assessment {
+  border-color: rgba(107, 140, 255, 0.3);
+  background: rgba(107, 140, 255, 0.12);
+  color: var(--accent-info);
 }
 
 .app-card__status-badge--interview {
@@ -575,6 +553,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
@@ -719,10 +698,6 @@
 
   .my-applications__sort-select {
     width: 100%;
-  }
-
-  .app-card__body {
-    flex-direction: column;
   }
 
   .app-card__top-row {

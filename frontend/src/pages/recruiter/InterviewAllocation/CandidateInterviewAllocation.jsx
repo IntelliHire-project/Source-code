@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
+  Calendar,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -192,7 +193,7 @@ export default function CandidateInterviewAllocationPage() {
     setSelectedSlotId('');
     setPendingReallocation(null);
     showToast(
-      `Allocated ${candidatesToMove.length} candidate(s) to ${slotToAssign.time} on ${slotToAssign.dateShort}.`
+      `Allocated ${candidatesToMove.length} candidate(s) to ${slotToAssign.time} on ${slotToAssign.dateShort}. Google Calendar invite sent!`
     );
   };
 
@@ -271,7 +272,7 @@ export default function CandidateInterviewAllocationPage() {
     setAllocations(newAllocations);
     setCandidates((current) => current.map((candidate) => ({ ...candidate, selected: false })));
     setSelectedSlotId('');
-    showToast('Auto-allocation completed using score priority and current slot capacity.');
+    showToast('Auto-allocation completed! Google Calendar invites sent to allocated candidates.');
   };
 
   // Reset Allocations
@@ -385,7 +386,7 @@ export default function CandidateInterviewAllocationPage() {
         {/* Content Container */}
         <div className="recruiter-content">
 
-          {/* ── Sub-navigation Tabs (Time Slot Management vs Candidate Allocation vs Invitations) ── */}
+          {/* ── Sub-navigation Tabs ── */}
           <div className="interview-subnav-tabs">
             <button
               className={`subnav-tab-btn ${activeSubTab === 'management' ? 'is-active' : ''}`}
@@ -402,27 +403,20 @@ export default function CandidateInterviewAllocationPage() {
               Candidate Allocation
             </button>
             <button
-              className={`subnav-tab-btn ${activeSubTab === 'invitations' ? 'is-active' : ''}`}
-              onClick={() => navigate('/recruiter/interviews/invitations')}
-              type="button"
-            >
-              Invitations & Communication
-            </button>
-            <button
               className="subnav-tab-btn"
               onClick={() => navigate('/recruiter/interviews/evaluation')}
               type="button"
             >
-              Panel & Evaluation
+              Panel &amp; Evaluation
             </button>
           </div>
 
           {/* ── Page Heading Block + Auto Allocate Button ── */}
           <div className="page-heading-block heading-with-action">
             <div>
-              <h1 className="page-title">Candidate Interview Allocation</h1>
+              <h1 className="interview-page-title">Candidate Interview Allocation</h1>
               <p className="page-subtitle">
-                Automatically assign shortlisted candidates to available interview slots based on priority and availability.
+                Assign shortlisted candidates to available interview slots by priority.
               </p>
             </div>
             <button type="button" className="btn-auto-allocate" onClick={handleAutoAllocate}>

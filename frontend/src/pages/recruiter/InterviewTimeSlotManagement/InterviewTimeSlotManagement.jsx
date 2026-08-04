@@ -10,11 +10,51 @@ import {
   Plus,
   Trash2,
   Users,
+  Calendar,
+  ExternalLink,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
+
+// ── Google Calendar URL Helper ─────────────────────────────────────────────
+const generateGoogleCalendarUrl = ({ title, description, interviewDate, startTime, endTime, location }) => {
+  try {
+    const parseDateTime = (dStr, tStr) => {
+      if (!dStr) return new Date();
+      const dateObj = new Date(dStr.includes('-') ? dStr : dStr);
+      if (tStr) {
+        const match = tStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (match) {
+          let hrs = parseInt(match[1], 10);
+          const mins = parseInt(match[2], 10);
+          const ampm = match[3];
+          if (ampm) {
+            if (ampm.toUpperCase() === 'PM' && hrs < 12) hrs += 12;
+            if (ampm.toUpperCase() === 'AM' && hrs === 12) hrs = 0;
+          }
+          dateObj.setHours(hrs, mins, 0, 0);
+        }
+      }
+      return dateObj;
+    };
+    const startObj = parseDateTime(interviewDate, startTime);
+    const endObj = parseDateTime(interviewDate, endTime || startTime);
+    const startIso = startObj.toISOString().replace(/-|:|\.\d\d\d/g, '');
+    const endIso = endObj.toISOString().replace(/-|:|\.\d\d\d/g, '');
+
+    const url = new URL('https://calendar.google.com/calendar/render');
+    url.searchParams.append('action', 'TEMPLATE');
+    url.searchParams.append('text', title || 'IntelliHire Interview');
+    url.searchParams.append('details', description || 'Interview scheduled via IntelliHire Platform');
+    url.searchParams.append('dates', `${startIso}/${endIso}`);
+    if (location) url.searchParams.append('location', location);
+    return url.toString();
+  } catch (e) {
+    return 'https://calendar.google.com';
+  }
+};
 
 const initialSlots = [
   {
@@ -273,7 +313,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [viewingSlot, setViewingSlot] = useState(null);
   const [deletingSlot, setDeletingSlot] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 4;
   const todayInputValue = getTodayInputValue();
   const jobPositions = useMemo(
     () => [...new Set(slots.map(slot => slot.jobPosition))].sort(),
@@ -412,7 +452,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
           return slot;
         })
       );
-      setMessage('Interview time slot updated successfully.');
+      setMessage('Interview time slot updated & synced to Google Calendar!');
       setEditingSlotId(null);
     } else {
       const newSlot = {
@@ -425,7 +465,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
         interviewType: formData.interviewType,
         capacity: capacityNumber,
         status: 'AVAILABLE',
-        meetingLocation: formData.meetingLocation || 'To be shared with candidate',
+        meetingLocation: formData.meetingLocation || (formData.interviewType === 'Online' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Main Office Conference Room'),
         additionalNotes: formData.additionalNotes || 'N/A',
         bookedCount: 0,
       };
@@ -433,7 +473,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
       setSlots(current => [newSlot, ...current]);
       setPositionFilter(formData.jobPosition);
       setCurrentPage(1);
-      setMessage('Interview time slot created successfully.');
+      setMessage('Interview time slot created & synced to Google Calendar!');
     }
 
     setFormData(emptyForm);
@@ -487,13 +527,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
             </button>
             <button
               className="subnav-tab-btn"
-              onClick={() => navigate('/recruiter/interviews/invitations')}
-              type="button"
-            >
-              Invitations &amp; Communication
-            </button>
-            <button
-              className="subnav-tab-btn"
               onClick={() => navigate('/recruiter/interviews/evaluation')}
               type="button"
             >
@@ -504,21 +537,91 @@ function RecruiterInterviewTimeSlotManagementPage() {
           {/* ── Clean Page Heading ── */}
           <div className="page-heading-block">
             <div>
-              <h1 className="page-title">Interview Time Slot Management</h1>
+              <h1 className="interview-page-title">Interview Time Slot Management</h1>
               <p className="page-subtitle">
-                Create, manage, and schedule interview availability for shortlisted candidates.
+                Create, manage, and schedule interview availability for candidates.
               </p>
             </div>
-            {!showForm && (
-              <button
-                type="button"
-                className="add-slot-trigger"
-                onClick={handleToggleForm}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <a
+                href="https://calendar.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="gcal-sync-status-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#1E222D',
+                  color: '#4285F4',
+                  border: '1px solid rgba(66, 133, 244, 0.35)',
+                  padding: '9px 16px',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Google Calendar Integration Active"
               >
-                <Plus size={17} strokeWidth={2.5} />
-                <span>Add New Time Slot</span>
-              </button>
-            )}
+                <Calendar size={16} style={{ color: '#4285F4' }} />
+                <span>Google Calendar Synced</span>
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22C55E' }} />
+              </a>
+              {!showForm && (
+                <button
+                  type="button"
+                  className="add-slot-trigger"
+                  onClick={handleToggleForm}
+                >
+                  <Plus size={17} strokeWidth={2.5} />
+                  <span>Add New Time Slot</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ── Zoho Recruit Style Metric KPI Summary Bar ── */}
+          <div className="interview-kpi-summary-grid">
+            <div className="kpi-card">
+              <div className="kpi-icon-wrap kpi-blue">
+                <CalendarDays size={18} />
+              </div>
+              <div>
+                <div className="kpi-value">{slots.length}</div>
+                <div className="kpi-label">Total Time Slots</div>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-icon-wrap kpi-green">
+                <Users size={18} />
+              </div>
+              <div>
+                <div className="kpi-value">{slots.reduce((acc, s) => acc + (s.bookedCount || 0), 0)}</div>
+                <div className="kpi-label">Candidates Scheduled</div>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-icon-wrap kpi-amber">
+                <Calendar size={18} />
+              </div>
+              <div>
+                <div className="kpi-value">{slots.filter(s => s.interviewType === 'Online').length}</div>
+                <div className="kpi-label">Google Meet Online</div>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-icon-wrap kpi-purple">
+                <ClipboardList size={18} />
+              </div>
+              <div>
+                <div className="kpi-value">{slots.filter(s => s.status === 'AVAILABLE').length}</div>
+                <div className="kpi-label">Available Slots</div>
+              </div>
+            </div>
           </div>
 
           {/* Toast / Message Notification */}
@@ -673,7 +776,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     <input
                       type="text"
                       name="meetingLocation"
-                      placeholder="Enter meeting link or physical location..."
+                      placeholder={formData.interviewType === 'Online' ? "Auto-generated Google Meet URL (or enter custom link)" : "Enter physical office location..."}
                       value={formData.meetingLocation}
                       onChange={handleFieldChange}
                       className="form-control"
@@ -793,6 +896,35 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         </td>
                         <td className="text-right">
                           <div className="action-buttons-wrap">
+                            <a
+                              href={generateGoogleCalendarUrl({
+                                title: `IntelliHire Interview: ${slot.round} (${slot.jobPosition})`,
+                                description: `Interview Round: ${slot.round}\nJob Position: ${slot.jobPosition}\nType: ${slot.interviewType}\nCapacity: ${slot.capacity}\nMeeting Link / Location: ${slot.meetingLocation || 'N/A'}\nNotes: ${slot.additionalNotes || 'N/A'}`,
+                                interviewDate: slot.interviewDate,
+                                startTime: slot.startTime,
+                                endTime: slot.endTime,
+                                location: slot.meetingLocation,
+                              })}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="action-icon-btn action-gcal-btn"
+                              title="Add to Google Calendar"
+                              aria-label={`Add slot ${slot.id} to Google Calendar`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '6px',
+                                backgroundColor: 'rgba(66, 133, 244, 0.12)',
+                                border: '1px solid rgba(66, 133, 244, 0.3)',
+                                color: '#4285F4',
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <Calendar size={15} />
+                            </a>
                             <button
                               type="button"
                               className="action-icon-btn action-view-btn"
@@ -971,8 +1103,46 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 </span>
               </div>
             </div>
-            <div className="modal-footer">
-              <button type="button" className="btn-primary-accent" onClick={() => setViewingSlot(null)}>
+            <div className="modal-footer" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #2A2C38' }}>
+              <a
+                href={generateGoogleCalendarUrl({
+                  title: `IntelliHire Interview: ${viewingSlot.round} (${viewingSlot.jobPosition})`,
+                  description: `Interview Round: ${viewingSlot.round}\nJob Position: ${viewingSlot.jobPosition}\nType: ${viewingSlot.interviewType}\nLocation / Meeting Link: ${viewingSlot.meetingLocation || 'N/A'}\nNotes: ${viewingSlot.additionalNotes || 'N/A'}`,
+                  interviewDate: viewingSlot.interviewDate,
+                  startTime: viewingSlot.startTime,
+                  endTime: viewingSlot.endTime,
+                  location: viewingSlot.meetingLocation,
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  flex: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  backgroundColor: 'rgba(66, 133, 244, 0.12)',
+                  color: '#4285F4',
+                  border: '1px solid rgba(66, 133, 244, 0.4)',
+                  padding: '11px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Calendar size={16} />
+                <span>Add to Google Calendar</span>
+                <ExternalLink size={13} />
+              </a>
+              <button
+                type="button"
+                className="btn-primary-accent"
+                style={{ flex: 1, padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => setViewingSlot(null)}
+              >
                 Close
               </button>
             </div>

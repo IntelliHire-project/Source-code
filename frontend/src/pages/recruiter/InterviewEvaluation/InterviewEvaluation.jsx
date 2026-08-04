@@ -576,13 +576,6 @@ function InterviewEvaluationPage() {
               Candidate Allocation
             </button>
             <button
-              className="subnav-tab-btn"
-              onClick={() => navigate('/recruiter/interviews/invitations')}
-              type="button"
-            >
-              Invitations &amp; Communication
-            </button>
-            <button
               className="subnav-tab-btn is-active"
               onClick={() => navigate('/recruiter/interviews/evaluation')}
               type="button"
@@ -594,7 +587,7 @@ function InterviewEvaluationPage() {
           {/* ── Page Heading + Action Button ── */}
           <div className="eval-page-header">
             <div className="eval-heading-copy">
-              <h1 className="page-title">Interview Panel &amp; Evaluation Management</h1>
+              <h1 className="interview-page-title">Interview Panel &amp; Evaluation Management</h1>
               <p className="page-subtitle">
                 Assign interview panels and record candidate evaluation results.
               </p>
@@ -613,7 +606,7 @@ function InterviewEvaluationPage() {
               }}
             >
               {showForm ? <X size={15} /> : <Plus size={15} />}
-              <span>{showForm ? 'Close Evaluation Form' : 'Assign Interview Panel'}</span>
+              <span>{showForm ? 'Close Evaluation Form' : 'New Evaluation'}</span>
             </button>
           </div>
 

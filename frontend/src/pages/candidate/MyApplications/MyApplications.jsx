@@ -6,12 +6,10 @@ import {
   Briefcase,
   MapPin,
   Calendar,
-  Clock,
   AlertTriangle,
-  Check,
   ChevronRight,
 } from 'lucide-react';
-import { CandidatePageContext } from './CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import './applications.css';
 
 /* ── Mock Data ── */
@@ -24,11 +22,19 @@ const MOCK_APPLICATIONS = [
     location: 'Remote (NYC Based)',
     appliedDate: 'Oct 28, 2024',
     applicationId: 'APP-99281-X',
-    status: 'Under Review',
+    status: 'Assessment Invited',
     about:
       'Submitted application with CV and cover letter highlighting React and TypeScript expertise.',
-    nextStep: 'Awaiting recruiter review. Expected response within 5–7 business days.',
-    timeline: { submitted: 'Oct 28, 2024', reviewed: 'Oct 30, 2024' },
+    nextStep: 'You were shortlisted and invited to complete the assessment before the first interview.',
+    timeline: { submitted: 'Oct 28, 2024', reviewed: 'Oct 30, 2024', assessment: 'Nov 1, 2024' },
+    assessment: {
+      name: 'Technical Skills Assessment',
+      mode: 'Optional',
+      dueDate: 'Nov 1, 2024',
+      duration: '90 minutes',
+      attempts: 1,
+      link: 'intellihire.test/a/shortlist-2048',
+    },
   },
   {
     id: 2,
@@ -71,14 +77,17 @@ const MOCK_APPLICATIONS = [
   },
 ];
 
-const STATUS_STEPS = ['Applied', 'Under Review', 'Interview', 'Decision'];
+const STATUS_STEPS = ['Applied', 'Under Review', 'Assessment', 'Interview', 'Decision'];
 
 const STATUS_STEP_INDEX = {
   'Under Review': 1,
-  'Interview Scheduled': 2,
+  'Assessment Invited': 2,
+  'Assessment In Progress': 2,
+  'Assessment Completed': 2,
+  'Interview Scheduled': 3,
   'Rejected': 1,
   'Withdrawn': 0,
-  'Offer Received': 3,
+  'Offer Received': 4,
 };
 
 const SORT_OPTIONS = [
@@ -117,146 +126,41 @@ function getCurrentStep(status) {
 export function ApplicationCard({ application, onViewDetails, onWithdraw }) {
   const [expanded, setExpanded] = useState(false);
   const isMuted = application.status === 'Rejected' || application.status === 'Withdrawn';
-  const currentStep = getCurrentStep(application.status);
-
-  function handleViewDetails() {
-    if (onViewDetails) {
-      onViewDetails(application);
-    } else {
-      setExpanded((prev) => !prev);
-    }
-  }
-
-  const canWithdraw =
-    application.status !== 'Rejected' &&
-    application.status !== 'Withdrawn' &&
-    application.status !== 'Offer Received';
 
   return (
     <div className={`app-card ${isMuted ? 'app-card--muted' : ''}`}>
-      <div className="app-card__body">
-        <div className="app-card__logo">
-          {getCompanyInitial(application.company)}
+      <div className="app-card__content">
+        <div className="app-card__top-row">
+          <div className="app-card__info">
+            <h3 className="app-card__title">{application.title}</h3>
+            <p className="app-card__company">
+              {application.company}
+              <span className="app-card__company-location">
+                <MapPin size={12} />
+                {application.location}
+              </span>
+            </p>
+          </div>
+          <span className="app-card__status-badge">{application.status}</span>
         </div>
 
-        <div className="app-card__content">
-          <div className="app-card__top-row">
-            <div className="app-card__info">
-              <h3 className="app-card__title">{application.title}</h3>
-              <p className="app-card__company">
-                {application.company}
-                <span className="app-card__company-location">
-                  <MapPin size={12} />
-                  {application.location}
-                </span>
-              </p>
-            </div>
-            <span
-              className={`app-card__status-badge ${getStatusBadgeClass(application.status)}`}
-            >
-              {application.status}
-            </span>
-          </div>
-
-          <div className="app-card__meta">
-            <span className="app-card__meta-item">
-              <Calendar size={13} />
-              Applied on {application.appliedDate}
-            </span>
-            <span className="app-card__meta-item">
-              <Clock size={13} />
-              {application.applicationId}
-            </span>
-          </div>
-
-          <div className="app-card__progress">
-            {STATUS_STEPS.map((step, i) => (
-              <React.Fragment key={step}>
-                {i > 0 && (
-                  <div
-                    className={`app-card__step-line ${
-                      i <= currentStep ? 'app-card__step-line--done' : ''
-                    }`}
-                  />
-                )}
-                <div className="app-card__step">
-                  <div
-                    className={`app-card__step-circle ${
-                      i < currentStep
-                        ? 'app-card__step-circle--done'
-                        : i === currentStep
-                        ? 'app-card__step-circle--current'
-                        : ''
-                    }`}
-                  >
-                    {i < currentStep ? (
-                      <Check size={12} />
-                    ) : i === currentStep ? (
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />
-                    ) : null}
-                  </div>
-                  <span
-                    className={`app-card__step-label ${
-                      i === currentStep ? 'app-card__step-label--active' : ''
-                    }`}
-                  >
-                    {step}
-                  </span>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
+        <div className="app-card__meta">
+          <span className="app-card__meta-item">
+            <Calendar size={13} />
+            Applied on {application.appliedDate}
+          </span>
         </div>
       </div>
 
-      {expanded && (
-        <div className="app-card__summary">
-          {application.about && (
-            <div className="app-card__summary-section">
-              <span className="app-card__summary-label">Application Summary</span>
-              <p className="app-card__summary-text">{application.about}</p>
-            </div>
-          )}
-          {application.nextStep && (
-            <div className="app-card__summary-section">
-              <span className="app-card__summary-label">Next Step</span>
-              <p className="app-card__summary-text">{application.nextStep}</p>
-            </div>
-          )}
-          {application.timeline && (
-            <div className="app-card__summary-section">
-              <span className="app-card__summary-label">Timeline</span>
-              <div className="app-card__summary-dates">
-                {Object.entries(application.timeline).map(([key, value]) => (
-                  <div key={key} className="app-card__summary-date">
-                    <span className="app-card__summary-date-label">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <span className="app-card__summary-date-value">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="app-card__actions">
-        <button className="app-card__btn app-card__btn--outline" onClick={handleViewDetails}>
-          {expanded ? 'Hide Details' : 'View Details'}
-          <ChevronRight
-            size={14}
-            style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
-          />
+        <button
+          type="button"
+          className="app-card__btn app-card__btn--outline"
+          onClick={() => onViewDetails && onViewDetails(application)}
+        >
+          View Details
+          <ChevronRight size={14} />
         </button>
-        {canWithdraw && (
-          <button
-            className="app-card__btn app-card__btn--withdraw"
-            onClick={() => onWithdraw && onWithdraw(application)}
-          >
-            Withdraw Application
-          </button>
-        )}
       </div>
     </div>
   );
@@ -295,11 +199,10 @@ export function WithdrawConfirmModal({ application, onConfirm, onCancel }) {
 function MyApplications() {
   const navigate = useNavigate();
   const { setPageLabel } = useContext(CandidatePageContext);
-  const [applications, setApplications] = useState(MOCK_APPLICATIONS);
+  const [applications] = useState(MOCK_APPLICATIONS);
   const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
-  const [withdrawTarget, setWithdrawTarget] = useState(null);
 
   useEffect(() => {
     setPageLabel('MY APPLICATIONS');
@@ -363,25 +266,7 @@ function MyApplications() {
   }, [applications, activeTab, searchQuery, sortBy]);
 
   function handleViewDetails(application) {
-    console.log('View details:', application.id);
-  }
-
-  function handleWithdraw(application) {
-    setWithdrawTarget(application);
-  }
-
-  function confirmWithdraw() {
-    if (!withdrawTarget) return;
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === withdrawTarget.id ? { ...app, status: 'Withdrawn' } : app
-      )
-    );
-    setWithdrawTarget(null);
-  }
-
-  function cancelWithdraw() {
-    setWithdrawTarget(null);
+    navigate(`/candidate/applications/${application.id}`);
   }
 
   return (
@@ -444,7 +329,6 @@ function MyApplications() {
               key={app.id}
               application={app}
               onViewDetails={handleViewDetails}
-              onWithdraw={handleWithdraw}
             />
           ))}
         </div>
@@ -467,15 +351,6 @@ function MyApplications() {
             <ChevronRight size={16} />
           </button>
         </div>
-      )}
-
-      {/* Withdraw Modal */}
-      {withdrawTarget && (
-        <WithdrawConfirmModal
-          application={withdrawTarget}
-          onConfirm={confirmWithdraw}
-          onCancel={cancelWithdraw}
-        />
       )}
     </div>
   );

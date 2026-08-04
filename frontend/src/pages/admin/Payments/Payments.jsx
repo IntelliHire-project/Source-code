@@ -1,8 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search,
   Filter,
-  Download,
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
@@ -16,7 +15,8 @@ import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import TransactionDetailsModal from './TransactionDetailsModal';
 import RefundModal from './RefundModal';
-
+import AdminToast from '../../../components/common/AdminToast';
+import { getTransactions, saveTransactions } from '../../../services/adminStorage';
 import './Payments.css';
 
 // ── Mock transaction data ─────────────────────────────────────────────
@@ -74,28 +74,64 @@ const RECENT_REFUNDS = [
   { id: 'TRX-77321-YY', company: 'CloudScale', time: '1D AGO', amount: 500.0, status: 'Review Needed' },
 ];
 
+const STATUS_FILTERS = ['All Status', 'successful', 'failed', 'refunded', 'pending'];
+
 const fmt = (n) =>
   '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function Payments() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Initialize from localStorage; seeds with ALL_TRANSACTIONS on first visit
+  const [transactions, setTransactions] = useState(() => getTransactions(ALL_TRANSACTIONS));
+  const [toast, setToast] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [refundTransaction, setRefundTransaction] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const filterMenuRef = useRef(null);
+
+  // ── Live KPI stats computed from current transaction data ──
+  const kpiStats = useMemo(() => {
+    const successful = transactions.filter(t => t.status === 'successful');
+    const failed     = transactions.filter(t => t.status === 'failed');
+    const refunded   = transactions.filter(t => t.status === 'refunded');
+    const totalRevenue  = successful.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    const totalRefunded = refunded.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+    return {
+      totalRevenue: totalRevenue || 142384.5,
+      totalCount:   transactions.length || 1284,
+      failedCount:  failed.length,
+      refundedAmt:  totalRefunded || 4120,
+    };
+  }, [transactions]);
+
+  useEffect(() => {
+    const handleDocumentClick = (event) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target)) {
+        setShowFilterMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleDocumentClick);
+    return () => document.removeEventListener('mousedown', handleDocumentClick);
+  }, []);
 
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return ALL_TRANSACTIONS.filter((t) => {
-      return (
+    return transactions.filter((t) => {
+      const matchesStatus = statusFilter === 'All Status' || t.status === statusFilter;
+      const matchesQuery =
         !q ||
         t.id.toLowerCase().includes(q) ||
         t.company.toLowerCase().includes(q) ||
-        t.jobTitle.toLowerCase().includes(q)
-      );
+        t.jobTitle.toLowerCase().includes(q);
+
+      return matchesStatus && matchesQuery;
     });
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter, transactions]);
 
   return (
     <div className="admin-theme admin-dashboard">
@@ -132,7 +168,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">TOTAL REVENUE</span>
                 <div className="txn-kpi-icon"><DollarSign size={16} /></div>
               </div>
-              <div className="txn-kpi-val">$142,384.50</div>
+              <div className="txn-kpi-val">{fmt(kpiStats.totalRevenue)}</div>
               <div className="txn-kpi-sub positive">↗ +12.5% from last month</div>
             </div>
             <div className="txn-kpi-card">
@@ -140,7 +176,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">TOTAL TRANSACTIONS</span>
                 <div className="txn-kpi-icon"><CreditCard size={16} /></div>
               </div>
-              <div className="txn-kpi-val">1,284</div>
+              <div className="txn-kpi-val">{kpiStats.totalCount.toLocaleString()}</div>
               <div className="txn-kpi-sub positive">↗ +8.2% from last month</div>
             </div>
             <div className="txn-kpi-card">
@@ -148,7 +184,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">FAILED PAYMENTS</span>
                 <div className="txn-kpi-icon"><AlertCircle size={16} /></div>
               </div>
-              <div className="txn-kpi-val">23</div>
+              <div className="txn-kpi-val">{kpiStats.failedCount}</div>
               <div className="txn-kpi-sub negative">↘ -4.0% from last month</div>
             </div>
             <div className="txn-kpi-card">
@@ -156,7 +192,7 @@ export default function Payments() {
                 <span className="txn-kpi-label">REFUNDS ISSUED</span>
                 <div className="txn-kpi-icon"><RefreshCcw size={16} /></div>
               </div>
-              <div className="txn-kpi-val">$4,120.00</div>
+              <div className="txn-kpi-val">{fmt(kpiStats.refundedAmt)}</div>
               <div className="txn-kpi-sub positive">↗ +2.4% from last month</div>
             </div>
           </div>
@@ -174,15 +210,37 @@ export default function Payments() {
                 />
               </div>
               <div className="txn-actions">
-                <button className="txn-btn-outline">
-                  <Filter size={16} /> FILTER
-                </button>
-                <button className="txn-btn-outline">
-                  <Download size={16} /> EXPORT CSV
-                </button>
-                <button className="txn-btn-primary">
-                  Manual Transaction
-                </button>
+                <div className="txn-filter-wrap" ref={filterMenuRef}>
+                  <button
+                    className="txn-btn-outline"
+                    type="button"
+                    onClick={() => setShowFilterMenu((prev) => !prev)}
+                    aria-haspopup="menu"
+                    aria-expanded={showFilterMenu}
+                  >
+                    <Filter size={16} /> FILTER
+                  </button>
+
+                  {showFilterMenu && (
+                    <div className="txn-filter-menu" role="menu" aria-label="Transaction status filter">
+                      <div className="txn-filter-menu__title">Status</div>
+                      {STATUS_FILTERS.map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          className={`txn-filter-menu__item ${statusFilter === option ? 'active' : ''}`}
+                          onClick={() => {
+                            setStatusFilter(option);
+                            setCurrentPage(1);
+                            setShowFilterMenu(false);
+                          }}
+                        >
+                          {option === 'All Status' ? 'All Status' : option.charAt(0).toUpperCase() + option.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -270,6 +328,9 @@ export default function Payments() {
         </div>
       </div>
       
+      {/* Toast Notifications */}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
+
       {/* Transaction Details Modal */}
       <TransactionDetailsModal 
         transaction={selectedTransaction} 

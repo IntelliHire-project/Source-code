@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Activity,
   Database,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getAuditLogs } from '../../../services/adminStorage';
 import '../../../styles/admin.css';
 import './ViewAuditLogs.css';
 
@@ -98,6 +99,38 @@ const MOCK_LOGS = [
 const TOTAL_RESULTS = 24892;
 const ITEMS_PER_PAGE = 5;
 
+const USER_FILTER_OPTIONS = [
+  { value: 'all', label: 'All Personnel' },
+  { value: 'admin', label: 'Admins Only' },
+  { value: 'system', label: 'System Accounts' },
+];
+
+const DATE_FILTER_OPTIONS = [
+  { value: '24h', label: 'Last 24 Hours' },
+  { value: '7d', label: 'Last 7 Days' },
+  { value: '30d', label: 'Last 30 Days' },
+  { value: 'all', label: 'All Time' },
+];
+
+const ACTION_FILTER_OPTIONS = [
+  { value: 'all', label: 'Any Interaction' },
+  { value: 'login-attempt', label: 'Login Attempt' },
+  { value: 'database-query', label: 'Database Query' },
+  { value: 'unauthorized-access', label: 'Unauthorized Access' },
+  { value: 'delete-file', label: 'Delete File' },
+  { value: 'update-policy', label: 'Update Policy' },
+  { value: 'config-change', label: 'Config Change' },
+  { value: 'privilege-escalation', label: 'Privilege Escalation' },
+  { value: 'export-report', label: 'Export Report' },
+];
+
+const parseAuditDate = (value) => {
+  const parsed = new Date(value.replace(' ', 'T') + 'Z');
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getFilterLabel = (options, value) => options.find((option) => option.value === value)?.label || '';
+
 function getInitials(name) {
   if (!name || name === 'Unknown User') return '?';
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
@@ -131,10 +164,43 @@ function ViewAuditLogs() {
   const [dateFilter, setDateFilter] = useState('24h');
   const [actionFilter, setActionFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [openFilter, setOpenFilter] = useState(null);
+  const filterBarRef = useRef(null);
+  // Load logs from localStorage, seeding with MOCK_LOGS on first visit
+  const [logs, setLogs] = useState(() => getAuditLogs(MOCK_LOGS));
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (filterBarRef.current && !filterBarRef.current.contains(event.target)) {
+        setOpenFilter(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, userFilter, dateFilter, actionFilter]);
+
+  const latestLogDate = useMemo(() => {
+    const dates = logs.map((log) => parseAuditDate(log.timestamp)).filter(Boolean);
+    return dates.length ? new Date(Math.max(...dates.map((date) => date.getTime()))) : null;
+  }, [logs]);
 
   // Filtered + paginated logs
   const filteredLogs = useMemo(() => {
-    return MOCK_LOGS.filter((log) => {
+    const dateWindowMs =
+      dateFilter === '24h'
+        ? 24 * 60 * 60 * 1000
+        : dateFilter === '7d'
+          ? 7 * 24 * 60 * 60 * 1000
+          : dateFilter === '30d'
+            ? 30 * 24 * 60 * 60 * 1000
+            : null;
+
+    return logs.filter((log) => {
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         !q ||
@@ -144,13 +210,27 @@ function ViewAuditLogs() {
         log.actionType.toLowerCase().includes(q) ||
         log.module.toLowerCase().includes(q);
 
+      const matchesUser =
+        userFilter === 'all' ||
+        (userFilter === 'admin'
+          ? log.user.name !== 'Unknown User' && log.user.email !== 'N/A'
+          : log.user.name === 'Unknown User' || log.user.email === 'N/A');
+
+      const logDate = parseAuditDate(log.timestamp);
+      const matchesDate =
+        dateWindowMs === null ||
+        !latestLogDate ||
+        !logDate ||
+        (latestLogDate.getTime() - logDate.getTime() >= 0 &&
+          latestLogDate.getTime() - logDate.getTime() <= dateWindowMs);
+
       const matchesAction =
         actionFilter === 'all' ||
         log.actionType.toLowerCase().replace(/ /g, '-') === actionFilter;
 
-      return matchesSearch && matchesAction;
+      return matchesSearch && matchesUser && matchesDate && matchesAction;
     });
-  }, [searchQuery, userFilter, dateFilter, actionFilter]);
+  }, [searchQuery, userFilter, dateFilter, actionFilter, latestLogDate, logs]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE));
   const pageLogs = filteredLogs.slice(
@@ -176,12 +256,21 @@ function ViewAuditLogs() {
     URL.revokeObjectURL(url);
   };
 
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setUserFilter('all');
+    setDateFilter('all');
+    setActionFilter('all');
+    setCurrentPage(1);
+    setOpenFilter(null);
+  };
+
   return (
     <div className="admin-theme admin-dashboard">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Audit Logs"
+        activeItem="Audit Log"
       />
 
       <div className="admin-dashboard__main audit-page">
@@ -190,7 +279,10 @@ function ViewAuditLogs() {
           user={{ name: 'Master Admin', role: 'System Owner' }}
           notificationsCount={3}
           searchPlaceholder="Search audit logs..."
-          onSearch={(q) => setSearchQuery(q)}
+          onSearch={(q) => {
+            setSearchQuery(q);
+            setCurrentPage(1);
+          }}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
@@ -238,7 +330,7 @@ function ViewAuditLogs() {
           </section>
 
           {/* Search & Filter Bar */}
-          <div className="audit-filter-bar">
+          <div className="audit-filter-bar" ref={filterBarRef}>
             <div className="audit-filter-group audit-filter-group--search">
               <span className="audit-filter-label">Search Logs</span>
               <div className="audit-search-wrapper">
@@ -256,58 +348,118 @@ function ViewAuditLogs() {
             <div className="audit-filter-group">
               <span className="audit-filter-label">User</span>
               <div className="audit-select-wrapper">
-                <User size={14} className="audit-select-icon" />
-                <select
-                  className="audit-select"
-                  value={userFilter}
-                  onChange={(e) => { setUserFilter(e.target.value); setCurrentPage(1); }}
+                <button
+                  type="button"
+                  className="audit-select audit-select-btn"
+                  onClick={() => setOpenFilter((current) => (current === 'user' ? null : 'user'))}
+                  aria-haspopup="listbox"
+                  aria-expanded={openFilter === 'user'}
                 >
-                  <option value="all">All Personnel</option>
-                  <option value="admin">Admins Only</option>
-                  <option value="system">System Accounts</option>
-                </select>
+                  <span className="audit-select-btn__left">
+                    <User size={14} className="audit-select-icon" />
+                    <span>{getFilterLabel(USER_FILTER_OPTIONS, userFilter)}</span>
+                  </span>
+                  <span className={`audit-select-chevron ${openFilter === 'user' ? 'open' : ''}`}>▾</span>
+                </button>
+                {openFilter === 'user' && (
+                  <div className="audit-select-menu" role="listbox" aria-label="User filter options">
+                    {USER_FILTER_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`audit-select-option ${userFilter === option.value ? 'active' : ''}`}
+                        onClick={() => {
+                          setUserFilter(option.value);
+                          setOpenFilter(null);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="audit-filter-group">
               <span className="audit-filter-label">Date</span>
               <div className="audit-select-wrapper">
-                <Calendar size={14} className="audit-select-icon" />
-                <select
-                  className="audit-select"
-                  value={dateFilter}
-                  onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }}
+                <button
+                  type="button"
+                  className="audit-select audit-select-btn"
+                  onClick={() => setOpenFilter((current) => (current === 'date' ? null : 'date'))}
+                  aria-haspopup="listbox"
+                  aria-expanded={openFilter === 'date'}
                 >
-                  <option value="24h">Last 24 Hours</option>
-                  <option value="7d">Last 7 Days</option>
-                  <option value="30d">Last 30 Days</option>
-                  <option value="all">All Time</option>
-                </select>
+                  <span className="audit-select-btn__left">
+                    <Calendar size={14} className="audit-select-icon" />
+                    <span>{getFilterLabel(DATE_FILTER_OPTIONS, dateFilter)}</span>
+                  </span>
+                  <span className={`audit-select-chevron ${openFilter === 'date' ? 'open' : ''}`}>▾</span>
+                </button>
+                {openFilter === 'date' && (
+                  <div className="audit-select-menu" role="listbox" aria-label="Date filter options">
+                    {DATE_FILTER_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`audit-select-option ${dateFilter === option.value ? 'active' : ''}`}
+                        onClick={() => {
+                          setDateFilter(option.value);
+                          setOpenFilter(null);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="audit-filter-group">
               <span className="audit-filter-label">Action</span>
               <div className="audit-select-wrapper">
-                <Zap size={14} className="audit-select-icon" />
-                <select
-                  className="audit-select"
-                  value={actionFilter}
-                  onChange={(e) => { setActionFilter(e.target.value); setCurrentPage(1); }}
+                <button
+                  type="button"
+                  className="audit-select audit-select-btn"
+                  onClick={() => setOpenFilter((current) => (current === 'action' ? null : 'action'))}
+                  aria-haspopup="listbox"
+                  aria-expanded={openFilter === 'action'}
                 >
-                  <option value="all">Any Interaction</option>
-                  <option value="login-attempt">Login Attempt</option>
-                  <option value="database-query">Database Query</option>
-                  <option value="unauthorized-access">Unauthorized Access</option>
-                  <option value="delete-file">Delete File</option>
-                  <option value="update-policy">Update Policy</option>
-                </select>
+                  <span className="audit-select-btn__left">
+                    <Zap size={14} className="audit-select-icon" />
+                    <span>{getFilterLabel(ACTION_FILTER_OPTIONS, actionFilter)}</span>
+                  </span>
+                  <span className={`audit-select-chevron ${openFilter === 'action' ? 'open' : ''}`}>▾</span>
+                </button>
+                {openFilter === 'action' && (
+                  <div className="audit-select-menu" role="listbox" aria-label="Action filter options">
+                    {ACTION_FILTER_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`audit-select-option ${actionFilter === option.value ? 'active' : ''}`}
+                        onClick={() => {
+                          setActionFilter(option.value);
+                          setOpenFilter(null);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
             <button className="audit-btn-export" onClick={handleExport}>
               <Download size={15} />
               Export Logs
+            </button>
+
+            <button className="audit-btn-reset" onClick={handleResetFilters} type="button">
+              Reset Filters
             </button>
           </div>
 

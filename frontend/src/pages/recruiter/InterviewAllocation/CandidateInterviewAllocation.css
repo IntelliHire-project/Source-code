@@ -291,7 +291,7 @@
   gap: 20px;
 }
 
-.page-title {
+.interview-page-title {
   font-size: 1.65rem;
   font-weight: 700;
   color: #FFFFFF;
@@ -302,8 +302,9 @@
 
 .page-subtitle {
   font-size: 0.88rem;
-  color: var(--text-secondary, #9CA0A8);
+  color: #9599A6;
   margin: 0;
+  line-height: 1.4;
 }
 
 /* ⚡ Auto Allocate Button */
@@ -970,6 +971,7 @@
   z-index: 150;
   padding: 20px;
   background: rgba(0, 0, 0, 0.76);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   display: grid;
   place-items: center;

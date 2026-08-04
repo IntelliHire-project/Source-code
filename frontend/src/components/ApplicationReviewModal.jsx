@@ -7,7 +7,6 @@ import {
   Phone,
   MapPin,
   Briefcase,
-  CalendarDays,
   Tag,
   FileText,
 } from 'lucide-react';
@@ -120,7 +119,12 @@ function ApplicationReviewModal({ onConfirm, onClose, cv }) {
           <button className="arm-modal__btn arm-modal__btn--outline" onClick={onClose}>
             Go Back
           </button>
-          <button className="arm-modal__btn arm-modal__btn--gold" onClick={onConfirm}>
+          <button
+            className="arm-modal__btn arm-modal__btn--gold"
+            onClick={onConfirm}
+            disabled={!cv}
+            title={!cv ? 'Upload a CV before submitting' : undefined}
+          >
             Confirm & Submit
           </button>
         </div>

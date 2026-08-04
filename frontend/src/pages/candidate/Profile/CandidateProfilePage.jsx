@@ -18,12 +18,12 @@ import {
   Save,
   Settings,
   ShieldCheck,
+  Trash2,
   Upload,
-  X,
   UserCircle2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CandidatePageContext } from '../CandidateDashboard';
+import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 
 const INITIAL_PROFILE = {
   fullName: 'Alex Rivera',
@@ -31,9 +31,8 @@ const INITIAL_PROFILE = {
   email: 'alex.rivera@example.com',
   phone: '+1 (555) 123-4567',
   location: 'San Francisco, CA',
-  website: 'alexrivera.dev',
   linkedIn: 'linkedin.com/in/airivera',
-  twitter: '@airivera_tech',
+  portfolio: 'alexrivera.dev',
   bioSummary:
     'Innovative software engineer with 8+ years of experience in building scalable web applications. Passionate about AI-driven solutions and user-centric design.',
   status: 'Open to Work',
@@ -49,6 +48,7 @@ const INITIAL_PROFILE = {
   skills: ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Python', 'Docker', 'GraphQL'],
   workExperience: [
     {
+      id: 'exp-1',
       title: 'Senior Software Engineer',
       company: 'TechFlow Solutions',
       period: 'Jan 2021 - Present',
@@ -56,6 +56,7 @@ const INITIAL_PROFILE = {
         'Leading the core platform team in migrating legacy systems to a microservices architecture using React and Node.js.',
     },
     {
+      id: 'exp-2',
       title: 'Full Stack Developer',
       company: 'CloudSphere Inc.',
       period: 'Mar 2018 - Dec 2020',
@@ -65,11 +66,13 @@ const INITIAL_PROFILE = {
   ],
   education: [
     {
+      id: 'edu-1',
       title: 'Master of Computer Science',
       school: 'Stanford University',
       period: '2016 - 2018',
     },
     {
+      id: 'edu-2',
       title: 'B.S. in Software Engineering',
       school: 'Georgia Institute of Technology',
       period: '2012 - 2016',
@@ -135,6 +138,71 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
+  const setDraftExperience = (id, field) => (event) => {
+    const { value } = event.target;
+    setDraft((prev) => ({
+      ...prev,
+      workExperience: prev.workExperience.map((job) =>
+        job.id === id ? { ...job, [field]: value } : job
+      ),
+    }));
+  };
+
+  const setDraftEducation = (id, field) => (event) => {
+    const { value } = event.target;
+    setDraft((prev) => ({
+      ...prev,
+      education: prev.education.map((edu) =>
+        edu.id === id ? { ...edu, [field]: value } : edu
+      ),
+    }));
+  };
+
+  const handleAddExperience = () => {
+    setDraft((prev) => ({
+      ...prev,
+      workExperience: [
+        ...prev.workExperience,
+        {
+          id: `exp-${Date.now()}`,
+          title: '',
+          company: '',
+          period: '',
+          description: '',
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveExperience = (id) => {
+    setDraft((prev) => ({
+      ...prev,
+      workExperience: prev.workExperience.filter((job) => job.id !== id),
+    }));
+  };
+
+  const handleAddEducation = () => {
+    setDraft((prev) => ({
+      ...prev,
+      education: [
+        ...prev.education,
+        {
+          id: `edu-${Date.now()}`,
+          title: '',
+          school: '',
+          period: '',
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveEducation = (id) => {
+    setDraft((prev) => ({
+      ...prev,
+      education: prev.education.filter((edu) => edu.id !== id),
+    }));
+  };
+
   const handleOpenEditor = () => {
     setDraft(profile);
     setIsEditing(true);
@@ -191,7 +259,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                 </div>
                 <div className="candidate-list">
                   {current.workExperience.map((job) => (
-                    <div className="candidate-entry" key={`${job.company}-${job.title}`}>
+                    <div className="candidate-entry" key={job.id}>
                       <div className="candidate-entry__header">
                         <div>
                           <div className="candidate-entry__title">{job.title}</div>
@@ -211,7 +279,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                 </div>
                 <div className="candidate-list">
                   {current.education.map((edu) => (
-                    <div className="candidate-entry candidate-entry--education" key={`${edu.school}-${edu.title}`}>
+                    <div className="candidate-entry candidate-entry--education" key={edu.id}>
                       <div className="candidate-entry__header">
                         <div>
                           <div className="candidate-entry__title">{edu.title}</div>
@@ -231,11 +299,14 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   <h2>Personal Information</h2>
                 </div>
                 <div className="candidate-info-stack">
+                  <InfoRow icon={UserCircle2} label="Full Name" value={current.fullName} />
+                  <InfoRow icon={BriefcaseBusiness} label="Professional Headline" value={current.headline} />
                   <InfoRow icon={Mail} label="Email Address" value={current.email} />
                   <InfoRow icon={Phone} label="Phone Number" value={current.phone} />
-                  <InfoRow icon={Globe} label="Personal Website" value={current.website} />
-                  <InfoRow icon={MapPin} label="Main Language" value={current.language} />
-                  <InfoRow icon={BriefcaseBusiness} label="Current Status" value={current.status} />
+                  <InfoRow icon={MapPin} label="Location" value={current.location} />
+                  <InfoRow icon={Globe} label="Main Language" value={current.language} />
+                  <InfoRow icon={ShieldCheck} label="Current Status" value={current.status} />
+                  <InfoRow icon={PencilLine} label="Bio Summary" value={current.bioSummary} />
                 </div>
               </article>
 
@@ -245,13 +316,6 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                 </div>
                 <div className="candidate-link-list">
                   <div className="candidate-link-row">
-                    <div className="candidate-link-row__icon"><Globe size={14} /></div>
-                    <div>
-                      <div className="candidate-link-row__label">Personal Website</div>
-                      <div className="candidate-link-row__value">{current.website}</div>
-                    </div>
-                  </div>
-                  <div className="candidate-link-row">
                     <div className="candidate-link-row__icon"><Link2 size={14} /></div>
                     <div>
                       <div className="candidate-link-row__label">LinkedIn Profile</div>
@@ -259,10 +323,10 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                     </div>
                   </div>
                   <div className="candidate-link-row">
-                    <div className="candidate-link-row__icon"><X size={14} /></div>
+                    <div className="candidate-link-row__icon"><Globe size={14} /></div>
                     <div>
-                      <div className="candidate-link-row__label">Twitter / X</div>
-                      <div className="candidate-link-row__value">{current.twitter}</div>
+                      <div className="candidate-link-row__label">Portfolio</div>
+                      <div className="candidate-link-row__value">{current.portfolio}</div>
                     </div>
                   </div>
                 </div>
@@ -330,7 +394,10 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   <Field label="Full Name" value={draft.fullName} onChange={setDraftValue('fullName')} placeholder="Your full name" />
                   <Field label="Professional Headline" value={draft.headline} onChange={setDraftValue('headline')} placeholder="e.g. Senior Full Stack Engineer" />
                   <Field label="Email Address" value={draft.email} onChange={setDraftValue('email')} placeholder="name@example.com" type="email" />
+                  <Field label="Phone Number" value={draft.phone} onChange={setDraftValue('phone')} placeholder="+1 (555) 123-4567" />
                   <Field label="Location" value={draft.location} onChange={setDraftValue('location')} placeholder="City, Country" />
+                  <Field label="Main Language" value={draft.language} onChange={setDraftValue('language')} placeholder="e.g. English (Native)" />
+                  <Field label="Current Status" value={draft.status} onChange={setDraftValue('status')} placeholder="e.g. Open to Work" />
                   <div className="candidate-form-grid__wide">
                     <Field
                       label="Bio Summary"
@@ -346,21 +413,30 @@ function CandidateProfilePage({ initialMode = 'view' }) {
               <article className="candidate-panel card-surface">
                 <div className="candidate-panel__header candidate-panel__header--spread">
                   <h2>Work Experience</h2>
-                  <button type="button" className="candidate-panel__action-link">
+                  <button type="button" className="candidate-panel__action-link" onClick={handleAddExperience}>
                     <Plus size={14} /> Add Experience
                   </button>
                 </div>
                 <div className="candidate-list">
                   {current.workExperience.map((job) => (
-                    <div className="candidate-entry candidate-entry--edit" key={`${job.company}-${job.title}`}>
+                    <div className="candidate-entry candidate-entry--edit" key={job.id}>
                       <div className="candidate-entry__header">
-                        <div>
-                          <div className="candidate-entry__title">{job.title}</div>
-                          <div className="candidate-entry__company">{job.company}</div>
-                        </div>
-                        <div className="candidate-entry__period">{job.period}</div>
+                        <div className="candidate-entry__title">{job.title || 'New Experience'}</div>
+                        <button
+                          type="button"
+                          className="candidate-entry__remove"
+                          aria-label="Remove experience"
+                          onClick={() => handleRemoveExperience(job.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                      <p className="candidate-entry__body">{job.description}</p>
+                      <div className="candidate-form-stack candidate-form-stack--entry">
+                        <Field label="Job Title" value={job.title} onChange={setDraftExperience(job.id, 'title')} placeholder="e.g. Senior Software Engineer" />
+                        <Field label="Company" value={job.company} onChange={setDraftExperience(job.id, 'company')} placeholder="Company name" />
+                        <Field label="Period" value={job.period} onChange={setDraftExperience(job.id, 'period')} placeholder="Jan 2021 - Present" />
+                        <Field label="Description" value={job.description} onChange={setDraftExperience(job.id, 'description')} placeholder="Describe your role and achievements" textarea />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -369,19 +445,28 @@ function CandidateProfilePage({ initialMode = 'view' }) {
               <article className="candidate-panel card-surface">
                 <div className="candidate-panel__header candidate-panel__header--spread">
                   <h2>Education</h2>
-                  <button type="button" className="candidate-panel__action-link">
+                  <button type="button" className="candidate-panel__action-link" onClick={handleAddEducation}>
                     <Plus size={14} /> Add Education
                   </button>
                 </div>
                 <div className="candidate-list">
                   {current.education.map((edu) => (
-                    <div className="candidate-entry candidate-entry--education" key={`${edu.school}-${edu.title}`}>
+                    <div className="candidate-entry candidate-entry--education" key={edu.id}>
                       <div className="candidate-entry__header">
-                        <div>
-                          <div className="candidate-entry__title">{edu.title}</div>
-                          <div className="candidate-entry__company">{edu.school}</div>
-                        </div>
-                        <div className="candidate-entry__period">{edu.period}</div>
+                        <div className="candidate-entry__title">{edu.title || 'New Education'}</div>
+                        <button
+                          type="button"
+                          className="candidate-entry__remove"
+                          aria-label="Remove education"
+                          onClick={() => handleRemoveEducation(edu.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <div className="candidate-form-stack candidate-form-stack--entry">
+                        <Field label="Degree / Title" value={edu.title} onChange={setDraftEducation(edu.id, 'title')} placeholder="e.g. Master of Computer Science" />
+                        <Field label="School" value={edu.school} onChange={setDraftEducation(edu.id, 'school')} placeholder="University name" />
+                        <Field label="Period" value={edu.period} onChange={setDraftEducation(edu.id, 'period')} placeholder="2016 - 2018" />
                       </div>
                     </div>
                   ))}
@@ -427,9 +512,8 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   <h2>Professional Links</h2>
                 </div>
                 <div className="candidate-form-stack">
-                  <Field label="Personal Website" value={draft.website} onChange={setDraftValue('website')} placeholder="yourdomain.com" />
                   <Field label="LinkedIn Profile" value={draft.linkedIn} onChange={setDraftValue('linkedIn')} placeholder="linkedin.com/in/yourname" />
-                  <Field label="Twitter / X" value={draft.twitter} onChange={setDraftValue('twitter')} placeholder="@yourhandle" />
+                  <Field label="Portfolio" value={draft.portfolio} onChange={setDraftValue('portfolio')} placeholder="yourdomain.com" />
                 </div>
               </article>
 
