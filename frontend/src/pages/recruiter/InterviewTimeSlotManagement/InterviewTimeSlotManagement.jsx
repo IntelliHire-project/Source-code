@@ -313,7 +313,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [viewingSlot, setViewingSlot] = useState(null);
   const [deletingSlot, setDeletingSlot] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 4;
   const todayInputValue = getTodayInputValue();
   const jobPositions = useMemo(
     () => [...new Set(slots.map(slot => slot.jobPosition))].sort(),
