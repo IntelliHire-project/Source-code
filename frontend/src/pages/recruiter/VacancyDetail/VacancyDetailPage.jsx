@@ -28,8 +28,9 @@ import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import StatusBadge from '../../../components/common/StatusBadge';
 import DropdownMenu from '../../../components/common/DropdownMenu';
+import { VACANCIES } from '../../../data/vacancies';
 import {
-  VACANCIES,
+  getApplicants,
   getStageCounts,
   getFunnel,
   getShortlisted,
@@ -37,7 +38,8 @@ import {
   deriveNextStep,
   getTrackerStates,
   getOutcome,
-} from '../../../data/vacancies';
+} from '../../../data/applicants';
+import { getInterviews } from '../../../data/interviews';
 import { STATUS_COLORS, STATUS_TONES } from '../../../utils/statusColors';
 import '../../../style.css';
 import './VacancyDetailPage.css';
@@ -208,7 +210,8 @@ function VacancyDetailsTab({ vacancy }) {
    Tab: Applicants
    ───────────────────────────────────────────────────────────── */
 function ApplicantsTab({ vacancy }) {
-  const candidates = vacancy.candidates || [];
+  const navigate = useNavigate();
+  const candidates = getApplicants(vacancy.id);
   if (candidates.length === 0) {
     return (
       <EmptyState
@@ -217,6 +220,10 @@ function ApplicantsTab({ vacancy }) {
         hint="Share this vacancy to start sourcing — new applications will appear here."
       />
     );
+  }
+
+  function openProfile(candidate) {
+    navigate('/candidate/profile');
   }
 
   return (
@@ -235,7 +242,20 @@ function ApplicantsTab({ vacancy }) {
           </thead>
           <tbody>
             {candidates.map((candidate) => (
-              <tr key={candidate.id}>
+              <tr
+                key={candidate.id}
+                className="vd-table__row vd-table__row--clickable"
+                tabIndex={0}
+                role="link"
+                aria-label={`Open profile for ${candidate.name}`}
+                onClick={() => openProfile(candidate)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openProfile(candidate);
+                  }
+                }}
+              >
                 <td>
                   <div className="vd-person">
                     <span className="vd-avatar" aria-hidden="true">
@@ -263,7 +283,11 @@ function ApplicantsTab({ vacancy }) {
                   <span className="vd-date">{candidate.appliedDate}</span>
                 </td>
                 <td>
-                  <a className="vd-link" href={candidate.resumeLink}>
+                  <a
+                    className="vd-link"
+                    href={candidate.resumeLink}
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     Resume <ExternalLink size={12} />
                   </a>
                 </td>
@@ -272,8 +296,12 @@ function ApplicantsTab({ vacancy }) {
                     type="button"
                     className="vd-link-btn"
                     aria-label={`Open profile for ${candidate.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openProfile(candidate);
+                    }}
                   >
-                    Profile
+                    View Details
                   </button>
                 </td>
               </tr>
@@ -359,7 +387,7 @@ function ShortlistTab({ vacancy, scheduledIds, onSchedule }) {
    Tab: Interview Schedule
    ───────────────────────────────────────────────────────────── */
 function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
-  const interviews = [...extraInterviews, ...(vacancy.interviews || [])];
+  const interviews = [...extraInterviews, ...getInterviews(vacancy.id)];
   const [showForm, setShowForm] = useState(false);
   const [candidate, setCandidate] = useState('');
   const [date, setDate] = useState('');
@@ -795,7 +823,7 @@ export default function VacancyDetailPage() {
         {
           id: 'interviews',
           label: 'Interview Schedule',
-          count: vacancy.interviews.length,
+          count: getInterviews(vacancy.id).length,
         },
         { id: 'attendees', label: 'Attendees', count: (vacancy.attendees || []).length },
         { id: 'admin', label: 'Admin Review', count: (vacancy.adminReviews || []).length },
