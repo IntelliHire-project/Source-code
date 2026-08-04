@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   CalendarDays,
   ChevronLeft,
@@ -12,11 +12,14 @@ import {
   Users,
   Calendar,
   ExternalLink,
+  Video,
+  Building,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
+import { VACANCIES } from '../../../data/vacancies';
 
 // ── Google Calendar URL Helper ─────────────────────────────────────────────
 const generateGoogleCalendarUrl = ({ title, description, interviewDate, startTime, endTime, location }) => {
@@ -227,14 +230,20 @@ const initialSlots = [
   },
 ];
 
+const defaultVacancy = VACANCIES.find(v => v.status === 'published')?.title || 'Senior Fullstack Engineer';
+
 const emptyForm = {
-  jobPosition: 'Senior Fullstack Engineer',
+  jobPosition: defaultVacancy,
   interviewRound: 'Technical',
+  customRoundName: '',
+  interviewMedia: 'Google Meet',
   interviewType: 'Online',
   interviewDate: '',
-  startTime: '',
-  endTime: '',
-  capacity: '',
+  startTime: '09:00',
+  endTime: '10:00',
+  capacity: '3',
+  panelName: 'Panel A (Technical Leads)',
+  panelEmails: 'saman.tech@company.com, nirosha.hr@company.com',
   meetingLocation: '',
   additionalNotes: '',
 };
@@ -303,10 +312,20 @@ function getTodayInputValue() {
 
 function RecruiterInterviewTimeSlotManagementPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const stateVacancy = location.state?.selectedVacancy;
+  const initialForm = stateVacancy ? { ...emptyForm, jobPosition: stateVacancy } : emptyForm;
+
   const [slots, setSlots] = useState(initialSlots);
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(initialForm);
   const [editingSlotId, setEditingSlotId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showZohoModal, setShowZohoModal] = useState(location.state?.openForm || false);
+  const [showInlineForm, setShowInlineForm] = useState(false);
+  
+  // If we arrived from another page requesting to open the form directly, skip the choice modal
+  // Wait, the flow is: Hero card -> Choice Modal -> Inline Form.
+  // We can just open the Choice modal directly, or the inline form. I'll open the Choice modal.
+  const [activeZohoType, setActiveZohoType] = useState('Google Meet');
   const [positionFilter, setPositionFilter] = useState(initialSlots[0].jobPosition);
   const [formError, setFormError] = useState('');
   const [message, setMessage] = useState('');
@@ -315,6 +334,162 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const todayInputValue = getTodayInputValue();
+
+  // Dynamic Rounds Pipeline State
+  const [roundsCount, setRoundsCount] = useState(3);
+  const [roundTypes, setRoundTypes] = useState([
+    'HR Screening',
+    'Technical / Live Coding',
+    'System Design Architecture',
+  ]);
+  const [customRoundInput, setCustomRoundInput] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // Dynamic Panels & Time Slots Generator State
+  const [panels, setPanels] = useState([
+    {
+      id: 1,
+      name: 'Panel A (Technical Leads)',
+      emails: 'saman.tech@company.com, nirosha.hr@company.com',
+      capacity: 3,
+      slots: [
+        { id: 1, startTime: '09:00', endTime: '10:00' },
+        { id: 2, startTime: '10:15', endTime: '11:15' },
+        { id: 3, startTime: '11:30', endTime: '12:30' },
+      ],
+    },
+  ]);
+
+  const handleRoundsCountChange = count => {
+    const num = Math.max(1, Math.min(6, Number(count)));
+    setRoundsCount(num);
+    const defaultOptions = [
+      'HR Screening',
+      'Technical / Live Coding',
+      'System Design Architecture',
+      'Final Cultural Fit',
+      'Portfolio Review',
+      'Management Round',
+    ];
+    setRoundTypes(prev => {
+      const updated = [...prev];
+      while (updated.length < num) {
+        updated.push(defaultOptions[updated.length % defaultOptions.length]);
+      }
+      return updated.slice(0, num);
+    });
+  };
+
+  const handleRoundTypeSelect = (index, value) => {
+    setRoundTypes(prev => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
+  };
+
+  const handleAddCustomRound = () => {
+    if (!customRoundInput.trim()) return;
+    setRoundTypes(prev => [...prev, customRoundInput.trim()]);
+    setRoundsCount(prev => prev + 1);
+    setCustomRoundInput('');
+    setShowCustomInput(false);
+  };
+
+  const handlePanelCapacityChange = (panelId, newCapacity) => {
+    const cap = Math.max(1, Math.min(10, Number(newCapacity)));
+    setPanels(prev =>
+      prev.map(p => {
+        if (p.id !== panelId) return p;
+        const slotsCopy = [...p.slots];
+        while (slotsCopy.length < cap) {
+          const slotNum = slotsCopy.length + 1;
+          slotsCopy.push({ id: slotNum, startTime: '', endTime: '' });
+        }
+        return {
+          ...p,
+          capacity: cap,
+          slots: slotsCopy.slice(0, cap),
+        };
+      })
+    );
+  };
+
+  const handleAddManualSlot = panelId => {
+    setPanels(prev =>
+      prev.map(p => {
+        if (p.id !== panelId) return p;
+        const nextId = p.slots.length + 1;
+        return {
+          ...p,
+          capacity: p.slots.length + 1,
+          slots: [...p.slots, { id: nextId, startTime: '', endTime: '' }],
+        };
+      })
+    );
+  };
+
+  const handleRemoveManualSlot = (panelId, slotId) => {
+    setPanels(prev =>
+      prev.map(p => {
+        if (p.id !== panelId) return p;
+        if (p.slots.length <= 1) return p;
+        const updated = p.slots.filter(s => s.id !== slotId);
+        return {
+          ...p,
+          capacity: updated.length,
+          slots: updated,
+        };
+      })
+    );
+  };
+
+  const handlePanelEmailChange = (panelId, emailVal) => {
+    setPanels(prev =>
+      prev.map(p => (p.id === panelId ? { ...p, emails: emailVal } : p))
+    );
+  };
+
+  const handlePanelNameChange = (panelId, nameVal) => {
+    setPanels(prev =>
+      prev.map(p => (p.id === panelId ? { ...p, name: nameVal } : p))
+    );
+  };
+
+  const handleSlotTimeChange = (panelId, slotId, field, val) => {
+    setPanels(prev =>
+      prev.map(p => {
+        if (p.id !== panelId) return p;
+        return {
+          ...p,
+          slots: p.slots.map(s => (s.id === slotId ? { ...s, [field]: val } : s)),
+        };
+      })
+    );
+  };
+
+  const handleAddPanel = () => {
+    const nextId = panels.length + 1;
+    setPanels(prev => [
+      ...prev,
+      {
+        id: nextId,
+        name: `Panel ${String.fromCharCode(64 + nextId)} (Senior Panel)`,
+        emails: 'evaluator@company.com, hr@company.com',
+        capacity: 2,
+        slots: [
+          { id: 1, startTime: '14:00', endTime: '15:00' },
+          { id: 2, startTime: '15:15', endTime: '16:15' },
+        ],
+      },
+    ]);
+  };
+
+  const handleRemovePanel = panelId => {
+    if (panels.length <= 1) return;
+    setPanels(prev => prev.filter(p => p.id !== panelId));
+  };
+
   const jobPositions = useMemo(
     () => [...new Set(slots.map(slot => slot.jobPosition))].sort(),
     [slots]
@@ -354,8 +529,40 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setFormData(current => ({ ...current, [name]: value }));
   };
 
+  const handleOpenCreateInterview = () => {
+    setShowZohoModal(true);
+  };
+
+  const handleChooseZohoType = (type) => {
+    setShowZohoModal(false);
+    setActiveZohoType(type);
+    let selectedMedia = 'Google Meet';
+    let isOnline = true;
+    if (type === 'In-Person') {
+      selectedMedia = 'In-Person';
+      isOnline = false;
+    } else if (type === 'Log') {
+      selectedMedia = 'Log';
+      isOnline = false;
+    }
+    setFormData({
+      ...emptyForm,
+      interviewMedia: selectedMedia,
+      interviewType: isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical'),
+      meetingLocation: type === 'In-Person' 
+        ? 'Executive Boardroom 3B, 2nd Floor, HQ Tower' 
+        : (type === 'Google Meet' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Past Session Evaluation Log'),
+    });
+    setEditingSlotId(null);
+    setShowInlineForm(true);
+    setTimeout(() => {
+      const formElem = document.getElementById('intelli-inline-interview-form');
+      if (formElem) formElem.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   const handleToggleForm = () => {
-    setShowForm(prev => !prev);
+    setShowInlineForm(prev => !prev);
     if (editingSlotId) {
       setEditingSlotId(null);
       setFormData(emptyForm);
@@ -369,22 +576,59 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setMessage('');
   };
 
+  const handleMediaSelect = (media) => {
+    setFormData(current => {
+      const isOnline = media !== 'In-Person';
+      let autoLocation = current.meetingLocation;
+      if (media === 'Google Meet' && (!autoLocation || autoLocation.includes('teams'))) {
+        autoLocation = `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}`;
+      } else if (media === 'MS Teams' && (!autoLocation || autoLocation.includes('meet'))) {
+        autoLocation = `https://teams.microsoft.com/l/meetup-join/intelli-${Math.random().toString(36).substring(2, 7)}`;
+      } else if (media === 'In-Person' && (autoLocation.includes('http') || !autoLocation)) {
+        autoLocation = 'Main Engineering Conference Room, 2nd Floor';
+      }
+      return {
+        ...current,
+        interviewMedia: media,
+        interviewType: isOnline ? 'Online' : 'Physical',
+        meetingLocation: autoLocation,
+      };
+    });
+  };
+
+  const handleSelectUpfrontMedia = (media) => {
+    handleMediaSelect(media);
+    setShowInlineForm(true);
+    window.scrollTo({ top: 260, behavior: 'smooth' });
+  };
+
   const handleEditSlot = slot => {
     setEditingSlotId(slot.id);
-    setShowForm(true);
+    setShowInlineForm(true);
+    const roundVal = ['Technical', 'HR Screening', 'HR Portfolio Review', 'Technical Case Study', 'System Design', 'Final Cultural Fit'].includes(slot.round)
+      ? slot.round
+      : 'Custom';
+
     setFormData({
       jobPosition: slot.jobPosition,
-      interviewRound: slot.round,
-      interviewType: slot.interviewType,
+      interviewRound: roundVal,
+      customRoundName: roundVal === 'Custom' ? slot.round : '',
+      interviewMedia: slot.interviewMedia || (slot.interviewType === 'Physical' ? 'In-Person' : 'Google Meet'),
+      interviewType: slot.interviewType || 'Online',
       interviewDate: toDateInputValue(slot.interviewDate),
       startTime: toTimeInputValue(slot.startTime),
       endTime: toTimeInputValue(slot.endTime),
       capacity: String(slot.capacity),
+      panelName: slot.panelName || 'Panel A (Technical Leads)',
+      panelEmails: slot.panelEmails || 'techlead@company.com, hr@company.com',
       meetingLocation: slot.meetingLocation || '',
       additionalNotes: slot.additionalNotes || '',
     });
     setFormError('');
-    window.scrollTo({ top: 120, behavior: 'smooth' });
+    setTimeout(() => {
+      const formElem = document.getElementById('intelli-inline-interview-form');
+      if (formElem) formElem.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const handleSubmit = event => {
@@ -392,44 +636,13 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setFormError('');
     setMessage('');
 
-    if (!formData.interviewDate || !formData.startTime || !formData.endTime || !formData.capacity) {
-      setFormError('Interview date, start time, end time, and capacity are required.');
-      return;
-    }
-
-    const capacityNumber = Number(formData.capacity);
-    if (!Number.isInteger(capacityNumber) || capacityNumber < 1) {
-      setFormError('Capacity must be a positive whole number.');
-      return;
-    }
-
-    if (formData.interviewDate < todayInputValue) {
-      setFormError('Interview date cannot be in the past.');
-      return;
-    }
-
-    const startMinutes = timeToMinutes(formData.startTime);
-    const endMinutes = timeToMinutes(formData.endTime);
-    if (endMinutes <= startMinutes) {
-      setFormError('End time must be later than start time.');
-      return;
-    }
-
-    const hasOverlap = slots.some(slot => {
-      if (slot.id === editingSlotId || slot.jobPosition !== formData.jobPosition) return false;
-      if (toDateInputValue(slot.interviewDate) !== formData.interviewDate) return false;
-      const existingStart = timeToMinutes(slot.startTime);
-      const existingEnd = timeToMinutes(slot.endTime);
-      return startMinutes < existingEnd && endMinutes > existingStart;
-    });
-    if (hasOverlap) {
-      setFormError('This time overlaps with another slot for the selected job position.');
+    if (!formData.interviewDate) {
+      setFormError('Interview date is required.');
       return;
     }
 
     const formattedDate = formatDate(formData.interviewDate);
-    const formattedStart = formatTime(formData.startTime);
-    const formattedEnd = formatTime(formData.endTime);
+    const roundSummary = roundTypes.join(', ');
 
     if (editingSlotId) {
       setSlots(current =>
@@ -438,46 +651,54 @@ function RecruiterInterviewTimeSlotManagementPage() {
             return {
               ...slot,
               jobPosition: formData.jobPosition,
-              round: formData.interviewRound,
+              round: roundSummary,
+              interviewMedia: formData.interviewMedia,
               interviewDate: formattedDate,
-              startTime: formattedStart,
-              endTime: formattedEnd,
-              interviewType: formData.interviewType,
-              capacity: capacityNumber,
+              interviewType: formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online',
+              panelName: panels[0]?.name || 'Panel A (Technical Leads)',
+              panelEmails: panels[0]?.emails || 'techlead@company.com, hr@company.com',
               meetingLocation: formData.meetingLocation,
               additionalNotes: formData.additionalNotes,
-              status: capacityNumber <= slot.bookedCount ? 'FULLY BOOKED' : slot.status,
             };
           }
           return slot;
         })
       );
-      setMessage('Interview time slot updated & synced to Google Calendar!');
-      setEditingSlotId(null);
+      setMessage('Interview setup updated & synced to Google Calendar!');
     } else {
-      const newSlot = {
-        id: slots.length ? Math.max(...slots.map(s => s.id)) + 1 : 1,
-        jobPosition: formData.jobPosition,
-        round: formData.interviewRound,
-        interviewDate: formattedDate,
-        startTime: formattedStart,
-        endTime: formattedEnd,
-        interviewType: formData.interviewType,
-        capacity: capacityNumber,
-        status: 'AVAILABLE',
-        meetingLocation: formData.meetingLocation || (formData.interviewType === 'Online' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Main Office Conference Room'),
-        additionalNotes: formData.additionalNotes || 'N/A',
-        bookedCount: 0,
-      };
+      let createdSlots = [];
+      let baseId = slots.length ? Math.max(...slots.map(s => s.id)) + 1 : 1;
 
-      setSlots(current => [newSlot, ...current]);
+      panels.forEach(p => {
+        p.slots.forEach((sRow, idx) => {
+          createdSlots.push({
+            id: baseId++,
+            jobPosition: formData.jobPosition,
+            round: roundTypes[idx % roundTypes.length] || 'Technical Round',
+            interviewMedia: formData.interviewMedia,
+            interviewDate: formattedDate,
+            startTime: formatTime(sRow.startTime),
+            endTime: formatTime(sRow.endTime),
+            interviewType: formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online',
+            capacity: p.capacity,
+            status: 'AVAILABLE',
+            panelName: p.name,
+            panelEmails: p.emails,
+            meetingLocation: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Main Office Conference Room'),
+            additionalNotes: formData.additionalNotes || 'N/A',
+            bookedCount: 0,
+          });
+        });
+      });
+
+      setSlots(current => [...createdSlots, ...current]);
       setPositionFilter(formData.jobPosition);
       setCurrentPage(1);
-      setMessage('Interview time slot created & synced to Google Calendar!');
+      setMessage(`Successfully created ${createdSlots.length} interview time slots across ${panels.length} panel(s) & synced guest emails to Google Calendar!`);
     }
 
     setFormData(emptyForm);
-    setShowForm(false);
+    setShowInlineForm(false);
   };
 
   const confirmDeleteSlot = () => {
@@ -509,120 +730,576 @@ function RecruiterInterviewTimeSlotManagementPage() {
         {/* Content Container */}
         <div className="recruiter-content">
 
-          {/* ── Sub-navigation Tabs ── */}
-          <div className="interview-subnav-tabs">
-            <button
-              className="subnav-tab-btn is-active"
-              onClick={() => navigate('/recruiter/interviews')}
-              type="button"
+          {/* ── IntelliHire Interviews Hero Card (Rendered only when form is NOT active) ── */}
+          {!showInlineForm && (
+            <div
+              style={{
+                backgroundColor: '#16171F',
+                border: '1px solid rgba(240, 185, 11, 0.22)',
+                borderRadius: '20px',
+                padding: '44px 32px',
+                textAlign: 'center',
+                maxWidth: '620px',
+                margin: '32px auto 40px auto',
+                boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
+                background: 'linear-gradient(145deg, #191B24 0%, #12131A 100%)',
+              }}
             >
-              Time Slot Management
-            </button>
-            <button
-              className="subnav-tab-btn"
-              onClick={() => navigate('/recruiter/interviews/allocation')}
-              type="button"
-            >
-              Candidate Allocation
-            </button>
-            <button
-              className="subnav-tab-btn"
-              onClick={() => navigate('/recruiter/interviews/evaluation')}
-              type="button"
-            >
-              Panel &amp; Evaluation
-            </button>
-          </div>
-
-          {/* ── Clean Page Heading ── */}
-          <div className="page-heading-block">
-            <div>
-              <h1 className="interview-page-title">Interview Time Slot Management</h1>
-              <p className="page-subtitle">
-                Create, manage, and schedule interview availability for candidates.
-              </p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <a
-                href="https://calendar.google.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="gcal-sync-status-btn"
+              <div
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: '#1E222D',
-                  color: '#4285F4',
-                  border: '1px solid rgba(66, 133, 244, 0.35)',
-                  padding: '9px 16px',
-                  borderRadius: '10px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  transition: 'all 0.2s ease',
+                  width: '80px',
+                  height: '80px',
+                  margin: '0 auto 20px auto',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  border: '1px solid rgba(240, 185, 11, 0.3)',
+                  boxShadow: '0 4px 20px rgba(240, 185, 11, 0.15)',
                 }}
-                title="Google Calendar Integration Active"
               >
-                <Calendar size={16} style={{ color: '#4285F4' }} />
-                <span>Google Calendar Synced</span>
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22C55E' }} />
-              </a>
-              {!showForm && (
+                <Calendar size={40} style={{ color: '#F0B90B' }} />
+              </div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#FFFFFF', margin: '0 0 10px 0', letterSpacing: '-0.02em' }}>
+                Interviews
+              </h2>
+              <p style={{ fontSize: '0.9rem', color: '#9599A6', maxWidth: '480px', margin: '0 auto 26px auto', lineHeight: 1.6 }}>
+                Schedule interviews with candidates who have applied for positions. Setup video meetings, in-person rounds, panel assignments, and Google Calendar sync.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <button
                   type="button"
-                  className="add-slot-trigger"
-                  onClick={handleToggleForm}
+                  onClick={handleOpenCreateInterview}
+                  style={{
+                    padding: '12px 32px',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    borderRadius: '12px',
+                    backgroundColor: '#F0B90B',
+                    color: '#0D0E12',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 16px rgba(240, 185, 11, 0.35)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease',
+                  }}
                 >
-                  <Plus size={17} strokeWidth={2.5} />
-                  <span>Add New Time Slot</span>
+                  <span>Create Interview</span>
                 </button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ── Zoho Recruit Style Metric KPI Summary Bar ── */}
-          <div className="interview-kpi-summary-grid">
-            <div className="kpi-card">
-              <div className="kpi-icon-wrap kpi-blue">
-                <CalendarDays size={18} />
-              </div>
-              <div>
-                <div className="kpi-value">{slots.length}</div>
-                <div className="kpi-label">Total Time Slots</div>
-              </div>
-            </div>
 
-            <div className="kpi-card">
-              <div className="kpi-icon-wrap kpi-green">
-                <Users size={18} />
-              </div>
-              <div>
-                <div className="kpi-value">{slots.reduce((acc, s) => acc + (s.bookedCount || 0), 0)}</div>
-                <div className="kpi-label">Candidates Scheduled</div>
-              </div>
-            </div>
 
-            <div className="kpi-card">
-              <div className="kpi-icon-wrap kpi-amber">
-                <Calendar size={18} />
+          {/* ── Section: Dynamic Inline Configuration Form (Rendered Directly On Page) ── */}
+          {showInlineForm && (
+            <div
+              id="intelli-inline-interview-form"
+              style={{
+                backgroundColor: '#16171F',
+                border: '1px solid rgba(240, 185, 11, 0.25)',
+                borderRadius: '16px',
+                padding: '20px',
+                marginBottom: '20px',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
+                position: 'relative',
+                zIndex: 1,
+                width: '100%',
+                marginTop: '10px',
+              }}
+            >
+              <style>{`
+                input[type="date"]::-webkit-calendar-picker-indicator,
+                input[type="time"]::-webkit-calendar-picker-indicator {
+                  filter: invert(1) brightness(1.2);
+                  cursor: pointer;
+                }
+              `}</style>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
+                    {editingSlotId
+                      ? `Edit Interview Time Slot #${editingSlotId}`
+                      : (activeZohoType === 'In-Person'
+                          ? 'Schedule In-person Physical Interview'
+                          : (activeZohoType === 'Log'
+                              ? 'Log Completed / Past Interview Data'
+                              : 'Schedule Online Video Interview'))}
+                  </h3>
+                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '4px 0 0 0' }}>
+                    {activeZohoType === 'In-Person'
+                      ? 'Set up physical office venue, room location, building access & panel members'
+                      : (activeZohoType === 'Log'
+                          ? 'Log past candidate interview outcome, ratings, and panel evaluation notes'
+                          : 'Configure Google Meet / MS Teams link, panel member emails, and calendar sync')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowInlineForm(false)}
+                  style={{ fontSize: '1.4rem', color: '#9599A6', cursor: 'pointer', background: 'none', border: 'none' }}
+                  title="Close Form"
+                >
+                  ×
+                </button>
               </div>
-              <div>
-                <div className="kpi-value">{slots.filter(s => s.interviewType === 'Online').length}</div>
-                <div className="kpi-label">Google Meet Online</div>
-              </div>
-            </div>
 
-            <div className="kpi-card">
-              <div className="kpi-icon-wrap kpi-purple">
-                <ClipboardList size={18} />
-              </div>
-              <div>
-                <div className="kpi-value">{slots.filter(s => s.status === 'AVAILABLE').length}</div>
-                <div className="kpi-label">Available Slots</div>
-              </div>
+              <form onSubmit={handleSubmit} className="slot-form">
+                {/* ── Mode 1: Video Interview Specific Media Selector ── */}
+                {activeZohoType === 'Google Meet' && (
+                  <div style={{ marginBottom: '18px' }}>
+                    <label className="form-label" style={{ marginBottom: '8px', display: 'block', color: '#4285F4', fontWeight: 700 }}>
+                      1. SELECT VIDEO PLATFORM (ONLINE VIDEO INTERVIEW)
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <button
+                        type="button"
+                        className={`media-select-card ${formData.interviewMedia === 'Google Meet' ? 'is-selected' : ''}`}
+                        onClick={() => handleMediaSelect('Google Meet')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '12px 14px',
+                          backgroundColor: formData.interviewMedia === 'Google Meet' ? 'rgba(66, 133, 244, 0.16)' : '#16171F',
+                          border: formData.interviewMedia === 'Google Meet' ? '1px solid #4285F4' : '1px solid #2A2C38',
+                          borderRadius: '10px',
+                          color: formData.interviewMedia === 'Google Meet' ? '#4285F4' : '#9599A6',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.88rem',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <Video size={18} style={{ color: '#4285F4' }} />
+                        <span>Google Meet Video</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`media-select-card ${formData.interviewMedia === 'MS Teams' ? 'is-selected' : ''}`}
+                        onClick={() => handleMediaSelect('MS Teams')}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '12px 14px',
+                          backgroundColor: formData.interviewMedia === 'MS Teams' ? 'rgba(98, 100, 167, 0.16)' : '#16171F',
+                          border: formData.interviewMedia === 'MS Teams' ? '1px solid #6264A7' : '1px solid #2A2C38',
+                          borderRadius: '10px',
+                          color: formData.interviewMedia === 'MS Teams' ? '#6264A7' : '#9599A6',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.88rem',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <Video size={18} style={{ color: '#6264A7' }} />
+                        <span>MS Teams Video</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Mode 2: In-Person Interview Indicator Banner ── */}
+                {activeZohoType === 'In-Person' && (
+                  <div style={{ marginBottom: '18px', padding: '12px 16px', backgroundColor: 'rgba(240, 185, 11, 0.12)', border: '1px solid rgba(240, 185, 11, 0.3)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Building size={22} style={{ color: '#F0B90B', flexShrink: 0 }} />
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#F0B90B', fontWeight: 700 }}>In-Person Physical Interview Mode</h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#9599A6' }}>Requires physical room location, building reception clearance &amp; floor number details.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Mode 3: Log Interview Indicator Banner ── */}
+                {activeZohoType === 'Log' && (
+                  <div style={{ marginBottom: '18px', padding: '12px 16px', backgroundColor: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <ClipboardList size={22} style={{ color: '#EF4444', flexShrink: 0 }} />
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#EF4444', fontWeight: 700 }}>Log Past / Completed Interview Data</h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#9599A6' }}>Record past candidate performance ratings, panel evaluations, and interview outcome notes.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Basic Setup: Job Position & Interview Date ── */}
+                <div className="form-grid-2" style={{ marginTop: '12px' }}>
+                  <div className="form-group">
+                    <label className="form-label">JOB POSITION</label>
+                    <div className="select-input-wrap">
+                      <select
+                        name="jobPosition"
+                        value={formData.jobPosition}
+                        onChange={handleFieldChange}
+                        className="form-control"
+                      >
+                        {VACANCIES.filter(v => v.status === 'published').map(v => (
+                          <option key={v.id} value={v.title}>
+                            {v.title}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="select-arrow">▼</span>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{activeZohoType === 'Log' ? 'CONDUCTED DATE' : 'INTERVIEW DATE'}</label>
+                    <input
+                      type="date"
+                      name="interviewDate"
+                      min={activeZohoType === 'Log' ? undefined : todayInputValue}
+                      value={formData.interviewDate}
+                      onChange={handleFieldChange}
+                      className="form-control"
+                      style={{ colorScheme: 'dark', backgroundColor: '#16171F', color: '#FFFFFF' }}
+                    />
+                  </div>
+                </div>
+
+                {/* ── Step 2: Dynamic Interview Rounds Pipeline ── */}
+                <div style={{ marginTop: '18px', padding: '16px', backgroundColor: '#1A1C24', border: '1px solid #2A2C38', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#F0B90B' }}>
+                        2. DYNAMIC INTERVIEW ROUNDS PIPELINE
+                      </h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
+                        Select total rounds for this hiring pipeline (e.g. 1, 2, 3, 4, 5) or add custom rounds
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label style={{ fontSize: '0.82rem', color: '#9599A6', fontWeight: 600 }}>Rounds Count:</label>
+                      <select
+                        value={roundsCount}
+                        onChange={(e) => handleRoundsCountChange(e.target.value)}
+                        style={{
+                          backgroundColor: '#16171F',
+                          color: '#FFFFFF',
+                          border: '1px solid #3A3D4D',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '0.88rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <option value={1}>1 Round</option>
+                        <option value={2}>2 Rounds</option>
+                        <option value={3}>3 Rounds</option>
+                        <option value={4}>4 Rounds</option>
+                        <option value={5}>5 Rounds</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Dynamically Rendered Round Sections */}
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(roundsCount, 3)}, 1fr)`, gap: '12px', marginBottom: '14px' }}>
+                    {roundTypes.map((roundTitle, idx) => (
+                      <div key={idx} style={{ backgroundColor: '#16171F', padding: '12px', borderRadius: '8px', border: '1px solid #2A2C38' }}>
+                        <div style={{ fontSize: '0.76rem', color: '#3B82F6', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>
+                          Round {idx + 1} Title
+                        </div>
+                        <select
+                          value={roundTitle}
+                          onChange={(e) => handleRoundTypeSelect(idx, e.target.value)}
+                          className="form-control"
+                          style={{ fontSize: '0.84rem' }}
+                        >
+                          <option value="HR Screening">HR Screening</option>
+                          <option value="Technical / Live Coding">Technical / Live Coding</option>
+                          <option value="System Design Architecture">System Design Architecture</option>
+                          <option value="Final Cultural Fit">Final Cultural Fit</option>
+                          <option value="Portfolio Review">Portfolio Review</option>
+                          <option value="Management Round">Management Round</option>
+                          <option value={roundTitle}>{roundTitle}</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Custom Round Button */}
+                  {!showCustomInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomInput(true)}
+                      style={{
+                        backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                        color: '#3B82F6',
+                        border: '1px solid #3B82F6',
+                        borderRadius: '8px',
+                        padding: '7px 14px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>Add Custom Round Name</span>
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Enter custom round name (e.g. AI Prompting Challenge)..."
+                        value={customRoundInput}
+                        onChange={(e) => setCustomRoundInput(e.target.value)}
+                        className="form-control"
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn-primary-accent"
+                        onClick={handleAddCustomRound}
+                        style={{ padding: '8px 14px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                      >
+                        Add Round
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost-dark"
+                        onClick={() => setShowCustomInput(false)}
+                        style={{ padding: '8px 12px', fontSize: '0.82rem' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Step 3: Dynamic Panel Splitting & Time Slots Generator ── */}
+                <div style={{ marginTop: '18px', padding: '16px', backgroundColor: '#1A1C24', border: '1px solid #2A2C38', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#22C55E' }}>
+                        3. PANEL ASSIGNMENTS &amp; DYNAMIC TIME SLOTS GENERATOR
+                      </h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
+                        Set candidate capacity per panel to auto-generate exact time slots &amp; sync panel emails to Google Calendar
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddPanel}
+                      style={{
+                        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                        color: '#22C55E',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        borderRadius: '8px',
+                        padding: '6px 14px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span>Add Panel</span>
+                    </button>
+                  </div>
+
+                  {panels.map((p, pIdx) => (
+                    <div key={p.id} style={{ marginBottom: '16px', padding: '14px', backgroundColor: '#16171F', borderRadius: '10px', border: '1px solid #2A2C38' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <input
+                          type="text"
+                          value={p.name}
+                          onChange={(e) => handlePanelNameChange(p.id, e.target.value)}
+                          className="form-control"
+                          style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.9rem', maxWidth: '300px', padding: '4px 8px' }}
+                        />
+                        {panels.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePanel(p.id)}
+                            style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            Remove Panel
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="form-grid-2" style={{ marginBottom: '12px' }}>
+                        <div>
+                          <label className="form-label">PANEL MEMBER EMAILS (GOOGLE CALENDAR ATTENDEES)</label>
+                          <input
+                            type="text"
+                            value={p.emails}
+                            onChange={(e) => handlePanelEmailChange(p.id, e.target.value)}
+                            className="form-control"
+                            placeholder="e.g. evaluator1@company.com, hr@company.com"
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">CANDIDATE CAPACITY (INTERVIEW COUNT)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={p.capacity}
+                            onChange={(e) => handlePanelCapacityChange(p.id, e.target.value)}
+                            className="form-control"
+                            placeholder="How many candidates?"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Manual Time Slot Space for this Panel */}
+                      <div style={{ marginTop: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div style={{ fontSize: '0.78rem', color: '#F0B90B', fontWeight: 700 }}>
+                            🕒 MANUALLY CONFIGURED TIME SLOTS ({p.slots.length} SLOTS):
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAddManualSlot(p.id)}
+                            style={{
+                              backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                              color: '#F0B90B',
+                              border: '1px solid rgba(240, 185, 11, 0.3)',
+                              borderRadius: '6px',
+                              padding: '3px 8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span>Add Slot</span>
+                          </button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+                          {p.slots.map((slot) => (
+                            <div key={slot.id} style={{ padding: '8px 10px', backgroundColor: '#1E222D', border: '1px solid #2A2C38', borderRadius: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>
+                                  Slot #{slot.id}
+                                </span>
+                                {p.slots.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveManualSlot(p.id, slot.id)}
+                                    style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', lineHeight: 1 }}
+                                    title="Remove Slot"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <input
+                                  type="time"
+                                  value={slot.startTime}
+                                  onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'startTime', e.target.value)}
+                                  className="form-control"
+                                  style={{ fontSize: '0.78rem', padding: '4px 6px', colorScheme: 'dark', backgroundColor: '#16171F', color: '#FFFFFF' }}
+                                />
+                                <span style={{ color: '#9599A6' }}>to</span>
+                                <input
+                                  type="time"
+                                  value={slot.endTime}
+                                  onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'endTime', e.target.value)}
+                                  className="form-control"
+                                  style={{ fontSize: '0.78rem', padding: '4px 6px', colorScheme: 'dark', backgroundColor: '#16171F', color: '#FFFFFF' }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Step 5: Mode-Specific Details (Meeting Link vs Venue vs Rating Log) ── */}
+                <div className="form-grid-2" style={{ marginTop: '14px' }}>
+                  {activeZohoType === 'In-Person' ? (
+                    <div className="form-group">
+                      <label className="form-label" style={{ color: '#F0B90B' }}>PHYSICAL OFFICE VENUE &amp; ROOM LOCATION</label>
+                      <input
+                        type="text"
+                        name="meetingLocation"
+                        placeholder="e.g. Executive Boardroom 3B, 2nd Floor, HQ Building"
+                        value={formData.meetingLocation}
+                        onChange={handleFieldChange}
+                        className="form-control"
+                      />
+                    </div>
+                  ) : activeZohoType === 'Log' ? (
+                    <div className="form-group">
+                      <label className="form-label" style={{ color: '#EF4444' }}>CANDIDATE EVALUATION RATING</label>
+                      <div className="select-input-wrap">
+                        <select className="form-control">
+                          <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</option>
+                          <option value="4">⭐⭐⭐⭐ (4 Stars - Strong Hire)</option>
+                          <option value="3">⭐⭐⭐ (3 Stars - Average / Borderline)</option>
+                          <option value="2">⭐⭐ (2 Stars - Weak Candidate)</option>
+                          <option value="1">⭐ (1 Star - Reject)</option>
+                        </select>
+                        <span className="select-arrow">▼</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="form-group">
+                      <label className="form-label" style={{ color: '#4285F4' }}>AUTO-GENERATED MEETING LINK (GOOGLE MEET / TEAMS)</label>
+                      <input
+                        type="text"
+                        name="meetingLocation"
+                        placeholder="Auto-generated meeting URL..."
+                        value={formData.meetingLocation}
+                        onChange={handleFieldChange}
+                        className="form-control"
+                      />
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      {activeZohoType === 'In-Person'
+                        ? 'SECURITY & BUILDING INSTRUCTIONS'
+                        : (activeZohoType === 'Log'
+                            ? 'PANEL EVALUATION FEEDBACK NOTES'
+                            : 'ADDITIONAL INSTRUCTIONS')}
+                    </label>
+                    <input
+                      type="text"
+                      name="additionalNotes"
+                      placeholder={
+                        activeZohoType === 'In-Person'
+                          ? 'e.g. Show ID at main reception, visitor pass required...'
+                          : (activeZohoType === 'Log'
+                              ? 'e.g. Strong problem solving skills, recommendation...'
+                              : 'Instructions for panel members or candidates...')
+                      }
+                      value={formData.additionalNotes}
+                      onChange={handleFieldChange}
+                      className="form-control"
+                    />
+                  </div>
+                </div>
+
+                {/* Form Buttons */}
+                <div className="form-actions-row" style={{ marginTop: '24px' }}>
+                  <button type="submit" className="btn-primary-accent" style={{ padding: '12px 24px' }}>
+                    <span>{editingSlotId ? 'Update Interview Slot' : 'Save & Sync Google Calendar'}</span>
+                  </button>
+                  <button type="button" className="btn-ghost-dark" onClick={() => setShowInlineForm(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
-          </div>
+          )}
 
           {/* Toast / Message Notification */}
           {message && (
@@ -642,408 +1319,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
             </div>
           )}
 
-          {/* ── Card 1: Time Slot Form Card ── */}
-          {showForm && (
-            <div className="card-surface form-card-section">
-              <div className="card-header-bar">
-                <span className="gold-indicator"></span>
-                <h2 className="card-title">
-                  {editingSlotId ? `Edit Interview Time Slot #${editingSlotId}` : 'Interview Time Slot Form'}
-                </h2>
-                <button
-                  type="button"
-                  className="btn-hide-form"
-                  onClick={handleToggleForm}
-                >
-                  {showForm ? '– Hide Form' : '+ Add New Time Slot'}
-                </button>
-              </div>
 
-              <form onSubmit={handleSubmit} className="slot-form">
-                {/* Grid Row 1: 3 columns */}
-                <div className="form-grid-3">
-                  <div className="form-group">
-                    <label className="form-label">JOB POSITION</label>
-                    <div className="select-input-wrap">
-                      <select
-                        name="jobPosition"
-                        value={formData.jobPosition}
-                        onChange={handleFieldChange}
-                        className="form-control"
-                      >
-                        <option value="Senior Fullstack Engineer">Senior Fullstack Engineer</option>
-                        <option value="UI/UX Designer">UI/UX Designer</option>
-                        <option value="QA Automation Engineer">QA Automation Engineer</option>
-                        <option value="Business Analyst">Business Analyst</option>
-                        <option value="Product Manager">Product Manager</option>
-                        <option value="DevOps Lead">DevOps Lead</option>
-                      </select>
-                      <span className="select-arrow">▼</span>
-                    </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label className="form-label">INTERVIEW ROUND</label>
-                    <div className="select-input-wrap">
-                      <select
-                        name="interviewRound"
-                        value={formData.interviewRound}
-                        onChange={handleFieldChange}
-                        className="form-control"
-                      >
-                        <option value="Technical">Technical / Coding</option>
-                        <option value="HR Screening">HR Screening</option>
-                        <option value="HR Portfolio Review">HR Portfolio Review</option>
-                        <option value="Technical Case Study">Technical Case Study</option>
-                        <option value="Final Cultural Fit">Final Cultural Fit</option>
-                        <option value="Architecture Final">Architecture Final</option>
-                      </select>
-                      <span className="select-arrow">▼</span>
-                    </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label className="form-label">INTERVIEW TYPE</label>
-                    <div className="select-input-wrap">
-                      <select
-                        name="interviewType"
-                        value={formData.interviewType}
-                        onChange={handleFieldChange}
-                        className="form-control"
-                      >
-                        <option value="Online">Online (Google Meet / Zoom)</option>
-                        <option value="Physical">Physical (In-Person)</option>
-                      </select>
-                      <span className="select-arrow">▼</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grid Row 2: 4 columns */}
-                <div className="form-grid-4">
-                  <div className="form-group">
-                    <label className="form-label">INTERVIEW DATE</label>
-                    <input
-                      type="date"
-                      name="interviewDate"
-                      min={todayInputValue}
-                      value={formData.interviewDate}
-                      onChange={handleFieldChange}
-                      className="form-control"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">START TIME</label>
-                    <input
-                      type="time"
-                      name="startTime"
-                      value={formData.startTime}
-                      onChange={handleFieldChange}
-                      className="form-control"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">END TIME</label>
-                    <input
-                      type="time"
-                      name="endTime"
-                      value={formData.endTime}
-                      onChange={handleFieldChange}
-                      className="form-control"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">CAPACITY</label>
-                    <input
-                      type="number"
-                      name="capacity"
-                      min="1"
-                      placeholder="e.g. 5"
-                      value={formData.capacity}
-                      onChange={handleFieldChange}
-                      className="form-control"
-                    />
-                  </div>
-                </div>
-
-                {/* Grid Row 3: 2 columns */}
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label className="form-label">MEETING LINK / LOCATION</label>
-                    <input
-                      type="text"
-                      name="meetingLocation"
-                      placeholder={formData.interviewType === 'Online' ? "Auto-generated Google Meet URL (or enter custom link)" : "Enter physical office location..."}
-                      value={formData.meetingLocation}
-                      onChange={handleFieldChange}
-                      className="form-control"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">ADDITIONAL NOTES</label>
-                    <input
-                      type="text"
-                      name="additionalNotes"
-                      placeholder="Any additional instructions or candidate notes..."
-                      value={formData.additionalNotes}
-                      onChange={handleFieldChange}
-                      className="form-control"
-                    />
-                  </div>
-                </div>
-
-                {/* Form Buttons */}
-                <div className="form-actions-row">
-                  <button type="submit" className="btn-primary-accent">
-                    <span>{editingSlotId ? 'Update Time Slot' : 'Save Time Slot'}</span>
-                  </button>
-                  <button type="button" className="btn-ghost-dark" onClick={handleReset}>
-                    Reset
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* ── Card 2: Scheduled Time Slots Table Card ── */}
-          <div className="card-surface table-card-section">
-            <div className="table-card-header">
-              <div className="card-header-bar">
-                <span className="gold-indicator"></span>
-                <h2 className="card-title">Scheduled Interview Time Slots</h2>
-              </div>
-            </div>
-
-            <div className="slot-filter-toolbar">
-              <div className="position-selector">
-                <label htmlFor="slot-position-filter">Job Position</label>
-                <select
-                  id="slot-position-filter"
-                  value={positionFilter}
-                  onChange={e => {
-                    setPositionFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {jobPositions.map(position => (
-                    <option key={position} value={position}>{position}</option>
-                  ))}
-                </select>
-              </div>
-              <span className="slot-count-label">
-                {filteredSlots.length} {filteredSlots.length === 1 ? 'slot' : 'slots'}
-              </span>
-            </div>
-
-            {/* Table Container */}
-            <div className="table-responsive">
-              <table className="slots-data-table">
-                <thead>
-                  <tr>
-                    <th>Round</th>
-                    <th>Date &amp; Time</th>
-                    <th>Type</th>
-                    <th>Booked / Total</th>
-                    <th>Status</th>
-                    <th className="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedSlots.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="empty-table-cell">
-                        <div className="empty-state-box">
-                          <p>No interview time slots found matching your criteria.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedSlots.map(slot => {
-                      const actionsLocked = slot.status === 'FULLY BOOKED' || slot.status === 'COMPLETED';
-                      return (
-                      <tr key={slot.id}>
-                        <td>
-                          <div className="round-cell">
-                            <ClipboardList size={15} aria-hidden="true" />
-                            <span>{slot.round}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="date-time-cell">
-                            <span><CalendarDays size={14} aria-hidden="true" />{slot.interviewDate}</span>
-                            <small>{slot.startTime} – {slot.endTime}</small>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`type-badge type-${slot.interviewType.toLowerCase()}`}>
-                            {slot.interviewType}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="capacity-cell">
-                            <Users size={15} aria-hidden="true" />
-                            <span>{slot.bookedCount} / {slot.capacity}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`status-pill status-${slot.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                            {slot.status}
-                          </span>
-                        </td>
-                        <td className="text-right">
-                          <div className="action-buttons-wrap">
-                            <a
-                              href={generateGoogleCalendarUrl({
-                                title: `IntelliHire Interview: ${slot.round} (${slot.jobPosition})`,
-                                description: `Interview Round: ${slot.round}\nJob Position: ${slot.jobPosition}\nType: ${slot.interviewType}\nCapacity: ${slot.capacity}\nMeeting Link / Location: ${slot.meetingLocation || 'N/A'}\nNotes: ${slot.additionalNotes || 'N/A'}`,
-                                interviewDate: slot.interviewDate,
-                                startTime: slot.startTime,
-                                endTime: slot.endTime,
-                                location: slot.meetingLocation,
-                              })}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="action-icon-btn action-gcal-btn"
-                              title="Add to Google Calendar"
-                              aria-label={`Add slot ${slot.id} to Google Calendar`}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '6px',
-                                backgroundColor: 'rgba(66, 133, 244, 0.12)',
-                                border: '1px solid rgba(66, 133, 244, 0.3)',
-                                color: '#4285F4',
-                                transition: 'all 0.2s ease',
-                              }}
-                            >
-                              <Calendar size={15} />
-                            </a>
-                            <button
-                              type="button"
-                              className="action-icon-btn action-view-btn"
-                              title="View Details"
-                              aria-label={`View slot ${slot.id} details`}
-                              onClick={() => setViewingSlot(slot)}
-                            >
-                              <Eye size={16} />
-                            </button>
-                            <button
-                              type="button"
-                              className="action-icon-btn action-edit-btn"
-                              title={actionsLocked ? `${slot.status} slots cannot be edited` : 'Edit Slot'}
-                              aria-label={`Edit slot ${slot.id}`}
-                              disabled={actionsLocked}
-                              onClick={() => handleEditSlot(slot)}
-                            >
-                              <Pencil size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              className="action-icon-btn action-delete-btn"
-                              title={actionsLocked ? `${slot.status} slots cannot be deleted` : 'Delete Slot'}
-                              aria-label={`Delete slot ${slot.id}`}
-                              disabled={actionsLocked}
-                              onClick={() => setDeletingSlot(slot)}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mobile-slot-list">
-              {paginatedSlots.length === 0 && (
-                <div className="mobile-slot-empty">No interview time slots found for this job position.</div>
-              )}
-              {paginatedSlots.map(slot => {
-                const actionsLocked = slot.status === 'FULLY BOOKED' || slot.status === 'COMPLETED';
-                return (
-                  <article className="mobile-slot-card" key={`mobile-${slot.id}`}>
-                    <div className="mobile-slot-card__header">
-                      <div className="round-cell">
-                        <ClipboardList size={16} aria-hidden="true" />
-                        <strong>{slot.round}</strong>
-                      </div>
-                      <span className={`status-pill status-${slot.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                        {slot.status}
-                      </span>
-                    </div>
-                    <div className="mobile-slot-card__details">
-                      <span><CalendarDays size={15} /> {slot.interviewDate}</span>
-                      <span>{slot.startTime} – {slot.endTime}</span>
-                      <span className={`type-badge type-${slot.interviewType.toLowerCase()}`}>{slot.interviewType}</span>
-                      <span><Users size={15} /> {slot.bookedCount} / {slot.capacity} booked</span>
-                    </div>
-                    <div className="mobile-slot-card__actions">
-                      <button type="button" className="mobile-slot-action mobile-slot-view" onClick={() => setViewingSlot(slot)}>
-                        <Eye size={15} /> View
-                      </button>
-                      <button type="button" className="mobile-slot-action mobile-slot-edit" disabled={actionsLocked} onClick={() => handleEditSlot(slot)}>
-                        <Pencil size={14} /> Edit
-                      </button>
-                      <button type="button" className="mobile-slot-action mobile-slot-delete" disabled={actionsLocked} onClick={() => setDeletingSlot(slot)}>
-                        <Trash2 size={15} /> Delete
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            {/* Pagination & Summary Footer */}
-            {filteredSlots.length > itemsPerPage && (
-              <div className="table-pagination-footer">
-              <span className="pagination-info">
-                Showing {filteredSlots.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}–
-                {Math.min(currentPage * itemsPerPage, filteredSlots.length)} of {filteredSlots.length} interview time slots
-              </span>
-
-              <div className="pagination-controls">
-                <button
-                  type="button"
-                  className="page-nav-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  aria-label="Previous Page"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map(pageNum => (
-                  <button
-                    key={pageNum}
-                    type="button"
-                    className={`page-num-btn ${currentPage === pageNum ? 'active-page' : ''}`}
-                    onClick={() => setCurrentPage(pageNum)}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="page-nav-btn"
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  aria-label="Next Page"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-              </div>
-            )}
-          </div>
 
           {/* Footer Branding */}
           <footer className="portal-footer">
@@ -1077,15 +1355,27 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 <span className="detail-val">{viewingSlot.round}</span>
               </div>
               <div className="modal-detail-row">
-                <span className="detail-label">Date & Time:</span>
+                <span className="detail-label">Assigned Panel:</span>
+                <span className="detail-val" style={{ color: '#F0B90B', fontWeight: 600 }}>
+                  {viewingSlot.panelName || 'Panel A (Technical Leads)'}
+                </span>
+              </div>
+              <div className="modal-detail-row">
+                <span className="detail-label">Panel Member Emails:</span>
+                <span className="detail-val font-mono" style={{ fontSize: '0.84rem' }}>
+                  {viewingSlot.panelEmails || 'saman.tech@company.com, nirosha.hr@company.com'}
+                </span>
+              </div>
+              <div className="modal-detail-row">
+                <span className="detail-label">Date &amp; Time:</span>
                 <span className="detail-val">
                   {viewingSlot.interviewDate} ({viewingSlot.startTime} - {viewingSlot.endTime})
                 </span>
               </div>
               <div className="modal-detail-row">
-                <span className="detail-label">Type & Capacity:</span>
+                <span className="detail-label">Platform &amp; Capacity:</span>
                 <span className="detail-val">
-                  {viewingSlot.interviewType} | {viewingSlot.bookedCount}/{viewingSlot.capacity} candidates booked
+                  {viewingSlot.interviewMedia || viewingSlot.interviewType} | {viewingSlot.bookedCount}/{viewingSlot.capacity} candidates booked
                 </span>
               </div>
               <div className="modal-detail-row">
@@ -1107,11 +1397,12 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <a
                 href={generateGoogleCalendarUrl({
                   title: `IntelliHire Interview: ${viewingSlot.round} (${viewingSlot.jobPosition})`,
-                  description: `Interview Round: ${viewingSlot.round}\nJob Position: ${viewingSlot.jobPosition}\nType: ${viewingSlot.interviewType}\nLocation / Meeting Link: ${viewingSlot.meetingLocation || 'N/A'}\nNotes: ${viewingSlot.additionalNotes || 'N/A'}`,
+                  description: `📌 INTELLIHIRE INTERVIEW DETAILS:\n• Job Position: ${viewingSlot.jobPosition}\n• Interview Round: ${viewingSlot.round}\n• Scheduled Time Slot: ${viewingSlot.interviewDate} (${viewingSlot.startTime} - ${viewingSlot.endTime})\n• Platform / Media: ${viewingSlot.interviewMedia || viewingSlot.interviewType}\n• Capacity: ${viewingSlot.bookedCount}/${viewingSlot.capacity} Candidates Allocated\n\n👥 ASSIGNED PANEL:\n• Name: ${viewingSlot.panelName || 'Panel A'}\n• Panel Emails: ${viewingSlot.panelEmails || 'N/A'}\n• Venue / Link: ${viewingSlot.meetingLocation || 'N/A'}\n\n📝 NOTES:\n${viewingSlot.additionalNotes || 'N/A'}`,
                   interviewDate: viewingSlot.interviewDate,
                   startTime: viewingSlot.startTime,
                   endTime: viewingSlot.endTime,
                   location: viewingSlot.meetingLocation,
+                  attendees: viewingSlot.panelEmails ? viewingSlot.panelEmails.split(',').map(e => e.trim()) : [],
                 })}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -1174,6 +1465,176 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <button type="button" className="delete-modal-btn delete-modal-confirm" onClick={confirmDeleteSlot}>
                 Delete Slot
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal 1: Zoho Recruit Style Choice Modal ── */}
+      {showZohoModal && (
+        <div className="modal-backdrop" onClick={() => setShowZohoModal(false)}>
+          <div
+            className="modal-card zoho-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '560px',
+              width: '90%',
+              borderRadius: '16px',
+              backgroundColor: '#16171F',
+              border: '1px solid #2A2C38',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+              padding: '0',
+              overflow: 'hidden',
+              backgroundColor: '#16171F',
+              border: '1px solid rgba(240, 185, 11, 0.25)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div className="modal-header border-bottom-header flex-between" style={{ padding: '20px 24px', borderBottom: '1px solid #2A2C38' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '8px', height: '22px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
+                <h3 className="modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
+                  Create Interview
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="toast-close"
+                onClick={() => setShowZohoModal(false)}
+                style={{
+                  fontSize: '1.4rem',
+                  color: '#9599A6',
+                  cursor: 'pointer',
+                  background: 'none',
+                  border: 'none',
+                  padding: '4px',
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Choice 1: In-person Interview */}
+              <div
+                className="zoho-modal-choice-card"
+                onClick={() => handleChooseZohoType('In-Person')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '18px',
+                  padding: '18px 20px',
+                  backgroundColor: '#1E222D',
+                  border: '1px solid #2A2C38',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                    color: '#F0B90B',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Building size={24} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                    In-person Interview
+                  </h4>
+                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
+                    Schedule and conduct Interviews with Candidates, Interviewers, Recruiters and Contacts.
+                  </p>
+                </div>
+              </div>
+
+              {/* Choice 2: Video Interview */}
+              <div
+                className="zoho-modal-choice-card"
+                onClick={() => handleChooseZohoType('Google Meet')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '18px',
+                  padding: '18px 20px',
+                  backgroundColor: '#1E222D',
+                  border: '1px solid #2A2C38',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                    color: '#F0B90B',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Video size={24} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                    Video Interview
+                  </h4>
+                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
+                    Schedule and conduct both recorded and live video Interviews with Candidates, Recruiters and Interviewers.
+                  </p>
+                </div>
+              </div>
+
+              {/* Choice 3: Log an Interview */}
+              <div
+                className="zoho-modal-choice-card"
+                onClick={() => handleChooseZohoType('Log')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '18px',
+                  padding: '18px 20px',
+                  backgroundColor: '#1E222D',
+                  border: '1px solid #2A2C38',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                    color: '#F0B90B',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ClipboardList size={24} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                    Log an Interview
+                  </h4>
+                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
+                    Log Interview data that had happened in the past or spontaneously.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

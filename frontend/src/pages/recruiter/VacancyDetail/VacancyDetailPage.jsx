@@ -361,6 +361,7 @@ function ShortlistTab({ vacancy, scheduledIds, onSchedule }) {
    Tab: Interview Schedule
    ───────────────────────────────────────────────────────────── */
 function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
+  const navigate = useNavigate();
   const interviews = [...extraInterviews, ...(vacancy.interviews || [])];
   const [showForm, setShowForm] = useState(false);
   const [candidate, setCandidate] = useState('');
@@ -379,7 +380,7 @@ function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
         <button
           type="button"
           className="vd-primary-btn"
-          onClick={() => setShowForm(true)}
+          onClick={() => navigate('/recruiter/interviews', { state: { selectedVacancy: vacancy.title, openForm: true } })}
         >
           <CalendarPlus size={15} /> Schedule New Interview
         </button>
@@ -393,7 +394,7 @@ function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
         <button
           type="button"
           className="vd-primary-btn"
-          onClick={() => setShowForm((prev) => !prev)}
+          onClick={() => navigate('/recruiter/interviews', { state: { selectedVacancy: vacancy.title, openForm: true } })}
         >
           <CalendarPlus size={15} /> Schedule New Interview
         </button>

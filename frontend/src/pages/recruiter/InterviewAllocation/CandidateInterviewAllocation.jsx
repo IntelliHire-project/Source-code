@@ -402,13 +402,6 @@ export default function CandidateInterviewAllocationPage() {
             >
               Candidate Allocation
             </button>
-            <button
-              className="subnav-tab-btn"
-              onClick={() => navigate('/recruiter/interviews/evaluation')}
-              type="button"
-            >
-              Panel &amp; Evaluation
-            </button>
           </div>
 
           {/* ── Page Heading Block + Auto Allocate Button ── */}

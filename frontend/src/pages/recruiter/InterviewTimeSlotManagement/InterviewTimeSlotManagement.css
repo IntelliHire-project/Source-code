@@ -1471,3 +1471,11 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   font-weight: 500;
   color: #9599A6;
 }
+
+/* ── Zoho Recruit Style Direct Upfront Cards ── */
+.zoho-upfront-card:hover {
+  border-color: #F0B90B !important;
+  background-color: #242735 !important;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
