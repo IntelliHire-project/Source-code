@@ -53,7 +53,6 @@ const NAV_ITEMS = [
     subItems: [
       { label: 'Time Slots', path: '/recruiter/interviews' },
       { label: 'Candidate Allocation', path: '/recruiter/interviews/allocation' },
-      { label: 'Invitations & Email', path: '/recruiter/interviews/invitations' },
       { label: 'Panel & Evaluation', path: '/recruiter/interviews/evaluation' },
     ],
   },
