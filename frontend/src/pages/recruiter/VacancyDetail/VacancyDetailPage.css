@@ -489,6 +489,19 @@
   background: color-mix(in srgb, var(--text-on-dark) 2.5%, transparent);
 }
 
+.vd-table__row--clickable {
+  cursor: pointer;
+  outline: none;
+}
+
+.vd-table__row--clickable:focus-visible td {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.vd-table__row--clickable:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
 .vd-person {
   display: flex;
   align-items: center;
