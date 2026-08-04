@@ -7,7 +7,6 @@ import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
 import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
-import InterviewCommunication from '../pages/recruiter/InterviewCommunication/InterviewCommunication';
 import InterviewEvaluationPage from '../pages/recruiter/InterviewEvaluation/InterviewEvaluation';
 import CommunityPage, {
   CommunityProfilePage,
@@ -162,8 +161,8 @@ function AppRoutes() {
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
         <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagement />} />
         <Route path="/recruiter/interviews/allocation" element={<CandidateInterviewAllocation />} />
-        <Route path="/recruiter/interviews/invitations" element={<InterviewCommunication />} />
-        <Route path="/recruiter/interviews/communication" element={<InterviewCommunication />} />
+        <Route path="/recruiter/interviews/invitations" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
+        <Route path="/recruiter/interviews/communication" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
         <Route path="/recruiter/interviews/evaluation" element={<InterviewEvaluationPage />} />
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
