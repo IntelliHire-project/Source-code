@@ -42,6 +42,7 @@ import { STATUS_COLORS, STATUS_TONES } from '../../../utils/statusColors';
 import '../../../style.css';
 import './VacancyDetailPage.css';
 import ApplicantsSectionContent from './ApplicantsSectionContent';
+import { MOCK_CANDIDATES } from '../RankedApplicants/RankedApplicants';
 
 const STAGE_LABELS = {
   applied: 'Applied',
@@ -775,6 +776,7 @@ export default function VacancyDetailPage() {
   const [activeTab, setActiveTab] = useState('details');
   const [scheduledIds, setScheduledIds] = useState(() => new Set());
   const [extraInterviews, setExtraInterviews] = useState([]);
+  const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
   const tabRefs = useRef([]);
 
   const vacancy = VACANCIES.find((item) => item.id === id);
@@ -972,14 +974,19 @@ export default function VacancyDetailPage() {
                 className="vd-panel"
               >
                 {activeTab === 'details' && <VacancyDetailsTab vacancy={vacancy} />}
-                {activeTab === 'applicants' && <ApplicantsSectionContent vacancy={vacancy} />}
+                {activeTab === 'applicants' && (
+                  <ApplicantsSectionContent 
+                    vacancy={vacancy} 
+                    candidates={candidates} 
+                    setCandidates={setCandidates} 
+                  />
+                )}
                 {activeTab === 'shortlist' && (
-                  <ShortlistTab
-                    vacancy={vacancy}
-                    scheduledIds={scheduledIds}
-                    onSchedule={(candidate) =>
-                      setScheduledIds((prev) => new Set(prev).add(candidate.id))
-                    }
+                  <ApplicantsSectionContent 
+                    vacancy={vacancy} 
+                    candidates={candidates} 
+                    setCandidates={setCandidates} 
+                    isShortlistMode={true}
                   />
                 )}
                 {activeTab === 'interviews' && (

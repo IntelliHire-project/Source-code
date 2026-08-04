@@ -22,9 +22,8 @@ import {
 } from '../RankedApplicants/RankedApplicants';
 import '../RankedApplicants/RankedApplicants.css';
 
-export default function ApplicantsSectionContent({ vacancy }) {
+export default function ApplicantsSectionContent({ vacancy, candidates, setCandidates, isShortlistMode }) {
   const navigate = useNavigate();
-  const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
   const numericVacancyId = parseInt(vacancy.id.replace(/\D/g, ''), 10) || 1;
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,7 +38,7 @@ export default function ApplicantsSectionContent({ vacancy }) {
   const [selectedMethod, setSelectedMethod] = useState(null);
 
   // Tab State: 'All Applicants', 'Ranked Candidates', 'Shortlisted'
-  const [activeTab, setActiveTab] = useState('Ranked Candidates');
+  const [activeTab, setActiveTab] = useState(isShortlistMode ? 'Shortlisted' : 'Ranked Candidates');
 
   // Filtering & Sorting State
   const [sortBy, setSortBy] = useState('Highest Match');
@@ -175,26 +174,22 @@ export default function ApplicantsSectionContent({ vacancy }) {
 
               <div className="candidates-header">
                 <div className="candidates-header__left-group">
-                  <div className="candidates-tabs">
-                    <button
-                      className={`tab-btn ${activeTab === 'All Applicants' ? 'active' : ''}`}
-                      onClick={() => { setActiveTab('All Applicants'); setCurrentPage(1); }}
-                    >
-                      All Applicants
-                    </button>
-                    <button
-                      className={`tab-btn ${activeTab === 'Ranked Candidates' ? 'active' : ''}`}
-                      onClick={() => { setActiveTab('Ranked Candidates'); setCurrentPage(1); }}
-                    >
-                      Ranked Candidates
-                    </button>
-                    <button
-                      className={`tab-btn ${activeTab === 'Shortlisted' ? 'active' : ''}`}
-                      onClick={() => { setActiveTab('Shortlisted'); setCurrentPage(1); }}
-                    >
-                      Shortlisted
-                    </button>
-                  </div>
+                  {!isShortlistMode && (
+                    <div className="candidates-tabs">
+                      <button
+                        className={`tab-btn ${activeTab === 'All Applicants' ? 'active' : ''}`}
+                        onClick={() => { setActiveTab('All Applicants'); setCurrentPage(1); }}
+                      >
+                        All Applicants
+                      </button>
+                      <button
+                        className={`tab-btn ${activeTab === 'Ranked Candidates' ? 'active' : ''}`}
+                        onClick={() => { setActiveTab('Ranked Candidates'); setCurrentPage(1); }}
+                      >
+                        Ranked Candidates
+                      </button>
+                    </div>
+                  )}
                   <p className="candidates-header__subtitle">
                     {activeTab === 'All Applicants' && 'Showing all applied candidate profiles for this vacancy.'}
                     {activeTab === 'Ranked Candidates' && 'Automated matching results based on CV parsing and job requirements.'}
@@ -457,19 +452,21 @@ export default function ApplicantsSectionContent({ vacancy }) {
             </div>
 
             <div className="bottom-grid">
-              <div className="insight-card">
-                <span className="insight-card__title">
-                  <Target size={16} /> Requirement Insight
-                </span>
-                <p className="insight-card__text">
-                  AI analysis suggests this vacancy requires strong modern framework skills and scalable architecture experience.
-                </p>
-                <a href="#review-parsing" className="insight-card__link" onClick={(e) => e.preventDefault()}>
-                  Review Job Parsing Data <ExternalLink size={14} />
-                </a>
-              </div>
+              {!isShortlistMode && (
+                <div className="insight-card">
+                  <span className="insight-card__title">
+                    <Target size={16} /> Requirement Insight
+                  </span>
+                  <p className="insight-card__text">
+                    AI analysis suggests this vacancy requires strong modern framework skills and scalable architecture experience.
+                  </p>
+                  <a href="#review-parsing" className="insight-card__link" onClick={(e) => e.preventDefault()}>
+                    Review Job Parsing Data <ExternalLink size={14} />
+                  </a>
+                </div>
+              )}
 
-              <div className="progress-card">
+              <div className="progress-card" style={{ gridColumn: isShortlistMode ? '1 / -1' : 'auto' }}>
                 <span className="progress-card__title">
                   <Users size={16} /> Shortlist Progress
                 </span>
