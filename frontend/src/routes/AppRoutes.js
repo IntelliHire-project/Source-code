@@ -7,8 +7,7 @@ import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
 import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
-import InterviewCommunication from '../pages/recruiter/InterviewCommunication/InterviewCommunication';
-import InterviewEvaluationPage from '../pages/recruiter/InterviewEvaluation/InterviewEvaluation';
+
 import CommunityPage, {
   CommunityProfilePage,
   CreateDiscussionPage,
@@ -60,6 +59,8 @@ import ModerateContent from '../pages/admin/ModerateCommunity/ModerateCommunity'
 import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
 import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import Payments from '../pages/admin/Payments/Payments';
+import JobModeration from '../pages/admin/JobModeration/JobModeration';
+import AdminProfile from '../pages/admin/AdminProfile/AdminProfile';
 import RoleSelection from '../pages/candidate/MockInterview/RoleSelection';
 import GeneratedQuestions from '../pages/candidate/MockInterview/GeneratedQuestions';
 import MockInterviewSession from '../pages/candidate/MockInterview/MockInterviewSession';
@@ -160,9 +161,9 @@ function AppRoutes() {
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
         <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagement />} />
         <Route path="/recruiter/interviews/allocation" element={<CandidateInterviewAllocation />} />
-        <Route path="/recruiter/interviews/invitations" element={<InterviewCommunication />} />
-        <Route path="/recruiter/interviews/communication" element={<InterviewCommunication />} />
-        <Route path="/recruiter/interviews/evaluation" element={<InterviewEvaluationPage />} />
+        <Route path="/recruiter/interviews/invitations" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
+        <Route path="/recruiter/interviews/communication" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
+
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
@@ -335,7 +336,7 @@ function AppRoutes() {
           path="/admin/job-moderation"
           element={
             <ProtectedRoute>
-              <AdminPlaceholder title="Job moderation" />
+              <JobModeration />
             </ProtectedRoute>
           }
         />
@@ -384,6 +385,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <AdminPlaceholder title="System settings" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/profile"
+          element={
+            <ProtectedRoute>
+              <AdminProfile />
             </ProtectedRoute>
           }
         />

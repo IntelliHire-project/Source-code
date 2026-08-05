@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   ExternalLink,
@@ -16,6 +17,8 @@ import {
 import './TransactionDetailsModal.css';
 
 export default function TransactionDetailsModal({ transaction, onClose }) {
+  const navigate = useNavigate();
+
   if (!transaction) return null;
 
   return (
@@ -31,7 +34,10 @@ export default function TransactionDetailsModal({ transaction, onClose }) {
             </p>
           </div>
           <div className="txn-modal-header-actions">
-            <button className="txn-modal-btn outline">
+            <button 
+              className="txn-modal-btn outline"
+              onClick={() => navigate('/admin/job-moderation', { state: { searchJobTitle: transaction.jobTitle } })}
+            >
               <ExternalLink size={14} /> View Job Post
             </button>
             <button className="txn-modal-btn primary">

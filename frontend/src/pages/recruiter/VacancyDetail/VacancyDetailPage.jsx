@@ -23,13 +23,25 @@ import {
   Pencil,
   Copy,
   X,
+  User,
+  Mail,
+  Phone,
+  Download,
+  Building,
+  CheckCircle,
+  ChevronDown,
+  Search,
+  Filter,
+  ChevronRight,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import StatusBadge from '../../../components/common/StatusBadge';
 import DropdownMenu from '../../../components/common/DropdownMenu';
+import CandidateInterviewAllocationPage from '../InterviewAllocation/CandidateInterviewAllocation';
+import { VACANCIES } from '../../../data/vacancies';
 import {
-  VACANCIES,
+  getApplicants,
   getStageCounts,
   getFunnel,
   getShortlisted,
@@ -37,10 +49,13 @@ import {
   deriveNextStep,
   getTrackerStates,
   getOutcome,
-} from '../../../data/vacancies';
+} from '../../../data/applicants';
+import { getInterviews } from '../../../data/interviews';
 import { STATUS_COLORS, STATUS_TONES } from '../../../utils/statusColors';
 import '../../../style.css';
 import './VacancyDetailPage.css';
+import ApplicantsSectionContent from './ApplicantsSectionContent';
+import { MOCK_CANDIDATES } from '../RankedApplicants/RankedApplicants';
 
 const STAGE_LABELS = {
   applied: 'Applied',
@@ -208,7 +223,8 @@ function VacancyDetailsTab({ vacancy }) {
    Tab: Applicants
    ───────────────────────────────────────────────────────────── */
 function ApplicantsTab({ vacancy }) {
-  const candidates = vacancy.candidates || [];
+  const navigate = useNavigate();
+  const candidates = getApplicants(vacancy.id);
   if (candidates.length === 0) {
     return (
       <EmptyState
@@ -217,6 +233,10 @@ function ApplicantsTab({ vacancy }) {
         hint="Share this vacancy to start sourcing — new applications will appear here."
       />
     );
+  }
+
+  function openProfile(candidate) {
+    navigate('/candidate/profile');
   }
 
   return (
@@ -235,7 +255,20 @@ function ApplicantsTab({ vacancy }) {
           </thead>
           <tbody>
             {candidates.map((candidate) => (
-              <tr key={candidate.id}>
+              <tr
+                key={candidate.id}
+                className="vd-table__row vd-table__row--clickable"
+                tabIndex={0}
+                role="link"
+                aria-label={`Open profile for ${candidate.name}`}
+                onClick={() => openProfile(candidate)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openProfile(candidate);
+                  }
+                }}
+              >
                 <td>
                   <div className="vd-person">
                     <span className="vd-avatar" aria-hidden="true">
@@ -263,7 +296,11 @@ function ApplicantsTab({ vacancy }) {
                   <span className="vd-date">{candidate.appliedDate}</span>
                 </td>
                 <td>
-                  <a className="vd-link" href={candidate.resumeLink}>
+                  <a
+                    className="vd-link"
+                    href={candidate.resumeLink}
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     Resume <ExternalLink size={12} />
                   </a>
                 </td>
@@ -272,8 +309,12 @@ function ApplicantsTab({ vacancy }) {
                     type="button"
                     className="vd-link-btn"
                     aria-label={`Open profile for ${candidate.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openProfile(candidate);
+                    }}
                   >
-                    Profile
+                    View Details
                   </button>
                 </td>
               </tr>
@@ -359,7 +400,8 @@ function ShortlistTab({ vacancy, scheduledIds, onSchedule }) {
    Tab: Interview Schedule
    ───────────────────────────────────────────────────────────── */
 function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
-  const interviews = [...extraInterviews, ...(vacancy.interviews || [])];
+  const navigate = useNavigate();
+  const interviews = [...extraInterviews, ...getInterviews(vacancy.id)];
   const [showForm, setShowForm] = useState(false);
   const [candidate, setCandidate] = useState('');
   const [date, setDate] = useState('');
@@ -377,7 +419,7 @@ function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
         <button
           type="button"
           className="vd-primary-btn"
-          onClick={() => setShowForm(true)}
+          onClick={() => navigate('/recruiter/interviews', { state: { selectedVacancy: vacancy.title, openForm: true } })}
         >
           <CalendarPlus size={15} /> Schedule New Interview
         </button>
@@ -391,7 +433,7 @@ function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
         <button
           type="button"
           className="vd-primary-btn"
-          onClick={() => setShowForm((prev) => !prev)}
+          onClick={() => navigate('/recruiter/interviews', { state: { selectedVacancy: vacancy.title, openForm: true } })}
         >
           <CalendarPlus size={15} /> Schedule New Interview
         </button>
@@ -774,6 +816,7 @@ export default function VacancyDetailPage() {
   const [activeTab, setActiveTab] = useState('details');
   const [scheduledIds, setScheduledIds] = useState(() => new Set());
   const [extraInterviews, setExtraInterviews] = useState([]);
+  const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
   const tabRefs = useRef([]);
 
   const vacancy = VACANCIES.find((item) => item.id === id);
@@ -790,15 +833,23 @@ export default function VacancyDetailPage() {
   const TABS = vacancy
     ? [
         { id: 'details', label: 'Vacancy Details' },
+
         { id: 'applicants', label: 'Applicants', count: funnel.total },
         { id: 'shortlist', label: 'Shortlist', count: getShortlisted(vacancy).length },
         {
           id: 'interviews',
           label: 'Interview Schedule',
-          count: vacancy.interviews.length,
+          count: getInterviews(vacancy.id).length,
         },
         { id: 'attendees', label: 'Attendees', count: (vacancy.attendees || []).length },
         { id: 'admin', label: 'Admin Review', count: (vacancy.adminReviews || []).length },
+
+        // { id: 'applicants', label: 'Applicants', count: 8 },
+        // { id: 'shortlist', label: 'Shortlist', count: 5 },
+        // { id: 'interviews', label: 'Interview Schedule', count: 5 },
+        // { id: 'attendees', label: 'Attendees', count: 3 },
+        // { id: 'admin', label: 'Admin Review', count: 2 },
+
         { id: 'summary', label: 'Summary' },
       ]
     : [];
@@ -975,22 +1026,23 @@ export default function VacancyDetailPage() {
                 className="vd-panel"
               >
                 {activeTab === 'details' && <VacancyDetailsTab vacancy={vacancy} />}
-                {activeTab === 'applicants' && <ApplicantsTab vacancy={vacancy} />}
+                {activeTab === 'applicants' && (
+                  <ApplicantsSectionContent 
+                    vacancy={vacancy} 
+                    candidates={candidates} 
+                    setCandidates={setCandidates} 
+                  />
+                )}
                 {activeTab === 'shortlist' && (
-                  <ShortlistTab
-                    vacancy={vacancy}
-                    scheduledIds={scheduledIds}
-                    onSchedule={(candidate) =>
-                      setScheduledIds((prev) => new Set(prev).add(candidate.id))
-                    }
+                  <ApplicantsSectionContent 
+                    vacancy={vacancy} 
+                    candidates={candidates} 
+                    setCandidates={setCandidates} 
+                    isShortlistMode={true}
                   />
                 )}
                 {activeTab === 'interviews' && (
-                  <InterviewScheduleTab
-                    vacancy={vacancy}
-                    extraInterviews={extraInterviews}
-                    onAddInterview={handleAddInterview}
-                  />
+                  <CandidateInterviewAllocationPage embeddedVacancy={vacancy} />
                 )}
                 {activeTab === 'attendees' && <AttendeesTab vacancy={vacancy} />}
                 {activeTab === 'admin' && <AdminReviewTab vacancy={vacancy} />}

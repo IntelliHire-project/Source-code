@@ -47,16 +47,7 @@ const NAV_ITEMS = [
       { label: 'Create Assessment', path: '/recruiter/assessments/new' },
     ],
   },
-  {
-    label: 'Interviews',
-    icon: Calendar,
-    subItems: [
-      { label: 'Time Slots', path: '/recruiter/interviews' },
-      { label: 'Candidate Allocation', path: '/recruiter/interviews/allocation' },
-      { label: 'Invitations & Email', path: '/recruiter/interviews/invitations' },
-      { label: 'Panel & Evaluation', path: '/recruiter/interviews/evaluation' },
-    ],
-  },
+  { label: 'Interviews', icon: Calendar, path: '/recruiter/interviews' },
   {
     label: 'Analytics',
     icon: BarChart2,

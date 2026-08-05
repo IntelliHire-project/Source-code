@@ -1,0 +1,526 @@
+/* ============================================================
+   IntelliHire — Admin Profile Page
+   ============================================================ */
+
+@import '../../../styles/admin.css';
+
+/* ── Page Shell ── */
+.ap-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.ap-content {
+  flex: 1;
+  padding: 28px 32px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--bg-page);
+}
+
+.ap-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ap-header__title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ap-header__subtitle {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Layout ── */
+.ap-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* ── Sidebar ── */
+.ap-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: sticky;
+  top: 24px;
+}
+
+.ap-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.ap-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.ap-nav-btn.active {
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--accent);
+}
+
+/* ── Cards ── */
+.ap-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.ap-card__header {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ap-card__header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.ap-card__header p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Profile Hero (General Tab) ── */
+.ap-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.ap-avatar-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.ap-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #14151D;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  border: 3px solid var(--surface);
+  box-shadow: 0 4px 15px rgba(240, 185, 11, 0.2);
+}
+
+.ap-avatar-edit {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #252630;
+  border: 2px solid var(--surface);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ap-avatar-edit:hover {
+  background: var(--accent);
+  color: #14151D;
+}
+
+.ap-hero-info h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.ap-hero-info p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Forms ── */
+.ap-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ap-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.ap-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ap-form-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ap-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ap-input-with-icon svg {
+  position: absolute;
+  left: 14px;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.ap-input-with-icon input {
+  padding-left: 40px !important;
+}
+
+.ap-form input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.ap-form input::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+.ap-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(240, 185, 11, 0.1);
+}
+
+.ap-form-footer {
+  margin-top: 10px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Buttons ── */
+.ap-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.ap-btn--primary {
+  background: var(--accent);
+  color: #14151D;
+}
+
+.ap-btn--primary:hover {
+  background: var(--accent-dark, #d4a009);
+  transform: translateY(-1px);
+}
+
+.ap-btn--outline {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.ap-btn--outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Security Tab ── */
+.ap-security-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ap-section-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.ap-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.ap-icon-box--blue { background: rgba(107, 140, 255, 0.12); color: #8fa5ff; }
+.ap-icon-box--green { background: rgba(34, 197, 94, 0.12); color: #22C55E; }
+.ap-icon-box--purple { background: rgba(168, 85, 247, 0.12); color: #A855F7; }
+
+.ap-section-info h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.ap-section-info p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ap-form--inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+  padding-left: 56px;
+}
+
+.ap-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 32px 0;
+}
+
+.ap-toggle-box {
+  margin-left: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.ap-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ap-toggle-info strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.ap-toggle-info span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.ap-toggle-btn {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.ap-toggle-btn.on { background: var(--accent); }
+.ap-toggle-btn.off { background: rgba(255, 255, 255, 0.2); }
+
+.ap-toggle-knob {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ap-toggle-btn.on .ap-toggle-knob {
+  transform: translateX(20px);
+}
+
+.ap-session-list {
+  margin-left: 56px;
+}
+
+.ap-session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.ap-session-device {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ap-session-device strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.ap-session-device span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.ap-badge-current {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ── Preferences Tab ── */
+.ap-pref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ap-pref-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.ap-pref-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.ap-pref-item h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.ap-pref-item p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Animations ── */
+.slide-fade {
+  animation: apSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes apSlideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .ap-layout {
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ap-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .ap-sidebar {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  
+  .ap-nav-btn {
+    white-space: nowrap;
+  }
+  
+  .ap-form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .ap-form--inline {
+    grid-template-columns: 1fr;
+    padding-left: 0;
+  }
+  
+  .ap-form--inline .ap-btn {
+    align-self: flex-start;
+  }
+  
+  .ap-toggle-box,
+  .ap-session-list {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .ap-content { padding: 16px; }
+  .ap-card { padding: 20px; }
+  .ap-profile-hero { flex-direction: column; text-align: center; }
+}

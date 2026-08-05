@@ -1420,3 +1420,62 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   border-color: var(--accent, #F0B90B);
   font-weight: 700;
 }
+
+/* ── Zoho Recruit Style Metric KPI Summary Bar ── */
+.interview-kpi-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .interview-kpi-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.kpi-card {
+  background-color: #16171F;
+  border: 1px solid #2A2C38;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.kpi-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.kpi-blue { background: rgba(59, 130, 246, 0.12); color: #3B82F6; }
+.kpi-green { background: rgba(34, 197, 94, 0.12); color: #22C55E; }
+.kpi-amber { background: rgba(240, 185, 11, 0.12); color: #F0B90B; }
+.kpi-purple { background: rgba(168, 85, 247, 0.12); color: #A855F7; }
+
+.kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #9599A6;
+}
+
+/* ── Zoho Recruit Style Direct Upfront Cards ── */
+.zoho-upfront-card:hover {
+  border-color: #F0B90B !important;
+  background-color: #242735 !important;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}

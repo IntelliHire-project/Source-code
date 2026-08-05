@@ -1,0 +1,91 @@
+/* ── AdminToast.css ──────────────────────────────────────────────────── */
+
+.admin-toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  font-family: 'Inter', 'DM Sans', system-ui, sans-serif;
+  box-shadow: 0 8px 28px rgba(22, 23, 31, 0.14);
+  max-width: 400px;
+  min-width: 260px;
+  border: 1px solid transparent;
+  animation: admin-toast-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  pointer-events: all;
+}
+
+@keyframes admin-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(52px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* ── Variants ─────────────────────────────────────────────────────────── */
+
+.admin-toast--success {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.admin-toast--error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.admin-toast--warning {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.admin-toast--info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+/* ── Parts ────────────────────────────────────────────────────────────── */
+
+.admin-toast__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.admin-toast__message {
+  flex: 1;
+  line-height: 1.45;
+}
+
+.admin-toast__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.55;
+  padding: 2px 3px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: opacity 0.18s ease, background 0.18s ease;
+  flex-shrink: 0;
+}
+
+.admin-toast__close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.07);
+}

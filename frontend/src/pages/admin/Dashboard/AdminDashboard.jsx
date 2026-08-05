@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Briefcase,
@@ -12,10 +13,18 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getDashboardStats } from '../../../services/adminStorage';
 import './AdminDashboard.css';
 
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState(() => getDashboardStats());
+
+  // Re-read live stats whenever this page mounts (picks up changes from other pages)
+  useEffect(() => {
+    setStats(getDashboardStats());
+  }, []);
 
   return (
     <div className="admin-theme admin-dashboard">
@@ -48,44 +57,46 @@ export default function AdminDashboard() {
 
           {/* KPI Widgets */}
           <div className="dashboard-kpi-grid">
-            <div className="kpi-card">
+            <div className="kpi-card" onClick={() => navigate('/admin/users')} style={{ cursor: 'pointer' }}>
               <div className="kpi-icon-box users">
                 <Users size={20} />
               </div>
               <div className="kpi-info">
                 <span className="kpi-label">Total Active Users</span>
-                <span className="kpi-value">12,845</span>
-                <span className="kpi-trend positive"><TrendingUp size={14} /> +12% this month</span>
+                <span className="kpi-value">{stats.totalActiveUsers.toLocaleString()}</span>
+                <span className="kpi-trend positive"><TrendingUp size={14} /> Live count</span>
               </div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card" onClick={() => navigate('/admin/companies')} style={{ cursor: 'pointer' }}>
               <div className="kpi-icon-box briefcase">
                 <Briefcase size={20} />
               </div>
               <div className="kpi-info">
                 <span className="kpi-label">Active Vacancies</span>
-                <span className="kpi-value">3,492</span>
+                <span className="kpi-value">{stats.activeVacancies.toLocaleString()}</span>
                 <span className="kpi-trend positive"><TrendingUp size={14} /> +5% this month</span>
               </div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card" onClick={() => navigate('/admin/payments')} style={{ cursor: 'pointer' }}>
               <div className="kpi-icon-box revenue">
                 <DollarSign size={20} />
               </div>
               <div className="kpi-info">
                 <span className="kpi-label">Platform Revenue</span>
-                <span className="kpi-value">$142,390</span>
+                <span className="kpi-value">{stats.revenueFormatted}</span>
                 <span className="kpi-trend positive"><TrendingUp size={14} /> +18% this month</span>
               </div>
             </div>
-            <div className="kpi-card">
+            <div className="kpi-card" onClick={() => navigate('/admin/companies')} style={{ cursor: 'pointer' }}>
               <div className="kpi-icon-box alerts">
                 <AlertTriangle size={20} />
               </div>
               <div className="kpi-info">
                 <span className="kpi-label">Pending Reviews</span>
-                <span className="kpi-value">48</span>
-                <span className="kpi-trend negative">Requires attention</span>
+                <span className="kpi-value">{stats.pendingReviews}</span>
+                <span className="kpi-trend negative">
+                  {stats.pendingReviews > 0 ? 'Requires attention' : 'All clear ✓'}
+                </span>
               </div>
             </div>
           </div>
@@ -129,8 +140,8 @@ export default function AdminDashboard() {
               {/* Recent Activity */}
               <div className="dashboard-activity-card">
                 <div className="card-header">
-                  <h3>Recent Activity</h3>
-                  <button className="view-all-btn">View All</button>
+                   <h3>Recent Activity</h3>
+                   <button className="view-all-btn" onClick={() => navigate('/admin/audit-log')}>View All</button>
                 </div>
                 <div className="activity-list">
                   <div className="activity-item">
@@ -178,17 +189,37 @@ export default function AdminDashboard() {
                   <h3>Pending Actions</h3>
                 </div>
                 <div className="action-button-list">
-                  <button className="quick-action-btn">
+                  <button
+                    className="quick-action-btn"
+                    onClick={() => navigate('/admin/companies')}
+                  >
                     <div className="action-left">
                       <Clock size={16} className="text-yellow" />
-                      <span>Review 12 Pending Companies</span>
+                      <span>
+                        Review {stats.pendingRecruiters > 0 ? stats.pendingRecruiters : 'Pending'} Companies
+                      </span>
                     </div>
                     <ArrowRight size={16} className="arrow-icon" />
                   </button>
-                  <button className="quick-action-btn">
+                  <button
+                    className="quick-action-btn"
+                    onClick={() => navigate('/admin/community-mod')}
+                  >
                     <div className="action-left">
                       <AlertTriangle size={16} className="text-red" />
-                      <span>Resolve 3 Content Reports</span>
+                      <span>
+                        Resolve {stats.pendingReports > 0 ? stats.pendingReports : 'Content'} Reports
+                      </span>
+                    </div>
+                    <ArrowRight size={16} className="arrow-icon" />
+                  </button>
+                  <button
+                    className="quick-action-btn"
+                    onClick={() => navigate('/admin/users')}
+                  >
+                    <div className="action-left">
+                      <Users size={16} className="text-yellow" />
+                      <span>Manage {stats.totalActiveUsers.toLocaleString()} Active Users</span>
                     </div>
                     <ArrowRight size={16} className="arrow-icon" />
                   </button>

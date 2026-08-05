@@ -379,10 +379,39 @@
 
 /* ── Filter Card Row ── */
 .filter-card-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
   padding: 18px 22px;
+  margin-bottom: 20px;
+}
+
+.btn-primary-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background-color: var(--accent, #F0B90B);
+  color: #0D0E13;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: auto;
+}
+
+.btn-schedule-inline {
+  width: auto !important;
+  height: 42px;
+  padding: 0 18px !important;
+  font-size: 0.84rem !important;
+  white-space: nowrap !important;
+  box-shadow: 0 4px 14px rgba(240, 185, 11, 0.25);
 }
 
 .filter-item {
@@ -443,6 +472,7 @@
   grid-template-columns: 1fr 120px 1fr;
   gap: 16px;
   align-items: center;
+  margin-bottom: 20px;
 }
 
 .flex-between {
