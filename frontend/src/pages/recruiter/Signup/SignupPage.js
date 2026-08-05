@@ -86,8 +86,10 @@ function RecruiterSignupPage() {
       await signup(
         formData.contactName,
         formData.email,
+        formData.phone,
         formData.password,
-        formData.confirmPassword
+        formData.confirmPassword,
+        'recruiter'
       );
 
       setStatusType('success');

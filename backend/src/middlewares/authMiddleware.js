@@ -1,8 +1,9 @@
+const { verifyToken } = require("../services/tokenService");
 const { errorResponse } = require("../utils/response");
 
 /**
  * Authentication Middleware.
- * Protects routes by validating authentication credentials.
+ * Protects routes by validating the JWT supplied via the Authorization header.
  */
 const authMiddleware = (req, res, next) => {
   try {
@@ -14,16 +15,18 @@ const authMiddleware = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    // Placeholder: Real implementation will verify jwt (e.g. jwt.verify)
-    // For now, allow requests with placeholder tokens for development ease.
-    if (token === "dev-token-placeholder") {
-      req.user = { id: 1, email: "dev@example.com", fullName: "Dev User" };
-      return next();
-    }
+    const decoded = verifyToken(token);
 
-    return errorResponse(res, "Invalid or expired authentication token.", 401);
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      fullName: decoded.fullName,
+      role: decoded.role,
+    };
+
+    return next();
   } catch (error) {
-    next(error);
+    return errorResponse(res, "Invalid or expired authentication token.", 401);
   }
 };
 

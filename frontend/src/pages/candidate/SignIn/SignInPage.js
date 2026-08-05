@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../../hooks/useAuth';
 import Layout from '../../../components/common/Layout';
+import { roleHomePath } from '../../../utils/roleRoutes';
 import '../../../App.css';
 
 /**
@@ -34,12 +35,12 @@ function SignInPage() {
     setStatusType('');
 
     try {
-      await login(formData.email, formData.password);
+      const data = await login(formData.email, formData.password);
       setStatusType('success');
       setStatusMessage('Signed in successfully!');
 
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(roleHomePath(data.user?.role));
       }, 1200);
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Unable to sign in.';

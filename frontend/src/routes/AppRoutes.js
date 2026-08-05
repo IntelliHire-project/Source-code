@@ -51,7 +51,6 @@ import RecruiterProfilePage from '../pages/recruiter/RecruiterProfile/RecruiterP
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
 import TopBar from '../components/TopBar/TopBar';
 import VacancySelectorModal from '../components/common/VacancySelectorModal';
-import AdminSignInPage from '../pages/admin/SignIn/SignInPage';
 import AdminDashboard from '../pages/admin/Dashboard/AdminDashboard';
 import ManageUsers from '../pages/admin/ManageUsers/ManageUsers';
 import VerifyRecruiters from '../pages/admin/VerifyRecruiters/VerifyRecruiters';
@@ -150,6 +149,11 @@ function Dashboard() {
   );
 }
 
+// Role guard for recruiter-only routes
+function RecruiterProtected({ children }) {
+  return <ProtectedRoute allowedRoles={['recruiter']}>{children}</ProtectedRoute>;
+}
+
 function AppRoutes() {
   return (
     <BrowserRouter>
@@ -159,14 +163,21 @@ function AppRoutes() {
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
-        <Route path="/recruiter/interviews" element={<RecruiterInterviewTimeSlotManagement />} />
-        <Route path="/recruiter/interviews/allocation" element={<CandidateInterviewAllocation />} />
+        <Route path="/recruiter/interviews" element={<RecruiterProtected><RecruiterInterviewTimeSlotManagement /></RecruiterProtected>} />
+        <Route path="/recruiter/interviews/allocation" element={<RecruiterProtected><CandidateInterviewAllocation /></RecruiterProtected>} />
         <Route path="/recruiter/interviews/invitations" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
         <Route path="/recruiter/interviews/communication" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
 
-        <Route path="/recruiter/signin" element={<SignInPage />} />
-        <Route path="/admin/signin" element={<AdminSignInPage />} />
-        <Route path="/candidate" element={<CandidateDashboard />}>
+        <Route path="/recruiter/signin" element={<Navigate to="/signin" replace />} />
+        <Route path="/admin/signin" element={<Navigate to="/signin" replace />} />
+        <Route
+          path="/candidate"
+          element={
+            <ProtectedRoute allowedRoles={['candidate']}>
+              <CandidateDashboard />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/candidate/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="profile" element={<CandidateProfilePage initialMode="view" />} />
@@ -196,101 +207,101 @@ function AppRoutes() {
         </Route>
         <Route
           path="/recruiter/dashboard"
-          element={<RecruiterDashboard />}
+          element={<RecruiterProtected><RecruiterDashboard /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/vacancies"
-          element={<VacancyManagementPage />}
+          element={<RecruiterProtected><VacancyManagementPage /></RecruiterProtected>}
         />
         <Route
           path="/vacancies/:id"
-          element={<VacancyDetailPage />}
+          element={<RecruiterProtected><VacancyDetailPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/create-vacancy"
-          element={<CreateVacancyPage />}
+          element={<RecruiterProtected><CreateVacancyPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/vacancy-preview"
-          element={<PreviewVacancyPage />}
+          element={<RecruiterProtected><PreviewVacancyPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/select-payment"
-          element={<SelectPaymentMethodPage />}
+          element={<RecruiterProtected><SelectPaymentMethodPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/complete-purchase"
-          element={<CompleteYourPurchasePage />}
+          element={<RecruiterProtected><CompleteYourPurchasePage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/otp-verification"
-          element={<OTPVerificationPage />}
+          element={<RecruiterProtected><OTPVerificationPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/payment-status"
-          element={<PaymentStatusPage />}
+          element={<RecruiterProtected><PaymentStatusPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/payments"
-          element={<PaymentBillingPage />}
+          element={<RecruiterProtected><PaymentBillingPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/profile"
-          element={<RecruiterProfilePage />}
+          element={<RecruiterProtected><RecruiterProfilePage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/analytics"
-          element={<Navigate to="/recruiter/analytics/applicants" replace />}
+          element={<RecruiterProtected><Navigate to="/recruiter/analytics/applicants" replace /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/analytics/applicants"
-          element={<ApplicantAnalytics />}
+          element={<RecruiterProtected><ApplicantAnalytics /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/analytics/shortlisting"
-          element={<ShortlistingAnalytics />}
+          element={<RecruiterProtected><ShortlistingAnalytics /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/analytics/assessment"
-          element={<AssessmentAnalytics />}
+          element={<RecruiterProtected><AssessmentAnalytics /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/analytics/progress"
-          element={<RecruitmentProgress />}
+          element={<RecruiterProtected><RecruitmentProgress /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/assessments"
-          element={<AssessmentsPage />}
+          element={<RecruiterProtected><AssessmentsPage /></RecruiterProtected>}
         />
-        <Route path="/recruiter/question-bank" element={<QuestionBankPage />} />
-        <Route path="/recruiter/assessments/new" element={<CreateAssessmentPage />} />
-        <Route path="/recruiter/assessments/:assessmentId" element={<AssessmentPreviewPage />} />
-        <Route path="/recruiter/assessments/:assessmentId/edit" element={<CreateAssessmentPage />} />
-        <Route path="/recruiter/assessments/:assessmentId/candidates" element={<AssessmentCandidatesPage />} />
-        <Route path="/recruiter/assessments/report/:candidateId" element={<CandidateReportPage />} />
+        <Route path="/recruiter/question-bank" element={<RecruiterProtected><QuestionBankPage /></RecruiterProtected>} />
+        <Route path="/recruiter/assessments/new" element={<RecruiterProtected><CreateAssessmentPage /></RecruiterProtected>} />
+        <Route path="/recruiter/assessments/:assessmentId" element={<RecruiterProtected><AssessmentPreviewPage /></RecruiterProtected>} />
+        <Route path="/recruiter/assessments/:assessmentId/edit" element={<RecruiterProtected><CreateAssessmentPage /></RecruiterProtected>} />
+        <Route path="/recruiter/assessments/:assessmentId/candidates" element={<RecruiterProtected><AssessmentCandidatesPage /></RecruiterProtected>} />
+        <Route path="/recruiter/assessments/report/:candidateId" element={<RecruiterProtected><CandidateReportPage /></RecruiterProtected>} />
         <Route
           path="/recruiter/notifications"
-          element={<PlaceholderApplicants title="Notifications" />}
+          element={<RecruiterProtected><PlaceholderApplicants title="Notifications" /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/company-profile"
-          element={<PlaceholderApplicants title="Company profile" />}
+          element={<RecruiterProtected><PlaceholderApplicants title="Company profile" /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/applicants/ranked"
-          element={<RankedApplicants />}
+          element={<RecruiterProtected><RankedApplicants /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/applicants/all"
-          element={<RankedApplicants />}
+          element={<RecruiterProtected><RankedApplicants /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/applicants/shortlisted"
-          element={<RankedApplicants />}
+          element={<RecruiterProtected><RankedApplicants /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/applicants/interviewed"
-          element={<InterviewedApplicants />}
+          element={<RecruiterProtected><InterviewedApplicants /></RecruiterProtected>}
         />
         <Route
           path="/dashboard"
@@ -303,7 +314,7 @@ function AppRoutes() {
         <Route
           path="/admin/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -311,7 +322,7 @@ function AppRoutes() {
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <ManageUsers />
             </ProtectedRoute>
           }
@@ -319,7 +330,7 @@ function AppRoutes() {
         <Route
           path="/admin/companies"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <VerifyRecruiters />
             </ProtectedRoute>
           }
@@ -327,7 +338,7 @@ function AppRoutes() {
         <Route
           path="/admin/verifications"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <VerifyRecruiters />
             </ProtectedRoute>
           }
@@ -335,7 +346,7 @@ function AppRoutes() {
         <Route
           path="/admin/job-moderation"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <JobModeration />
             </ProtectedRoute>
           }
@@ -343,7 +354,7 @@ function AppRoutes() {
         <Route
           path="/admin/payments"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <Payments />
             </ProtectedRoute>
           }
@@ -351,7 +362,7 @@ function AppRoutes() {
         <Route
           path="/admin/community-mod"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <ModerateContent />
             </ProtectedRoute>
           }
@@ -359,7 +370,7 @@ function AppRoutes() {
         <Route
           path="/admin/audit-log"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <ViewAuditLogs />
             </ProtectedRoute>
           }
@@ -367,7 +378,7 @@ function AppRoutes() {
         <Route
           path="/admin/system-health"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <MonitorSystem />
             </ProtectedRoute>
           }
@@ -375,7 +386,7 @@ function AppRoutes() {
         <Route
           path="/admin/notifications"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AdminPlaceholder title="Notifications" />
             </ProtectedRoute>
           }
@@ -383,7 +394,7 @@ function AppRoutes() {
         <Route
           path="/admin/settings"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AdminPlaceholder title="System settings" />
             </ProtectedRoute>
           }
@@ -391,19 +402,19 @@ function AppRoutes() {
         <Route
           path="/admin/profile"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AdminProfile />
             </ProtectedRoute>
           }
         />
         {/* Community Forum — shared for both recruiters and candidates */}
         <Route path="/community" element={<Navigate to="/candidate/community" replace />} />
-        <Route path="/recruiter/community" element={<CommunityPage roleOverride="recruiter" />} />
-        <Route path="/recruiter/community/new" element={<CreateDiscussionPage roleOverride="recruiter" />} />
-        <Route path="/recruiter/community/post/:postId" element={<DiscussionPage roleOverride="recruiter" />} />
-        <Route path="/recruiter/community/profile/:slug" element={<CommunityProfilePage roleOverride="recruiter" />} />
-        <Route path="/recruiter/community/saved" element={<SavedPostsPage roleOverride="recruiter" />} />
-        <Route path="/recruiter/community/guidelines" element={<GuidelinesPage roleOverride="recruiter" />} />
+        <Route path="/recruiter/community" element={<RecruiterProtected><CommunityPage roleOverride="recruiter" /></RecruiterProtected>} />
+        <Route path="/recruiter/community/new" element={<RecruiterProtected><CreateDiscussionPage roleOverride="recruiter" /></RecruiterProtected>} />
+        <Route path="/recruiter/community/post/:postId" element={<RecruiterProtected><DiscussionPage roleOverride="recruiter" /></RecruiterProtected>} />
+        <Route path="/recruiter/community/profile/:slug" element={<RecruiterProtected><CommunityProfilePage roleOverride="recruiter" /></RecruiterProtected>} />
+        <Route path="/recruiter/community/saved" element={<RecruiterProtected><SavedPostsPage roleOverride="recruiter" /></RecruiterProtected>} />
+        <Route path="/recruiter/community/guidelines" element={<RecruiterProtected><GuidelinesPage roleOverride="recruiter" /></RecruiterProtected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

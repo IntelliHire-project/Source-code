@@ -3,6 +3,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 
 const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const valuesRoutes = require("./routes/valuesRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 
@@ -17,6 +18,7 @@ app.get("/", (req, res) => {
 
 app.use("/values", valuesRoutes);
 app.use("/auth", authRoutes);
+app.use("/", adminRoutes);
 
 // Global Error Handler Middleware (must be registered last)
 app.use(errorHandler);
