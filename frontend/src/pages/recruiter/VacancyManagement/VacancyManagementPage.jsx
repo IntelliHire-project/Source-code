@@ -24,6 +24,7 @@ import InsightPanel from '../../../components/common/InsightPanel';
 import StatusBadge from '../../../components/common/StatusBadge';
 import DropdownMenu from '../../../components/common/DropdownMenu';
 import { VACANCIES } from '../../../data/vacancies';
+import { getApplicants } from '../../../data/applicants';
 import '../../../style.css';
 import './VacancyManagementPage.css';
 
@@ -55,7 +56,7 @@ function VacancyManagementPage() {
 
   const statCards = useMemo(() => {
     const totalApplicants = VACANCIES.reduce(
-      (sum, vacancy) => sum + (vacancy.candidates || []).length,
+      (sum, vacancy) => sum + getApplicants(vacancy.id).length,
       0,
     );
     return [
@@ -214,7 +215,7 @@ function VacancyManagementPage() {
                         <Link to={`/vacancies/${v.id}`} className="vm-table__link">
                           <div className="vm-table__applicants">
                             <Users size={14} />
-                            <span>{(v.candidates || []).length}</span>
+                            <span>{getApplicants(v.id).length}</span>
                           </div>
                         </Link>
                       </td>

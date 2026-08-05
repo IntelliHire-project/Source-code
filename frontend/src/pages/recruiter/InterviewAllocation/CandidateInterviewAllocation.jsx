@@ -4,7 +4,9 @@ import {
   ArrowLeft,
   ArrowRight,
   BriefcaseBusiness,
+  Calendar,
   CalendarDays,
+  CalendarPlus,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -54,15 +56,19 @@ const INITIAL_ALLOCATIONS = [
   { candidateId: 'APP-004', candidateName: 'Sara Jayawardena', slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' },
 ];
 
-export default function CandidateInterviewAllocationPage() {
+export default function CandidateInterviewAllocationPage({ embeddedVacancy = null }) {
   const navigate = useNavigate();
 
   // State Management
-  const [jobPosition, setJobPosition] = useState('Senior Software Engineer');
+  const [jobPosition, setJobPosition] = useState(embeddedVacancy ? embeddedVacancy.title : 'Senior Software Engineer');
   const [interviewRound, setInterviewRound] = useState('Technical Interview');
   const [interviewDate, setInterviewDate] = useState('2026-08-03');
 
-  const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
+  const [candidates, setCandidates] = useState(() =>
+    embeddedVacancy
+      ? INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }))
+      : INITIAL_CANDIDATES
+  );
   const [allocations, setAllocations] = useState(INITIAL_ALLOCATIONS);
   const [selectedSlotId, setSelectedSlotId] = useState('');
 
@@ -97,13 +103,14 @@ export default function CandidateInterviewAllocationPage() {
   );
 
   const slotsWithRemaining = useMemo(
-    () => INITIAL_SLOTS.map((slot) => {
+    () => INITIAL_SLOTS.map((rawSlot) => {
+      const slot = embeddedVacancy ? { ...rawSlot, jobPosition: embeddedVacancy.title } : rawSlot;
       const allocatedCount = allocations.filter(
         (allocation) => allocation.status === 'ALLOCATED' && allocation.slotId === slot.id
       ).length;
       return { ...slot, rem: Math.max(0, slot.cap - allocatedCount) };
     }),
-    [allocations]
+    [allocations, embeddedVacancy]
   );
 
   const filteredCandidates = useMemo(
@@ -192,7 +199,7 @@ export default function CandidateInterviewAllocationPage() {
     setSelectedSlotId('');
     setPendingReallocation(null);
     showToast(
-      `Allocated ${candidatesToMove.length} candidate(s) to ${slotToAssign.time} on ${slotToAssign.dateShort}.`
+      `Allocated ${candidatesToMove.length} candidate(s) to ${slotToAssign.time} on ${slotToAssign.dateShort}. Google Calendar invite sent!`
     );
   };
 
@@ -271,7 +278,7 @@ export default function CandidateInterviewAllocationPage() {
     setAllocations(newAllocations);
     setCandidates((current) => current.map((candidate) => ({ ...candidate, selected: false })));
     setSelectedSlotId('');
-    showToast('Auto-allocation completed using score priority and current slot capacity.');
+    showToast('Auto-allocation completed! Google Calendar invites sent to allocated candidates.');
   };
 
   // Reset Allocations
@@ -366,83 +373,22 @@ export default function CandidateInterviewAllocationPage() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  return (
-    <div className="create-vacancy">
-      <RecruiterSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        activeItem="Candidate Allocation"
-      />
+  const mainContent = (
+    <>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`alert-toast alert-${toastType === 'error' ? 'danger' : 'success'}`}>
+          <span>{toastMessage}</span>
+          <button type="button" className="toast-close" onClick={() => setToastMessage('')}>
+            ×
+          </button>
+        </div>
+      )}
 
-      <div className="create-vacancy__main">
-        <TopBar
-          user={{ name: 'Recruiter', role: 'Recruiter Account' }}
-          notificationsCount={3}
-          searchPlaceholder="Search vacancies, candidates, or interviews..."
-          onHamburgerClick={() => setSidebarOpen(true)}
-        />
-
-        {/* Content Container */}
-        <div className="recruiter-content">
-
-          {/* ── Sub-navigation Tabs (Time Slot Management vs Candidate Allocation vs Invitations) ── */}
-          <div className="interview-subnav-tabs">
-            <button
-              className={`subnav-tab-btn ${activeSubTab === 'management' ? 'is-active' : ''}`}
-              onClick={() => navigate('/recruiter/interviews')}
-              type="button"
-            >
-              Time Slot Management
-            </button>
-            <button
-              className={`subnav-tab-btn ${activeSubTab === 'allocation' ? 'is-active' : ''}`}
-              onClick={() => navigate('/recruiter/interviews/allocation')}
-              type="button"
-            >
-              Candidate Allocation
-            </button>
-            <button
-              className={`subnav-tab-btn ${activeSubTab === 'invitations' ? 'is-active' : ''}`}
-              onClick={() => navigate('/recruiter/interviews/invitations')}
-              type="button"
-            >
-              Invitations & Communication
-            </button>
-            <button
-              className="subnav-tab-btn"
-              onClick={() => navigate('/recruiter/interviews/evaluation')}
-              type="button"
-            >
-              Panel & Evaluation
-            </button>
-          </div>
-
-          {/* ── Page Heading Block + Auto Allocate Button ── */}
-          <div className="page-heading-block heading-with-action">
-            <div>
-              <h1 className="interview-page-title">Candidate Interview Allocation</h1>
-              <p className="page-subtitle">
-                Assign shortlisted candidates to available interview slots by priority.
-              </p>
-            </div>
-            <button type="button" className="btn-auto-allocate" onClick={handleAutoAllocate}>
-              <Sparkles size={16} />
-              <span>Auto Allocate</span>
-            </button>
-          </div>
-
-          {/* Toast Notification */}
-          {toastMessage && (
-            <div className={`alert-toast alert-${toastType === 'error' ? 'danger' : 'success'}`}>
-              <span>{toastMessage}</span>
-              <button type="button" className="toast-close" onClick={() => setToastMessage('')}>
-                ×
-              </button>
-            </div>
-          )}
-
-          {/* ── Filter Controls Card ── */}
-          <div className="card-surface filter-card-row">
+      {/* ── Filter Controls Card ── */}
+      <div className="card-surface filter-card-row">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          {!embeddedVacancy && (
             <div className="filter-item">
               <label className="filter-item-label">
                 <BriefcaseBusiness size={14} />
@@ -464,42 +410,57 @@ export default function CandidateInterviewAllocationPage() {
                 <span className="select-arrow">▼</span>
               </div>
             </div>
+          )}
 
-            <div className="filter-item">
-              <label className="filter-item-label">
-                <Star size={14} />
-                <span>INTERVIEW ROUND</span>
-              </label>
-              <div className="select-input-wrap">
-                <select
-                  value={interviewRound}
-                  onChange={(e) => setInterviewRound(e.target.value)}
-                  className="form-control"
-                >
-                  <option value="Technical Interview">Technical Interview</option>
-                  <option value="HR Screening">HR Screening</option>
-                  <option value="HR Portfolio Review">HR Portfolio Review</option>
-                  <option value="Technical Case Study">Technical Case Study</option>
-                  <option value="Final Cultural Fit">Final Cultural Fit</option>
-                </select>
-                <span className="select-arrow">▼</span>
-              </div>
+          <div className="filter-item">
+            <label className="filter-item-label">
+              <Star size={14} />
+              <span>INTERVIEW ROUND</span>
+            </label>
+            <div className="select-input-wrap">
+              <select
+                value={interviewRound}
+                onChange={(e) => setInterviewRound(e.target.value)}
+                className="form-control"
+              >
+                <option value="Technical Interview">Technical Interview</option>
+                <option value="HR Screening">HR Screening</option>
+                <option value="HR Portfolio Review">HR Portfolio Review</option>
+                <option value="Technical Case Study">Technical Case Study</option>
+                <option value="Final Cultural Fit">Final Cultural Fit</option>
+              </select>
+              <span className="select-arrow">▼</span>
             </div>
-
-            <div className="filter-item">
-              <label className="filter-item-label">
-                <CalendarDays size={14} />
-                <span>INTERVIEW DATE</span>
-              </label>
-              <input
-                type="date"
-                value={interviewDate}
-                onChange={(e) => setInterviewDate(e.target.value)}
-                className="form-control date-picker-input"
-              />
-            </div>
-
           </div>
+
+          <div className="filter-item">
+            <label className="filter-item-label">
+              <CalendarDays size={14} />
+              <span>INTERVIEW DATE</span>
+            </label>
+            <input
+              type="date"
+              value={interviewDate}
+              onChange={(e) => setInterviewDate(e.target.value)}
+              className="form-control date-picker-input"
+            />
+          </div>
+        </div>
+
+        {/* Schedule New Interview Button (Inline, compact) */}
+        <button
+          type="button"
+          className="btn-primary-accent btn-schedule-inline"
+          onClick={() =>
+            navigate('/recruiter/interviews', {
+              state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
+            })
+          }
+        >
+          <CalendarPlus size={16} />
+          <span>Schedule New Interview</span>
+        </button>
+      </div>
 
           {/* ── Dual Workspace Grid: Shortlisted Candidates | Action Buttons | Available Time Slots ── */}
           <div className="allocation-workspace-grid">
@@ -893,12 +854,9 @@ export default function CandidateInterviewAllocationPage() {
                   <ChevronRight size={16} />
                 </button>
               </div>
-              </div>
-            )}
-          </div>
-
+            </div>
+          )}
         </div>
-      </div>
 
       {pendingReallocation && (
         <div className="allocation-modal-backdrop" onClick={() => setPendingReallocation(null)}>
@@ -988,6 +946,66 @@ export default function CandidateInterviewAllocationPage() {
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (embeddedVacancy) {
+    return <div className="embedded-allocation-tab">{mainContent}</div>;
+  }
+
+  return (
+    <div className="create-vacancy">
+      <RecruiterSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem="Candidate Allocation"
+      />
+
+      <div className="create-vacancy__main">
+        <TopBar
+          user={{ name: 'Recruiter', role: 'Recruiter Account' }}
+          notificationsCount={3}
+          searchPlaceholder="Search vacancies, candidates, or interviews..."
+          onHamburgerClick={() => setSidebarOpen(true)}
+        />
+
+        {/* Content Container */}
+        <div className="recruiter-content">
+          {/* ── Sub-navigation Tabs ── */}
+          <div className="interview-subnav-tabs">
+            <button
+              className={`subnav-tab-btn ${activeSubTab === 'management' ? 'is-active' : ''}`}
+              onClick={() => navigate('/recruiter/interviews')}
+              type="button"
+            >
+              Time Slot Management
+            </button>
+            <button
+              className={`subnav-tab-btn ${activeSubTab === 'allocation' ? 'is-active' : ''}`}
+              onClick={() => navigate('/recruiter/interviews/allocation')}
+              type="button"
+            >
+              Candidate Allocation
+            </button>
+          </div>
+
+          {/* ── Page Heading Block + Auto Allocate Button ── */}
+          <div className="page-heading-block heading-with-action">
+            <div>
+              <h1 className="interview-page-title">Candidate Interview Allocation</h1>
+              <p className="page-subtitle">
+                Assign shortlisted candidates to available interview slots by priority.
+              </p>
+            </div>
+            <button type="button" className="btn-auto-allocate" onClick={handleAutoAllocate}>
+              <Sparkles size={16} />
+              <span>Auto Allocate</span>
+            </button>
+          </div>
+
+          {mainContent}
+        </div>
+      </div>
     </div>
   );
 }

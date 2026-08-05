@@ -30,7 +30,7 @@ import './RankedApplicants.css';
 import '../../../style.css';
 
 // Rich Mock Candidates Data
-const MOCK_CANDIDATES = [
+export const MOCK_CANDIDATES = [
   // Vacancy 1: Software Engineer
   {
     vacancyId: 1,
@@ -298,7 +298,7 @@ const MOCK_CANDIDATES = [
   }
 ];
 
-const enrichCandidateDetails = (candidate) => {
+export const enrichCandidateDetails = (candidate) => {
   if (!candidate) return null;
 
   if (candidate.name === 'Sarah Jenkins') {
@@ -374,7 +374,7 @@ const enrichCandidateDetails = (candidate) => {
   };
 };
 
-function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onApprove }) {
+export function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onApprove }) {
   const circumference = 263.89;
   const strokeDashoffset = circumference - (circumference * candidate.score) / 100;
 

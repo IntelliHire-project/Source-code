@@ -1,16 +1,18 @@
 /**
- * vacancies.js — shared vacancy dataset + helpers.
+ * vacancies.js — shared vacancy dataset + process definitions.
  *
- * Both the Active Vacancies list (VacancyManagementPage) and the
- * Vacancy Detail Dashboard (VacancyDetailPage) read from this single
- * module so the detail view always shows the same id / title /
- * department / status / applicant counts as the list row.
+ * Owns the vacancy records (id, title, department, status, job details,
+ * panel attendees, admin reviews, approval history, activity log) that
+ * the Active Vacancies list (VacancyManagementPage) and the Vacancy
+ * Detail Dashboard (VacancyDetailPage) both read from, so the detail
+ * view always shows the same id / title / department / status as the
+ * list row.
  *
- * This is mock seed data (there is no backend wiring for vacancies yet),
- * matching the existing pattern in the app. The "BA Intern" vacancy
- * (VAC-004) is the worked example: 3 shortlisted candidates, 0
- * interviews scheduled → tracker sits at "Shortlisted" and the next-step
- * callout prompts the recruiter to schedule interviews.
+ * Applicant-stage records live in data/applicants.js and interview
+ * records live in data/interviews.js — both keyed by `vacancyId` — so
+ * the dashboard aggregates those shared sources instead of owning a
+ * separate copy. The derived funnel/tracker/next-step helpers are also
+ * in data/applicants.js.
  */
 
 export const TRACKER_STAGES = [
@@ -43,23 +45,6 @@ export const VACANCIES = [
       'Strong TypeScript and modern CSS (design tokens, custom properties)',
       'Accessibility (WCAG 2.1 AA) and performance mindset',
       'Experience mentoring other engineers',
-    ],
-    candidates: [
-      { id: 'c1', name: 'Ayesha Khan', email: 'ayesha.khan@example.com', score: 92, stage: 'offer', appliedDate: '14 Jul 2026', resumeLink: '#resume-VAC-001-c1' },
-      { id: 'c2', name: 'Tom Bradley', email: 'tom.bradley@example.com', score: 88, stage: 'interviewed', appliedDate: '15 Jul 2026', resumeLink: '#resume-VAC-001-c2' },
-      { id: 'c3', name: 'Priya Nair', email: 'priya.nair@example.com', score: 87, stage: 'interviewed', appliedDate: '16 Jul 2026', resumeLink: '#resume-VAC-001-c3' },
-      { id: 'c4', name: 'Leo Martins', email: 'leo.martins@example.com', score: 85, stage: 'shortlisted', appliedDate: '18 Jul 2026', resumeLink: '#resume-VAC-001-c4' },
-      { id: 'c5', name: 'Sofia Rossi', email: 'sofia.rossi@example.com', score: 83, stage: 'shortlisted', appliedDate: '18 Jul 2026', resumeLink: '#resume-VAC-001-c5' },
-      { id: 'c6', name: 'David Osei', email: 'david.osei@example.com', score: 76, stage: 'applied', appliedDate: '20 Jul 2026', resumeLink: '#resume-VAC-001-c6' },
-      { id: 'c7', name: 'Hannah Lee', email: 'hannah.lee@example.com', score: 74, stage: 'applied', appliedDate: '21 Jul 2026', resumeLink: '#resume-VAC-001-c7' },
-      { id: 'c8', name: 'Marcus Webb', email: 'marcus.webb@example.com', score: 62, stage: 'rejected', appliedDate: '19 Jul 2026', resumeLink: '#resume-VAC-001-c8' },
-    ],
-    interviews: [
-      { id: 'i1', candidateName: 'Tom Bradley', date: '24 Jul 2026', time: '10:00 AM', round: 'Round 1', status: 'completed', interviewer: 'Jordan Patel', location: 'Google Meet' },
-      { id: 'i2', candidateName: 'Priya Nair', date: '25 Jul 2026', time: '02:00 PM', round: 'Round 1', status: 'completed', interviewer: 'Jordan Patel', location: 'Google Meet' },
-      { id: 'i3', candidateName: 'Leo Martins', date: '28 Jul 2026', time: '11:00 AM', round: 'Round 1', status: 'scheduled', interviewer: 'Jordan Patel', location: 'Google Meet' },
-      { id: 'i4', candidateName: 'Sofia Rossi', date: '29 Jul 2026', time: '03:00 PM', round: 'Round 1', status: 'scheduled', interviewer: 'Jordan Patel', location: 'Google Meet' },
-      { id: 'i5', candidateName: 'Tom Bradley', date: '31 Jul 2026', time: '10:00 AM', round: 'Round 2', status: 'completed', interviewer: 'Amelia Stone', location: 'Office — Room 2A' },
     ],
     attendees: [
       { id: 'a1', name: 'Jordan Patel', role: 'Senior Frontend Lead', confirmed: true, interviews: ['Round 1 — 24 Jul', 'Round 1 — 28 Jul', 'Round 1 — 29 Jul'], availability: 'Mornings' },
@@ -104,24 +89,6 @@ export const VACANCIES = [
       'Comfortable running usability tests and synthesizing findings',
       'Portfolio showing shipped, accessible interfaces',
     ],
-    candidates: [
-      { id: 'c1', name: 'Nina Petrova', email: 'nina.petrova@example.com', score: 89, stage: 'shortlisted', appliedDate: '10 Jul 2026', resumeLink: '#resume-VAC-002-c1' },
-      { id: 'c2', name: 'Arjun Mehta', email: 'arjun.mehta@example.com', score: 88, stage: 'shortlisted', appliedDate: '11 Jul 2026', resumeLink: '#resume-VAC-002-c2' },
-      { id: 'c3', name: 'Elena Vargas', email: 'elena.vargas@example.com', score: 86, stage: 'shortlisted', appliedDate: '12 Jul 2026', resumeLink: '#resume-VAC-002-c3' },
-      { id: 'c4', name: 'Daniel Kim', email: 'daniel.kim@example.com', score: 85, stage: 'shortlisted', appliedDate: '12 Jul 2026', resumeLink: '#resume-VAC-002-c4' },
-      { id: 'c5', name: 'Mia Chen', email: 'mia.chen@example.com', score: 82, stage: 'interviewed', appliedDate: '18 Jul 2026', resumeLink: '#resume-VAC-002-c5' },
-      { id: 'c6', name: 'Leo Duarte', email: 'leo.duarte@example.com', score: 80, stage: 'interviewed', appliedDate: '19 Jul 2026', resumeLink: '#resume-VAC-002-c6' },
-      { id: 'c7', name: 'Grace Liu', email: 'grace.liu@example.com', score: 71, stage: 'applied', appliedDate: '20 Jul 2026', resumeLink: '#resume-VAC-002-c7' },
-      { id: 'c8', name: 'Peter Novak', email: 'peter.novak@example.com', score: 65, stage: 'rejected', appliedDate: '17 Jul 2026', resumeLink: '#resume-VAC-002-c8' },
-      { id: 'c9', name: 'Fatima Ali', email: 'fatima.ali@example.com', score: 63, stage: 'rejected', appliedDate: '16 Jul 2026', resumeLink: '#resume-VAC-002-c9' },
-    ],
-    interviews: [
-      { id: 'i1', candidateName: 'Mia Chen', date: '25 Jul 2026', time: '09:30 AM', round: 'Round 1', status: 'completed', interviewer: 'Amelia Stone', location: 'Google Meet' },
-      { id: 'i2', candidateName: 'Leo Duarte', date: '26 Jul 2026', time: '01:00 PM', round: 'Round 1', status: 'completed', interviewer: 'Amelia Stone', location: 'Google Meet' },
-      { id: 'i3', candidateName: 'Nina Petrova', date: '04 Aug 2026', time: '10:00 AM', round: 'Round 1', status: 'scheduled', interviewer: 'Amelia Stone', location: 'Google Meet' },
-      { id: 'i4', candidateName: 'Arjun Mehta', date: '04 Aug 2026', time: '02:00 PM', round: 'Round 1', status: 'scheduled', interviewer: 'Amelia Stone', location: 'Google Meet' },
-      { id: 'i5', candidateName: 'Elena Vargas', date: '04 Aug 2026', time: '04:00 PM', round: 'Round 1', status: 'scheduled', interviewer: 'Lucy Grant', location: 'Google Meet' },
-    ],
     attendees: [
       { id: 'a1', name: 'Amelia Stone', role: 'Design Director', confirmed: true, interviews: ['Round 1 — 04 Aug', 'Round 2 — 06 Aug'], availability: 'Flexible' },
       { id: 'a2', name: 'Rohan Fernando', role: 'Product Manager', confirmed: true, interviews: ['Round 1 — 04 Aug'], availability: 'Mornings' },
@@ -163,16 +130,6 @@ export const VACANCIES = [
       'Understanding of REST API design and observability',
       'Comfortable with CI/CD and containerized deployments',
     ],
-    candidates: [
-      { id: 'c1', name: 'Ravi Menon', email: 'ravi.menon@example.com', score: 90, stage: 'shortlisted', appliedDate: '02 Jul 2026', resumeLink: '#resume-VAC-003-c1' },
-      { id: 'c2', name: 'Alice Morgan', email: 'alice.morgan@example.com', score: 89, stage: 'shortlisted', appliedDate: '03 Jul 2026', resumeLink: '#resume-VAC-003-c2' },
-      { id: 'c3', name: 'Jake Thompson', email: 'jake.thompson@example.com', score: 78, stage: 'applied', appliedDate: '04 Jul 2026', resumeLink: '#resume-VAC-003-c3' },
-      { id: 'c4', name: 'Omar Haddad', email: 'omar.haddad@example.com', score: 77, stage: 'applied', appliedDate: '05 Jul 2026', resumeLink: '#resume-VAC-003-c4' },
-      { id: 'c5', name: 'Chloe Bennett', email: 'chloe.bennett@example.com', score: 76, stage: 'applied', appliedDate: '06 Jul 2026', resumeLink: '#resume-VAC-003-c5' },
-      { id: 'c6', name: 'Sam Okafor', email: 'sam.okafor@example.com', score: 68, stage: 'rejected', appliedDate: '05 Jul 2026', resumeLink: '#resume-VAC-003-c6' },
-      { id: 'c7', name: 'Isabelle Moreau', email: 'isabelle.moreau@example.com', score: 61, stage: 'rejected', appliedDate: '07 Jul 2026', resumeLink: '#resume-VAC-003-c7' },
-    ],
-    interviews: [],
     attendees: [],
     adminReviews: [],
     approvalHistory: [
@@ -206,12 +163,6 @@ export const VACANCIES = [
       'Interest in data analysis and process improvement',
       'Ability to work on-site in London for the internship period',
     ],
-    candidates: [
-      { id: 'c1', name: 'Emma Watson', email: 'emma.watson@example.com', score: 86, stage: 'shortlisted', appliedDate: '20 Jul 2026', resumeLink: '#resume-VAC-004-c1' },
-      { id: 'c2', name: 'James Carter', email: 'james.carter@example.com', score: 84, stage: 'shortlisted', appliedDate: '20 Jul 2026', resumeLink: '#resume-VAC-004-c2' },
-      { id: 'c3', name: 'Olivia Brown', email: 'olivia.brown@example.com', score: 79, stage: 'shortlisted', appliedDate: '21 Jul 2026', resumeLink: '#resume-VAC-004-c3' },
-    ],
-    interviews: [],
     attendees: [],
     adminReviews: [
       { id: 'r1', reviewerName: 'Sarah Mahmood', role: 'Hiring Manager', decision: 'approved', comment: 'Good entry-level pipeline for the intern role.', timestamp: '22 Jul 2026' },
@@ -249,8 +200,6 @@ export const VACANCIES = [
       'Statistical grounding (A/B testing, dashboards)',
       'Clear communication of findings to non-technical stakeholders',
     ],
-    candidates: [],
-    interviews: [],
     attendees: [],
     adminReviews: [],
     approvalHistory: [
@@ -282,18 +231,6 @@ export const VACANCIES = [
       'Strong AWS/GCP infrastructure experience',
       'Terraform and Kubernetes in production',
       'Observability and incident response experience',
-    ],
-    candidates: [
-      { id: 'c1', name: 'Ankit Sharma', email: 'ankit.sharma@example.com', score: 91, stage: 'hired', appliedDate: '07 Jun 2026', resumeLink: '#resume-VAC-006-c1' },
-      { id: 'c2', name: 'Bethany Fox', email: 'bethany.fox@example.com', score: 84, stage: 'rejected', appliedDate: '08 Jun 2026', resumeLink: '#resume-VAC-006-c2' },
-      { id: 'c3', name: 'Chris Nolan', email: 'chris.nolan@example.com', score: 79, stage: 'rejected', appliedDate: '09 Jun 2026', resumeLink: '#resume-VAC-006-c3' },
-      { id: 'c4', name: 'Deepa Iyer', email: 'deepa.iyer@example.com', score: 74, stage: 'applied', appliedDate: '10 Jun 2026', resumeLink: '#resume-VAC-006-c4' },
-    ],
-    interviews: [
-      { id: 'i1', candidateName: 'Ankit Sharma', date: '15 Jun 2026', time: '11:00 AM', round: 'Round 1', status: 'completed', interviewer: 'Jordan Patel', location: 'Google Meet' },
-      { id: 'i2', candidateName: 'Ankit Sharma', date: '19 Jun 2026', time: '02:00 PM', round: 'Round 2', status: 'completed', interviewer: 'Amelia Stone', location: 'Office — Room 3B' },
-      { id: 'i3', candidateName: 'Ankit Sharma', date: '23 Jun 2026', time: '10:00 AM', round: 'Panel', status: 'completed', interviewer: 'Emma Clarke', location: 'Office — Room 1A' },
-      { id: 'i4', candidateName: 'Bethany Fox', date: '16 Jun 2026', time: '10:00 AM', round: 'Round 1', status: 'cancelled', interviewer: 'Jordan Patel', location: 'Google Meet' },
     ],
     attendees: [
       { id: 'a1', name: 'Jordan Patel', role: 'Senior DevOps Lead', confirmed: true, interviews: ['Round 1 — 15 Jun', 'Round 1 — 16 Jun'], availability: 'Mornings' },
@@ -336,8 +273,6 @@ export const VACANCIES = [
       'API testing and CI integration',
       'Strong attention to detail',
     ],
-    candidates: [],
-    interviews: [],
     attendees: [],
     adminReviews: [],
     approvalHistory: [
@@ -354,143 +289,3 @@ export const VACANCIES = [
     timeToFill: null,
   },
 ];
-
-/* ─────────────────────────────────────────────────────────────
-   Derived helpers — used by both the list and the detail views.
-   ───────────────────────────────────────────────────────────── */
-
-export function getStageCounts(vacancy) {
-  const counts = {
-    applied: 0,
-    shortlisted: 0,
-    interviewed: 0,
-    offer: 0,
-    hired: 0,
-    rejected: 0,
-  };
-  (vacancy.candidates || []).forEach((candidate) => {
-    if (counts[candidate.stage] !== undefined) counts[candidate.stage] += 1;
-  });
-  return counts;
-}
-
-/**
- * Funnel: Applied → Shortlisted → Interviewed → Hired.
- * Shortlisted includes everyone past the applied stage; Interviewed
- * includes everyone who has been through an interview (incl. offer/hired).
- */
-export function getFunnel(vacancy) {
-  const counts = getStageCounts(vacancy);
-  const total = (vacancy.candidates || []).length;
-  return {
-    total,
-    applied: total,
-    shortlisted: counts.shortlisted + counts.interviewed + counts.offer + counts.hired,
-    interviewed: counts.interviewed + counts.offer + counts.hired,
-    hired: counts.hired,
-    rejected: counts.rejected,
-  };
-}
-
-export function getShortlisted(vacancy) {
-  return (vacancy.candidates || [])
-    .filter((candidate) =>
-      ['shortlisted', 'interviewed', 'offer', 'hired'].includes(candidate.stage),
-    )
-    .sort((a, b) => b.score - a.score);
-}
-
-export function getAvgMatchScore(vacancy) {
-  const scores = (vacancy.candidates || [])
-    .map((candidate) => candidate.score)
-    .filter((score) => Number.isFinite(score));
-  if (!scores.length) return null;
-  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
-}
-
-/**
- * Current recruitment stage for the progress tracker.
- */
-export function deriveStage(vacancy) {
-  const counts = getStageCounts(vacancy);
-  if (vacancy.status === 'closed') {
-    return counts.hired > 0 ? 'hired' : 'closed';
-  }
-  if (!vacancy.candidates || vacancy.candidates.length === 0) {
-    return vacancy.status === 'draft' ? 'requisition' : 'sourcing';
-  }
-  if (counts.hired > 0) return 'hired';
-  if (counts.offer > 0) return 'offer';
-  if (counts.interviewed > 0) return 'interviewing';
-  if (counts.shortlisted > 0) return 'shortlisted';
-  return 'screening';
-}
-
-/**
- * Next-step callout text — generated from real vacancy data and
- * never blank (falls back when the vacancy has no applicants).
- */
-export function deriveNextStep(vacancy) {
-  const counts = getStageCounts(vacancy);
-  const total = (vacancy.candidates || []).length;
-
-  if (vacancy.status === 'closed') {
-    return counts.hired > 0
-      ? 'Position filled — offer accepted'
-      : 'Position closed — no candidate selected';
-  }
-  if (total === 0) {
-    return 'No activity yet — share the vacancy to start sourcing';
-  }
-  if (counts.hired > 0) return 'Position filled — offer accepted';
-  if (counts.offer > 0) {
-    return `Awaiting offer decision for ${counts.offer} candidate${counts.offer > 1 ? 's' : ''}`;
-  }
-  const scheduled = (vacancy.interviews || []).filter(
-    (interview) => interview.status === 'scheduled',
-  );
-  if (scheduled.length > 0) {
-    return `${scheduled.length} interview${scheduled.length > 1 ? 's' : ''} scheduled for ${
-      scheduled[0].date
-    }`;
-  }
-  if (counts.shortlisted > 0) {
-    return `${counts.shortlisted} candidate${counts.shortlisted > 1 ? 's' : ''} shortlisted — schedule interviews`;
-  }
-  return `Review ${counts.applied} applicant${counts.applied > 1 ? 's' : ''} and shortlist the strongest matches`;
-}
-
-/**
- * Tracker node states: done = success, current = warning, upcoming = neutral.
- */
-export function getTrackerStates(vacancy) {
-  const stage = deriveStage(vacancy);
-  const currentIdx =
-    stage === 'hired'
-      ? TRACKER_STAGES.length - 1
-      : TRACKER_STAGES.findIndex((node) => node.id === stage);
-
-  return TRACKER_STAGES.map((node, index) => {
-    let state;
-    if (stage === 'hired') {
-      state = 'done';
-    } else if (index < currentIdx) {
-      state = 'done';
-    } else if (index === currentIdx) {
-      state = 'current';
-    } else {
-      state = 'upcoming';
-    }
-    return { ...node, state };
-  });
-}
-
-export function getOutcome(vacancy) {
-  const counts = getStageCounts(vacancy);
-  if (vacancy.status === 'closed') {
-    return counts.hired > 0
-      ? { key: 'filled', label: 'Filled' }
-      : { key: 'closed unfilled', label: 'Closed unfilled' };
-  }
-  return { key: 'still open', label: 'Still open' };
-}
