@@ -311,3 +311,87 @@
     justify-content: flex-end;
   }
 }
+
+/* ── Interview Mode Toggle ── */
+.interview-mode-toggle {
+  display: flex;
+  background-color: #1a1c23;
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 32px;
+  width: fit-content;
+  border: 1px solid #262830;
+}
+
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: #8c93a0;
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+  color: #ffffff;
+}
+
+.mode-btn.active {
+  background-color: #2a2d37;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Voice Bot Container ── */
+.voice-bot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  margin-bottom: 36px;
+  background: linear-gradient(145deg, #16171b 0%, #111215 100%);
+  border: 1px solid #262830;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.voice-bot-card {
+  max-width: 500px;
+}
+
+.voice-bot-card h2 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.voice-bot-card p {
+  font-size: 1rem;
+  color: #9ea4b0;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+
+.start-voice-btn {
+  background-color: #ffc107;
+  color: #0c0d0e;
+  border: none;
+  padding: 16px 36px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(255, 193, 7, 0.2);
+}
+
+.start-voice-btn:hover {
+  background-color: #e0a800;
+  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.3);
+  transform: translateY(-2px);
+}
