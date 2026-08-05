@@ -411,7 +411,11 @@
   padding: 0 18px !important;
   font-size: 0.84rem !important;
   white-space: nowrap !important;
-  box-shadow: 0 4px 14px rgba(240, 185, 11, 0.25);
+  box-shadow: none;
+}
+
+.btn-primary-accent.btn-schedule-inline {
+  box-shadow: 0 4px 14px rgba(240, 185, 11, 0.25) !important;
 }
 
 .filter-item {
