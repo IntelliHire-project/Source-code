@@ -23,11 +23,22 @@ import {
   Pencil,
   Copy,
   X,
+  User,
+  Mail,
+  Phone,
+  Download,
+  Building,
+  CheckCircle,
+  ChevronDown,
+  Search,
+  Filter,
+  ChevronRight,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import StatusBadge from '../../../components/common/StatusBadge';
 import DropdownMenu from '../../../components/common/DropdownMenu';
+import CandidateInterviewAllocationPage from '../InterviewAllocation/CandidateInterviewAllocation';
 import {
   VACANCIES,
   getStageCounts,
@@ -991,11 +1002,7 @@ export default function VacancyDetailPage() {
                   />
                 )}
                 {activeTab === 'interviews' && (
-                  <InterviewScheduleTab
-                    vacancy={vacancy}
-                    extraInterviews={extraInterviews}
-                    onAddInterview={handleAddInterview}
-                  />
+                  <CandidateInterviewAllocationPage embeddedVacancy={vacancy} />
                 )}
                 {activeTab === 'attendees' && <AttendeesTab vacancy={vacancy} />}
                 {activeTab === 'admin' && <AdminReviewTab vacancy={vacancy} />}

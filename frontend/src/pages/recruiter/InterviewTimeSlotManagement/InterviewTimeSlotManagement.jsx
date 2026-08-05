@@ -928,28 +928,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   </div>
                 )}
 
-                {/* ── Basic Setup: Job Position & Interview Date ── */}
-                <div className="form-grid-2" style={{ marginTop: '12px' }}>
-                  <div className="form-group">
-                    <label className="form-label">JOB POSITION</label>
-                    <div className="select-input-wrap">
-                      <select
-                        name="jobPosition"
-                        value={formData.jobPosition}
-                        onChange={handleFieldChange}
-                        className="form-control"
-                      >
-                        {VACANCIES.filter(v => v.status === 'published').map(v => (
-                          <option key={v.id} value={v.title}>
-                            {v.title}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="select-arrow">▼</span>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
+                {/* ── Basic Setup: Interview Date ── */}
+                <div style={{ marginTop: '12px', maxWidth: '300px' }}>
                     <label className="form-label">{activeZohoType === 'Log' ? 'CONDUCTED DATE' : 'INTERVIEW DATE'}</label>
                     <input
                       type="date"
@@ -961,7 +941,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
                       style={{ colorScheme: 'dark', backgroundColor: '#16171F', color: '#FFFFFF' }}
                     />
                   </div>
-                </div>
 
                 {/* ── Step 2: Dynamic Interview Rounds Pipeline ── */}
                 <div style={{ marginTop: '18px', padding: '16px', backgroundColor: '#1A1C24', border: '1px solid #2A2C38', borderRadius: '12px' }}>
@@ -1042,6 +1021,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         gap: '6px',
                       }}
                     >
+                      <Plus size={14} />
                       <span>Add Custom Round Name</span>
                     </button>
                   ) : (
@@ -1102,6 +1082,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         gap: '6px',
                       }}
                     >
+                      <Plus size={14} />
                       <span>Add Panel</span>
                     </button>
                   </div>
@@ -1175,6 +1156,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               gap: '4px',
                             }}
                           >
+                            <Plus size={14} />
                             <span>Add Slot</span>
                           </button>
                         </div>
