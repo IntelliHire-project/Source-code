@@ -67,6 +67,7 @@ export default function GeneratedQuestions() {
   
   const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);
   const [generatingId, setGeneratingId] = useState(null);
+  const [interviewMode, setInterviewMode] = useState('text');
 
   const handleRegenerateQuestion = (qId) => {
     setGeneratingId(qId);
@@ -90,7 +91,7 @@ export default function GeneratedQuestions() {
     navigate('/candidate/mock-interviews/roleselection');
   };
 
-  const handleStartInterview = (question) => {
+  const handleStartInterview = (question, mode = 'text') => {
     navigate('/candidate/mock-interviews/session', {
       state: {
         roleTitle: roleName !== 'Selected Role' ? `${roleName} Interview` : 'Technical Strategy Lead Interview',
@@ -102,6 +103,7 @@ export default function GeneratedQuestions() {
           hint: `Focus on technical depth, trade-off analysis, and clear communication strategy for ${q.topic}.`
         })),
         startIndex: question ? questions.findIndex((q) => q.id === question.id) : 0,
+        interviewMode: mode
       },
     });
   };
@@ -119,6 +121,24 @@ export default function GeneratedQuestions() {
           We've analyzed the job description and your profile to create these high-impact mock questions. Ready to practice?
         </p>
 
+        <div className="interview-mode-toggle">
+          <button 
+            type="button"
+            className={`mode-btn ${interviewMode === 'text' ? 'active' : ''}`}
+            onClick={() => setInterviewMode('text')}
+          >
+            Generated Questions
+          </button>
+          <button 
+            type="button"
+            className={`mode-btn ${interviewMode === 'voice' ? 'active' : ''}`}
+            onClick={() => setInterviewMode('voice')}
+          >
+            Voice Bot Interview
+          </button>
+        </div>
+
+        {interviewMode === 'text' ? (
         <div className="questions-list">
           {questions.map((q) => {
             const isRegenerating = generatingId === q.id;
@@ -178,6 +198,21 @@ export default function GeneratedQuestions() {
             );
           })}
         </div>
+        ) : (
+        <div className="voice-bot-container">
+          <div className="voice-bot-card">
+            <h2>Interactive Voice Bot</h2>
+            <p>Practice with our AI Voice Bot using speech-to-text. It will dynamically ask questions and evaluate your spoken answers in real time.</p>
+            <button 
+              type="button"
+              className="start-voice-btn" 
+              onClick={() => handleStartInterview(null, 'voice')}
+            >
+              Start Voice Interview
+            </button>
+          </div>
+        </div>
+        )}
 
         <div className="bottom-banner-card">
           <div className="banner-left">

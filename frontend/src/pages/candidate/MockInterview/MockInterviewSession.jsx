@@ -11,6 +11,7 @@ import {
   ChevronRight,
   AlertCircle,
   X,
+  Mic,
 } from 'lucide-react';
 import './MockInterviewSession.css';
 
@@ -67,6 +68,7 @@ export default function MockInterviewSession() {
   const roleTitle = location.state?.roleTitle || 'Technical Strategy Lead Interview';
   const candidateName = location.state?.candidateName || 'Alexander Wright';
   const candidateId = location.state?.candidateId || '#9942';
+  const interviewMode = location.state?.interviewMode || 'text';
 
   const questionsList = location.state?.questionsList || DEFAULT_SESSION_QUESTIONS;
   const initialIndex = location.state?.startIndex || 1; // Default to question 2 if wanted or index 0
@@ -86,8 +88,15 @@ export default function MockInterviewSession() {
   const [showHintModal, setShowHintModal] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [isBotSpeaking, setIsBotSpeaking] = useState(false);
+
   // 15 Minutes countdown timer
   const [timeLeft, setTimeLeft] = useState(14 * 60 + 52);
+
+  const currentQ = questionsList[currentIndex] || DEFAULT_SESSION_QUESTIONS[0];
+  const totalQ = questionsList.length;
+  const remainingCount = totalQ - (currentIndex + 1);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -95,6 +104,36 @@ export default function MockInterviewSession() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (interviewMode === 'voice' && currentQ?.question) {
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(currentQ.question);
+      utterance.onstart = () => setIsBotSpeaking(true);
+      utterance.onend = () => setIsBotSpeaking(false);
+      utterance.onerror = () => setIsBotSpeaking(false);
+      
+      // Attempt to load voices, there's sometimes a delay in getting them on page load
+      let voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          voices = window.speechSynthesis.getVoices();
+          const preferredVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Samantha')));
+          if (preferredVoice) utterance.voice = preferredVoice;
+        };
+      } else {
+        const preferredVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Samantha')));
+        if (preferredVoice) utterance.voice = preferredVoice;
+      }
+      
+      window.speechSynthesis.speak(utterance);
+      
+      return () => {
+        window.speechSynthesis.cancel();
+      };
+    }
+  }, [currentIndex, interviewMode, currentQ]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -113,9 +152,7 @@ export default function MockInterviewSession() {
     }, 500);
   };
 
-  const currentQ = questionsList[currentIndex] || DEFAULT_SESSION_QUESTIONS[0];
-  const totalQ = questionsList.length;
-  const remainingCount = totalQ - (currentIndex + 1);
+
 
   // Calculate overall completion based on answered questions
   const answeredCount = Object.values(responses).filter((r) => r && r.trim().length > 0).length;
@@ -219,6 +256,7 @@ export default function MockInterviewSession() {
             </span>
           </div>
 
+          {interviewMode === 'text' ? (
           <div className="textarea-wrapper">
             <textarea
               className="response-textarea"
@@ -228,6 +266,49 @@ export default function MockInterviewSession() {
               rows={10}
             />
           </div>
+          ) : (
+          <div className="voice-interaction-wrapper">
+            <div className="bot-avatar-area">
+              <div className={`bot-avatar ${isBotSpeaking ? 'speaking' : ''}`}>
+                <Mic className="bot-mic-icon" size={36} />
+              </div>
+              <div className="bot-status">
+                {isBotSpeaking ? 'Bot is asking the question...' : 'Listening...'}
+              </div>
+            </div>
+            
+            <div className="candidate-voice-area">
+              <button 
+                type="button"
+                className={`record-btn ${isRecording ? 'recording' : ''}`}
+                onClick={() => setIsRecording(!isRecording)}
+                disabled={isBotSpeaking}
+              >
+                <Mic size={22} />
+                {isRecording ? 'Stop Recording' : 'Start Recording'}
+              </button>
+              
+              <div className="transcript-box">
+                {isRecording && (
+                  <div className="recording-wave">
+                    <span className="wave-bar"></span>
+                    <span className="wave-bar"></span>
+                    <span className="wave-bar"></span>
+                    <span className="wave-bar"></span>
+                    <span className="wave-bar"></span>
+                  </div>
+                )}
+                <textarea
+                  className="transcript-textarea"
+                  placeholder="Your spoken words will appear here as you speak..."
+                  value={responses[currentIndex] || ''}
+                  onChange={(e) => handleResponseChange(e.target.value)}
+                  rows={4}
+                />
+              </div>
+            </div>
+          </div>
+          )}
 
           <div className="card-footer-controls">
             <div className="completion-progress-group">

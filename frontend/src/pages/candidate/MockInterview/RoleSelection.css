@@ -551,3 +551,34 @@
   cursor: not-allowed;
 }
 
+/* ── Job Description Step ── */
+.jd-textarea-container {
+  margin-top: 24px;
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.jd-textarea-container:focus-within {
+  border-color: #FFC107;
+}
+
+.jd-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+  resize: vertical;
+  min-height: 200px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.jd-textarea::placeholder {
+  color: #666;
+}
+

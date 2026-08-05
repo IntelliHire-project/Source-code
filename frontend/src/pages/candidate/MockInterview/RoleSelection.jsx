@@ -72,6 +72,9 @@ export default function MockInterviewRoleSelection() {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const categoryDropdownRef = useRef(null);
 
+  const [step, setStep] = useState(1);
+  const [jobDescription, setJobDescription] = useState('');
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
@@ -114,17 +117,30 @@ export default function MockInterviewRoleSelection() {
   };
 
   const handleContinue = () => {
-    navigate('/candidate/mock-interviews/questions', {
-      state: { roleId: selectedRole, roleTitle: currentRole?.title }
-    });
+    if (step === 1) {
+      setStep(2);
+    } else {
+      navigate('/candidate/mock-interviews/questions', {
+        state: { 
+          roleId: selectedRole, 
+          roleTitle: currentRole?.title,
+          jobDescription: jobDescription
+        }
+      });
+    }
   };
 
   const handleBack = () => {
-    navigate('/candidate/dashboard');
+    if (step === 2) {
+      setStep(1);
+    } else {
+      navigate('/candidate/dashboard');
+    }
   };
 
   return (
     <div className="role-selection-container">
+      {step === 1 ? (
       <div className="role-selection-content">
         <div className="ai-badge">AI Powered Interviews</div>
         <h1 className="page-title">Select Job Role</h1>
@@ -211,6 +227,23 @@ export default function MockInterviewRoleSelection() {
           </div>
         </div>
       </div>
+      ) : (
+      <div className="role-selection-content">
+        <div className="ai-badge">Tailored Questions</div>
+        <h1 className="page-title">Provide a Job Description</h1>
+        <p className="page-subtitle">
+          Paste a specific job description below. Our AI will analyze it to generate highly relevant, targeted interview questions.
+        </p>
+        <div className="jd-textarea-container">
+          <textarea
+            className="jd-textarea"
+            placeholder="Paste job description here (Optional)..."
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+          />
+        </div>
+      </div>
+      )}
 
       <div className="bottom-action-bar">
         <button type="button" className="back-btn" onClick={handleBack}>&larr; Back</button>
