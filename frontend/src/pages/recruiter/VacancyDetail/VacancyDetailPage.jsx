@@ -23,11 +23,22 @@ import {
   Pencil,
   Copy,
   X,
+  User,
+  Mail,
+  Phone,
+  Download,
+  Building,
+  CheckCircle,
+  ChevronDown,
+  Search,
+  Filter,
+  ChevronRight,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import StatusBadge from '../../../components/common/StatusBadge';
 import DropdownMenu from '../../../components/common/DropdownMenu';
+import CandidateInterviewAllocationPage from '../InterviewAllocation/CandidateInterviewAllocation';
 import { VACANCIES } from '../../../data/vacancies';
 import {
   getApplicants,
@@ -389,6 +400,8 @@ function ShortlistTab({ vacancy, scheduledIds, onSchedule }) {
    Tab: Interview Schedule
    ───────────────────────────────────────────────────────────── */
 function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
+  const navigate = useNavigate();
+  const interviews = [...extraInterviews, ...(vacancy.interviews || [])];
   const interviews = [...extraInterviews, ...getInterviews(vacancy.id)];
   const [showForm, setShowForm] = useState(false);
   const [candidate, setCandidate] = useState('');
@@ -407,7 +420,7 @@ function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
         <button
           type="button"
           className="vd-primary-btn"
-          onClick={() => setShowForm(true)}
+          onClick={() => navigate('/recruiter/interviews', { state: { selectedVacancy: vacancy.title, openForm: true } })}
         >
           <CalendarPlus size={15} /> Schedule New Interview
         </button>
@@ -421,7 +434,7 @@ function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
         <button
           type="button"
           className="vd-primary-btn"
-          onClick={() => setShowForm((prev) => !prev)}
+          onClick={() => navigate('/recruiter/interviews', { state: { selectedVacancy: vacancy.title, openForm: true } })}
         >
           <CalendarPlus size={15} /> Schedule New Interview
         </button>
@@ -1030,11 +1043,7 @@ export default function VacancyDetailPage() {
                   />
                 )}
                 {activeTab === 'interviews' && (
-                  <InterviewScheduleTab
-                    vacancy={vacancy}
-                    extraInterviews={extraInterviews}
-                    onAddInterview={handleAddInterview}
-                  />
+                  <CandidateInterviewAllocationPage embeddedVacancy={vacancy} />
                 )}
                 {activeTab === 'attendees' && <AttendeesTab vacancy={vacancy} />}
                 {activeTab === 'admin' && <AdminReviewTab vacancy={vacancy} />}

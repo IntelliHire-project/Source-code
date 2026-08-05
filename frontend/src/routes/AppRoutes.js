@@ -7,7 +7,7 @@ import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
 import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
-import InterviewEvaluationPage from '../pages/recruiter/InterviewEvaluation/InterviewEvaluation';
+
 import CommunityPage, {
   CommunityProfilePage,
   CreateDiscussionPage,
@@ -163,7 +163,7 @@ function AppRoutes() {
         <Route path="/recruiter/interviews/allocation" element={<CandidateInterviewAllocation />} />
         <Route path="/recruiter/interviews/invitations" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
         <Route path="/recruiter/interviews/communication" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
-        <Route path="/recruiter/interviews/evaluation" element={<InterviewEvaluationPage />} />
+
         <Route path="/recruiter/signin" element={<SignInPage />} />
         <Route path="/admin/signin" element={<AdminSignInPage />} />
         <Route path="/candidate" element={<CandidateDashboard />}>
