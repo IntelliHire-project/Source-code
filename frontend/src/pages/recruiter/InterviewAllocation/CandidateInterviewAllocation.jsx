@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  ExternalLink,
   RotateCcw,
   Save,
   Search,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { INTERVIEWS } from '../../../data/interviews';
 import '../../../style.css';
 import './CandidateInterviewAllocation.css';
 
@@ -318,7 +320,31 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
   // Save Allocations
   const handleSaveAllocations = () => {
-    showToast('Interview allocations saved successfully!');
+    const vId = embeddedVacancy?.id || 'VAC-001';
+    allocations.forEach((alloc) => {
+      if (alloc.status === 'ALLOCATED') {
+        const existingIdx = INTERVIEWS.findIndex(
+          (item) => item.vacancyId === vId && item.candidateName === alloc.candidateName
+        );
+        const record = {
+          id: `${vId}-${alloc.candidateId}`,
+          vacancyId: vId,
+          candidateName: alloc.candidateName,
+          date: alloc.interviewDate,
+          time: alloc.assignedTime,
+          round: interviewRound || 'Round 1',
+          status: 'scheduled',
+          interviewer: 'Interview Panel',
+          location: alloc.interviewType === 'Physical' ? 'Office — Room 1A' : 'Google Meet',
+        };
+        if (existingIdx >= 0) {
+          INTERVIEWS[existingIdx] = record;
+        } else {
+          INTERVIEWS.push(record);
+        }
+      }
+    });
+    showToast('Interview allocations saved and synced to schedule!');
   };
 
   // Filtered Allocations for display
@@ -447,19 +473,49 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
           </div>
         </div>
 
-        {/* Schedule New Interview Button (Inline, compact) */}
-        <button
-          type="button"
-          className="btn-primary-accent btn-schedule-inline"
-          onClick={() =>
-            navigate('/recruiter/interviews', {
-              state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
-            })
-          }
-        >
-          <CalendarPlus size={16} />
-          <span>Schedule New Interview</span>
-        </button>
+        {/* Action Buttons Group (Google Calendar + Schedule New Interview) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <a
+            href="https://calendar.google.com/calendar/r"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-schedule-inline"
+            title="Open Google Calendar in a new tab"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0 16px',
+              height: '42px',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
+              fontWeight: 600,
+              backgroundColor: '#1E222D',
+              border: '1px solid #2A2C38',
+              color: '#4285F4',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              boxShadow: 'none',
+            }}
+          >
+            <Calendar size={15} style={{ color: '#4285F4' }} />
+            <span>Google Calendar Sync</span>
+            <ExternalLink size={13} style={{ color: '#9599A6' }} />
+          </a>
+
+          <button
+            type="button"
+            className="btn-primary-accent btn-schedule-inline"
+            onClick={() =>
+              navigate('/recruiter/interviews', {
+                state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
+              })
+            }
+          >
+            <CalendarPlus size={16} />
+            <span>Schedule New Interview</span>
+          </button>
+        </div>
       </div>
 
           {/* ── Dual Workspace Grid: Shortlisted Candidates | Action Buttons | Available Time Slots ── */}
