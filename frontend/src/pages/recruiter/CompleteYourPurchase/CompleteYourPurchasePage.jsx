@@ -160,7 +160,6 @@ function CompleteYourPurchasePage() {
           searchPlaceholder="Search..."
           onSearch={(q) => console.log('Search:', q)}
           onNotificationClick={() => console.log('Notifications clicked')}
-          onLogout={() => console.log('Logout')}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 

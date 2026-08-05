@@ -36,7 +36,6 @@ function CandidateDashboard() {
             onSearch={(q) => console.log('Search:', q)}
             onNotificationClick={() => console.log('Notifications clicked')}
             onProfileClick={() => navigate('/candidate/profile')}
-            onLogout={() => console.log('Logout')}
             onHamburgerClick={() => setSidebarOpen(true)}
             breadcrumbItems={[{ label: pageLabel }]}
           />
