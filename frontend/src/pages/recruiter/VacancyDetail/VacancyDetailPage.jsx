@@ -401,7 +401,6 @@ function ShortlistTab({ vacancy, scheduledIds, onSchedule }) {
    ───────────────────────────────────────────────────────────── */
 function InterviewScheduleTab({ vacancy, extraInterviews, onAddInterview }) {
   const navigate = useNavigate();
-  const interviews = [...extraInterviews, ...(vacancy.interviews || [])];
   const interviews = [...extraInterviews, ...getInterviews(vacancy.id)];
   const [showForm, setShowForm] = useState(false);
   const [candidate, setCandidate] = useState('');
