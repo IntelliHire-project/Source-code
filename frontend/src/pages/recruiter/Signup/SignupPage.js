@@ -83,7 +83,7 @@ function RecruiterSignupPage() {
     setLoading(true);
     try {
       // Integration with existing signup method (sending contactName as fullName)
-      await signup(
+      const data = await signup(
         formData.contactName,
         formData.email,
         formData.phone,
