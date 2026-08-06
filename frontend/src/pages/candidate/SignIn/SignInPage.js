@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../../hooks/useAuth';
 import Layout from '../../../components/common/Layout';
 import { roleHomePath } from '../../../utils/roleRoutes';
+import { resendVerification } from '../../../api/authApi';
 import '../../../App.css';
 
 /**
@@ -18,6 +19,9 @@ function SignInPage() {
   
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState('');
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [devVerificationUrl, setDevVerificationUrl] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -33,6 +37,8 @@ function SignInPage() {
     event.preventDefault();
     setStatusMessage('');
     setStatusType('');
+    setUnverifiedEmail('');
+    setDevVerificationUrl('');
 
     try {
       const data = await login(formData.email, formData.password);
@@ -43,9 +49,35 @@ function SignInPage() {
         navigate(roleHomePath(data.user?.role));
       }, 1200);
     } catch (error) {
+      const status = error.response?.status;
       const message = error.response?.data?.message || error.message || 'Unable to sign in.';
       setStatusType('error');
       setStatusMessage(message);
+      if (status === 403) {
+        setUnverifiedEmail(formData.email);
+      }
+    }
+  };
+
+  const handleResend = async () => {
+    if (!unverifiedEmail || resending) return;
+    setResending(true);
+    setStatusMessage('');
+    setStatusType('');
+    setDevVerificationUrl('');
+    try {
+      const data = await resendVerification(unverifiedEmail);
+      setStatusType('success');
+      setStatusMessage(data.message || 'A new verification link has been sent to your email.');
+      if (data.devVerificationUrl) {
+        setDevVerificationUrl(data.devVerificationUrl);
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || 'Unable to resend verification email.';
+      setStatusType('error');
+      setStatusMessage(message);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -206,6 +238,30 @@ function SignInPage() {
                   <p className={`form-status ${statusType}`} role="status" aria-live="polite">
                     {statusMessage}
                   </p>
+                )}
+
+                {/* Resend verification link (shown when the account is not yet verified) */}
+                {unverifiedEmail && (
+                  <button
+                    type="button"
+                    className="auth-resend-btn"
+                    onClick={handleResend}
+                    disabled={resending}
+                    style={{ marginBottom: '12px' }}
+                  >
+                    {resending ? 'Sending...' : 'Resend verification email'}
+                  </button>
+                )}
+
+                {/* Dev-only: direct verification link returned by the backend */}
+                {devVerificationUrl && (
+                  <a
+                    href={devVerificationUrl}
+                    className="auth-submit-btn"
+                    style={{ textAlign: 'center', textDecoration: 'none', marginBottom: '12px' }}
+                  >
+                    <span>Open Verification Link</span>
+                  </a>
                 )}
 
                 {/* Submit Button */}

@@ -11,4 +11,10 @@ module.exports = {
   demoCandidatePassword: process.env.DEMO_CANDIDATE_PASSWORD,
   demoRecruiterEmail: process.env.DEMO_RECRUITER_EMAIL,
   demoRecruiterPassword: process.env.DEMO_RECRUITER_PASSWORD,
+  appUrl: process.env.APP_URL,
+  smtpHost: process.env.SMTP_HOST,
+  smtpPort: process.env.SMTP_PORT,
+  smtpUser: process.env.SMTP_USER,
+  smtpPass: process.env.SMTP_PASS,
+  mailFrom: process.env.MAIL_FROM,
 };

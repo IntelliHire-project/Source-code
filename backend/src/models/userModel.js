@@ -24,12 +24,56 @@ const createUser = async (fullName, email, passwordHash, role = "candidate") => 
  */
 const findUserByEmail = async (email) => {
   const result = await db.query(
-    `SELECT id, full_name, email, password_hash, role, created_at
+    `SELECT id, full_name, email, password_hash, role, email_verified, created_at
      FROM users
      WHERE email = $1`,
     [email]
   );
   return result.rows[0] || null;
+};
+
+/**
+ * Finds a user by their (hashed) verification token that has not expired.
+ * @param {string} tokenHash - SHA-256 hash of the verification token
+ * @returns {Promise<object|null>} User record or null if not found
+ */
+const findUserByVerificationToken = async (tokenHash) => {
+  const result = await db.query(
+    `SELECT id, full_name, email, role, email_verified
+     FROM users
+     WHERE verification_token = $1
+       AND verification_token_expires_at > NOW()`,
+    [tokenHash]
+  );
+  return result.rows[0] || null;
+};
+
+/**
+ * Stores a new verification token for a user.
+ * @param {number} userId 
+ * @param {string} tokenHash - SHA-256 hash of the verification token
+ * @param {Date} expiresAt - Expiry timestamp
+ */
+const setVerificationToken = async (userId, tokenHash, expiresAt) => {
+  await db.query(
+    `UPDATE users
+     SET verification_token = $2, verification_token_expires_at = $3
+     WHERE id = $1`,
+    [userId, tokenHash, expiresAt]
+  );
+};
+
+/**
+ * Marks a user's email as verified and clears the verification token.
+ * @param {number} userId 
+ */
+const markEmailVerified = async (userId) => {
+  await db.query(
+    `UPDATE users
+     SET email_verified = true, verification_token = NULL, verification_token_expires_at = NULL
+     WHERE id = $1`,
+    [userId]
+  );
 };
 
 /**
@@ -65,4 +109,7 @@ module.exports = {
   findUserByEmail,
   findUserById,
   findAllUsers,
+  findUserByVerificationToken,
+  setVerificationToken,
+  markEmailVerified,
 };

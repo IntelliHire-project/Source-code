@@ -2,10 +2,36 @@ const userModel = require("../models/userModel");
 const { hashPassword, verifyPassword } = require("../utils/password");
 const { successResponse, errorResponse } = require("../utils/response");
 const { signToken } = require("../services/tokenService");
+const { sendVerificationEmail } = require("../services/mailService");
+const {
+  generateVerificationToken,
+  hashToken,
+  TOKEN_TTL_MS,
+} = require("../utils/verificationToken");
 
 const normalizeEmail = email => email.trim().toLowerCase();
 
 const PUBLIC_ROLES = ["candidate", "recruiter"];
+
+/**
+ * Issues a verification token for a user and emails it to them.
+ * @param {object} user - User record (must have id, email, full_name)
+ * @returns {Promise<{devVerificationUrl?: string}>} Dev-only verification URL
+ */
+const issueVerification = async user => {
+  const token = generateVerificationToken();
+  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+
+  await userModel.setVerificationToken(user.id, hashToken(token), expiresAt);
+
+  const result = await sendVerificationEmail({
+    to: user.email,
+    fullName: user.full_name,
+    token,
+  });
+
+  return { devVerificationUrl: result.verificationUrl };
+};
 
 const createAccount = async (req, res, next) => {
   try {
@@ -43,7 +69,20 @@ const createAccount = async (req, res, next) => {
 
     const createdUser = await userModel.createUser(fullName, emailAddress, passwordHash, requestedRole);
 
-    return successResponse(res, "Account created successfully.", { user: createdUser }, 201);
+    let devVerificationUrl;
+    try {
+      const verification = await issueVerification(createdUser);
+      devVerificationUrl = verification.devVerificationUrl;
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+    }
+
+    return successResponse(
+      res,
+      "Account created successfully. Please verify your email to sign in.",
+      { user: createdUser, ...(devVerificationUrl ? { devVerificationUrl } : {}) },
+      201
+    );
   } catch (error) {
     next(error);
   }
@@ -64,6 +103,10 @@ const login = async (req, res, next) => {
 
     if (!user || !verifyPassword(password, user.password_hash)) {
       return errorResponse(res, "Invalid email or password.", 401);
+    }
+
+    if (!user.email_verified) {
+      return errorResponse(res, "Please verify your email before signing in.", 403);
     }
 
     const token = signToken({
@@ -87,7 +130,63 @@ const login = async (req, res, next) => {
   }
 };
 
+const verifyEmail = async (req, res, next) => {
+  try {
+    const token = (req.query.token || "").trim();
+
+    if (!token) {
+      return errorResponse(res, "Verification token is missing.", 400);
+    }
+
+    const tokenHash = hashToken(token);
+    const user = await userModel.findUserByVerificationToken(tokenHash);
+
+    if (!user) {
+      return errorResponse(res, "Verification token is invalid or has expired. Please request a new one.", 400);
+    }
+
+    await userModel.markEmailVerified(user.id);
+
+    return successResponse(res, "Email verified successfully. You can now sign in.");
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resendVerification = async (req, res, next) => {
+  try {
+    const emailAddress = normalizeEmail(req.body.email || "");
+
+    if (!emailAddress) {
+      return errorResponse(res, "Email is required.", 400);
+    }
+
+    const user = await userModel.findUserByEmail(emailAddress);
+
+    // Do not reveal whether an account exists for the given email.
+    if (!user || user.email_verified) {
+      return successResponse(res, "If an unverified account exists for that email, a new verification link has been sent.");
+    }
+
+    let devVerificationUrl;
+    try {
+      const verification = await issueVerification(user);
+      devVerificationUrl = verification.devVerificationUrl;
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+    }
+
+    return successResponse(res, "A new verification link has been sent to your email.", {
+      ...(devVerificationUrl ? { devVerificationUrl } : {}),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAccount,
   login,
+  verifyEmail,
+  resendVerification,
 };

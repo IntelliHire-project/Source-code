@@ -149,9 +149,11 @@ function SignupPage() {
       });
       setCvFile(null);
 
-      // Redirect to dashboard (or signin) after successful registration
+      // Redirect to the email verification step after successful registration
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/verify-email-sent', {
+          state: { email: formData.email, devVerificationUrl: data.devVerificationUrl },
+        });
       }, 1500);
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Unable to create account.';

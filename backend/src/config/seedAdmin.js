@@ -9,15 +9,15 @@ const seedUserIfMissing = async ({ email, password, role, fullName }) => {
   const emailAddress = email.trim().toLowerCase();
 
   const existing = await pool.query(
-    "SELECT id, role FROM users WHERE email = $1",
+    "SELECT id, role, email_verified FROM users WHERE email = $1",
     [emailAddress]
   );
 
   if (existing.rows.length === 0) {
     const passwordHash = hashPassword(password);
     await pool.query(
-      `INSERT INTO users (full_name, email, password_hash, role, created_at)
-       VALUES ($1, $2, $3, $4, NOW())`,
+      `INSERT INTO users (full_name, email, password_hash, role, email_verified, created_at)
+       VALUES ($1, $2, $3, $4, true, NOW())`,
       [fullName, emailAddress, passwordHash, role]
     );
     console.log(`Seeded ${role} account: ${emailAddress}`);
@@ -27,6 +27,14 @@ const seedUserIfMissing = async ({ email, password, role, fullName }) => {
   if (role === "admin" && existing.rows[0].role !== "admin") {
     await pool.query("UPDATE users SET role = $1 WHERE email = $2", ["admin", emailAddress]);
     console.log(`Promoted existing account to admin: ${emailAddress}`);
+  }
+
+  if (!existing.rows[0].email_verified) {
+    await pool.query(
+      "UPDATE users SET email_verified = true WHERE email = $1",
+      [emailAddress]
+    );
+    console.log(`Marked ${role} account as verified: ${emailAddress}`);
   }
 };
 
@@ -45,6 +53,9 @@ const seedAdmin = async () => {
         role: "admin",
         fullName: "System Administrator",
       });
+    } else {
+      await pool.query("UPDATE users SET email_verified = true WHERE role = 'admin'");
+      console.log("Marked admin account as verified");
     }
   }
 

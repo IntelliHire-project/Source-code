@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/landingpage/LandingPage';
 import SignupPage from '../pages/candidate/Signup/SignupPage';
 import SignInPage from '../pages/candidate/SignIn/SignInPage';
+import VerifyEmailPage from '../pages/candidate/VerifyEmail/VerifyEmailPage';
+import VerifyEmailSentPage from '../pages/candidate/VerifyEmailSent/VerifyEmailSentPage';
 import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
@@ -161,6 +163,8 @@ function AppRoutes() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signin" element={<SignInPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/verify-email-sent" element={<VerifyEmailSentPage />} />
         <Route path="/recruiter/signup" element={<RecruiterSignupPage />} />
         <Route path="/recruiter/pending-approval" element={<RecruiterPendingApprovalPage />} />
         <Route path="/recruiter/interviews" element={<RecruiterProtected><RecruiterInterviewTimeSlotManagement /></RecruiterProtected>} />

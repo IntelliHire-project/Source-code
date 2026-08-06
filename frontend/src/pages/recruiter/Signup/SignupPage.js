@@ -106,9 +106,11 @@ function RecruiterSignupPage() {
         agreeTerms: false,
       });
 
-      // Redirect to pending approval after successful registration
+      // Redirect to the email verification step after successful registration
       setTimeout(() => {
-        navigate('/recruiter/pending-approval');
+        navigate('/verify-email-sent', {
+          state: { email: formData.email, devVerificationUrl: data.devVerificationUrl },
+        });
       }, 1500);
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Unable to register company.';
