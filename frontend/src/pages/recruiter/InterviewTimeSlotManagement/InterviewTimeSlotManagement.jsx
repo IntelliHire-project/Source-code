@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
+  ArrowLeft,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -575,6 +576,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
     }
   }, [jobPositions, positionFilter]);
 
+  useEffect(() => {
+    if (location.state?.editSlot) {
+      const slot = location.state.editSlot;
+      setActiveZohoType(location.state.activeZohoType || 'Log');
+      setEditingSlotId(slot.id || 'SLOT-101');
+      setShowInlineForm(true);
+      setFormData({
+        interviewDate: slot.dateKey || '2026-08-03',
+        meetingLocation: slot.location || 'Executive Boardroom 3B, 2nd Floor, HQ Building',
+        additionalNotes: 'Candidate demonstrated exceptional problem solving abilities, clean code architecture knowledge, and strong technical communication during the live session.',
+      });
+      setTimeout(() => {
+        const el = document.getElementById('intelli-inline-interview-form');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+    }
+  }, [location.state]);
+
   const handleFieldChange = event => {
     const { name, value } = event.target;
     setFormData(current => ({ ...current, [name]: value }));
@@ -745,23 +764,28 @@ function RecruiterInterviewTimeSlotManagementPage() {
       setSlots(current => [...createdSlots, ...current]);
       setPositionFilter(formData.jobPosition);
       setCurrentPage(1);
-      setMessage(`Successfully created ${createdSlots.length} interview time slots across ${panels.length} panel(s) & synced guest emails to Google Calendar!`);
 
-      // Automatically open Google Calendar event creation page in a new browser tab
-      if (panels.length > 0 && panels[0].slots.length > 0) {
-        const p1 = panels[0];
-        const s1 = p1.slots[0];
-        const gcalUrl = buildGoogleCalendarUrl({
-          title: `IntelliHire Interview: ${formData.customRoundName || formData.interviewRound} (${formData.jobPosition})`,
-          description: `INTELLIHIRE INTERVIEW DETAILS:\n  Job Position: ${formData.jobPosition}\n  Interview Round: ${formData.customRoundName || formData.interviewRound}\n  Platform / Media: ${formData.interviewMedia}\n  Panel: ${p1.name}\n  Emails: ${p1.emails}\n  Notes: ${formData.additionalNotes || 'N/A'}`,
-          dateStr: formData.interviewDate,
-          startTimeStr: s1.startTime,
-          endTimeStr: s1.endTime,
-          location: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? 'Google Meet Online' : 'Main Office Conference Room'),
-          addEmails: p1.emails,
-        });
+      if (activeZohoType === 'Log') {
+        setMessage(`Successfully logged ${createdSlots.length} past interview evaluation record(s)!`);
+      } else {
+        setMessage(`Successfully created ${createdSlots.length} interview time slots across ${panels.length} panel(s) & synced guest emails to Google Calendar!`);
 
-        window.open(gcalUrl, '_blank');
+        // Automatically open Google Calendar event creation page in a new browser tab for upcoming interviews
+        if (panels.length > 0 && panels[0].slots.length > 0) {
+          const p1 = panels[0];
+          const s1 = p1.slots[0];
+          const gcalUrl = buildGoogleCalendarUrl({
+            title: `IntelliHire Interview: ${formData.customRoundName || formData.interviewRound} (${formData.jobPosition})`,
+            description: `INTELLIHIRE INTERVIEW DETAILS:\n  Job Position: ${formData.jobPosition}\n  Interview Round: ${formData.customRoundName || formData.interviewRound}\n  Platform / Media: ${formData.interviewMedia}\n  Panel: ${p1.name}\n  Emails: ${p1.emails}\n  Notes: ${formData.additionalNotes || 'N/A'}`,
+            dateStr: formData.interviewDate,
+            startTimeStr: s1.startTime,
+            endTimeStr: s1.endTime,
+            location: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? 'Google Meet Online' : 'Main Office Conference Room'),
+            addEmails: p1.emails,
+          });
+
+          window.open(gcalUrl, '_blank');
+        }
       }
     }
 
@@ -806,24 +830,26 @@ function RecruiterInterviewTimeSlotManagementPage() {
         <div className="recruiter-content">
           <button
             type="button"
-            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/vacancies/VAC-001'))}
+            onClick={() => navigate('/recruiter/vacancies')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              backgroundColor: '#16171F',
-              border: '1px solid #2A2C38',
-              borderRadius: '8px',
-              color: '#F0B90B',
-              fontSize: '0.85rem',
+              gap: '8px',
+              background: 'none',
+              border: 'none',
+              padding: '0',
+              color: '#94A3B8',
+              fontSize: '0.98rem',
               fontWeight: 600,
               cursor: 'pointer',
-              marginBottom: '16px',
-              transition: 'all 0.2s ease',
+              marginBottom: '10px',
+              transition: 'color 0.2s ease',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#60A5FA')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#94A3B8')}
           >
-            <ChevronLeft size={16} /> Back to Active Vacancy
+            <ArrowLeft size={16} />
+            <span>Back to Vacancies</span>
           </button>
 
           {/* ── IntelliHire Interviews Hero Card (Rendered only when form is NOT active) ── */}
@@ -910,11 +936,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <style>{`
                 input[type="date"]::-webkit-calendar-picker-indicator,
                 input[type="time"]::-webkit-calendar-picker-indicator {
-                  filter: invert(82%) sepia(95%) saturate(2200%) hue-rotate(350deg) brightness(115%) contrast(105%) !important;
-                  cursor: pointer;
-                  opacity: 1;
-                  width: 18px;
-                  height: 18px;
+                  opacity: 0 !important;
+                  width: 32px !important;
+                  height: 100% !important;
+                  position: absolute !important;
+                  right: 0 !important;
+                  top: 0 !important;
+                  cursor: pointer !important;
+                  z-index: 2;
                 }
 
                 select.form-control, select {
@@ -990,8 +1019,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         value={formData.interviewDate}
                         onChange={handleFieldChange}
                         className="form-control"
-                        style={{ colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', width: '100%' }}
+                        style={{ colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', borderRadius: '8px', padding: '8px 32px 8px 12px', fontSize: '0.85rem', width: '100%' }}
                       />
+                      <CalendarDays size={16} style={{ position: 'absolute', right: '10px', color: '#F0B90B', pointerEvents: 'none' }} />
                     </div>
                   </div>
                 </div>
@@ -1008,30 +1038,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                       </p>
                     </div>
 
-                    {/* Right-aligned container with Rounds Count & Add Custom Round Name Tab */}
+                    {/* Right-aligned container with Add Custom Round Name on Top & Rounds Count Next Down */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <label style={{ fontSize: '0.78rem', color: '#9599A6', fontWeight: 600 }}>Rounds Count:</label>
-                        <select
-                          value={roundsCount}
-                          onChange={(e) => handleRoundsCountChange(e.target.value)}
-                          style={{
-                            backgroundColor: '#1E222D',
-                            color: '#FFFFFF',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          <option value={1}>1 Round</option>
-                          <option value={2}>2 Rounds</option>
-                          <option value={3}>3 Rounds</option>
-                          <option value={4}>4 Rounds</option>
-                          <option value={5}>5 Rounds</option>
-                        </select>
-                      </div>
-
                       {!showCustomInput ? (
                         <button
                           type="button"
@@ -1081,6 +1089,28 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           </button>
                         </div>
                       )}
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <label style={{ fontSize: '0.78rem', color: '#9599A6', fontWeight: 600 }}>Rounds Count:</label>
+                        <select
+                          value={roundsCount}
+                          onChange={(e) => handleRoundsCountChange(e.target.value)}
+                          style={{
+                            backgroundColor: '#1E222D',
+                            color: '#FFFFFF',
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <option value={1}>1 Round</option>
+                          <option value={2}>2 Rounds</option>
+                          <option value={3}>3 Rounds</option>
+                          <option value={4}>4 Rounds</option>
+                          <option value={5}>5 Rounds</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
@@ -1110,15 +1140,17 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   </div>
                 </div>
 
-                {/* ── Section 3: Dynamic Panel Splitting & Time Slots Generator ── */}
+                {/* ── Section 3: Panel Assignments & Time Slots Generator ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                        3. PANEL ASSIGNMENTS &amp; DYNAMIC TIME SLOTS GENERATOR
+                        {activeZohoType === 'Log' ? '3. CONDUCTED SESSION PANEL & TIME SLOT' : '3. PANEL ASSIGNMENTS & DYNAMIC TIME SLOTS GENERATOR'}
                       </h4>
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
-                        Set candidate capacity per panel to auto-generate exact time slots &amp; sync panel emails to Google Calendar
+                        {activeZohoType === 'Log'
+                          ? 'Record panel member emails & the completed interview session time'
+                          : 'Set candidate capacity per panel to auto-generate exact time slots & sync panel emails to Google Calendar'}
                       </p>
                     </div>
                     <button
@@ -1153,15 +1185,41 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           className="form-control"
                           style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.88rem', maxWidth: '280px', padding: '5px 10px', backgroundColor: '#16171F', borderRadius: '6px' }}
                         />
-                        {panels.length > 1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <button
                             type="button"
-                            onClick={() => handleRemovePanel(p.id)}
-                            style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                            onClick={() => {
+                              const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [];
+                              emailArr.push('');
+                              handlePanelEmailChange(p.id, emailArr.join(', '));
+                            }}
+                            style={{
+                              backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                              color: '#F0B90B',
+                              border: '1px solid #F0B90B',
+                              borderRadius: '6px',
+                              padding: '4px 12px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
                           >
-                            Remove Panel
+                            <Plus size={13} style={{ color: '#F0B90B' }} />
+                            <span>Add Panel Member Email</span>
                           </button>
-                        )}
+                          {panels.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePanel(p.id)}
+                              style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                            >
+                              Remove Panel
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="form-grid-2" style={{ marginBottom: '12px' }}>
@@ -1196,32 +1254,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               )}
                             </div>
                           ))}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [];
-                              emailArr.push('');
-                              handlePanelEmailChange(p.id, emailArr.join(', '));
-                            }}
-                            style={{
-                              alignSelf: 'flex-start',
-                              backgroundColor: 'rgba(240, 185, 11, 0.12)',
-                              color: '#F0B90B',
-                              border: '1px solid #F0B90B',
-                              borderRadius: '6px',
-                              padding: '4px 10px',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              marginTop: '2px',
-                            }}
-                          >
-                            <Plus size={13} style={{ color: '#F0B90B' }} />
-                            <span>Add Panel Member Email</span>
-                          </button>
                         </div>
 
                         <div>
@@ -1244,7 +1276,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                           <div style={{ fontSize: '0.76rem', color: '#9599A6', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Clock size={15} style={{ color: '#F0B90B', stroke: '#F0B90B' }} />
-                            <span>MANUALLY CONFIGURED TIME SLOTS ({p.slots.length} SLOTS):</span>
+                            <span>{activeZohoType === 'Log' ? 'CONDUCTED TIME SLOT:' : `MANUALLY CONFIGURED TIME SLOTS (${p.slots.length} SLOTS):`}</span>
                           </div>
                           <button
                             type="button"
@@ -1286,21 +1318,27 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                 )}
                               </div>
                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                <input
-                                  type="time"
-                                  value={slot.startTime}
-                                  onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'startTime', e.target.value)}
-                                  className="form-control"
-                                  style={{ fontSize: '0.78rem', padding: '4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF' }}
-                                />
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+                                  <input
+                                    type="time"
+                                    value={slot.startTime}
+                                    onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'startTime', e.target.value)}
+                                    className="form-control"
+                                    style={{ fontSize: '0.78rem', padding: '4px 24px 4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', width: '100%' }}
+                                  />
+                                  <Clock size={13} style={{ position: 'absolute', right: '6px', color: '#F0B90B', pointerEvents: 'none' }} />
+                                </div>
                                 <span style={{ color: '#9599A6', fontSize: '0.78rem' }}>to</span>
-                                <input
-                                  type="time"
-                                  value={slot.endTime}
-                                  onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'endTime', e.target.value)}
-                                  className="form-control"
-                                  style={{ fontSize: '0.78rem', padding: '4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF' }}
-                                />
+                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+                                  <input
+                                    type="time"
+                                    value={slot.endTime}
+                                    onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'endTime', e.target.value)}
+                                    className="form-control"
+                                    style={{ fontSize: '0.78rem', padding: '4px 24px 4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', width: '100%' }}
+                                  />
+                                  <Clock size={13} style={{ position: 'absolute', right: '6px', color: '#F0B90B', pointerEvents: 'none' }} />
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -1313,7 +1351,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 {/* ── Section 4: Mode-Specific Venue / Link Details ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '18px' }}>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                    4. ADDITIONAL DETAILS &amp; VENUE
+                    {activeZohoType === 'Log' ? '4. PAST EVALUATION RATING & RECOMMENDATION' : '4. ADDITIONAL DETAILS & VENUE'}
                   </h4>
                   <div className="form-grid-2">
                     {activeZohoType === 'In-Person' ? (
@@ -1330,18 +1368,31 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         />
                       </div>
                     ) : activeZohoType === 'Log' ? (
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>CANDIDATE EVALUATION RATING</label>
-                        <div className="select-input-wrap">
-                          <select className="form-control" style={{ backgroundColor: '#1E222D', color: '#FFFFFF' }}>
-                            <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</option>
-                            <option value="4">⭐⭐⭐⭐ (4 Stars - Strong Hire)</option>
-                            <option value="3">⭐⭐⭐ (3 Stars - Average / Borderline)</option>
-                            <option value="2">⭐⭐ (2 Stars - Weak Candidate)</option>
-                            <option value="1">⭐ (1 Star - Reject)</option>
-                          </select>
+                      <>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>CANDIDATE EVALUATION RATING</label>
+                          <div className="select-input-wrap">
+                            <select className="form-control" style={{ backgroundColor: '#1E222D', color: '#FFFFFF' }}>
+                              <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</option>
+                              <option value="4">⭐⭐⭐⭐ (4 Stars - Strong Hire)</option>
+                              <option value="3">⭐⭐⭐ (3 Stars - Average / Borderline)</option>
+                              <option value="2">⭐⭐ (2 Stars - Weak Candidate)</option>
+                              <option value="1">⭐ (1 Star - Reject)</option>
+                            </select>
+                          </div>
                         </div>
-                      </div>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>FINAL HIRING DECISION RECOMMENDATION</label>
+                          <div className="select-input-wrap">
+                            <select className="form-control" style={{ backgroundColor: '#1E222D', color: '#FFFFFF' }}>
+                              <option value="NEXT_ROUND">✅ Recommended for Next Round</option>
+                              <option value="HIRED">🎉 Direct Hire Recommendation</option>
+                              <option value="HOLD">⏳ Hold / Under Further Review</option>
+                              <option value="REJECTED">❌ Not Recommended / Rejected</option>
+                            </select>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>AUTO-GENERATED MEETING LINK (GOOGLE MEET / TEAMS)</label>
@@ -1357,12 +1408,12 @@ function RecruiterInterviewTimeSlotManagementPage() {
                       </div>
                     )}
 
-                    <div className="form-group">
+                    <div className="form-group" style={{ gridColumn: activeZohoType === 'Log' ? 'span 2' : 'auto' }}>
                       <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>
                         {activeZohoType === 'In-Person'
                           ? 'SECURITY & BUILDING INSTRUCTIONS'
                           : (activeZohoType === 'Log'
-                              ? 'PANEL EVALUATION FEEDBACK NOTES'
+                              ? 'PANEL EVALUATION FEEDBACK NOTES & REMARKS'
                               : 'ADDITIONAL INSTRUCTIONS')}
                       </label>
                       <input
@@ -1372,7 +1423,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           activeZohoType === 'In-Person'
                             ? 'e.g. Show ID at main reception, visitor pass required...'
                             : (activeZohoType === 'Log'
-                                ? 'e.g. Strong problem solving skills, recommendation...'
+                                ? 'e.g. Excellent problem solving skills, strong technical depth...'
                                 : 'Instructions for panel members or candidates...')
                         }
                         value={formData.additionalNotes}
@@ -1387,7 +1438,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 {/* Form Buttons */}
                 <div className="form-actions-row" style={{ marginTop: '24px' }}>
                   <button type="submit" className="btn-primary-accent" style={{ padding: '12px 24px' }}>
-                    <span>{editingSlotId ? 'Update Interview Slot' : 'Save & Sync Google Calendar'}</span>
+                    <span>
+                      {editingSlotId
+                        ? 'Update Interview Slot'
+                        : (activeZohoType === 'Log' ? 'Save Logged Interview' : 'Save & Sync Google Calendar')}
+                    </span>
                   </button>
                   <button type="button" className="btn-ghost-dark" onClick={() => setShowInlineForm(false)}>
                     Cancel
@@ -1408,15 +1463,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
           )}
           {formError && (
             <div className="alert-toast alert-danger">
-              <span>{formError}</span>
               <button type="button" className="toast-close" onClick={() => setFormError('')}>
                 ×
               </button>
             </div>
           )}
-
-
-
 
 
           {/* Footer Branding */}

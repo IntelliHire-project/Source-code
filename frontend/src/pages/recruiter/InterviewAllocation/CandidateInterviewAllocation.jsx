@@ -82,6 +82,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [reschedulingAllocation, setReschedulingAllocation] = useState(null);
   const [rescheduleSlotId, setRescheduleSlotId] = useState('');
+  const [viewingSlotModal, setViewingSlotModal] = useState(null);
   const itemsPerPage = 4;
 
   // Header Navigation Active Tab State
@@ -913,6 +914,245 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
             </div>
           )}
         </div>
+
+        {/* ── Scheduled & Logged Time Slots Table Card (Exact Replica of Image 2) ── */}
+        <div className="an-table-section" style={{ marginTop: '28px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '14px', overflow: 'hidden' }}>
+          <div className="an-section-header" style={{ padding: '18px 24px', borderBottom: '1px solid #2A2C38', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#16171F' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="an-chart-gold-bar" style={{ width: '3.5px', height: '16px', backgroundColor: '#F0B90B', borderRadius: '2px', display: 'inline-block' }} />
+              <span className="an-section-title" style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#FFFFFF' }}>
+                INTERVIEW STAGE &amp; ALLOCATION TRACKING
+              </span>
+            </div>
+
+            <div className="an-local-search" style={{ width: '220px', height: '36px', padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '8px', color: '#9599A6' }}>
+              <Search size={14} />
+              <input
+                type="search"
+                placeholder="Search slots..."
+                aria-label="Search scheduled and logged slots"
+                style={{ width: '100%', border: 0, outline: 0, background: 'transparent', color: '#FFFFFF', fontSize: '0.82rem' }}
+              />
+            </div>
+          </div>
+
+          <div className="an-table-wrap" style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="an-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#13141C', borderBottom: '1px solid #2A2C38' }}>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>CANDIDATE NAME / ROLE</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>INTERVIEW ROUND</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>SLOT ID</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>DATE &amp; TIME</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>TYPE</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>STATUS</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {INITIAL_SLOTS.slice(0, 5).map((slot, index) => {
+                  const isCompleted = index % 2 === 0;
+                  const candidate = INITIAL_CANDIDATES[index] || { name: 'Alice Fernando', jobPosition: 'Senior Software Engineer' };
+                  const slotIdFormatted = `#SLOT-10${index + 1}`;
+
+                  return (
+                    <tr key={slot.id || index} style={{ borderBottom: '1px solid #2A2C38', transition: 'background-color 0.15s ease' }}>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '0.9rem' }}>{candidate.name}</span>
+                          <span style={{ color: '#9599A6', fontSize: '0.78rem', fontWeight: 400 }}>{candidate.jobPosition}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                        <span style={{ display: 'inline-block', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 14px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                          {slot.round || 'Technical Interview'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace' }}>
+                        {slotIdFormatted}
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 500 }}>
+                        {slot.date} ({slot.time})
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontSize: '0.85rem' }}>
+                        {slot.type}
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 12px',
+                            borderRadius: '9999px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.03em',
+                            backgroundColor: isCompleted ? 'rgba(34, 197, 94, 0.12)' : 'rgba(240, 185, 11, 0.12)',
+                            color: isCompleted ? '#22C55E' : '#F0B90B',
+                            border: isCompleted ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid rgba(240, 185, 11, 0.25)',
+                          }}
+                        >
+                          {isCompleted && <CheckCircle2 size={12} />}
+                          <span>{isCompleted ? 'COMPLETED' : 'INTERVIEW SCHEDULED'}</span>
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right', verticalAlign: 'middle' }}>
+                        <button
+                          type="button"
+                          onClick={() => setViewingSlotModal(slot)}
+                          style={{
+                            backgroundColor: '#F0B90B',
+                            color: '#0D0E12',
+                            border: 'none',
+                            borderRadius: '9999px',
+                            padding: '6px 22px',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(240, 185, 11, 0.2)',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8C31D')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F0B90B')}
+                        >
+                          Manage
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls (Exact Match to Image 2) */}
+          <div className="an-pagination" style={{ padding: '16px 24px', borderTop: '1px solid #2A2C38', backgroundColor: '#16171F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="an-pagination-info" style={{ fontSize: '0.82rem', color: '#9599A6' }}>
+              Showing <strong style={{ color: '#FFFFFF' }}>1–5</strong> of <strong style={{ color: '#FFFFFF' }}>6</strong> records
+            </span>
+
+            <div className="an-pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                className="an-page-btn"
+                disabled
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#6E7079', display: 'grid', placeItems: 'center', cursor: 'not-allowed' }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                className="an-page-btn an-page-num is-active"
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#F0B90B', color: '#0D0E12', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                1
+              </button>
+              <button
+                type="button"
+                className="an-page-btn an-page-num"
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#FFFFFF', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                2
+              </button>
+              <button
+                type="button"
+                className="an-page-btn"
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#FFFFFF', display: 'grid', placeItems: 'center', cursor: 'pointer' }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+      {/* ── Modal: Manage / View Slot Details ── */}
+      {viewingSlotModal && (
+        <div className="allocation-modal-backdrop" onClick={() => setViewingSlotModal(null)}>
+          <div
+            className="allocation-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '580px', width: '92%', borderRadius: '16px', backgroundColor: '#16171F', border: '1px solid rgba(240, 185, 11, 0.3)', padding: '24px' }}
+          >
+            <div className="flex-between" style={{ paddingBottom: '16px', borderBottom: '1px solid #2A2C38', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '8px', height: '22px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  Interview Slot &amp; Evaluation Details
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingSlotModal(null)}
+                style={{ background: 'none', border: 'none', color: '#9599A6', fontSize: '1.4rem', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.88rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Interview Round:</span>
+                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>{viewingSlotModal.round || 'Technical Interview'} ({viewingSlotModal.type})</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Date &amp; Time:</span>
+                <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{viewingSlotModal.date} ({viewingSlotModal.time} - {viewingSlotModal.end || '10:00 AM'})</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Assigned Panel:</span>
+                <span style={{ color: '#F0B90B', fontWeight: 600 }}>Panel A (Technical Leads)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Evaluator Emails:</span>
+                <span style={{ color: '#9599A6', fontFamily: 'monospace', fontSize: '0.8rem' }}>saman.tech@company.com, nirosha.hr@company.com</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Evaluation Rating:</span>
+                <span style={{ color: '#F0B90B', fontWeight: 700 }}>⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Hiring Recommendation:</span>
+                <span style={{ color: '#22C55E', fontWeight: 700 }}>✅ Recommended for Next Round</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ color: '#9599A6', fontWeight: 600 }}>Panel Feedback Notes &amp; Remarks:</span>
+                <div style={{ backgroundColor: '#1E222D', padding: '12px', borderRadius: '8px', color: '#D1D5DB', fontSize: '0.84rem', fontStyle: 'italic', border: '1px solid #2A2C38' }}>
+                  "Candidate demonstrated exceptional problem solving abilities, clean code architecture knowledge, and strong technical communication during the live session."
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #2A2C38' }}>
+              <button
+                type="button"
+                className="btn-primary-accent"
+                style={{ flex: 1, padding: '11px 16px', fontWeight: 700, borderRadius: '8px', border: 'none', backgroundColor: '#F0B90B', color: '#0D0E12', cursor: 'pointer' }}
+                onClick={() => {
+                  const slotToEdit = viewingSlotModal;
+                  setViewingSlotModal(null);
+                  navigate('/recruiter/interviews', {
+                    state: {
+                      editSlot: slotToEdit,
+                      activeZohoType: 'Log'
+                    }
+                  });
+                }}
+              >
+                Edit Slot Settings
+              </button>
+              <button
+                type="button"
+                className="btn-ghost-dark"
+                style={{ padding: '11px 20px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: 'transparent', color: '#FFFFFF', cursor: 'pointer' }}
+                onClick={() => setViewingSlotModal(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingReallocation && (
         <div className="allocation-modal-backdrop" onClick={() => setPendingReallocation(null)}>
