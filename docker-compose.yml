@@ -40,6 +40,9 @@ services:
       - ./backend:/app
   client:
     stdin_open: true
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
