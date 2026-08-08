@@ -14,6 +14,7 @@ import {
   Calendar,
   FileText,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import {
   MOCK_CANDIDATES,
@@ -141,17 +142,7 @@ export default function ApplicantsSectionContent({ vacancy, candidates, setCandi
           />
         ) : (
           <>
-            <div className="ranked-header" style={{ marginTop: 0 }}>
-              <div>
-                <h2 className="ranked-header__title" style={{ fontSize: '1.5rem', marginBottom: '8px' }}>
-                  Applicant Analysis Engine
-                </h2>
-                <div className="ranked-header__meta">
-                  <span className="posted-time">
-                    <Clock size={15} /> Analyze and rank candidates based on AI matching
-                  </span>
-                </div>
-              </div>
+            <div className="ranked-header" style={{ marginTop: 0, justifyContent: 'flex-end' }}>
               <div className="ranked-header__actions">
                 <button
                   className="btn btn-primary"
@@ -197,7 +188,29 @@ export default function ApplicantsSectionContent({ vacancy, candidates, setCandi
                   </p>
                 </div>
 
-                <div className="filter-actions">
+                <div className="filter-actions" style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className="search-input-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', marginRight: '10px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '10px', color: 'var(--text-on-dark-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Search applicants..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      style={{
+                        padding: '8px 12px 8px 32px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-dark)',
+                        background: 'transparent',
+                        color: 'var(--text-on-dark)',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        width: '220px'
+                      }}
+                    />
+                  </div>
                   {activeTab === 'Shortlisted' && (
                     <>
                       <button
