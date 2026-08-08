@@ -550,6 +550,241 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
         </div>
       </div>
 
+          {/* ── Panel Details Section ── */}
+          <div className="card-surface" style={{ marginBottom: '24px' }}>
+            <div className="card-header-bar border-bottom-header">
+              <div className="card-title-group">
+                <span className="gold-indicator"></span>
+                <h2 className="card-title">Assigned Panel Details</h2>
+              </div>
+            </div>
+            <div style={{ padding: '24px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+              {/* Panel Info Card */}
+              <div style={{ flex: '1 1 calc(50% - 10px)', backgroundColor: '#13141C', padding: '20px', borderRadius: '12px', border: '1px solid #2A2C38' }}>
+                <h3 style={{ fontSize: '0.75rem', color: '#9599A6', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 700, letterSpacing: '0.05em' }}>Panel Information</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px dashed #2A2C38' }}>
+                    <span style={{ color: '#9599A6', fontSize: '0.82rem', fontWeight: 500 }}>Panel Name</span>
+                    <span style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>Panel A (Technical Leads)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px dashed #2A2C38' }}>
+                    <span style={{ color: '#9599A6', fontSize: '0.82rem', fontWeight: 500 }}>Meeting Type</span>
+                    <span className="type-tag" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 10px', fontSize: '0.7rem' }}>Google Meet</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#9599A6', fontSize: '0.82rem', fontWeight: 500 }}>Location / Link</span>
+                    <a href="#" style={{ color: '#F0B90B', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 600 }}>meet.google.com/xyz-123</a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Panel Members Card */}
+              <div style={{ flex: '1 1 calc(50% - 10px)', backgroundColor: '#13141C', padding: '20px', borderRadius: '12px', border: '1px solid #2A2C38' }}>
+                <h3 style={{ fontSize: '0.75rem', color: '#9599A6', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 700, letterSpacing: '0.05em' }}>Panel Members</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#16171F', padding: '12px', borderRadius: '8px', border: '1px solid #2A2C38' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>ST</div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Saman Tech</div>
+                      <div style={{ color: '#9599A6', fontSize: '0.72rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>saman.tech@company.com</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#16171F', padding: '12px', borderRadius: '8px', border: '1px solid #2A2C38' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>NH</div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Nirosha HR</div>
+                      <div style={{ color: '#9599A6', fontSize: '0.72rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>nirosha.hr@company.com</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Bottom Card: Allocation Results ── */}
+          <div className="card-surface results-card-section">
+            <div className="card-header-bar flex-between border-bottom-header">
+              <div className="card-title-group">
+                <span className="gold-indicator"></span>
+                <h2 className="card-title">Allocation Results</h2>
+              </div>
+
+              <div className="action-buttons-group">
+                <div className="allocation-results-search">
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search results..."
+                    aria-label="Search allocation results"
+                  />
+                </div>
+                <button type="button" className="btn-ghost-dark" onClick={() => setShowResetConfirm(true)}>
+                  <RotateCcw size={14} />
+                  <span>Reset</span>
+                </button>
+                <button type="button" className="btn-primary-accent" onClick={handleSaveAllocations}>
+                  <Save size={14} />
+                  <span>Save Allocation</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Results Table */}
+            <div className="table-responsive">
+              <table className="results-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '18%' }}>CANDIDATE NAME</th>
+                    <th style={{ width: '15%' }}>INTERVIEW ROUND</th>
+                    <th style={{ width: '12%' }}>PANEL NAME</th>
+                    <th style={{ width: '13%' }}>ASSIGNED TIME SLOT</th>
+                    <th style={{ width: '12%' }}>INTERVIEW DATE</th>
+                    <th style={{ width: '10%' }}>INTERVIEW TYPE</th>
+                    <th style={{ width: '12%' }}>ALLOCATION STATUS</th>
+                    <th style={{ width: '8%', textAlign: 'right' }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedAllocations.map((item) => (
+                    <tr key={item.candidateId}>
+                      <td className="font-bold cand-name-cell">{item.candidateName}</td>
+                      <td>
+                        <span className="type-tag" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                          {item.interviewRound || interviewRound}
+                        </span>
+                      </td>
+                      <td style={{ color: '#E0E1E6', fontSize: '0.85rem' }}>
+                        {item.panelName || 'Panel A'}
+                      </td>
+                      <td className="time-slot-cell">
+                        {item.assignedTime !== '—' && (
+                          <Clock3 size={14} />
+                        )}
+                        <span>{item.assignedTime}</span>
+                      </td>
+                      <td>{item.interviewDate}</td>
+                      <td>{item.interviewType}</td>
+                      <td>
+                        <span
+                          className={`status-result-badge ${
+                            item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'
+                          }`}
+                        >
+                          {item.status === 'ALLOCATED' ? (
+                            <>
+                              <CheckCircle2 size={12} />
+                              <span>ALLOCATED</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock3 size={12} />
+                              <span>PENDING</span>
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {item.status === 'ALLOCATED' && (
+                          <div className="result-row-actions">
+                            <button
+                              type="button"
+                              className="btn-reschedule-row"
+                              onClick={() => {
+                                setReschedulingAllocation(item);
+                                setRescheduleSlotId(item.slotId);
+                              }}
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-unassign-row"
+                              onClick={() => handleRemoveAllocation(item.candidateId)}
+                              title="Unassign this candidate"
+                            >
+                              Unassign
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="allocation-mobile-list results-mobile-list">
+              {paginatedAllocations.map((item) => (
+                <article className="allocation-result-mobile-card" key={`mobile-${item.candidateId}`}>
+                  <div>
+                    <strong>{item.candidateName}</strong>
+                    <span className={`status-result-badge ${item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <dl>
+                    <div><dt>Round</dt><dd>{item.interviewRound || interviewRound}</dd></div>
+                    <div><dt>Panel</dt><dd>{item.panelName || 'Panel A'}</dd></div>
+                    <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
+                    <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
+                    <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
+                  </dl>
+                  {item.status === 'ALLOCATED' && (
+                    <div className="result-row-actions">
+                      <button type="button" className="btn-reschedule-row" onClick={() => {
+                        setReschedulingAllocation(item);
+                        setRescheduleSlotId(item.slotId);
+                      }}>Reschedule</button>
+                      <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId)}>
+                        Unassign
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+
+            {/* Pagination Footer */}
+            {filteredAllocations.length > itemsPerPage && (
+              <div className="table-pagination-footer">
+              <span className="pagination-info">
+                Showing <strong>{paginatedAllocations.length}</strong> of <strong>{filteredAllocations.length}</strong> allocation results
+              </span>
+
+              <div className="pagination-controls">
+                <button
+                  type="button"
+                  className="page-nav-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  aria-label="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    className={`page-num-btn ${pageNum === currentPage ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="page-nav-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  aria-label="Next Page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
           {/* ── Dual Workspace Grid: Shortlisted Candidates | Action Buttons | Available Time Slots ── */}
           <div className="allocation-workspace-grid">
 
@@ -773,178 +1008,6 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
           </div>
 
-          {/* ── Bottom Card: Allocation Results ── */}
-          <div className="card-surface results-card-section">
-            <div className="card-header-bar flex-between border-bottom-header">
-              <div className="card-title-group">
-                <span className="gold-indicator"></span>
-                <h2 className="card-title">Allocation Results</h2>
-              </div>
-
-              <div className="action-buttons-group">
-                <div className="allocation-results-search">
-                  <Search size={15} />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search results..."
-                    aria-label="Search allocation results"
-                  />
-                </div>
-                <button type="button" className="btn-ghost-dark" onClick={() => setShowResetConfirm(true)}>
-                  <RotateCcw size={14} />
-                  <span>Reset</span>
-                </button>
-                <button type="button" className="btn-primary-accent" onClick={handleSaveAllocations}>
-                  <Save size={14} />
-                  <span>Save Allocation</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Results Table */}
-            <div className="table-responsive">
-              <table className="results-table">
-                <thead>
-                  <tr>
-                    <th>CANDIDATE NAME</th>
-                    <th>ASSIGNED TIME SLOT</th>
-                    <th>INTERVIEW DATE</th>
-                    <th>INTERVIEW TYPE</th>
-                    <th>ALLOCATION STATUS</th>
-                    <th style={{ textAlign: 'right' }}>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedAllocations.map((item) => (
-                    <tr key={item.candidateId}>
-                      <td className="font-bold cand-name-cell">{item.candidateName}</td>
-                      <td className="time-slot-cell">
-                        {item.assignedTime !== '—' && (
-                          <Clock3 size={14} />
-                        )}
-                        <span>{item.assignedTime}</span>
-                      </td>
-                      <td>{item.interviewDate}</td>
-                      <td>{item.interviewType}</td>
-                      <td>
-                        <span
-                          className={`status-result-badge ${
-                            item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'
-                          }`}
-                        >
-                          {item.status === 'ALLOCATED' ? (
-                            <>
-                              <CheckCircle2 size={12} />
-                              <span>ALLOCATED</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock3 size={12} />
-                              <span>PENDING</span>
-                            </>
-                          )}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {item.status === 'ALLOCATED' && (
-                          <div className="result-row-actions">
-                            <button
-                              type="button"
-                              className="btn-reschedule-row"
-                              onClick={() => {
-                                setReschedulingAllocation(item);
-                                setRescheduleSlotId(item.slotId);
-                              }}
-                            >
-                              Reschedule
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-unassign-row"
-                              onClick={() => handleRemoveAllocation(item.candidateId)}
-                              title="Unassign this candidate"
-                            >
-                              Unassign
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="allocation-mobile-list results-mobile-list">
-              {paginatedAllocations.map((item) => (
-                <article className="allocation-result-mobile-card" key={`mobile-${item.candidateId}`}>
-                  <div>
-                    <strong>{item.candidateName}</strong>
-                    <span className={`status-result-badge ${item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'}`}>
-                      {item.status}
-                    </span>
-                  </div>
-                  <dl>
-                    <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
-                    <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
-                    <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
-                  </dl>
-                  {item.status === 'ALLOCATED' && (
-                    <div className="result-row-actions">
-                      <button type="button" className="btn-reschedule-row" onClick={() => {
-                        setReschedulingAllocation(item);
-                        setRescheduleSlotId(item.slotId);
-                      }}>Reschedule</button>
-                      <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId)}>
-                        Unassign
-                      </button>
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-
-            {/* Pagination Footer */}
-            {filteredAllocations.length > itemsPerPage && (
-              <div className="table-pagination-footer">
-              <span className="pagination-info">
-                Showing <strong>{paginatedAllocations.length}</strong> of <strong>{filteredAllocations.length}</strong> allocation results
-              </span>
-
-              <div className="pagination-controls">
-                <button
-                  type="button"
-                  className="page-nav-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  aria-label="Previous Page"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                  <button
-                    key={pageNum}
-                    type="button"
-                    className={`page-num-btn ${pageNum === currentPage ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(pageNum)}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="page-nav-btn"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  aria-label="Next Page"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* ── Scheduled & Logged Time Slots Table Card (Exact Replica of Image 2) ── */}
         <div className="an-table-section" style={{ marginTop: '28px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '14px', overflow: 'hidden' }}>
