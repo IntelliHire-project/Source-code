@@ -66,6 +66,31 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const [interviewRound, setInterviewRound] = useState('Technical Interview');
   const [interviewDate, setInterviewDate] = useState('2026-08-03');
 
+  const [roundsCount, setRoundsCount] = useState(3);
+  const [roundTitles, setRoundTitles] = useState(['HR Screening', 'Technical / Live Coding', 'System Design Architecture']);
+
+  const handleRoundsCountChange = (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (val >= 1 && val <= 10) {
+      setRoundsCount(val);
+      setRoundTitles(prev => {
+        const newTitles = [...prev];
+        while (newTitles.length < val) newTitles.push('');
+        return newTitles;
+      });
+    } else if (e.target.value === '') {
+      setRoundsCount('');
+    }
+  };
+
+  const handleRoundTitleChange = (index, val) => {
+    setRoundTitles(prev => {
+      const newTitles = [...prev];
+      newTitles[index] = val;
+      return newTitles;
+    });
+  };
+
   const [candidates, setCandidates] = useState(() =>
     embeddedVacancy
       ? INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }))
@@ -413,8 +438,8 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       )}
 
       {/* ── Filter Controls Card ── */}
-      <div className="card-surface filter-card-row">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+      <div className="card-surface filter-card-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', flex: 1, minWidth: '60%' }}>
           {!embeddedVacancy && (
             <div className="filter-item">
               <label className="filter-item-label">
@@ -439,38 +464,44 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
             </div>
           )}
 
-          <div className="filter-item">
-            <label className="filter-item-label">
-              <Star size={14} />
-              <span>INTERVIEW ROUND</span>
-            </label>
-            <div className="select-input-wrap">
-              <select
-                value={interviewRound}
-                onChange={(e) => setInterviewRound(e.target.value)}
-                className="form-control"
-              >
-                <option value="Technical Interview">Technical Interview</option>
-                <option value="HR Screening">HR Screening</option>
-                <option value="HR Portfolio Review">HR Portfolio Review</option>
-                <option value="Technical Case Study">Technical Case Study</option>
-                <option value="Final Cultural Fit">Final Cultural Fit</option>
-              </select>
-              <span className="select-arrow">▼</span>
+          <div className="dynamic-rounds-pipeline" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minWidth: '350px' }}>
+            <div style={{ paddingRight: '140px' }}>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-on-dark, #fff)', margin: '0 0 4px 0' }}>
+                Set Up Interview Rounds for This Vacancy
+              </h3>
+              <p style={{ fontSize: '0.75rem', color: '#9599A6', margin: 0 }}>
+                Choose the number of interview rounds and select the type for each round.
+              </p>
             </div>
-          </div>
+            <div style={{ position: 'absolute', top: 0, right: 0, width: '120px' }}>
+              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', marginBottom: '6px', fontWeight: 600 }}>ROUNDS COUNT:</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="10" 
+                value={roundsCount} 
+                onChange={handleRoundsCountChange}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-dark, #2A2C38)', background: 'var(--bg-dark, #13151D)', color: 'var(--text-on-dark, #fff)', fontSize: '0.85rem', outline: 'none' }}
+              />
+            </div>
 
-          <div className="filter-item">
-            <label className="filter-item-label">
-              <CalendarDays size={14} />
-              <span>INTERVIEW DATE</span>
-            </label>
-            <input
-              type="date"
-              value={interviewDate}
-              onChange={(e) => setInterviewDate(e.target.value)}
-              className="form-control date-picker-input"
-            />
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {Array.from({ length: roundsCount || 0 }).map((_, idx) => (
+                <div key={idx} style={{ flex: '1 1 150px' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', marginBottom: '6px', fontWeight: 600 }}>
+                    ROUND {idx + 1} TITLE
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Add Round Name"
+                    value={roundTitles[idx] || ''} 
+                    onChange={(e) => handleRoundTitleChange(idx, e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-dark, #2A2C38)', background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-on-dark, #fff)', fontSize: '0.85rem', outline: 'none' }} 
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
