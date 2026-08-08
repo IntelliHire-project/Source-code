@@ -14,6 +14,7 @@ import {
   Calendar,
   FileText,
   Sparkles,
+  Search,
 } from 'lucide-react';
 import {
   MOCK_CANDIDATES,
@@ -36,6 +37,17 @@ export default function ApplicantsSectionContent({ vacancy, candidates, setCandi
   // Modal States for Interview Scheduling
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(null);
+
+  // Modal States for AI Matching
+  const [matchCriteria, setMatchCriteria] = useState({
+    skills: '',
+    experience: 'Any',
+    otherExperience: '',
+    education: 'Any',
+    otherEducation: '',
+    location: 'Any',
+    otherLocation: ''
+  });
 
   // Tab State: 'All Applicants', 'Ranked Candidates', 'Shortlisted'
   const [activeTab, setActiveTab] = useState(isShortlistMode ? 'Shortlisted' : 'Ranked Candidates');
@@ -141,17 +153,101 @@ export default function ApplicantsSectionContent({ vacancy, candidates, setCandi
           />
         ) : (
           <>
-            <div className="ranked-header" style={{ marginTop: 0 }}>
-              <div>
-                <h2 className="ranked-header__title" style={{ fontSize: '1.5rem', marginBottom: '8px' }}>
-                  Applicant Analysis Engine
-                </h2>
-                <div className="ranked-header__meta">
-                  <span className="posted-time">
-                    <Clock size={15} /> Analyze and rank candidates based on AI matching
-                  </span>
+            <div className="ranked-header" style={{ marginTop: 0, display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  placeholder="Required Skills (e.g. React, Node.js)"
+                  value={matchCriteria.skills}
+                  onChange={(e) => setMatchCriteria({ ...matchCriteria, skills: e.target.value })}
+                  style={{ width: '220px', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-dark)', background: 'transparent', color: 'var(--text-on-dark)', outline: 'none', fontSize: '0.85rem' }}
+                />
+                
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <select
+                    value={matchCriteria.experience}
+                    onChange={(e) => setMatchCriteria({ ...matchCriteria, experience: e.target.value })}
+                    style={{ width: '140px', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-dark)', background: 'transparent', color: 'var(--text-on-dark)', outline: 'none', fontSize: '0.85rem' }}
+                  >
+                    <option style={{ background: '#1c1c24' }} value="Any">Any Experience</option>
+                    <option style={{ background: '#1c1c24' }} value="Entry">Entry (0-2y)</option>
+                    <option style={{ background: '#1c1c24' }} value="Mid">Mid (3-5y)</option>
+                    <option style={{ background: '#1c1c24' }} value="Senior">Senior (5+y)</option>
+                    <option style={{ background: '#1c1c24' }} value="Other">Other...</option>
+                  </select>
+                  {matchCriteria.experience === 'Other' && (
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Specify..."
+                        value={matchCriteria.otherExperience}
+                        onChange={(e) => setMatchCriteria({ ...matchCriteria, otherExperience: e.target.value })}
+                        style={{ width: '130px', padding: '8px 24px 8px 12px', borderRadius: '6px', border: '1px solid var(--border-dark)', background: 'transparent', color: 'var(--text-on-dark)', outline: 'none', fontSize: '0.85rem' }}
+                      />
+                      <button type="button" onClick={() => setMatchCriteria({ ...matchCriteria, experience: 'Any', otherExperience: '' })} style={{ position: 'absolute', right: '6px', background: 'none', border: 'none', color: 'var(--text-on-dark-muted)', cursor: 'pointer', display: 'flex' }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <select
+                    value={matchCriteria.education}
+                    onChange={(e) => setMatchCriteria({ ...matchCriteria, education: e.target.value })}
+                    style={{ width: '140px', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-dark)', background: 'transparent', color: 'var(--text-on-dark)', outline: 'none', fontSize: '0.85rem' }}
+                  >
+                    <option style={{ background: '#1c1c24' }} value="Any">Any Education</option>
+                    <option style={{ background: '#1c1c24' }} value="Bachelor">Bachelor's</option>
+                    <option style={{ background: '#1c1c24' }} value="Master">Master's</option>
+                    <option style={{ background: '#1c1c24' }} value="PhD">PhD</option>
+                    <option style={{ background: '#1c1c24' }} value="Other">Other...</option>
+                  </select>
+                  {matchCriteria.education === 'Other' && (
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Specify..."
+                        value={matchCriteria.otherEducation}
+                        onChange={(e) => setMatchCriteria({ ...matchCriteria, otherEducation: e.target.value })}
+                        style={{ width: '130px', padding: '8px 24px 8px 12px', borderRadius: '6px', border: '1px solid var(--border-dark)', background: 'transparent', color: 'var(--text-on-dark)', outline: 'none', fontSize: '0.85rem' }}
+                      />
+                      <button type="button" onClick={() => setMatchCriteria({ ...matchCriteria, education: 'Any', otherEducation: '' })} style={{ position: 'absolute', right: '6px', background: 'none', border: 'none', color: 'var(--text-on-dark-muted)', cursor: 'pointer', display: 'flex' }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <select
+                    value={matchCriteria.location}
+                    onChange={(e) => setMatchCriteria({ ...matchCriteria, location: e.target.value })}
+                    style={{ width: '140px', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-dark)', background: 'transparent', color: 'var(--text-on-dark)', outline: 'none', fontSize: '0.85rem' }}
+                  >
+                    <option style={{ background: '#1c1c24' }} value="Any">Any Location</option>
+                    <option style={{ background: '#1c1c24' }} value="Remote">Remote</option>
+                    <option style={{ background: '#1c1c24' }} value="On-site">On-site</option>
+                    <option style={{ background: '#1c1c24' }} value="Hybrid">Hybrid</option>
+                    <option style={{ background: '#1c1c24' }} value="Other">Other...</option>
+                  </select>
+                  {matchCriteria.location === 'Other' && (
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Specify..."
+                        value={matchCriteria.otherLocation}
+                        onChange={(e) => setMatchCriteria({ ...matchCriteria, otherLocation: e.target.value })}
+                        style={{ width: '130px', padding: '8px 24px 8px 12px', borderRadius: '6px', border: '1px solid var(--border-dark)', background: 'transparent', color: 'var(--text-on-dark)', outline: 'none', fontSize: '0.85rem' }}
+                      />
+                      <button type="button" onClick={() => setMatchCriteria({ ...matchCriteria, location: 'Any', otherLocation: '' })} style={{ position: 'absolute', right: '6px', background: 'none', border: 'none', color: 'var(--text-on-dark-muted)', cursor: 'pointer', display: 'flex' }}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
+
               <div className="ranked-header__actions">
                 <button
                   className="btn btn-primary"
@@ -197,7 +293,29 @@ export default function ApplicantsSectionContent({ vacancy, candidates, setCandi
                   </p>
                 </div>
 
-                <div className="filter-actions">
+                <div className="filter-actions" style={{ display: 'flex', alignItems: 'center' }}>
+                  <div className="search-input-container" style={{ position: 'relative', display: 'flex', alignItems: 'center', marginRight: '10px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '10px', color: 'var(--text-on-dark-muted)' }} />
+                    <input
+                      type="text"
+                      placeholder="Search applicants..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      style={{
+                        padding: '8px 12px 8px 32px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-dark)',
+                        background: 'transparent',
+                        color: 'var(--text-on-dark)',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        width: '220px'
+                      }}
+                    />
+                  </div>
                   {activeTab === 'Shortlisted' && (
                     <>
                       <button
@@ -651,6 +769,7 @@ export default function ApplicantsSectionContent({ vacancy, candidates, setCandi
           </div>
         </div>
       )}
+
     </div>
   );
 }
