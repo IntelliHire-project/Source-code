@@ -444,6 +444,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
     if (!customRoundInput.trim()) return;
     setRoundTypes(prev => [...prev, customRoundInput.trim()]);
     setRoundsCount(prev => prev + 1);
+    setFormData(prev => ({ ...prev, interviewRound: customRoundInput.trim() }));
     setCustomRoundInput('');
     setShowCustomInput(false);
   };
@@ -1026,19 +1027,18 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   </div>
                 </div>
 
-                {/* ── Section 2: Dynamic Interview Rounds Pipeline ── */}
+                {/* ── Section 2: Select Interview Round ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                        2. DYNAMIC INTERVIEW ROUNDS PIPELINE
+                        2. SELECT INTERVIEW ROUND
                       </h4>
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
-                        Select total rounds for this hiring pipeline (e.g. 1, 2, 3, 4, 5) or add custom rounds
+                        Select the interview round you are scheduling for, or add a missing round.
                       </p>
                     </div>
 
-                    {/* Right-aligned container with Add Custom Round Name on Top & Rounds Count Next Down */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                       {!showCustomInput ? (
                         <button
@@ -1059,13 +1059,13 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           }}
                         >
                           <Plus size={14} style={{ color: '#F0B90B' }} />
-                          <span>Add Custom Round Name</span>
+                          <span>Add Missing Round</span>
                         </button>
                       ) : (
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <input
                             type="text"
-                            placeholder="Custom round name..."
+                            placeholder="New round name..."
                             value={customRoundInput}
                             onChange={(e) => setCustomRoundInput(e.target.value)}
                             className="form-control"
@@ -1089,54 +1089,32 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           </button>
                         </div>
                       )}
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <label style={{ fontSize: '0.78rem', color: '#9599A6', fontWeight: 600 }}>Rounds Count:</label>
-                        <select
-                          value={roundsCount}
-                          onChange={(e) => handleRoundsCountChange(e.target.value)}
-                          style={{
-                            backgroundColor: '#1E222D',
-                            color: '#FFFFFF',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          <option value={1}>1 Round</option>
-                          <option value={2}>2 Rounds</option>
-                          <option value={3}>3 Rounds</option>
-                          <option value={4}>4 Rounds</option>
-                          <option value={5}>5 Rounds</option>
-                        </select>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Dynamically Rendered Round Sections */}
-                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(roundsCount, 3)}, 1fr)`, gap: '12px' }}>
-                    {roundTypes.map((roundTitle, idx) => (
-                      <div key={idx} style={{ backgroundColor: '#1E222D', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                        <div style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.03em' }}>
-                          Round {idx + 1} Title
-                        </div>
-                        <select
-                          value={roundTitle}
-                          onChange={(e) => handleRoundTypeSelect(idx, e.target.value)}
-                          className="form-control"
-                          style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF' }}
-                        >
-                          <option value="HR Screening">HR Screening</option>
-                          <option value="Technical / Live Coding">Technical / Live Coding</option>
-                          <option value="System Design Architecture">System Design Architecture</option>
-                          <option value="Final Cultural Fit">Final Cultural Fit</option>
-                          <option value="Portfolio Review">Portfolio Review</option>
-                          <option value="Management Round">Management Round</option>
-                          <option value={roundTitle}>{roundTitle}</option>
-                        </select>
-                      </div>
-                    ))}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 1, backgroundColor: '#1E222D', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
+                      <label style={{ display: 'block', fontSize: '0.74rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.03em' }}>
+                        Selected Round
+                      </label>
+                      <select
+                        name="interviewRound"
+                        value={formData.interviewRound}
+                        onChange={handleFieldChange}
+                        className="form-control"
+                        style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF', width: '100%' }}
+                      >
+                        <option value="HR Screening">HR Screening</option>
+                        <option value="Technical / Live Coding">Technical / Live Coding</option>
+                        <option value="System Design Architecture">System Design Architecture</option>
+                        <option value="Final Cultural Fit">Final Cultural Fit</option>
+                        <option value="Portfolio Review">Portfolio Review</option>
+                        <option value="Management Round">Management Round</option>
+                        {roundTypes.filter(rt => !['HR Screening', 'Technical / Live Coding', 'System Design Architecture', 'Final Cultural Fit', 'Portfolio Review', 'Management Round'].includes(rt)).map((rt, i) => (
+                           <option key={i} value={rt}>{rt}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
