@@ -821,7 +821,12 @@ export default function VacancyDetailPage() {
   const [activeTab, setActiveTab] = useState('details');
   const [scheduledIds, setScheduledIds] = useState(() => new Set());
   const [extraInterviews, setExtraInterviews] = useState([]);
-  const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
+  const [candidates, setCandidates] = useState(() => {
+    if (id === 'VAC-002') {
+      return MOCK_CANDIDATES.map(c => ({ ...c, shortlisted: false }));
+    }
+    return MOCK_CANDIDATES;
+  });
   const tabRefs = useRef([]);
 
   const vacancy = VACANCIES.find((item) => item.id === id);

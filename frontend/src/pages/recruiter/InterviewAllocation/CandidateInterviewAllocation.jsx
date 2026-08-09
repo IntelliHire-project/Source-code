@@ -91,11 +91,13 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     });
   };
 
-  const [candidates, setCandidates] = useState(() =>
-    embeddedVacancy
-      ? INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }))
-      : INITIAL_CANDIDATES
-  );
+  const [candidates, setCandidates] = useState(() => {
+    if (embeddedVacancy) {
+      if (embeddedVacancy.title === 'Product Designer') return [];
+      return INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }));
+    }
+    return INITIAL_CANDIDATES;
+  });
   const [allocations, setAllocations] = useState(INITIAL_ALLOCATIONS);
   const [selectedSlotId, setSelectedSlotId] = useState('');
 
@@ -846,56 +848,66 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 <span className="count-badge">{filteredCandidates.length} TOTAL</span>
               </div>
 
-              <div className="table-responsive">
-                <table className="alloc-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '36px', textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={allCandidatesSelected}
-                          onChange={handleSelectAllCandidates}
-                          className="styled-checkbox"
-                        />
-                      </th>
-                      <th>CANDIDATE NAME</th>
-                      <th>APP. ID</th>
-                      <th>SCORE</th>
-                      <th>STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCandidates.map((cand) => (
-                      <tr
-                        key={cand.id}
-                        className={cand.selected ? 'row-selected' : ''}
-                        onClick={() => handleToggleCandidateSelect(cand.id)}
-                      >
-                        <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              {filteredCandidates.length === 0 ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9599A6', borderTop: '1px solid #2A2C38' }}>
+                  <Users size={32} style={{ marginBottom: '16px', opacity: 0.3, display: 'inline-block' }} />
+                  <h4 style={{ color: '#fff', fontSize: '0.95rem', marginBottom: '8px', fontWeight: 600 }}>No candidates found</h4>
+                  <p style={{ fontSize: '0.8rem', lineHeight: '1.5', maxWidth: '250px', margin: '0 auto' }}>
+                    No candidates have been shortlisted yet. Open candidate details to shortlist them.
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="alloc-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '36px', textAlign: 'center' }}>
                           <input
                             type="checkbox"
-                            checked={cand.selected}
-                            onChange={() => handleToggleCandidateSelect(cand.id)}
+                            checked={allCandidatesSelected}
+                            onChange={handleSelectAllCandidates}
                             className="styled-checkbox"
                           />
-                        </td>
-                        <td className="cand-name-cell">
-                          <span className="cand-name">{cand.name}</span>
-                        </td>
-                        <td className="app-id-cell">{cand.id}</td>
-                        <td>
-                          <span className="score-badge">{cand.score}%</span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${cand.status === 'SHORTLISTED' ? 'pill-gold' : 'pill-grey'}`}>
-                            {cand.status}
-                          </span>
-                        </td>
+                        </th>
+                        <th>CANDIDATE NAME</th>
+                        <th>APP. ID</th>
+                        <th>SCORE</th>
+                        <th>STATUS</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredCandidates.map((cand) => (
+                        <tr
+                          key={cand.id}
+                          className={cand.selected ? 'row-selected' : ''}
+                          onClick={() => handleToggleCandidateSelect(cand.id)}
+                        >
+                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={cand.selected}
+                              onChange={() => handleToggleCandidateSelect(cand.id)}
+                              className="styled-checkbox"
+                            />
+                          </td>
+                          <td className="cand-name-cell">
+                            <span className="cand-name">{cand.name}</span>
+                          </td>
+                          <td className="app-id-cell">{cand.id}</td>
+                          <td>
+                            <span className="score-badge">{cand.score}%</span>
+                          </td>
+                          <td>
+                            <span className={`status-pill ${cand.status === 'SHORTLISTED' ? 'pill-gold' : 'pill-grey'}`}>
+                              {cand.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="allocation-mobile-list">
                 {filteredCandidates.map((candidate) => (
                   <button
