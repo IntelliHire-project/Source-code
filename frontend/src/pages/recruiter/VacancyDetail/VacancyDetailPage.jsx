@@ -142,8 +142,12 @@ function ProgressTracker({ vacancy }) {
    ───────────────────────────────────────────────────────────── */
 function VacancyDetailsTab({ vacancy }) {
   return (
-    <div className="vd-details-grid">
-      <div className="vd-details-main">
+    <>
+      <div style={{ marginBottom: '24px' }}>
+        <ProgressTracker vacancy={vacancy} />
+      </div>
+      <div className="vd-details-grid">
+        <div className="vd-details-main">
         <section className="vd-card">
           <div className="vd-card__header">
             <span className="vd-card__eyebrow">Job Description</span>
@@ -216,6 +220,7 @@ function VacancyDetailsTab({ vacancy }) {
         </section>
       </aside>
     </div>
+    </>
   );
 }
 
@@ -816,7 +821,12 @@ export default function VacancyDetailPage() {
   const [activeTab, setActiveTab] = useState('details');
   const [scheduledIds, setScheduledIds] = useState(() => new Set());
   const [extraInterviews, setExtraInterviews] = useState([]);
-  const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
+  const [candidates, setCandidates] = useState(() => {
+    if (id === 'VAC-002') {
+      return MOCK_CANDIDATES.map(c => ({ ...c, shortlisted: false }));
+    }
+    return MOCK_CANDIDATES;
+  });
   const tabRefs = useRef([]);
 
   const vacancy = VACANCIES.find((item) => item.id === id);
@@ -983,9 +993,6 @@ export default function VacancyDetailPage() {
                   />
                 </div>
               </div>
-
-              {/* ── Progress tracker (always visible) ── */}
-              <ProgressTracker vacancy={vacancy} />
 
               {/* ── Process navigation (tablist) ── */}
               <div

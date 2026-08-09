@@ -91,11 +91,13 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     });
   };
 
-  const [candidates, setCandidates] = useState(() =>
-    embeddedVacancy
-      ? INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }))
-      : INITIAL_CANDIDATES
-  );
+  const [candidates, setCandidates] = useState(() => {
+    if (embeddedVacancy) {
+      if (embeddedVacancy.title === 'Product Designer') return [];
+      return INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }));
+    }
+    return INITIAL_CANDIDATES;
+  });
   const [allocations, setAllocations] = useState(INITIAL_ALLOCATIONS);
   const [selectedSlotId, setSelectedSlotId] = useState('');
 
@@ -473,15 +475,39 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 Choose the number of interview rounds and select the type for each round.
               </p>
             </div>
-            <div style={{ position: 'absolute', top: 0, right: 0, width: '120px' }}>
-              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', marginBottom: '6px', fontWeight: 600 }}>ROUNDS COUNT:</label>
+            <div style={{ 
+              position: 'absolute', 
+              top: 0, 
+              right: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              background: 'rgba(240, 185, 11, 0.15)', 
+              border: '1px solid #F0B90B', 
+              borderRadius: '6px', 
+              padding: '0 10px', 
+              height: '32px' 
+            }}>
+              <label style={{ fontSize: '0.7rem', color: '#F0B90B', fontWeight: 700, margin: 0, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                ROUNDS COUNT:
+              </label>
               <input 
                 type="number" 
                 min="1" 
                 max="10" 
                 value={roundsCount} 
                 onChange={handleRoundsCountChange}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-dark, #2A2C38)', background: 'var(--bg-dark, #13151D)', color: 'var(--text-on-dark, #fff)', fontSize: '0.85rem', outline: 'none' }}
+                style={{ 
+                  width: '28px', 
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#F0B90B', 
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                  textAlign: 'center',
+                  marginLeft: '4px',
+                  padding: 0
+                }}
               />
             </div>
 
@@ -502,51 +528,75 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 </div>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* Action Buttons Group (Google Calendar + Schedule New Interview) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <a
-            href="https://calendar.google.com/calendar/r"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-schedule-inline"
-            title="Open Google Calendar in a new tab"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '0 16px',
-              height: '42px',
+            {/* Next Step Section */}
+            <div style={{ 
+              marginTop: '24px', 
+              border: '1px solid var(--border-dark, #2A2C38)',
+              borderLeft: '4px solid #F0B90B',
+              backgroundColor: 'rgba(240, 185, 11, 0.04)',
               borderRadius: '8px',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              backgroundColor: '#1E222D',
-              border: '1px solid #2A2C38',
-              color: '#4285F4',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              boxShadow: 'none',
-            }}
-          >
-            <Calendar size={15} style={{ color: '#4285F4' }} />
-            <span>Google Calendar Sync</span>
-            <ExternalLink size={13} style={{ color: '#9599A6' }} />
-          </a>
+              padding: '16px 20px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              flexWrap: 'wrap', 
+              gap: '16px' 
+            }}>
+              <div>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-on-dark, #fff)', margin: '0 0 4px 0' }}>
+                  Next Step: Schedule Interviews 
+                </h4>
+                <p style={{ fontSize: '0.75rem', color: '#9599A6', margin: 0 }}>
+                  Once rounds are configured, start scheduling interviews as per selected rounds.
+                </p>
+              </div>
 
-          <button
-            type="button"
-            className="btn-primary-accent btn-schedule-inline"
-            onClick={() =>
-              navigate('/recruiter/interviews', {
-                state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
-              })
-            }
-          >
-            <CalendarPlus size={16} />
-            <span>Schedule New Interview</span>
-          </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <a
+                  href="https://calendar.google.com/calendar/r"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-schedule-inline"
+                  title="Open Google Calendar in a new tab"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '0 16px',
+                    height: '42px',
+                    borderRadius: '8px',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    backgroundColor: '#1E222D',
+                    border: '1px solid #2A2C38',
+                    color: '#4285F4',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease',
+                    boxShadow: 'none',
+                  }}
+                >
+                  <Calendar size={15} style={{ color: '#4285F4' }} />
+                  <span>Google Calendar Sync</span>
+                  <ExternalLink size={13} style={{ color: '#9599A6' }} />
+                </a>
+
+                <button
+                  type="button"
+                  className="btn-primary-accent btn-schedule-inline"
+                  onClick={() =>
+                    navigate('/recruiter/interviews', {
+                      state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
+                    })
+                  }
+                  style={{ height: '42px' }}
+                >
+                  <CalendarPlus size={16} />
+                  <span>Schedule Interviews</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -798,56 +848,66 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 <span className="count-badge">{filteredCandidates.length} TOTAL</span>
               </div>
 
-              <div className="table-responsive">
-                <table className="alloc-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '36px', textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={allCandidatesSelected}
-                          onChange={handleSelectAllCandidates}
-                          className="styled-checkbox"
-                        />
-                      </th>
-                      <th>CANDIDATE NAME</th>
-                      <th>APP. ID</th>
-                      <th>SCORE</th>
-                      <th>STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCandidates.map((cand) => (
-                      <tr
-                        key={cand.id}
-                        className={cand.selected ? 'row-selected' : ''}
-                        onClick={() => handleToggleCandidateSelect(cand.id)}
-                      >
-                        <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              {filteredCandidates.length === 0 ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9599A6', borderTop: '1px solid #2A2C38' }}>
+                  <Users size={32} style={{ marginBottom: '16px', opacity: 0.3, display: 'inline-block' }} />
+                  <h4 style={{ color: '#fff', fontSize: '0.95rem', marginBottom: '8px', fontWeight: 600 }}>No candidates found</h4>
+                  <p style={{ fontSize: '0.8rem', lineHeight: '1.5', maxWidth: '250px', margin: '0 auto' }}>
+                    No candidates have been shortlisted yet. Open candidate details to shortlist them.
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="alloc-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '36px', textAlign: 'center' }}>
                           <input
                             type="checkbox"
-                            checked={cand.selected}
-                            onChange={() => handleToggleCandidateSelect(cand.id)}
+                            checked={allCandidatesSelected}
+                            onChange={handleSelectAllCandidates}
                             className="styled-checkbox"
                           />
-                        </td>
-                        <td className="cand-name-cell">
-                          <span className="cand-name">{cand.name}</span>
-                        </td>
-                        <td className="app-id-cell">{cand.id}</td>
-                        <td>
-                          <span className="score-badge">{cand.score}%</span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${cand.status === 'SHORTLISTED' ? 'pill-gold' : 'pill-grey'}`}>
-                            {cand.status}
-                          </span>
-                        </td>
+                        </th>
+                        <th>CANDIDATE NAME</th>
+                        <th>APP. ID</th>
+                        <th>SCORE</th>
+                        <th>STATUS</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredCandidates.map((cand) => (
+                        <tr
+                          key={cand.id}
+                          className={cand.selected ? 'row-selected' : ''}
+                          onClick={() => handleToggleCandidateSelect(cand.id)}
+                        >
+                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={cand.selected}
+                              onChange={() => handleToggleCandidateSelect(cand.id)}
+                              className="styled-checkbox"
+                            />
+                          </td>
+                          <td className="cand-name-cell">
+                            <span className="cand-name">{cand.name}</span>
+                          </td>
+                          <td className="app-id-cell">{cand.id}</td>
+                          <td>
+                            <span className="score-badge">{cand.score}%</span>
+                          </td>
+                          <td>
+                            <span className={`status-pill ${cand.status === 'SHORTLISTED' ? 'pill-gold' : 'pill-grey'}`}>
+                              {cand.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="allocation-mobile-list">
                 {filteredCandidates.map((candidate) => (
                   <button
@@ -921,7 +981,22 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                   <CalendarDays size={16} />
                   <h3 className="card-title">Available Time Slots</h3>
                 </div>
-                <span className="count-badge">{filteredSlots.length} SLOTS</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button 
+                    type="button"
+                    onClick={handleAutoAllocate}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px', 
+                      padding: '6px 12px', borderRadius: '6px', 
+                      backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
+                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    <Sparkles size={14} />
+                    Auto-Assign
+                  </button>
+                  <span className="count-badge">{filteredSlots.length} SLOTS</span>
+                </div>
               </div>
 
               <div className="table-responsive">
