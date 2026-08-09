@@ -981,7 +981,22 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                   <CalendarDays size={16} />
                   <h3 className="card-title">Available Time Slots</h3>
                 </div>
-                <span className="count-badge">{filteredSlots.length} SLOTS</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button 
+                    type="button"
+                    onClick={handleAutoAllocate}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px', 
+                      padding: '6px 12px', borderRadius: '6px', 
+                      backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
+                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    <Sparkles size={14} />
+                    Auto-Assign
+                  </button>
+                  <span className="count-badge">{filteredSlots.length} SLOTS</span>
+                </div>
               </div>
 
               <div className="table-responsive">

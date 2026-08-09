@@ -16,12 +16,15 @@ import {
   Video,
   Building,
   Clock,
+  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
 import { VACANCIES } from '../../../data/vacancies';
+import { MOCK_CANDIDATES, enrichCandidateDetails, CandidateDetailView } from '../RankedApplicants/RankedApplicants';
 
 // ── Google Calendar URL Helper ─────────────────────────────────────────────
 const generateGoogleCalendarUrl = ({ title, description, interviewDate, startTime, endTime, location }) => {
@@ -373,6 +376,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [showZohoModal, setShowZohoModal] = useState(location.state?.openForm || false);
   const [showInlineForm, setShowInlineForm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [viewingCandidate, setViewingCandidate] = useState(null);
   
   // If we arrived from another page requesting to open the form directly, skip the choice modal
   // Wait, the flow is: Hero card -> Choice Modal -> Inline Form.
@@ -1413,6 +1418,126 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   </div>
                 </div>
 
+                {/* ── Section 5: Auto-Assign Candidates Preview ── */}
+                {!editingSlotId && activeZohoType !== 'Log' && (
+                  <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
+                        5. CANDIDATE MATCHING &amp; ALLOCATION
+                      </h4>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (!showPreview) {
+                            let candIdx = 0;
+                            const shortlisted = MOCK_CANDIDATES.filter(c => c.shortlisted);
+                            if (shortlisted.length > 0) {
+                              setPanels(prev => prev.map(p => ({
+                                ...p,
+                                slots: p.slots.map(s => {
+                                  if (s.assignedCandidate) return s;
+                                  const c = shortlisted[candIdx % shortlisted.length];
+                                  candIdx++;
+                                  return { ...s, assignedCandidate: c };
+                                })
+                              })));
+                            }
+                          }
+                          setShowPreview(!showPreview);
+                        }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          padding: '6px 14px', borderRadius: '6px',
+                          backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
+                          fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        <Sparkles size={14} />
+                        {showPreview ? 'Hide Candidate Matches' : 'Auto-Assign Candidates'}
+                      </button>
+                    </div>
+
+                    {showPreview && (
+                      <div style={{ padding: '16px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                          <CheckCircle2 size={16} style={{ color: '#22C55E' }} />
+                          <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.85rem' }}>AI Auto-Assignment Preview</h5>
+                        </div>
+                        <p style={{ margin: '0 0 16px 0', fontSize: '0.75rem', color: '#9599A6' }}>
+                          The following top-ranked shortlisted candidates will be matched and assigned to your configured panels upon saving. You can modify assignments if needed.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {panels.map((p, idx) => (
+                            <div key={p.id} style={{ padding: '12px', backgroundColor: '#1E222D', borderRadius: '8px', border: '1px solid #2A2C38' }}>
+                              <strong style={{ color: '#F0B90B', fontSize: '0.75rem', display: 'block', marginBottom: '10px' }}>{p.name}</strong>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {p.slots.map((s, sIdx) => {
+                                  const c = s.assignedCandidate;
+                                  return (
+                                    <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', paddingBottom: '6px', borderBottom: sIdx < p.slots.length - 1 ? '1px solid #2A2C38' : 'none' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9599A6', minWidth: '120px' }}>
+                                        <Clock size={12} />
+                                        <span>{s.startTime || '09:00'} - {s.endTime || '10:00'}</span>
+                                      </div>
+                                      
+                                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <select
+                                          value={c?.name || ''}
+                                          onChange={(e) => {
+                                            const newCandName = e.target.value;
+                                            const selectedCand = MOCK_CANDIDATES.find(cand => cand.name === newCandName);
+                                            setPanels(prevPanels => prevPanels.map(pan => pan.id === p.id ? {
+                                              ...pan,
+                                              slots: pan.slots.map(slot => slot.id === s.id ? { ...slot, assignedCandidate: selectedCand } : slot)
+                                            } : pan));
+                                          }}
+                                          style={{ 
+                                            backgroundColor: '#1E222D', color: '#FFFFFF', 
+                                            border: '1px solid #2A2C38', borderRadius: '6px', 
+                                            padding: '6px 8px', fontSize: '0.75rem', outline: 'none',
+                                            flex: 1
+                                          }}
+                                        >
+                                          <option value="">Select Candidate...</option>
+                                          {MOCK_CANDIDATES.filter(cand => cand.shortlisted).map(cand => (
+                                            <option key={cand.name} value={cand.name}>{cand.name}</option>
+                                          ))}
+                                        </select>
+                                        
+                                        {c && (
+                                          <span style={{ color: '#22C55E', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                            {c.score || 90}% Match
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div style={{ marginLeft: '16px' }}>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.preventDefault(); setViewingCandidate(c); }}
+                                          disabled={!c}
+                                          style={{
+                                            background: 'none', border: '1px solid rgba(96, 165, 250, 0.3)', color: c ? '#60A5FA' : '#9599A6',
+                                            fontSize: '0.7rem', cursor: c ? 'pointer' : 'not-allowed', padding: '4px 10px', borderRadius: '4px',
+                                            backgroundColor: c ? 'rgba(96, 165, 250, 0.05)' : 'transparent', fontWeight: 600
+                                          }}
+                                        >
+                                          View Details
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Form Buttons */}
                 <div className="form-actions-row" style={{ marginTop: '24px' }}>
                   <button type="submit" className="btn-primary-accent" style={{ padding: '12px 24px' }}>
@@ -1762,6 +1887,18 @@ function RecruiterInterviewTimeSlotManagementPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {/* ── Modal 2: Candidate Detail View ── */}
+      {viewingCandidate && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-dark, #0D0E12)', zIndex: 9999, overflowY: 'auto', padding: '24px' }}>
+          <CandidateDetailView 
+            candidate={enrichCandidateDetails(viewingCandidate)}
+            onBack={() => setViewingCandidate(null)}
+            onShortlist={() => {}}
+            onReject={() => {}}
+            onApprove={() => {}}
+          />
         </div>
       )}
     </div>
