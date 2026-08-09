@@ -150,6 +150,7 @@ function RecommendationBadge({ rec }) {
 ───────────────────────────────────────────────────────────────── */
 
 function QuestionBankTab() {
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState(QUESTIONS);
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -157,15 +158,16 @@ function QuestionBankTab() {
   const [typeFilter, setTypeFilter] = useState('All');
   const [evalFilter, setEvalFilter] = useState('All');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingQ, setEditingQ] = useState(null);
   const [previewQ, setPreviewQ] = useState(null);
   const [notice, setNotice] = useState('');
 
-  // Drawer form state
-  const [form, setForm] = useState({ role: 'Software Engineer', skill: '', difficulty: 'Medium', points: 10, question: '', type: 'MCQ', evalMode: 'Auto-graded', rubric: '' });
-  const [options, setOptions] = useState(['', '', '', '']);
-  const [correctIdx, setCorrectIdx] = useState(0);
+  const openCreate = () => {
+    navigate('/recruiter/question-bank/add');
+  };
+
+  const openEdit = (q) => {
+    navigate(`/recruiter/question-bank/edit/${q.id}`, { state: { editMode: true, question: q } });
+  };
 
   const filtered = useMemo(() => questions.filter(q => {
     const text = `${q.snippet} ${q.role} ${q.type} ${q.difficulty} ${q.evalMode}`.toLowerCase();
@@ -175,40 +177,6 @@ function QuestionBankTab() {
       && (typeFilter === 'All' || q.type === typeFilter)
       && (evalFilter === 'All' || q.evalMode === evalFilter);
   }), [questions, query, roleFilter, diffFilter, typeFilter, evalFilter]);
-
-  const openCreate = () => {
-    setEditingQ(null);
-    setForm({ role: 'Software Engineer', skill: '', difficulty: 'Medium', points: 10, question: '', type: 'MCQ', evalMode: 'Auto-graded', rubric: '' });
-    setOptions(['', '', '', '']);
-    setCorrectIdx(0);
-    setDrawerOpen(true);
-  };
-
-  const openEdit = (q) => {
-    setEditingQ(q.id);
-    setForm({ role: q.role, skill: q.skills[0] || '', difficulty: q.difficulty, points: q.points, question: q.snippet, type: q.type, evalMode: q.evalMode, rubric: '' });
-    setOptions(q.options || ['', '', '', '']);
-    setCorrectIdx(q.correct ?? 0);
-    setDrawerOpen(true);
-  };
-
-  const saveQuestion = () => {
-    if (!form.question.trim()) return;
-    const qData = {
-      snippet: form.question.trim(), role: form.role, skills: [form.skill].filter(Boolean),
-      type: form.type, difficulty: form.difficulty, evalMode: form.evalMode, points: form.points,
-      options: form.type === 'MCQ' ? options : [], correct: form.type === 'MCQ' ? correctIdx : null,
-    };
-    if (editingQ) {
-      setQuestions(questions.map(q => q.id === editingQ ? { ...q, ...qData } : q));
-      setNotice('Question updated successfully.');
-    } else {
-      setQuestions([{ id: `Q-${String(Date.now()).slice(-3)}`, ...qData }, ...questions]);
-      setNotice('Question added to the bank.');
-    }
-    setDrawerOpen(false);
-    setTimeout(() => setNotice(''), 4000);
-  };
 
   const duplicate = (q) => {
     setQuestions([{ ...q, id: `Q-${String(Date.now()).slice(-3)}`, snippet: `${q.snippet} (Copy)` }, ...questions]);
@@ -353,111 +321,6 @@ function QuestionBankTab() {
           <button>Next <ChevronRight size={14} /></button>
         </div>
       </div>
-
-      {/* ── Add/Edit Question Drawer ── */}
-      {drawerOpen && (
-        <div className="am-overlay" onMouseDown={e => e.target === e.currentTarget && setDrawerOpen(false)}>
-          <aside className="am-drawer">
-            <header className="am-drawer__header">
-              <div>
-                <h2>{editingQ ? 'Edit Question' : 'Add New Question'}</h2>
-                <p>{editingQ ? 'Update this question and its evaluation settings.' : 'Create a new question for your company question bank.'}</p>
-              </div>
-              <button className="am-drawer__close" onClick={() => setDrawerOpen(false)}><X size={20} /></button>
-            </header>
-            <div className="am-drawer__body">
-              <section className="am-form-section">
-                <h3><BookOpen size={15} /> Basic Information</h3>
-                <div className="am-form-grid">
-                  <label className="am-form-label">Job Role
-                    <select className="am-form-input" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-                      <option>Software Engineer</option>
-                      <option>QA Engineer</option>
-                      <option>Business Analyst</option>
-                      <option>Data Analyst</option>
-                      <option>DevOps Engineer</option>
-                    </select>
-                  </label>
-                  <label className="am-form-label">Skill Tag
-                    <input className="am-form-input" value={form.skill} onChange={e => setForm({ ...form, skill: e.target.value })} placeholder="e.g., React, SQL, Logic" />
-                  </label>
-                  <label className="am-form-label">Difficulty Level
-                    <select className="am-form-input" value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })}>
-                      <option>Easy</option>
-                      <option>Medium</option>
-                      <option>Hard</option>
-                    </select>
-                  </label>
-                  <label className="am-form-label">Point Value
-                    <input className="am-form-input" type="number" min={1} max={100} value={form.points} onChange={e => setForm({ ...form, points: +e.target.value })} />
-                  </label>
-                </div>
-              </section>
-
-              <section className="am-form-section">
-                <h3><FileText size={15} /> Question Content</h3>
-                <label className="am-form-label">Question Text
-                  <textarea className="am-form-input am-form-textarea" value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} placeholder="Enter the full question text..." rows={4} />
-                </label>
-                <label className="am-form-label">Question Type</label>
-                <div className="am-type-selector">
-                  {[['MCQ', CheckCircle2], ['Short Answer', MessageSquare], ['Coding', Braces]].map(([t, Icon]) => (
-                    <button key={t} className={`am-type-card ${form.type === t ? 'selected' : ''}`} onClick={() => setForm({ ...form, type: t, evalMode: t === 'MCQ' ? 'Auto-graded' : 'Manual Review' })}>
-                      <Icon size={22} />{t}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className="am-form-section">
-                <h3><Settings2 size={15} /> Answer Configuration</h3>
-                {form.type === 'MCQ' && (
-                  <div className="am-mcq-config">
-                    <div className="am-mcq-header">
-                      <span>Answer Options</span>
-                      <button className="am-link-btn" onClick={() => setOptions([...options, ''])}><Plus size={13} /> Add option</button>
-                    </div>
-                    {options.map((opt, i) => (
-                      <div key={i} className="am-mcq-option">
-                        <button
-                          className={`am-radio ${correctIdx === i ? 'is-correct' : ''}`}
-                          title="Mark as correct answer"
-                          onClick={() => setCorrectIdx(i)}
-                        />
-                        <input className="am-form-input" value={opt} onChange={e => setOptions(options.map((o, j) => j === i ? e.target.value : o))} placeholder={`Option ${i + 1}`} />
-                        <button className="am-icon-btn danger" onClick={() => setOptions(options.filter((_, j) => j !== i))}><Trash2 size={14} /></button>
-                      </div>
-                    ))}
-                    <p className="am-form-hint"><CheckCircle size={13} /> Click the circle to mark the correct answer</p>
-                  </div>
-                )}
-                {(form.type === 'Short Answer' || form.type === 'Coding') && (
-                  <label className="am-form-label">Model Answer / Scoring Rubric
-                    <textarea className="am-form-input am-form-textarea" value={form.rubric} onChange={e => setForm({ ...form, rubric: e.target.value })} placeholder="Describe what a correct answer should include, key points to award marks for, etc." rows={5} />
-                  </label>
-                )}
-              </section>
-
-              <section className="am-form-section">
-                <h3><Shield size={15} /> Evaluation Mode</h3>
-                <div className="am-eval-toggle">
-                  {['Auto-graded', 'Manual Review'].map(mode => (
-                    <button key={mode} className={`am-eval-opt ${form.evalMode === mode ? 'selected' : ''}`} onClick={() => setForm({ ...form, evalMode: mode })}>
-                      {mode === 'Auto-graded' ? <Zap size={16} /> : <Eye size={16} />}
-                      <strong>{mode}</strong>
-                      <small>{mode === 'Auto-graded' ? 'Scored instantly (MCQs)' : 'Requires recruiter review'}</small>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            </div>
-            <footer className="am-drawer__footer">
-              <button className="am-btn am-btn--ghost" onClick={() => setDrawerOpen(false)}>Cancel</button>
-              <button className="am-btn am-btn--primary" onClick={saveQuestion}>{editingQ ? 'Update Question' : 'Add to Bank'}</button>
-            </footer>
-          </aside>
-        </div>
-      )}
 
       {/* ── Preview Modal ── */}
       {previewQ && (
