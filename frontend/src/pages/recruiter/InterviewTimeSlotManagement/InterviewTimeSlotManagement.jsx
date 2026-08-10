@@ -12,6 +12,7 @@ import {
   Trash2,
   Users,
   Calendar,
+  CalendarPlus,
   ExternalLink,
   Video,
   Building,
@@ -365,6 +366,19 @@ function getTodayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
+function getWeekDays(dateStr) {
+  const d = new Date(dateStr || new Date());
+  const day = d.getDay();
+  const diff = d.getDate() - day; // Sunday is 0
+  const startOfWeek = new Date(d);
+  startOfWeek.setDate(diff);
+  return Array.from({ length: 7 }).map((_, i) => {
+    const cd = new Date(startOfWeek);
+    cd.setDate(startOfWeek.getDate() + i);
+    return cd;
+  });
+}
+
 function RecruiterInterviewTimeSlotManagementPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -409,13 +423,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
       name: 'Panel A (Technical Leads)',
       emails: 'saman.tech@company.com, nirosha.hr@company.com',
       capacity: 3,
+      selectedDate: new Date().toISOString().split('T')[0],
       slots: [
-        { id: 1, startTime: '09:00', endTime: '10:00' },
-        { id: 2, startTime: '10:15', endTime: '11:15' },
-        { id: 3, startTime: '11:30', endTime: '12:30' },
+        { id: 1, date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '10:00' },
+        { id: 2, date: new Date().toISOString().split('T')[0], startTime: '10:15', endTime: '11:15' },
+        { id: 3, date: new Date().toISOString().split('T')[0], startTime: '11:30', endTime: '12:30' },
       ],
     },
   ]);
+
+  const handlePanelDateChange = (panelId, dateStr) => {
+    setPanels(prev =>
+      prev.map(p => (p.id === panelId ? { ...p, selectedDate: dateStr } : p))
+    );
+  };
 
   const handleRoundsCountChange = count => {
     const num = Math.max(1, Math.min(6, Number(count)));
@@ -462,7 +483,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
         const slotsCopy = [...p.slots];
         while (slotsCopy.length < cap) {
           const slotNum = slotsCopy.length + 1;
-          slotsCopy.push({ id: slotNum, startTime: '', endTime: '' });
+          slotsCopy.push({ id: slotNum, date: p.selectedDate, startTime: '09:00' });
         }
         return {
           ...p,
@@ -477,11 +498,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
-        const nextId = p.slots.length + 1;
+        const nextId = p.slots.length ? Math.max(...p.slots.map(s => s.id)) + 1 : 1;
         return {
           ...p,
           capacity: p.slots.length + 1,
-          slots: [...p.slots, { id: nextId, startTime: '', endTime: '' }],
+          slots: [...p.slots, { id: nextId, date: p.selectedDate, startTime: '09:00' }],
         };
       })
     );
@@ -1165,177 +1186,254 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     </button>
                   </div>
 
-                  {panels.map((p, pIdx) => (
-                    <div key={p.id} style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#1E222D', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <input
-                          type="text"
-                          value={p.name}
-                          onChange={(e) => handlePanelNameChange(p.id, e.target.value)}
-                          className="form-control"
-                          style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.88rem', maxWidth: '280px', padding: '5px 10px', backgroundColor: '#16171F', borderRadius: '6px' }}
-                        />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [];
-                              emailArr.push('');
-                              handlePanelEmailChange(p.id, emailArr.join(', '));
-                            }}
-                            style={{
-                              backgroundColor: 'rgba(240, 185, 11, 0.15)',
-                              color: '#F0B90B',
-                              border: '1px solid #F0B90B',
-                              borderRadius: '6px',
-                              padding: '4px 12px',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                          >
-                            <Plus size={13} style={{ color: '#F0B90B' }} />
-                            <span>Add Panel Member Email</span>
-                          </button>
-                          {panels.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemovePanel(p.id)}
-                              style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                            >
-                              Remove Panel
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="form-grid-2" style={{ marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>PANEL MEMBER EMAILS (ATTENDEES)</label>
-                          {(p.emails ? p.emails.split(',') : ['']).map((emailStr, eIdx) => (
-                            <div key={eIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {panels.map((p, pIdx) => {
+                    const weekDays = getWeekDays(p.selectedDate);
+                    return (
+                      <div key={p.id} style={{ marginBottom: '16px', backgroundColor: '#1E222D', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.15)', overflow: 'hidden' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '380px' }}>
+                          
+                          {/* Left Column: Panel Info */}
+                          <div style={{ padding: '16px', borderRight: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ marginBottom: '12px' }}>
                               <input
-                                type="email"
-                                value={emailStr.trim()}
-                                onChange={(e) => {
-                                  const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [''];
-                                  emailArr[eIdx] = e.target.value;
-                                  handlePanelEmailChange(p.id, emailArr.join(', '));
-                                }}
+                                type="text"
+                                value={p.name}
+                                onChange={(e) => handlePanelNameChange(p.id, e.target.value)}
                                 className="form-control"
-                                placeholder={`Panel Member #${eIdx + 1} Email (e.g. evaluator${eIdx + 1}@company.com)`}
-                                style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF' }}
+                                style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.9rem', width: '100%', padding: '6px 12px', backgroundColor: '#16171F', borderRadius: '6px', marginBottom: '12px' }}
                               />
-                              {(p.emails ? p.emails.split(',').length : 1) > 1 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>CANDIDATE CAPACITY:</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  value={p.capacity}
+                                  onChange={(e) => handlePanelCapacityChange(p.id, e.target.value)}
+                                  className="form-control"
+                                  style={{ backgroundColor: '#16171F', color: '#FFFFFF', width: '80px', padding: '4px 8px' }}
+                                />
+                              </div>
+                            </div>
+
+                            <div style={{ flex: 1 }}>
+                              <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '8px' }}>PANEL MEMBER EMAILS (ATTENDEES)</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(p.emails ? p.emails.split(',') : ['']).map((emailStr, eIdx) => (
+                                  <div key={eIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <input
+                                      type="email"
+                                      value={emailStr.trim()}
+                                      onChange={(e) => {
+                                        const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [''];
+                                        emailArr[eIdx] = e.target.value;
+                                        handlePanelEmailChange(p.id, emailArr.join(', '));
+                                      }}
+                                      className="form-control"
+                                      placeholder={`Evaluator #${eIdx + 1} Email`}
+                                      style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF' }}
+                                    />
+                                    {(p.emails ? p.emails.split(',').length : 1) > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const emailArr = p.emails.split(',').map((item) => item.trim()).filter((_, idx) => idx !== eIdx);
+                                          handlePanelEmailChange(p.id, emailArr.join(', '));
+                                        }}
+                                        style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px' }}
+                                      >
+                                        ×
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const emailArr = p.emails.split(',').map((item) => item.trim()).filter((_, idx) => idx !== eIdx);
+                                    const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [];
+                                    emailArr.push('');
                                     handlePanelEmailChange(p.id, emailArr.join(', '));
                                   }}
-                                  style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px' }}
-                                  title="Remove Email"
+                                  style={{
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    color: '#F0B90B',
+                                    border: '1px solid #F0B90B',
+                                    borderRadius: '6px',
+                                    padding: '4px 12px',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    width: 'fit-content',
+                                    marginTop: '4px'
+                                  }}
                                 >
-                                  ×
+                                  <Plus size={13} style={{ color: '#F0B90B' }} />
+                                  <span>Add Email</span>
                                 </button>
-                              )}
+                              </div>
                             </div>
-                          ))}
-                        </div>
 
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>CANDIDATE CAPACITY (INTERVIEW COUNT)</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={p.capacity}
-                            onChange={(e) => handlePanelCapacityChange(p.id, e.target.value)}
-                            className="form-control"
-                            placeholder="How many candidates?"
-                            style={{ backgroundColor: '#16171F', color: '#FFFFFF' }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Manual Time Slot Space for this Panel */}
-                      <div style={{ marginTop: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <div style={{ fontSize: '0.76rem', color: '#9599A6', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Clock size={15} style={{ color: '#F0B90B', stroke: '#F0B90B' }} />
-                            <span>{activeZohoType === 'Log' ? 'CONDUCTED TIME SLOT:' : `MANUALLY CONFIGURED TIME SLOTS (${p.slots.length} SLOTS):`}</span>
+                            {panels.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePanel(p.id)}
+                                style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, alignSelf: 'flex-start', marginTop: '16px' }}
+                              >
+                                Remove Panel
+                              </button>
+                            )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleAddManualSlot(p.id)}
-                            style={{
-                              backgroundColor: 'rgba(240, 185, 11, 0.15)',
-                              color: '#F0B90B',
-                              border: '1px solid #F0B90B',
-                              borderRadius: '6px',
-                              padding: '3px 10px',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                          >
-                            <Plus size={13} style={{ color: '#F0B90B' }} />
-                            <span>Add Slot</span>
-                          </button>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '10px' }}>
-                          {p.slots.map((slot) => (
-                            <div key={slot.id} style={{ padding: '8px 10px', backgroundColor: '#16171F', border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '8px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>
-                                  Slot #{slot.id}
-                                </span>
-                                {p.slots.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveManualSlot(p.id, slot.id)}
-                                    style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', lineHeight: 1 }}
-                                    title="Remove Slot"
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </div>
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <input
-                                    type="time"
-                                    value={slot.startTime}
-                                    onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'startTime', e.target.value)}
-                                    className="form-control"
-                                    style={{ fontSize: '0.78rem', padding: '4px 24px 4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', width: '100%' }}
-                                  />
-                                  <Clock size={13} style={{ position: 'absolute', right: '6px', color: '#F0B90B', pointerEvents: 'none' }} />
-                                </div>
-                                <span style={{ color: '#9599A6', fontSize: '0.78rem' }}>to</span>
-                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-                                  <input
-                                    type="time"
-                                    value={slot.endTime}
-                                    onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'endTime', e.target.value)}
-                                    className="form-control"
-                                    style={{ fontSize: '0.78rem', padding: '4px 24px 4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', width: '100%' }}
-                                  />
-                                  <Clock size={13} style={{ position: 'absolute', right: '6px', color: '#F0B90B', pointerEvents: 'none' }} />
-                                </div>
+
+                          {/* Right Column: Calendar View */}
+                          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', backgroundColor: '#13141C' }}>
+                            {/* Date Picker Header */}
+                            <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: '#9599A6', fontWeight: 600, fontSize: '0.75rem' }}>CALENDAR DATE</span>
+                              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input 
+                                  type="date" 
+                                  value={p.selectedDate} 
+                                  onChange={(e) => {
+                                    if (e.target.value) handlePanelDateChange(p.id, e.target.value);
+                                  }} 
+                                  style={{ 
+                                    backgroundColor: '#1E222D', 
+                                    color: '#FFFFFF', 
+                                    border: '1px solid rgba(255, 255, 255, 0.15)', 
+                                    padding: '4px 28px 4px 8px', 
+                                    borderRadius: '6px', 
+                                    fontSize: '0.8rem',
+                                    colorScheme: 'dark',
+                                    width: '135px'
+                                  }} 
+                                />
+                                <Calendar size={14} style={{ position: 'absolute', right: '8px', color: '#F0B90B', pointerEvents: 'none' }} />
                               </div>
                             </div>
-                          ))}
+
+                            {/* Date Strip */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#16171F', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                              {weekDays.map((wd, i) => {
+                                const wdStr = wd.toISOString().split('T')[0];
+                                const isSelected = wdStr === p.selectedDate;
+                                const dayLabel = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][wd.getDay()];
+                                const dateNum = wd.getDate();
+                                return (
+                                  <div key={i} onClick={() => handlePanelDateChange(p.id, wdStr)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: isSelected ? '#FFFFFF' : '#9599A6', fontWeight: 600 }}>{dayLabel}</span>
+                                    <div style={{
+                                      width: '28px', height: '28px', borderRadius: '50%', 
+                                      backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                                      color: isSelected ? '#000000' : '#FFFFFF',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      fontWeight: 700, fontSize: '0.8rem', transition: 'all 0.2s'
+                                    }}>
+                                      {dateNum}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Timeline Scroll Area */}
+                            <div style={{ flex: 1, overflowY: 'auto', position: 'relative', maxHeight: '400px', paddingBottom: '60px' }}>
+                              {Array.from({ length: 11 }).map((_, i) => {
+                                const hour = i + 9;
+                                return (
+                                  <div key={i} style={{ display: 'flex', height: '50px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div style={{ width: '50px', padding: '8px 8px 0 0', color: '#9599A6', fontSize: '0.7rem', textAlign: 'right', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
+                                      {hour}:00
+                                    </div>
+                                    <div style={{ flex: 1 }}></div>
+                                  </div>
+                                );
+                              })}
+
+                              {/* Render slots for selectedDate */}
+                              {p.slots.filter(s => s.date === p.selectedDate).map(s => {
+                                const startH = parseInt((s.startTime || '09:00').split(':')[0]);
+                                const startM = parseInt((s.startTime || '09:00').split(':')[1]);
+                                
+                                // 9:00 is top 0, each hour is 50px.
+                                const top = ((startH - 9) * 50) + (startM / 60 * 50);
+                                const height = 34; // Fixed height since no duration
+                                
+                                return (
+                                  <div key={s.id} style={{ 
+                                    position: 'absolute', 
+                                    top: `${top}px`, 
+                                    height: `${height}px`, 
+                                    left: '58px', right: '16px', 
+                                    backgroundColor: 'rgba(66, 133, 244, 0.15)', 
+                                    borderLeft: '3px solid #4285F4',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    overflow: 'hidden',
+                                    pointerEvents: 'auto',
+                                    zIndex: 5
+                                  }}>
+                                    <input 
+                                      type="time" 
+                                      value={s.startTime || '09:00'} 
+                                      onChange={(e) => handleSlotTimeChange(p.id, s.id, 'startTime', e.target.value)} 
+                                      style={{ 
+                                        background: 'rgba(0,0,0,0.2)', 
+                                        border: '1px solid rgba(66, 133, 244, 0.3)', 
+                                        borderRadius: '4px',
+                                        color: '#4285F4', 
+                                        fontSize: '0.8rem', 
+                                        fontWeight: 600, 
+                                        padding: '2px 6px', 
+                                        outline: 'none', 
+                                        cursor: 'pointer' 
+                                      }} 
+                                      title="Edit Start Time"
+                                    />
+                                    <span style={{ color: '#4285F4', fontSize: '0.8rem', fontWeight: 600 }}>Start Time</span>
+                                    <button onClick={() => handleRemoveManualSlot(p.id, s.id)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1, padding: '0 4px' }} title="Remove Slot">×</button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              type="button"
+                              title="Add slot to selected day"
+                              onClick={() => handleAddManualSlot(p.id, p.selectedDate)}
+                              style={{
+                                position: 'absolute',
+                                bottom: '16px',
+                                right: '16px',
+                                width: '42px',
+                                height: '42px',
+                                backgroundColor: '#16171F',
+                                color: '#4285F4',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                zIndex: 10,
+                                transition: 'transform 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                              <CalendarPlus size={20} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* ── Section 4: Mode-Specific Venue / Link Details ── */}
