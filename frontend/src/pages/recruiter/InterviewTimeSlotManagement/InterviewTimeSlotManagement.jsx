@@ -383,7 +383,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   // Wait, the flow is: Hero card -> Choice Modal -> Inline Form.
   // We can just open the Choice modal directly, or the inline form. I'll open the Choice modal.
   const [activeZohoType, setActiveZohoType] = useState('Google Meet');
-  const [positionFilter, setPositionFilter] = useState(initialSlots[0].jobPosition);
+  const [positionFilter, setPositionFilter] = useState(stateVacancy || initialSlots[0].jobPosition);
   const [formError, setFormError] = useState('');
   const [message, setMessage] = useState('');
   const [viewingSlot, setViewingSlot] = useState(null);
@@ -549,8 +549,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const jobPositions = useMemo(
-    () => [...new Set(slots.map(slot => slot.jobPosition))].sort(),
-    [slots]
+    () => {
+      const positions = [...new Set(slots.map(slot => slot.jobPosition))];
+      if (positionFilter && !positions.includes(positionFilter)) {
+        positions.push(positionFilter);
+      }
+      return positions.sort();
+    },
+    [slots, positionFilter]
   );
 
   // Filtered Slots
@@ -623,6 +629,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
     }
     setFormData({
       ...emptyForm,
+      jobPosition: positionFilter,
       interviewMedia: selectedMedia,
       interviewType: isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical'),
       meetingLocation: type === 'In-Person' 
@@ -1431,7 +1438,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           e.preventDefault();
                           if (!showPreview) {
                             let candIdx = 0;
-                            const shortlisted = MOCK_CANDIDATES.filter(c => c.shortlisted);
+                            // For "Product Designer", there are no shortlisted candidates yet.
+                            const shortlisted = formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted);
                             if (shortlisted.length > 0) {
                               setPanels(prev => prev.map(p => ({
                                 ...p,
@@ -1460,14 +1468,36 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
                     {showPreview && (
                       <div style={{ padding: '16px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                          <CheckCircle2 size={16} style={{ color: '#22C55E' }} />
-                          <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.85rem' }}>AI Auto-Assignment Preview</h5>
-                        </div>
-                        <p style={{ margin: '0 0 16px 0', fontSize: '0.75rem', color: '#9599A6' }}>
-                          The following top-ranked shortlisted candidates will be matched and assigned to your configured panels upon saving. You can modify assignments if needed.
-                        </p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {(formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted)).length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Users size={32} style={{ color: '#9599A6', marginBottom: '12px', opacity: 0.5, display: 'inline-block' }} />
+                            <h4 style={{ color: '#fff', fontSize: '1.05rem', marginBottom: '8px', fontWeight: 600 }}>
+                              No Shortlisted Candidates
+                            </h4>
+                            <p style={{ color: '#9599A6', fontSize: '0.85rem', marginBottom: '20px', lineHeight: '1.6' }}>
+                              There are currently no shortlisted candidates available to assign to your panels. Proceed to the Applicants section to review and shortlist candidates.
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <button 
+                                type="button" 
+                                className="btn-primary-accent" 
+                                onClick={() => navigate('/recruiter/applicants/ranked')}
+                                style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.8rem' }}
+                              >
+                                Go to Applicants Section
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                              <CheckCircle2 size={16} style={{ color: '#22C55E' }} />
+                              <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.85rem' }}>AI Auto-Assignment Preview</h5>
+                            </div>
+                            <p style={{ margin: '0 0 16px 0', fontSize: '0.75rem', color: '#9599A6' }}>
+                              The following top-ranked shortlisted candidates will be matched and assigned to your configured panels upon saving. You can modify assignments if needed.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {panels.map((p, idx) => (
                             <div key={p.id} style={{ padding: '12px', backgroundColor: '#1E222D', borderRadius: '8px', border: '1px solid #2A2C38' }}>
                               <strong style={{ color: '#F0B90B', fontSize: '0.75rem', display: 'block', marginBottom: '10px' }}>{p.name}</strong>
@@ -1533,6 +1563,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             </div>
                           ))}
                         </div>
+                        </>
+                        )}
                       </div>
                     )}
                   </div>

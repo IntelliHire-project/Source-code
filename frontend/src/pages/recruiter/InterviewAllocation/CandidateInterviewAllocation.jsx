@@ -110,8 +110,9 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const [reschedulingAllocation, setReschedulingAllocation] = useState(null);
   const [rescheduleSlotId, setRescheduleSlotId] = useState('');
   const [viewingSlotModal, setViewingSlotModal] = useState(null);
+  const [showNoCandidatesModal, setShowNoCandidatesModal] = useState(false);
   const itemsPerPage = 4;
-
+  
   // Header Navigation Active Tab State
   const activeSubTab = 'allocation'; // 'management' or 'allocation'
 
@@ -279,10 +280,16 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const handleAutoAllocate = () => {
     const eligibleCandidates = [...filteredCandidates].sort((a, b) => b.score - a.score);
     const availableSlots = filteredSlots.map((slot) => ({ ...slot, rem: slot.cap }));
-    if (eligibleCandidates.length === 0 || availableSlots.length === 0) {
-      showToast('No eligible candidates or matching time slots are available.', 'error');
+    
+    if (eligibleCandidates.length === 0) {
+      setShowNoCandidatesModal(true);
       return;
     }
+    if (availableSlots.length === 0) {
+      showToast('No matching time slots are available.', 'error');
+      return;
+    }
+    
     const visibleIds = new Set(eligibleCandidates.map((candidate) => candidate.id));
     const newAllocations = allocations.filter((allocation) => !visibleIds.has(allocation.candidateId));
 
@@ -1471,6 +1478,47 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
           {mainContent}
         </div>
       </div>
+
+      {/* No Candidates Modal */}
+      {showNoCandidatesModal && (
+        <div className="modal-backdrop" onClick={() => setShowNoCandidatesModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header border-bottom-header flex-between">
+              <h3 className="modal-title" style={{ fontSize: '1.1rem', fontWeight: 600 }}>No Candidates Available</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setShowNoCandidatesModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body text-center" style={{ padding: '32px 24px' }}>
+              <Users size={48} style={{ color: '#9599A6', marginBottom: '16px', opacity: 0.5, display: 'inline-block' }} />
+              <h4 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '12px', fontWeight: 600 }}>
+                No Shortlisted Candidates
+              </h4>
+              <p style={{ color: '#9599A6', fontSize: '0.85rem', marginBottom: '24px', lineHeight: '1.6' }}>
+                There are currently no shortlisted candidates available to assign to your panels. Proceed to the Applicants section to review and shortlist candidates.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                <button 
+                  type="button" 
+                  className="btn-ghost-dark" 
+                  onClick={() => setShowNoCandidatesModal(false)}
+                  style={{ padding: '10px 20px', borderRadius: '6px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-primary-accent" 
+                  onClick={() => navigate('/recruiter/applicants/ranked')}
+                  style={{ padding: '10px 20px', borderRadius: '6px' }}
+                >
+                  Go to Applicants Section
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
