@@ -19,6 +19,7 @@ import {
   Clock,
   Sparkles,
   CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -391,6 +392,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [showZohoModal, setShowZohoModal] = useState(location.state?.openForm || false);
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showManualAssign, setShowManualAssign] = useState(false);
+  const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [viewingCandidate, setViewingCandidate] = useState(null);
   
   // If we arrived from another page requesting to open the form directly, skip the choice modal
@@ -1054,30 +1058,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
               <form onSubmit={handleSubmit} className="slot-form">
 
-                {/* ── Section 1: Interview Date ── */}
-                <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '16px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                    1. INTERVIEW DATE
-                  </h4>
-                  <div style={{ maxWidth: '300px' }}>
-                    <label className="form-label" style={{ fontSize: '0.76rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '6px', letterSpacing: '0.03em' }}>
-                      {activeZohoType === 'Log' ? 'CONDUCTED DATE' : 'SELECT DATE'}
-                    </label>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="date"
-                        name="interviewDate"
-                        min={activeZohoType === 'Log' ? undefined : todayInputValue}
-                        value={formData.interviewDate}
-                        onChange={handleFieldChange}
-                        className="form-control"
-                        style={{ colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', borderRadius: '8px', padding: '8px 32px 8px 12px', fontSize: '0.85rem', width: '100%' }}
-                      />
-                      <CalendarDays size={16} style={{ position: 'absolute', right: '10px', color: '#F0B90B', pointerEvents: 'none' }} />
-                    </div>
-                  </div>
-                </div>
-
                 {/* ── Section 2: Select Interview Round ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -1540,38 +1520,58 @@ function RecruiterInterviewTimeSlotManagementPage() {
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
                         5. CANDIDATE MATCHING &amp; ALLOCATION
                       </h4>
-                      <button 
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          if (!showPreview) {
-                            let candIdx = 0;
-                            // For "Product Designer", there are no shortlisted candidates yet.
-                            const shortlisted = formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted);
-                            if (shortlisted.length > 0) {
-                              setPanels(prev => prev.map(p => ({
-                                ...p,
-                                slots: p.slots.map(s => {
-                                  if (s.assignedCandidate) return s;
-                                  const c = shortlisted[candIdx % shortlisted.length];
-                                  candIdx++;
-                                  return { ...s, assignedCandidate: c };
-                                })
-                              })));
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (!showPreview) {
+                              let candIdx = 0;
+                              // For "Product Designer", there are no shortlisted candidates yet.
+                              const shortlisted = formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted);
+                              if (shortlisted.length > 0) {
+                                setPanels(prev => prev.map(p => ({
+                                  ...p,
+                                  slots: p.slots.map(s => {
+                                    if (s.assignedCandidate) return s;
+                                    const c = shortlisted[candIdx % shortlisted.length];
+                                    candIdx++;
+                                    return { ...s, assignedCandidate: c };
+                                  })
+                                })));
+                              }
                             }
-                          }
-                          setShowPreview(!showPreview);
-                        }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '6px',
-                          padding: '6px 14px', borderRadius: '6px',
-                          backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
-                          fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer'
-                        }}
-                      >
-                        <Sparkles size={14} />
-                        {showPreview ? 'Hide Candidate Matches' : 'Auto-Assign Candidates'}
-                      </button>
+                            setShowPreview(!showPreview);
+                            if (showManualAssign) setShowManualAssign(false);
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            padding: '6px 14px', borderRadius: '6px',
+                            backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
+                            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer'
+                          }}
+                        >
+                          <Sparkles size={14} />
+                          {showPreview ? 'Hide Candidate Matches' : 'Auto-Assign Candidates'}
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowManualAssign(!showManualAssign);
+                            if (showPreview) setShowPreview(false);
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            padding: '6px 14px', borderRadius: '6px',
+                            backgroundColor: 'transparent', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#FFFFFF',
+                            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer'
+                          }}
+                        >
+                          <Users size={14} />
+                          {showManualAssign ? 'Hide Manual Assignment' : 'Manually Assign Candidates'}
+                        </button>
+                      </div>
                     </div>
 
                     {showPreview && (
@@ -1673,6 +1673,239 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         </div>
                         </>
                         )}
+                      </div>
+                    )}
+
+                    {showManualAssign && (
+                      <div style={{ padding: '16px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '12px', marginTop: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '0.8fr auto 1.2fr', gap: '20px', alignItems: 'flex-start' }}>
+                          
+                          {/* Left side: Shortlisted Candidates */}
+                          <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', height: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Users size={16} style={{ color: '#F0B90B' }} />
+                                <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.9rem' }}>Shortlisted Candidates</h5>
+                              </div>
+                              <span style={{ backgroundColor: '#1E222D', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', color: '#9599A6', fontWeight: 600 }}>
+                                {MOCK_CANDIDATES.filter(c => c.shortlisted).length} TOTAL
+                              </span>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '40px 1.5fr 1fr 1fr', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
+                              <div></div>
+                              <div>Candidate Name</div>
+                              <div>Score</div>
+                              <div></div>
+                            </div>
+                            
+                            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                              {MOCK_CANDIDATES.filter(c => c.shortlisted).map((cand, idx) => (
+                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 1.5fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38' }}>
+                                  <div>
+                                    <input 
+                                      type="radio" 
+                                      name="candidateSelect"
+                                      checked={selectedCandidates.includes(cand.name)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedCandidates([cand.name]);
+                                        }
+                                      }}
+                                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                  </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>{cand.name}</div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 700 }}>{cand.score || (88 - idx * 3)}%</div>
+                                  <div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); setViewingCandidate(cand); }}
+                                      style={{
+                                        background: 'none', border: '1px solid rgba(96, 165, 250, 0.3)', color: '#60A5FA',
+                                        fontSize: '0.7rem', cursor: 'pointer', padding: '4px 10px', borderRadius: '4px',
+                                        backgroundColor: 'rgba(96, 165, 250, 0.05)', fontWeight: 600
+                                      }}
+                                    >
+                                      View Details
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Middle side: Allocate/Remove buttons */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', marginTop: '40px' }}>
+                            <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', width: '140px', textAlign: 'center' }}>
+                              <div style={{ color: '#F0B90B', fontSize: '1.2rem', fontWeight: 800 }}>{selectedCandidates.length}</div>
+                              <div style={{ color: '#9599A6', fontSize: '0.75rem', marginBottom: '8px' }}>
+                                {selectedCandidates.length === 1 ? 'candidate' : 'candidates'}
+                              </div>
+                              <div style={{ color: '#9599A6', fontSize: '0.65rem' }}>{selectedSlotId ? `Slot selected` : 'No slot selected'}</div>
+                            </div>
+                            
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (selectedCandidates.length > 0 && selectedSlotId) {
+                                  setPanels(prevPanels => prevPanels.map(p => ({
+                                    ...p,
+                                    slots: p.slots.map(s => {
+                                      if (s.id === selectedSlotId) {
+                                        const candObj = MOCK_CANDIDATES.find(c => c.name === selectedCandidates[0]);
+                                        return { ...s, assignedCandidate: candObj };
+                                      }
+                                      return s;
+                                    })
+                                  })));
+                                  setSelectedCandidates([]);
+                                  setSelectedSlotId(null);
+                                }
+                              }}
+                              disabled={selectedCandidates.length === 0 || !selectedSlotId}
+                              style={{
+                                backgroundColor: (selectedCandidates.length > 0 && selectedSlotId) ? '#F0B90B' : 'rgba(240, 185, 11, 0.5)',
+                                color: '#0D0E12',
+                                padding: '10px 20px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                cursor: (selectedCandidates.length > 0 && selectedSlotId) ? 'pointer' : 'not-allowed',
+                                width: '140px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
+                              Allocate <ArrowRight size={14} />
+                            </button>
+                            
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (selectedSlotId) {
+                                  setPanels(prevPanels => prevPanels.map(p => ({
+                                    ...p,
+                                    slots: p.slots.map(s => {
+                                      if (s.id === selectedSlotId) {
+                                        return { ...s, assignedCandidate: null };
+                                      }
+                                      return s;
+                                    })
+                                  })));
+                                  setSelectedCandidates([]);
+                                  setSelectedSlotId(null);
+                                }
+                              }}
+                              disabled={!selectedSlotId}
+                              style={{
+                                backgroundColor: 'transparent',
+                                color: '#9599A6',
+                                padding: '10px 20px',
+                                borderRadius: '8px',
+                                border: '1px solid #2A2C38',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                cursor: selectedSlotId ? 'pointer' : 'not-allowed',
+                                width: '140px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '8px',
+                                opacity: selectedSlotId ? 1 : 0.5
+                              }}
+                            >
+                              <ArrowLeft size={14} /> Remove
+                            </button>
+                          </div>
+                          
+                          {/* Right side: Available Time Slots */}
+                          <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', height: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <CalendarDays size={16} style={{ color: '#F0B90B' }} />
+                                <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.9rem' }}>Available Time Slots</h5>
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button 
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    let candIdx = 0;
+                                    const shortlisted = formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted);
+                                    if (shortlisted.length > 0) {
+                                      setPanels(prev => prev.map(p => ({
+                                        ...p,
+                                        slots: p.slots.map(s => {
+                                          if (s.assignedCandidate) return s;
+                                          const c = shortlisted[candIdx % shortlisted.length];
+                                          candIdx++;
+                                          return { ...s, assignedCandidate: c };
+                                        })
+                                      })));
+                                    }
+                                  }}
+                                  style={{
+                                    backgroundColor: 'transparent', border: '1px solid #F0B90B', color: '#F0B90B',
+                                    padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600,
+                                    display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer'
+                                  }}
+                                >
+                                  <Sparkles size={12} /> Auto-Assign
+                                </button>
+                                <span style={{ backgroundColor: '#1E222D', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', color: '#9599A6', fontWeight: 600 }}>
+                                  {panels.reduce((sum, p) => sum + p.slots.length, 0)} SLOTS
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
+                              <div></div>
+                              <div>Date</div>
+                              <div>Time</div>
+                              <div>Type</div>
+                              <div>Cap.</div>
+                              <div>Rem.</div>
+                            </div>
+                            
+                            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                              {panels.flatMap(p => p.slots.map(slot => ({ ...slot, type: activeZohoType === 'In-Person' ? 'Physical' : 'Online' }))).map((slot, idx) => (
+                                <div key={slot.id} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38', opacity: slot.assignedCandidate ? 0.6 : 1 }}>
+                                  <div>
+                                    <input 
+                                      type="radio" 
+                                      name="selectedSlot"
+                                      checked={selectedSlotId === slot.id}
+                                      onChange={() => setSelectedSlotId(slot.id)}
+                                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                  </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>{formatDate(slot.date) || '03 Aug'}</div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Clock size={12} style={{ color: '#9599A6' }} />
+                                    {slot.startTime || '09:00 AM'}
+                                  </div>
+                                  <div>
+                                    <span style={{ 
+                                      backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)', 
+                                      color: slot.type === 'Online' ? '#60A5FA' : '#A855F7', 
+                                      padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 
+                                    }}>
+                                      {slot.type}
+                                    </span>
+                                  </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 700 }}>1</div>
+                                  <div style={{ color: '#22C55E', fontSize: '0.85rem', fontWeight: 700 }}>{1 - (slot.assignedCandidate ? 1 : 0)}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
