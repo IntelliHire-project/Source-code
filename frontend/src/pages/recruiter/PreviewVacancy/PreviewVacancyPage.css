@@ -512,6 +512,45 @@
   margin: 0;
 }
 
+/* Milestones in Posting Summary */
+.pv-milestones {
+  margin-top: 18px;
+  border-top: 1px solid var(--comm-border, #2A2C38);
+  padding-top: 14px;
+}
+
+.pv-milestone {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.pv-milestone__index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--accent, #F0B90B);
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.pv-milestone__date {
+  font-size: 0.78rem;
+  color: var(--comm-text, #E8EAF2);
+}
+
+.pv-milestone__count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent, #F0B90B);
+}
+
 /* ─────────────────────────────────────────────
    Quick Actions
    ───────────────────────────────────────────── */
