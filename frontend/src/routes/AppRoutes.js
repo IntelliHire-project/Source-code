@@ -46,6 +46,7 @@ import QuestionBankPage from '../pages/recruiter/Assessments/QuestionBankPage';
 import CreateAssessmentPage from '../pages/recruiter/Assessments/CreateAssessmentPage';
 import CandidateReportPage from '../pages/recruiter/Assessments/CandidateReportPage';
 import AssessmentPreviewPage from '../pages/recruiter/Assessments/AssessmentPreviewPage';
+import AddQuestionPage from '../pages/recruiter/Assessments/AddQuestionPage';
 import AssessmentCandidatesPage from '../pages/recruiter/Assessments/AssessmentCandidatesPage';
 import RecruiterProfilePage from '../pages/recruiter/RecruiterProfile/RecruiterProfilePage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
@@ -263,6 +264,8 @@ function AppRoutes() {
           element={<AssessmentsPage />}
         />
         <Route path="/recruiter/question-bank" element={<QuestionBankPage />} />
+        <Route path="/recruiter/question-bank/add" element={<AddQuestionPage />} />
+        <Route path="/recruiter/question-bank/edit/:questionId" element={<AddQuestionPage />} />
         <Route path="/recruiter/assessments/new" element={<CreateAssessmentPage />} />
         <Route path="/recruiter/assessments/:assessmentId" element={<AssessmentPreviewPage />} />
         <Route path="/recruiter/assessments/:assessmentId/edit" element={<CreateAssessmentPage />} />
