@@ -476,19 +476,39 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handlePanelCapacityChange = (panelId, newCapacity) => {
-    const cap = Math.max(1, Math.min(10, Number(newCapacity)));
+    const cap = Math.max(1, Math.min(100, Number(newCapacity)));
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
-        const slotsCopy = [...p.slots];
-        while (slotsCopy.length < cap) {
-          const slotNum = slotsCopy.length + 1;
-          slotsCopy.push({ id: slotNum, date: p.selectedDate, startTime: '09:00' });
-        }
         return {
           ...p,
           capacity: cap,
-          slots: slotsCopy.slice(0, cap),
+        };
+      })
+    );
+  };
+
+  const handleDailySlotCountChange = (panelId, date, newCount) => {
+    const count = Math.max(0, Math.min(50, Number(newCount)));
+    setPanels(prev =>
+      prev.map(p => {
+        if (p.id !== panelId) return p;
+        
+        const otherDateSlots = p.slots.filter(s => s.date !== date);
+        let thisDateSlots = p.slots.filter(s => s.date === date);
+        
+        if (thisDateSlots.length < count) {
+           let nextId = p.slots.length > 0 ? Math.max(...p.slots.map(s => s.id)) + 1 : 1;
+           while (thisDateSlots.length < count) {
+              thisDateSlots.push({ id: nextId++, date: date, startTime: '09:00' });
+           }
+        } else if (thisDateSlots.length > count) {
+           thisDateSlots = thisDateSlots.slice(0, count);
+        }
+        
+        return {
+          ...p,
+          slots: [...otherDateSlots, ...thisDateSlots],
         };
       })
     );
@@ -512,11 +532,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
-        if (p.slots.length <= 1) return p;
         const updated = p.slots.filter(s => s.id !== slotId);
         return {
           ...p,
-          capacity: updated.length,
           slots: updated,
         };
       })
@@ -1203,11 +1221,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                 style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.9rem', width: '100%', padding: '6px 12px', backgroundColor: '#16171F', borderRadius: '6px', marginBottom: '12px' }}
                               />
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>CANDIDATE CAPACITY:</label>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>TOTAL CANDIDATE CAPACITY:</label>
                                 <input
                                   type="number"
                                   min="1"
-                                  max="10"
+                                  max="100"
                                   value={p.capacity}
                                   onChange={(e) => handlePanelCapacityChange(p.id, e.target.value)}
                                   className="form-control"
@@ -1338,97 +1356,89 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               })}
                             </div>
 
-                            {/* Timeline Scroll Area */}
-                            <div style={{ flex: 1, overflowY: 'auto', position: 'relative', maxHeight: '400px', paddingBottom: '60px' }}>
-                              {Array.from({ length: 11 }).map((_, i) => {
-                                const hour = i + 9;
-                                return (
-                                  <div key={i} style={{ display: 'flex', height: '50px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                    <div style={{ width: '50px', padding: '8px 8px 0 0', color: '#9599A6', fontSize: '0.7rem', textAlign: 'right', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
-                                      {hour}:00
-                                    </div>
-                                    <div style={{ flex: 1 }}></div>
-                                  </div>
-                                );
-                              })}
+                            {/* Simple Slots List for Selected Date */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                              
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1E222D', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <label className="form-label" style={{ fontSize: '0.8rem', color: '#9599A6', fontWeight: 700, margin: 0 }}>SLOTS FOR THIS DAY:</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="50"
+                                  value={p.slots.filter(s => s.date === p.selectedDate).length}
+                                  onChange={(e) => handleDailySlotCountChange(p.id, p.selectedDate, e.target.value)}
+                                  className="form-control"
+                                  style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '80px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}
+                                />
+                              </div>
 
-                              {/* Render slots for selectedDate */}
-                              {p.slots.filter(s => s.date === p.selectedDate).map(s => {
-                                const startH = parseInt((s.startTime || '09:00').split(':')[0]);
-                                const startM = parseInt((s.startTime || '09:00').split(':')[1]);
-                                
-                                // 9:00 is top 0, each hour is 50px.
-                                const top = ((startH - 9) * 50) + (startM / 60 * 50);
-                                const height = 34; // Fixed height since no duration
-                                
-                                return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {p.slots.filter(s => s.date === p.selectedDate).map((s, idx) => (
                                   <div key={s.id} style={{ 
-                                    position: 'absolute', 
-                                    top: `${top}px`, 
-                                    height: `${height}px`, 
-                                    left: '58px', right: '16px', 
-                                    backgroundColor: 'rgba(66, 133, 244, 0.15)', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '12px',
+                                    backgroundColor: 'rgba(66, 133, 244, 0.1)',
                                     borderLeft: '3px solid #4285F4',
-                                    borderRadius: '4px',
-                                    padding: '4px 8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    overflow: 'hidden',
-                                    pointerEvents: 'auto',
-                                    zIndex: 5
+                                    padding: '12px 16px',
+                                    borderRadius: '6px'
                                   }}>
-                                    <input 
-                                      type="time" 
-                                      value={s.startTime || '09:00'} 
-                                      onChange={(e) => handleSlotTimeChange(p.id, s.id, 'startTime', e.target.value)} 
+                                    <span style={{ color: '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #{idx + 1}</span>
+                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+                                      <input 
+                                        type="time" 
+                                        value={s.startTime || '09:00'} 
+                                        onChange={(e) => handleSlotTimeChange(p.id, s.id, 'startTime', e.target.value)} 
+                                        style={{ 
+                                          backgroundColor: '#1E222D', 
+                                          color: '#FFFFFF', 
+                                          border: '1px solid rgba(255, 255, 255, 0.15)', 
+                                          padding: '6px 32px 6px 12px', 
+                                          borderRadius: '6px', 
+                                          fontSize: '0.85rem',
+                                          colorScheme: 'dark',
+                                          width: '100%',
+                                          cursor: 'pointer'
+                                        }} 
+                                      />
+                                      <Clock size={14} style={{ position: 'absolute', right: '12px', color: '#4285F4', pointerEvents: 'none' }} />
+                                    </div>
+                                    <button 
+                                      onClick={() => handleRemoveManualSlot(p.id, s.id)} 
                                       style={{ 
-                                        background: 'rgba(0,0,0,0.2)', 
-                                        border: '1px solid rgba(66, 133, 244, 0.3)', 
-                                        borderRadius: '4px',
-                                        color: '#4285F4', 
-                                        fontSize: '0.8rem', 
-                                        fontWeight: 600, 
-                                        padding: '2px 6px', 
-                                        outline: 'none', 
-                                        cursor: 'pointer' 
+                                        background: 'rgba(239, 68, 68, 0.1)', 
+                                        border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                        color: '#EF4444', 
+                                        cursor: 'pointer', 
+                                        fontSize: '1.1rem', 
+                                        lineHeight: 1, 
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '6px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all 0.2s'
                                       }} 
-                                      title="Edit Start Time"
-                                    />
-                                    <span style={{ color: '#4285F4', fontSize: '0.8rem', fontWeight: 600 }}>Start Time</span>
-                                    <button onClick={() => handleRemoveManualSlot(p.id, s.id)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1, padding: '0 4px' }} title="Remove Slot">×</button>
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                      }}
+                                      title="Remove Slot"
+                                    >
+                                      ×
+                                    </button>
                                   </div>
-                                );
-                              })}
+                                ))}
+                                {p.slots.filter(s => s.date === p.selectedDate).length === 0 && (
+                                  <div style={{ color: '#9599A6', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
+                                    No slots added for this date.
+                                  </div>
+                                )}
+                              </div>
                             </div>
-
-                            <button
-                              type="button"
-                              title="Add slot to selected day"
-                              onClick={() => handleAddManualSlot(p.id, p.selectedDate)}
-                              style={{
-                                position: 'absolute',
-                                bottom: '16px',
-                                right: '16px',
-                                width: '42px',
-                                height: '42px',
-                                backgroundColor: '#16171F',
-                                color: '#4285F4',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                                zIndex: 10,
-                                transition: 'transform 0.2s ease'
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                            >
-                              <CalendarPlus size={20} />
-                            </button>
                           </div>
                         </div>
                       </div>
