@@ -603,6 +603,14 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   z-index: 2;
 }
 
+.white-calendar-icon::-webkit-calendar-picker-indicator {
+  opacity: 1 !important;
+  filter: invert(1);
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+}
+
 .form-actions-row {
   display: flex;
   align-items: center;
