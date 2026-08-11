@@ -396,6 +396,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [selectedCandidates, setSelectedCandidates] = useState([]);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [viewingCandidate, setViewingCandidate] = useState(null);
+  const [autoAssignSummary, setAutoAssignSummary] = useState(null);
   
   // If we arrived from another page requesting to open the form directly, skip the choice modal
   // Wait, the flow is: Hero card -> Choice Modal -> Inline Form.
@@ -1762,6 +1763,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   })));
                                   setSelectedCandidates([]);
                                   setSelectedSlotId(null);
+                                  setAutoAssignSummary(null);
                                 }
                               }}
                               disabled={selectedCandidates.length === 0 || !selectedSlotId}
@@ -1800,6 +1802,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   })));
                                   setSelectedCandidates([]);
                                   setSelectedSlotId(null);
+                                  setAutoAssignSummary(null);
                                 }
                               }}
                               disabled={!selectedSlotId}
@@ -1836,18 +1839,26 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   type="button"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    let candIdx = 0;
-                                    const shortlisted = formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted);
+                                    const shortlisted = formData.jobPosition === 'Product Designer' 
+                                      ? [] 
+                                      : [...MOCK_CANDIDATES].filter(c => c.shortlisted).map((c, idx) => ({ ...c, displayScore: c.score || (88 - idx * 3) })).sort((a, b) => b.displayScore - a.displayScore);
                                     if (shortlisted.length > 0) {
-                                      setPanels(prev => prev.map(p => ({
-                                        ...p,
-                                        slots: p.slots.map(s => {
-                                          if (s.assignedCandidate) return s;
-                                          const c = shortlisted[candIdx % shortlisted.length];
-                                          candIdx++;
-                                          return { ...s, assignedCandidate: c };
-                                        })
-                                      })));
+                                      let candIdx = 0;
+                                      let summary = [];
+                                      setPanels(prev => {
+                                        return prev.map(p => ({
+                                          ...p,
+                                          slots: p.slots.map(s => {
+                                            if (s.assignedCandidate) return s;
+                                            if (candIdx >= shortlisted.length) return s;
+                                            const c = shortlisted[candIdx];
+                                            candIdx++;
+                                            summary.push({ candidate: c, slot: { ...s, panelNo: p.id }, panelName: p.name });
+                                            return { ...s, assignedCandidate: c };
+                                          })
+                                        }));
+                                      });
+                                      setAutoAssignSummary(summary);
                                     }
                                   }}
                                   style={{
@@ -1864,18 +1875,19 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               </div>
                             </div>
                             
-                            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 1fr', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
                               <div></div>
                               <div>Date</div>
                               <div>Time</div>
+                              <div>Panel No</div>
                               <div>Type</div>
                               <div>Cap.</div>
                               <div>Rem.</div>
                             </div>
                             
                             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                              {panels.flatMap(p => p.slots.map(slot => ({ ...slot, type: activeZohoType === 'In-Person' ? 'Physical' : 'Online' }))).map((slot, idx) => (
-                                <div key={slot.id} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38', opacity: slot.assignedCandidate ? 0.6 : 1 }}>
+                              {panels.flatMap((p, pIdx) => p.slots.map(slot => ({ ...slot, panelNo: pIdx + 1, type: activeZohoType === 'In-Person' ? 'Physical' : 'Online' }))).map((slot, idx) => (
+                                <div key={slot.id} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38', opacity: slot.assignedCandidate ? 0.6 : 1 }}>
                                   <div>
                                     <input 
                                       type="radio" 
@@ -1890,6 +1902,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                     <Clock size={12} style={{ color: '#9599A6' }} />
                                     {slot.startTime || '09:00 AM'}
                                   </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>Panel {slot.panelNo}</div>
                                   <div>
                                     <span style={{ 
                                       backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)', 
@@ -1906,6 +1919,159 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Auto Assign Summary Section */}
+                        {autoAssignSummary && autoAssignSummary.length > 0 && (
+                          <div style={{ marginTop: '24px', backgroundColor: '#16171F', border: '1px solid #22C55E', borderRadius: '12px', padding: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                              <CheckCircle2 size={18} style={{ color: '#22C55E' }} />
+                              <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '1rem', fontWeight: 700 }}>Auto-Assignment Details</h5>
+                            </div>
+                            <p style={{ color: '#9599A6', fontSize: '0.8rem', marginBottom: '20px', lineHeight: 1.5 }}>
+                              Candidates have been optimally matched to available time slots based on their ranking score and earliest availability.
+                            </p>
+                            
+                            <div>
+                              {(() => {
+                                const allShortlisted = formData.jobPosition === 'Product Designer' 
+                                  ? [] 
+                                  : [...MOCK_CANDIDATES].filter(c => c.shortlisted).map((c, idx) => ({ ...c, displayScore: c.score || (88 - idx * 3) }));
+
+                                const groupedByPanel = autoAssignSummary.reduce((acc, match) => {
+                                  if (!acc[match.panelName]) acc[match.panelName] = [];
+                                  acc[match.panelName].push(match);
+                                  return acc;
+                                }, {});
+                                return Object.entries(groupedByPanel).map(([panelName, matches]) => (
+                                  <div key={panelName} style={{ marginBottom: '20px' }}>
+                                    <h6 style={{ color: '#F0B90B', fontSize: '0.85rem', marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2A2C38', paddingBottom: '6px' }}>
+                                      {panelName}
+                                    </h6>
+                                    <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #2A2C38', backgroundColor: '#1E222D' }}>
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                                        <thead>
+                                          <tr style={{ backgroundColor: '#16171F', borderBottom: '1px solid #2A2C38' }}>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Candidate</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Match Score</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Date</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Time</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase', textAlign: 'center' }}>Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {matches.map((match, idx) => (
+                                            <tr key={idx} style={{ borderBottom: idx < matches.length - 1 ? '1px solid #2A2C38' : 'none' }}>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(96, 165, 250, 0.1)', color: '#60A5FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
+                                                    {match.candidate.name.charAt(0)}
+                                                  </div>
+                                                  <select
+                                                    value={match.candidate.name}
+                                                    onChange={(e) => {
+                                                      const newCandName = e.target.value;
+                                                      if (newCandName === match.candidate.name) return;
+                                                      
+                                                      const selectedCand = allShortlisted.find(c => c.name === newCandName) || null;
+                                                      
+                                                      setPanels(prevPanels => {
+                                                        let oldSlotId = null;
+                                                        let oldPanelId = null;
+                                                        if (selectedCand) {
+                                                          prevPanels.forEach(p => {
+                                                            p.slots.forEach(s => {
+                                                              if (s.assignedCandidate && s.assignedCandidate.name === newCandName) {
+                                                                oldSlotId = s.id;
+                                                                oldPanelId = p.id;
+                                                              }
+                                                            });
+                                                          });
+                                                        }
+
+                                                        const currentCand = match.candidate;
+                                                        const targetPanelId = match.slot.panelNo;
+                                                        const targetSlotId = match.slot.id;
+
+                                                        const newPanels = prevPanels.map(p => ({
+                                                          ...p,
+                                                          slots: p.slots.map(s => {
+                                                            if (p.id === targetPanelId && s.id === targetSlotId) {
+                                                              return { ...s, assignedCandidate: selectedCand };
+                                                            }
+                                                            if (oldSlotId && p.id === oldPanelId && s.id === oldSlotId) {
+                                                              return { ...s, assignedCandidate: currentCand };
+                                                            }
+                                                            return s;
+                                                          })
+                                                        }));
+                                                        
+                                                        let newSummary = [];
+                                                        newPanels.forEach(p => {
+                                                          p.slots.forEach(s => {
+                                                            if (s.assignedCandidate) {
+                                                              newSummary.push({ candidate: s.assignedCandidate, slot: { ...s, panelNo: p.id }, panelName: p.name });
+                                                            }
+                                                          });
+                                                        });
+                                                        setAutoAssignSummary(newSummary);
+                                                        
+                                                        return newPanels;
+                                                      });
+                                                    }}
+                                                    style={{
+                                                      backgroundColor: 'transparent',
+                                                      color: '#FFFFFF',
+                                                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                      borderRadius: '6px',
+                                                      padding: '4px 8px',
+                                                      fontSize: '0.85rem',
+                                                      fontWeight: 600,
+                                                      outline: 'none',
+                                                      width: '180px',
+                                                      cursor: 'pointer',
+                                                      appearance: 'none'
+                                                    }}
+                                                  >
+                                                    <option value="" style={{ color: '#000' }}>Unassign...</option>
+                                                    {allShortlisted.map(c => (
+                                                      <option key={c.name} value={c.name} style={{ color: '#000' }}>
+                                                        {c.name}
+                                                      </option>
+                                                    ))}
+                                                  </select>
+                                                </div>
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                <div style={{ color: '#22C55E', fontSize: '0.8rem', fontWeight: 700 }}>{match.candidate.displayScore}%</div>
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
+                                                  <Calendar size={14} style={{ color: '#F0B90B' }} />
+                                                  <span>{formatDate(match.slot.date) || '03 Aug'}</span>
+                                                </div>
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
+                                                  <Clock size={14} style={{ color: '#F0B90B' }} />
+                                                  <span>{match.slot.startTime || '09:00 AM'} - {match.slot.endTime || '10:00 AM'}</span>
+                                                </div>
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
+                                                <span style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22C55E', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                                                  ASSIGNED
+                                                </span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
