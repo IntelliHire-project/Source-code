@@ -429,11 +429,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
       emails: 'saman.tech@company.com, nirosha.hr@company.com',
       capacity: 3,
       selectedDate: new Date().toISOString().split('T')[0],
-      slots: [
-        { id: 1, date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '10:00' },
-        { id: 2, date: new Date().toISOString().split('T')[0], startTime: '10:15', endTime: '11:15' },
-        { id: 3, date: new Date().toISOString().split('T')[0], startTime: '11:30', endTime: '12:30' },
-      ],
+      slots: [],
     },
   ]);
 
@@ -481,7 +477,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handlePanelCapacityChange = (panelId, newCapacity) => {
-    const cap = Math.max(1, Math.min(100, Number(newCapacity)));
+    const maxCapacity = Math.max(1, MOCK_CANDIDATES.filter(c => c.shortlisted).length);
+    const cap = Math.max(1, Math.min(maxCapacity, Number(newCapacity)));
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
@@ -494,12 +491,15 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleDailySlotCountChange = (panelId, date, newCount) => {
-    const count = Math.max(0, Math.min(50, Number(newCount)));
+    let desiredCount = Math.max(0, Number(newCount));
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
         
         const otherDateSlots = p.slots.filter(s => s.date !== date);
+        const maxAllowedForThisDate = p.capacity - otherDateSlots.length;
+        const count = Math.min(desiredCount, maxAllowedForThisDate);
+        
         let thisDateSlots = p.slots.filter(s => s.date === date);
         
         if (thisDateSlots.length < count) {
@@ -1202,16 +1202,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                 style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.9rem', width: '100%', padding: '6px 12px', backgroundColor: '#16171F', borderRadius: '6px', marginBottom: '12px' }}
                               />
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>TOTAL CANDIDATE CAPACITY:</label>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  TOTAL CANDIDATE CAPACITY:
+                                </label>
                                 <input
                                   type="number"
                                   min="1"
-                                  max="100"
+                                  max={Math.max(1, MOCK_CANDIDATES.filter(c => c.shortlisted).length)}
                                   value={p.capacity}
                                   onChange={(e) => handlePanelCapacityChange(p.id, e.target.value)}
                                   className="form-control"
                                   style={{ backgroundColor: '#16171F', color: '#FFFFFF', width: '80px', padding: '4px 8px' }}
                                 />
+                                <span style={{ color: '#22C55E', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                  Total shortlisted count: {MOCK_CANDIDATES.filter(c => c.shortlisted).length}
+                                </span>
                               </div>
                             </div>
 
@@ -1342,15 +1347,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1E222D', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <label className="form-label" style={{ fontSize: '0.8rem', color: '#9599A6', fontWeight: 700, margin: 0 }}>SLOTS FOR THIS DAY:</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="50"
-                                  value={p.slots.filter(s => s.date === p.selectedDate).length}
-                                  onChange={(e) => handleDailySlotCountChange(p.id, p.selectedDate, e.target.value)}
-                                  className="form-control"
-                                  style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '80px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}
-                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <span style={{ color: '#F0B90B', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(240, 185, 11, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                    Remaining count: {Math.max(0, p.capacity - p.slots.length)}
+                                  </span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="50"
+                                    value={p.slots.filter(s => s.date === p.selectedDate).length}
+                                    onChange={(e) => handleDailySlotCountChange(p.id, p.selectedDate, e.target.value)}
+                                    className="form-control"
+                                    style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '80px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}
+                                  />
+                                </div>
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1700,7 +1710,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               <div></div>
                             </div>
                             
-                            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                            <div style={{}}>
                               {MOCK_CANDIDATES.filter(c => c.shortlisted).map((cand, idx) => (
                                 <div key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 1.5fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38' }}>
                                   <div>
@@ -1845,19 +1855,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                     if (shortlisted.length > 0) {
                                       let candIdx = 0;
                                       let summary = [];
-                                      setPanels(prev => {
-                                        return prev.map(p => ({
-                                          ...p,
-                                          slots: p.slots.map(s => {
-                                            if (s.assignedCandidate) return s;
-                                            if (candIdx >= shortlisted.length) return s;
-                                            const c = shortlisted[candIdx];
-                                            candIdx++;
-                                            summary.push({ candidate: c, slot: { ...s, panelNo: p.id }, panelName: p.name });
-                                            return { ...s, assignedCandidate: c };
-                                          })
-                                        }));
-                                      });
+                                      const nextPanels = panels.map(p => ({
+                                        ...p,
+                                        slots: p.slots.map(s => {
+                                          if (s.assignedCandidate) return s;
+                                          if (candIdx >= shortlisted.length) return s;
+                                          const c = shortlisted[candIdx];
+                                          candIdx++;
+                                          summary.push({ candidate: c, slot: { ...s, panelNo: p.id }, panelName: p.name });
+                                          return { ...s, assignedCandidate: c };
+                                        })
+                                      }));
+                                      
+                                      while (candIdx < shortlisted.length) {
+                                        summary.push({ candidate: shortlisted[candIdx], slot: null, panelName: 'Unassigned Candidates' });
+                                        candIdx++;
+                                      }
+
+                                      setPanels(nextPanels);
                                       setAutoAssignSummary(summary);
                                     }
                                   }}
@@ -1968,6 +1983,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                                   </div>
                                                   <select
                                                     value={match.candidate.name}
+                                                    disabled={!match.slot}
                                                     onChange={(e) => {
                                                       const newCandName = e.target.value;
                                                       if (newCandName === match.candidate.name) return;
@@ -2045,21 +2061,35 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                                 <div style={{ color: '#22C55E', fontSize: '0.8rem', fontWeight: 700 }}>{match.candidate.displayScore}%</div>
                                               </td>
                                               <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
-                                                  <Calendar size={14} style={{ color: '#F0B90B' }} />
-                                                  <span>{formatDate(match.slot.date) || '03 Aug'}</span>
-                                                </div>
+                                                {match.slot ? (
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
+                                                    <Calendar size={14} style={{ color: '#F0B90B' }} />
+                                                    <span>{formatDate(match.slot.date) || '03 Aug'}</span>
+                                                  </div>
+                                                ) : (
+                                                  <span style={{ color: '#EF4444' }}>-</span>
+                                                )}
                                               </td>
                                               <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
-                                                  <Clock size={14} style={{ color: '#F0B90B' }} />
-                                                  <span>{match.slot.startTime || '09:00 AM'} - {match.slot.endTime || '10:00 AM'}</span>
-                                                </div>
+                                                {match.slot ? (
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
+                                                    <Clock size={14} style={{ color: '#F0B90B' }} />
+                                                    <span>{match.slot.startTime || '09:00 AM'} - {match.slot.endTime || '10:00 AM'}</span>
+                                                  </div>
+                                                ) : (
+                                                  <span style={{ color: '#EF4444' }}>-</span>
+                                                )}
                                               </td>
                                               <td style={{ padding: '12px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
-                                                <span style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22C55E', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
-                                                  ASSIGNED
-                                                </span>
+                                                {match.slot ? (
+                                                  <span style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22C55E', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                                                    ASSIGNED
+                                                  </span>
+                                                ) : (
+                                                  <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                                                    UNASSIGNED
+                                                  </span>
+                                                )}
                                               </td>
                                             </tr>
                                           ))}
