@@ -64,6 +64,7 @@ export const MOCK_CANDIDATES = [
     bio: 'Senior Full Stack Engineer with deep expertise in full-stack JavaScript architectures. Proactive in setting up CI/CD pipelines, optimizing databases, and orchestrating serverless APIs.',
     education: 'B.S. Computer Science - Georgia Institute of Technology',
     matchReason: 'Strong alignment in core technical stack and leadership duration. Minor penalties applied for missing niche DevOps tooling (Kubernetes), but semantic similarity suggests high adaptability based on Docker/AWS experience.',
+    shortlisted: true,
   },
   {
     vacancyId: 1,
@@ -80,6 +81,7 @@ export const MOCK_CANDIDATES = [
     bio: 'Junior Backend Developer specializing in Java microservices. Fast learner with strong computer science fundamentals and algorithmic skills.',
     education: 'B.S. in Computer Engineering - UC Berkeley',
     matchReason: 'Underqualified. Candidate has solid backend foundation but lacks modern JavaScript framework experience (React) and cloud skills (AWS).',
+    shortlisted: true,
   },
   {
     vacancyId: 1,
