@@ -19,6 +19,7 @@ import {
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import TagInput from '../../../components/common/TagInput';
+import CalendarPicker from '../../../components/common/CalendarPicker';
 import PillToggleGroup from '../../../components/common/PillToggleGroup';
 import ProgressBar from '../../../components/common/ProgressBar';
 import InsightPanel from '../../../components/common/InsightPanel';
@@ -620,12 +621,11 @@ function CreateVacancyPage() {
                   <label className="cv-label" htmlFor="cv-deadline">
                     Application Deadline
                   </label>
-                  <input
-                    id="cv-deadline"
-                    className="cv-input"
-                    type="date"
+                  <CalendarPicker
                     value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
+                    onChange={setDeadline}
+                    placeholder="Select a deadline"
+                    minDate={new Date().toISOString().slice(0, 10)}
                   />
                 </div>
 
@@ -774,11 +774,12 @@ function CreateVacancyPage() {
                   <span className="cv-mm-index">{idx + 1}</span>
                   <div className="cv-mm-field">
                     <label className="cv-mm-label">Date</label>
-                    <input
-                      type="date"
-                      className="cv-mm-input"
+                    <CalendarPicker
                       value={m.date}
-                      onChange={(e) => updateMilestone(m.id, 'date', e.target.value)}
+                      onChange={(v) => updateMilestone(m.id, 'date', v)}
+                      placeholder="Select a date"
+                      minDate={new Date().toISOString().slice(0, 10)}
+                      maxDate={deadline || undefined}
                     />
                   </div>
                   <div className="cv-mm-field">
