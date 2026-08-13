@@ -51,6 +51,42 @@ export const VACANCIES = [
       { id: 'a2', name: 'Amelia Stone', role: 'Engineering Manager', confirmed: true, interviews: ['Round 2 — 31 Jul', 'Panel — 02 Aug'], availability: 'Afternoons' },
       { id: 'a3', name: 'Rohan Fernando', role: 'Product Manager', confirmed: false, interviews: ['Panel — 02 Aug'], availability: 'Flexible' },
     ],
+    panels: [
+      {
+        id: 'panel-a',
+        name: 'Panel A (Technical Leads)',
+        meetingType: 'Google Meet',
+        meetingLink: 'https://meet.google.com/intelli-frontend-a',
+        roundLabel: 'Round 1 · Technical / Live Coding',
+        members: [
+          { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
+          { id: 'm2', name: 'Jordan Patel', role: 'Senior Frontend Lead', email: 'jordan.patel@company.com' },
+        ],
+      },
+      {
+        id: 'panel-b',
+        name: 'Panel B (HR Screening)',
+        meetingType: 'In-Person',
+        meetingLink: 'Innovation Hub — Interview Suite 102',
+        roundLabel: 'Round 1 · HR Screening',
+        members: [
+          { id: 'm3', name: 'Nirosha HR', role: 'HR Manager', email: 'nirosha.hr@company.com' },
+          { id: 'm4', name: 'Dilhani Wickramasinghe', role: 'Talent Acquisition Lead', email: 'dilhani.w@company.com' },
+        ],
+      },
+      {
+        id: 'panel-c',
+        name: 'Panel C (System Design)',
+        meetingType: 'MS Teams',
+        meetingLink: 'https://teams.microsoft.com/l/meetup-join/intelli-frontend-c',
+        roundLabel: 'Round 2 · System Design Architecture',
+        members: [
+          { id: 'm5', name: 'Ruwan Bandara', role: 'Principal Engineer', email: 'ruwan.b@company.com' },
+          { id: 'm6', name: 'Ishara Gunasekara', role: 'Engineering Manager', email: 'ishara.g@company.com' },
+          { id: 'm7', name: 'Tharindu Jayawardena', role: 'Staff Architect', email: 'tharindu.j@company.com' },
+        ],
+      },
+    ],
     adminReviews: [
       { id: 'r1', reviewerName: 'Emma Clarke', role: 'Hiring Manager', decision: 'approved', comment: 'Strong pipeline for the senior role.', timestamp: '16 Jul 2026' },
       { id: 'r2', reviewerName: 'Jordan Patel', role: 'Interviewer', decision: 'pending', comment: 'Compare final-round candidates before extending an offer.', timestamp: '30 Jul 2026' },
@@ -94,6 +130,7 @@ export const VACANCIES = [
       { id: 'a2', name: 'Rohan Fernando', role: 'Product Manager', confirmed: true, interviews: ['Round 1 — 04 Aug'], availability: 'Mornings' },
       { id: 'a3', name: 'Lucy Grant', role: 'UX Researcher', confirmed: false, interviews: ['Round 2 — 06 Aug'], availability: 'Afternoons' },
     ],
+    panels: [],
     adminReviews: [
       { id: 'r1', reviewerName: 'Sophie Turner', role: 'Hiring Manager', decision: 'approved', comment: 'Candidate pool looks strong.', timestamp: '13 Jul 2026' },
     ],
@@ -131,6 +168,19 @@ export const VACANCIES = [
       'Comfortable with CI/CD and containerized deployments',
     ],
     attendees: [],
+    panels: [
+      {
+        id: 'panel-a',
+        name: 'Panel A (Technical Leads)',
+        meetingType: 'MS Teams',
+        meetingLink: 'https://teams.microsoft.com/l/meetup-join/intelli-backend-a',
+        roundLabel: 'Round 1 · Technical / Live Coding',
+        members: [
+          { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
+          { id: 'm2', name: 'Malith Senanayake', role: 'QA Automation Engineer', email: 'malith.s@company.com' },
+        ],
+      },
+    ],
     adminReviews: [],
     approvalHistory: [
       { step: 'Submitted', state: 'done', timestamp: '25 Jun 2026' },
@@ -164,6 +214,56 @@ export const VACANCIES = [
       'Ability to work on-site in London for the internship period',
     ],
     attendees: [],
+    panels: [
+      {
+        id: 'panel-a',
+        name: 'Panel A (Technical Assessment)',
+        meetingType: 'Google Meet',
+        meetingLink: 'https://meet.google.com/intelli-ba-a',
+        roundLabel: 'Round 1 · Technical / Live Coding',
+        members: [
+          { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
+          { id: 'm2', name: 'Kasun Silva', role: 'Business Systems Analyst', email: 'kasun.silva@company.com' },
+        ],
+      },
+      {
+        id: 'panel-b',
+        name: 'Panel B (HR Screening)',
+        meetingType: 'Phone Screening',
+        meetingLink: '+44 20 1234 5678',
+        roundLabel: 'Round 1 · HR Screening',
+        members: [
+          { id: 'm3', name: 'Nirosha HR', role: 'HR Manager', email: 'nirosha.hr@company.com' },
+          { id: 'm4', name: 'Sarah Mahmood', role: 'Hiring Manager', email: 'sarah.mahmood@company.com' },
+        ],
+      },
+      {
+        id: 'panel-c',
+        name: 'Panel C (System Design)',
+        meetingType: 'In-Person',
+        meetingLink: 'Innovation Hub — Executive Boardroom A',
+        roundLabel: 'Round 2 · System Design Architecture',
+        members: [
+          { id: 'm5', name: 'Ruwan Bandara', role: 'Principal Engineer', email: 'ruwan.b@company.com' },
+          { id: 'm6', name: 'Ishara Gunasekara', role: 'Engineering Manager', email: 'ishara.g@company.com' },
+          { id: 'm7', name: 'Tharindu Jayawardena', role: 'Staff Architect', email: 'tharindu.j@company.com' },
+        ],
+      },
+      {
+        id: 'panel-d',
+        name: 'Panel D (Final Cultural Fit)',
+        meetingType: 'Google Meet',
+        meetingLink: 'https://meet.google.com/intelli-ba-d',
+        roundLabel: 'Round 3 · Final Cultural Fit',
+        members: [
+          { id: 'm8', name: 'Amelia Stone', role: 'Design Director', email: 'amelia.stone@company.com' },
+          { id: 'm9', name: 'Emma Clarke', role: 'Hiring Manager', email: 'emma.clarke@company.com' },
+          { id: 'm10', name: 'Rohan Fernando', role: 'Product Manager', email: 'rohan.f@company.com' },
+          { id: 'm11', name: 'Lucy Grant', role: 'UX Researcher', email: 'lucy.grant@company.com' },
+          { id: 'm12', name: 'David Chen', role: 'HR Business Partner', email: 'david.chen@company.com' },
+        ],
+      },
+    ],
     adminReviews: [
       { id: 'r1', reviewerName: 'Sarah Mahmood', role: 'Hiring Manager', decision: 'approved', comment: 'Good entry-level pipeline for the intern role.', timestamp: '22 Jul 2026' },
       { id: 'r2', reviewerName: 'David Chen', role: 'HR Business Partner', decision: 'pending', comment: 'Verify university references before scheduling interviews.', timestamp: '24 Jul 2026' },

@@ -13,12 +13,17 @@ import {
   ChevronRight,
   Clock3,
   ExternalLink,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
   RotateCcw,
   Save,
   Search,
   Sparkles,
   Star,
   Users,
+  Video,
   X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
@@ -57,6 +62,150 @@ const INITIAL_ALLOCATIONS = [
   { candidateId: 'APP-003', candidateName: 'Nimal Silva', slotId: 'SLOT-104', assignedTime: '10:00 AM', interviewDate: '05 Aug 2026', interviewType: 'Physical', status: 'ALLOCATED' },
   { candidateId: 'APP-004', candidateName: 'Sara Jayawardena', slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' },
 ];
+
+// Assigned panel data model (id, name, meetingType, roundLabel, members[])
+const INITIAL_PANELS = [
+  {
+    id: 'panel-a',
+    name: 'Panel A (Technical Leads)',
+    meetingType: 'Google Meet',
+    meetingLink: 'https://meet.google.com/xyz-123',
+    roundLabel: 'Round 1 · HR Screening',
+    members: [
+      { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
+      { id: 'm2', name: 'Nirosha HR', role: 'HR Manager', email: 'nirosha.hr@company.com' },
+    ],
+  },
+];
+
+const MAX_VISIBLE_MEMBERS = 4;
+
+const PANEL_MEMBER_TONES = [
+  { background: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B' },
+  { background: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA' },
+  { background: 'rgba(34, 197, 94, 0.12)', color: '#4ADE80' },
+  { background: 'rgba(168, 85, 247, 0.12)', color: '#C084FC' },
+];
+
+const PANEL_MEETING_TYPES = {
+  'Google Meet': { icon: Video, label: 'Video Call (Google Meet)' },
+  'MS Teams': { icon: Video, label: 'Video Call (MS Teams)' },
+  'In-Person': { icon: MapPin, label: 'In-Person' },
+  'Phone Screening': { icon: Phone, label: 'Phone Screening' },
+};
+
+function getMeetingTypeMeta(meetingType) {
+  if (!meetingType) return { icon: MapPin, label: 'Not specified' };
+  return PANEL_MEETING_TYPES[meetingType] || { icon: Video, label: meetingType };
+}
+
+function panelMemberInitials(name = '') {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('');
+}
+
+function AssignedPanelCard({ panel, onOpen }) {
+  return (
+    <button type="button" className="assigned-panel-card assigned-panel-card--trigger" onClick={onOpen}>
+      <span className="assigned-panel-card__title">{panel.name}</span>
+      <ChevronRight size={16} className="assigned-panel-card__chevron" />
+    </button>
+  );
+}
+
+function PanelDetailsModal({ panel, onClose, onEditPanel, onReassignPanel }) {
+  const [showAllMembers, setShowAllMembers] = useState(false);
+  const members = Array.isArray(panel.members) ? panel.members : [];
+  const visibleMembers = showAllMembers ? members : members.slice(0, MAX_VISIBLE_MEMBERS);
+  const hiddenCount = members.length - visibleMembers.length;
+  const meetingMeta = getMeetingTypeMeta(panel.meetingType);
+  const MeetingIcon = meetingMeta.icon;
+  const isMeetingLinkUrl = panel.meetingLink && /^https?:\/\//i.test(panel.meetingLink);
+
+  return (
+    <div className="allocation-modal-backdrop" onClick={onClose}>
+      <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="allocation-modal__header">
+          <h3>{panel.name}</h3>
+          <button type="button" onClick={onClose} aria-label="Close panel details">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="assigned-panel-modal">
+          {panel.roundLabel && (
+            <span className="assigned-panel-card__round-badge">{panel.roundLabel}</span>
+          )}
+
+          <div className="assigned-panel-card__meeting">
+            <MeetingIcon size={16} className="assigned-panel-card__meeting-icon" />
+            <span className="assigned-panel-card__meeting-label">{meetingMeta.label}</span>
+            {isMeetingLinkUrl && (
+              <a
+                className="assigned-panel-card__meeting-link"
+                href={panel.meetingLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={panel.meetingLink}
+                aria-label="Open meeting link"
+              >
+                <ExternalLink size={13} />
+              </a>
+            )}
+          </div>
+
+          <div className="assigned-panel-card__members">
+            <span className="assigned-panel-card__members-label">Panel Members</span>
+            {members.length === 0 ? (
+              <p className="assigned-panel-card__members-empty">No members assigned yet.</p>
+            ) : (
+              <div className="assigned-panel-card__members-list">
+                {visibleMembers.map((member, index) => (
+                  <div className="assigned-panel-member" key={member.id || `member-${index}`}>
+                    <div
+                      className="assigned-panel-member__avatar"
+                      style={PANEL_MEMBER_TONES[index % PANEL_MEMBER_TONES.length]}
+                    >
+                      {panelMemberInitials(member.name)}
+                    </div>
+                    <div className="assigned-panel-member__info">
+                      <span className="assigned-panel-member__name">{member.name}</span>
+                      <span className="assigned-panel-member__role">{member.role}</span>
+                    </div>
+                  </div>
+                ))}
+                {(hiddenCount > 0 || showAllMembers) && (
+                  <button
+                    type="button"
+                    className="assigned-panel-member__more"
+                    onClick={() => setShowAllMembers((prev) => !prev)}
+                  >
+                    {showAllMembers ? 'Show less' : `+${hiddenCount} more`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="assigned-panel-card__actions">
+            <button type="button" className="btn-ghost-dark" onClick={onEditPanel}>
+              <Pencil size={13} />
+              <span>Edit Panel</span>
+            </button>
+            <button type="button" className="btn-ghost-dark" onClick={onReassignPanel}>
+              <RotateCcw size={13} />
+              <span>Reassign</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function CandidateInterviewAllocationPage({ embeddedVacancy = null }) {
   const navigate = useNavigate();
@@ -111,10 +260,20 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const [rescheduleSlotId, setRescheduleSlotId] = useState('');
   const [viewingSlotModal, setViewingSlotModal] = useState(null);
   const [showNoCandidatesModal, setShowNoCandidatesModal] = useState(false);
+  const [assignedPanels, setAssignedPanels] = useState(() =>
+    Array.isArray(embeddedVacancy?.panels) ? embeddedVacancy.panels : INITIAL_PANELS
+  );
+  const [viewingPanel, setViewingPanel] = useState(null);
   const itemsPerPage = 4;
   
   // Header Navigation Active Tab State
   const activeSubTab = 'allocation'; // 'management' or 'allocation'
+
+  const openPanelManager = () => {
+    navigate('/recruiter/interviews', {
+      state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition },
+    });
+  };
 
   // Show Toast Utility
   const showToast = (msg, type = 'success') => {
@@ -615,48 +774,42 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 <h2 className="card-title">Assigned Panel Details</h2>
               </div>
             </div>
-            <div style={{ padding: '24px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              {/* Panel Info Card */}
-              <div style={{ flex: '1 1 calc(50% - 10px)', backgroundColor: '#13141C', padding: '20px', borderRadius: '12px', border: '1px solid #2A2C38' }}>
-                <h3 style={{ fontSize: '0.75rem', color: '#9599A6', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 700, letterSpacing: '0.05em' }}>Panel Information</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px dashed #2A2C38' }}>
-                    <span style={{ color: '#9599A6', fontSize: '0.82rem', fontWeight: 500 }}>Panel Name</span>
-                    <span style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>Panel A (Technical Leads)</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px dashed #2A2C38' }}>
-                    <span style={{ color: '#9599A6', fontSize: '0.82rem', fontWeight: 500 }}>Meeting Type</span>
-                    <span className="type-tag" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 10px', fontSize: '0.7rem' }}>Google Meet</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#9599A6', fontSize: '0.82rem', fontWeight: 500 }}>Location / Link</span>
-                    <a href="#" style={{ color: '#F0B90B', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 600 }}>meet.google.com/xyz-123</a>
-                  </div>
-                </div>
-              </div>
 
-              {/* Panel Members Card */}
-              <div style={{ flex: '1 1 calc(50% - 10px)', backgroundColor: '#13141C', padding: '20px', borderRadius: '12px', border: '1px solid #2A2C38' }}>
-                <h3 style={{ fontSize: '0.75rem', color: '#9599A6', textTransform: 'uppercase', marginBottom: '16px', fontWeight: 700, letterSpacing: '0.05em' }}>Panel Members</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#16171F', padding: '12px', borderRadius: '8px', border: '1px solid #2A2C38' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>ST</div>
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Saman Tech</div>
-                      <div style={{ color: '#9599A6', fontSize: '0.72rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>saman.tech@company.com</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#16171F', padding: '12px', borderRadius: '8px', border: '1px solid #2A2C38' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>NH</div>
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Nirosha HR</div>
-                      <div style={{ color: '#9599A6', fontSize: '0.72rem', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>nirosha.hr@company.com</div>
-                    </div>
-                  </div>
+            {assignedPanels.length === 0 ? (
+              <div className="assigned-panels-empty">
+                <div className="assigned-panels-empty__icon">
+                  <Users size={22} />
                 </div>
+                <p className="assigned-panels-empty__title">No interview panels assigned yet</p>
+                <p className="assigned-panels-empty__hint">
+                  Create an interview panel for this vacancy to start scheduling interviews.
+                </p>
+                <button type="button" className="btn-primary-accent" onClick={openPanelManager}>
+                  <Plus size={15} />
+                  <span>Create Panel</span>
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="assigned-panels-grid">
+                {assignedPanels.map((panel, index) => (
+                  <AssignedPanelCard
+                    key={panel.id || `panel-${index}`}
+                    panel={panel}
+                    onOpen={() => setViewingPanel(panel)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
+
+          {viewingPanel && (
+            <PanelDetailsModal
+              panel={viewingPanel}
+              onClose={() => setViewingPanel(null)}
+              onEditPanel={openPanelManager}
+              onReassignPanel={openPanelManager}
+            />
+          )}
 
           {/* ── Bottom Card: Allocation Results ── */}
           <div className="card-surface results-card-section">
