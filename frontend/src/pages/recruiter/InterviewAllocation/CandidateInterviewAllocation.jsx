@@ -995,9 +995,10 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
             </div>
           )}
         </div>
+          {!embeddedVacancy && (
+            <>
           {/* ── Dual Workspace Grid: Shortlisted Candidates | Action Buttons | Available Time Slots ── */}
           <div className="allocation-workspace-grid">
-
             {/* Left Card: Shortlisted Candidates */}
             <div className="card-surface candidate-list-card">
               <div className="card-header-bar flex-between">
@@ -1240,8 +1241,9 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 ))}
               </div>
             </div>
-
           </div>
+            </>
+          )}
 
 
         {/* ── Scheduled & Logged Time Slots Table Card (Exact Replica of Image 2) ── */}
