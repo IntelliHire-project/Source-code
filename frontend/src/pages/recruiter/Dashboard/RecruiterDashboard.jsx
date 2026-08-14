@@ -47,10 +47,10 @@ const PIPELINE_STEPS = [
   { label: 'Applications Received', count: 450, status: 'completed' },
   { label: 'AI Screening', count: 380, status: 'completed' },
   { label: 'Shortlisted', count: 120, status: 'completed' },
-  { label: 'Scheduled', count: 45, status: 'active' },
-  { label: 'Completed', count: 32, status: 'pending' },
-  { label: 'Offers Sent', count: 14, status: 'pending' },
-  { label: 'Hired', count: 8, status: 'pending' }
+  { label: 'Scheduled', count: 45, status: 'completed' },
+  { label: 'Completed', count: 32, status: 'completed' },
+  { label: 'Offers Sent', count: 14, status: 'completed' },
+  { label: 'Hired', count: 8, status: 'active' }
 ];
 const RECENT_ACTIVITIES = [
   { id: 'ACT-001', type: 'success', text: 'New application received from <strong>Liam Carter</strong> for <strong>Senior Frontend Engineer</strong>.', time: '2 mins ago' },
