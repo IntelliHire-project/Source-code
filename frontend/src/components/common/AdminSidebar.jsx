@@ -20,7 +20,6 @@ const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
   { label: 'Users', icon: Users, path: '/admin/users' },
   { label: 'Companies', icon: Building, path: '/admin/companies' },
-  { label: 'Job moderation', icon: Briefcase, path: '/admin/job-moderation' },
   { label: 'Payments', icon: CreditCard, path: '/admin/payments' },
   { label: 'Community mod.', icon: Flag, path: '/admin/community-mod' },
   { label: 'Audit Log', icon: BookOpen, path: '/admin/audit-log' },
