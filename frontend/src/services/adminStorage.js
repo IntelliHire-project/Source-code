@@ -11,7 +11,6 @@ const KEYS = {
   REPORTS:      'ih_admin_reports',
   COMMENTS:     'ih_admin_comments',
   TRANSACTIONS: 'ih_admin_transactions',
-  JOB_LISTINGS: 'ih_admin_job_listings',
   AUDIT_LOGS:   'ih_admin_audit_logs',
   ADMIN_PROFILE:'ih_admin_profile',
 };
@@ -101,20 +100,6 @@ export function getTransactions(initialData) {
 export function saveTransactions(transactions) {
   safeSet(KEYS.TRANSACTIONS, transactions);
 }
-
-// ── Job Listings (JobModeration page) ─────────────────────────────────
-
-export function getJobListings(initialData) {
-  const stored = safeGet(KEYS.JOB_LISTINGS);
-  if (stored !== null) return stored;
-  if (initialData) safeSet(KEYS.JOB_LISTINGS, initialData);
-  return initialData || [];
-}
-
-export function saveJobListings(listings) {
-  safeSet(KEYS.JOB_LISTINGS, listings);
-}
-
 
 // ── Audit Logs (ViewAuditLogs page + auto-populated by other pages) ───
 
