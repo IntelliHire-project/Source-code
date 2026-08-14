@@ -194,6 +194,121 @@
   flex-shrink: 0;
 }
 
+/* ── Filter / Sort popovers ── */
+.vm-toolbar__popover-wrap {
+  position: relative;
+}
+
+.vm-toolbar__icon-btn.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.vm-toolbar__popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  min-width: 360px;
+  padding: 10px;
+  background: var(--primary);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vm-toolbar__popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 6px 8px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.vm-toolbar__popover-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.vm-toolbar__popover-clear {
+  background: transparent;
+  border: none;
+  color: var(--text-on-dark-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.vm-toolbar__popover-clear:hover {
+  color: var(--accent);
+}
+
+.vm-toolbar__popover-columns {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.vm-toolbar__popover-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.vm-toolbar__popover-columns .vm-toolbar__popover-group:first-child {
+  padding-right: 10px;
+  border-right: 1px solid color-mix(in srgb, var(--border-dark) 80%, transparent);
+}
+
+.vm-toolbar__popover-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-on-dark-muted);
+  padding: 0 8px 4px;
+}
+
+.vm-toolbar__popover-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-on-dark);
+  font-family: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.vm-toolbar__popover-option:hover {
+  background: color-mix(in srgb, var(--text-on-dark) 5%, transparent);
+}
+
+.vm-toolbar__popover-option.is-selected {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
 .vm-toolbar__count {
   font-size: 0.82rem;
   color: var(--text-on-dark-muted);
