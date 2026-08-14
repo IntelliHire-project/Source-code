@@ -286,48 +286,50 @@ function VacancyManagementPage() {
                         )}
                       </div>
 
-                      <div className="vm-toolbar__popover-group">
-                        <span className="vm-toolbar__popover-label">Status</span>
-                        {STATUS_OPTIONS.map((option) => (
-                          <button
-                            type="button"
-                            key={option.id}
-                            className={`vm-toolbar__popover-option ${
-                              statusFilter === option.id ? 'is-selected' : ''
-                            }`}
-                            onClick={() => setStatusFilter(option.id)}
-                          >
-                            <span>{option.label}</span>
-                            {statusFilter === option.id && <Check size={14} />}
-                          </button>
-                        ))}
-                      </div>
+                      <div className="vm-toolbar__popover-columns">
+                        <div className="vm-toolbar__popover-group">
+                          <span className="vm-toolbar__popover-label">Status</span>
+                          {STATUS_OPTIONS.map((option) => (
+                            <button
+                              type="button"
+                              key={option.id}
+                              className={`vm-toolbar__popover-option ${
+                                statusFilter === option.id ? 'is-selected' : ''
+                              }`}
+                              onClick={() => setStatusFilter(option.id)}
+                            >
+                              <span>{option.label}</span>
+                              {statusFilter === option.id && <Check size={14} />}
+                            </button>
+                          ))}
+                        </div>
 
-                      <div className="vm-toolbar__popover-group">
-                        <span className="vm-toolbar__popover-label">Department</span>
-                        <button
-                          type="button"
-                          className={`vm-toolbar__popover-option ${
-                            departmentFilter === 'all' ? 'is-selected' : ''
-                          }`}
-                          onClick={() => setDepartmentFilter('all')}
-                        >
-                          <span>All departments</span>
-                          {departmentFilter === 'all' && <Check size={14} />}
-                        </button>
-                        {departments.map((dept) => (
+                        <div className="vm-toolbar__popover-group">
+                          <span className="vm-toolbar__popover-label">Department</span>
                           <button
                             type="button"
-                            key={dept}
                             className={`vm-toolbar__popover-option ${
-                              departmentFilter === dept ? 'is-selected' : ''
+                              departmentFilter === 'all' ? 'is-selected' : ''
                             }`}
-                            onClick={() => setDepartmentFilter(dept)}
+                            onClick={() => setDepartmentFilter('all')}
                           >
-                            <span>{dept}</span>
-                            {departmentFilter === dept && <Check size={14} />}
+                            <span>All departments</span>
+                            {departmentFilter === 'all' && <Check size={14} />}
                           </button>
-                        ))}
+                          {departments.map((dept) => (
+                            <button
+                              type="button"
+                              key={dept}
+                              className={`vm-toolbar__popover-option ${
+                                departmentFilter === dept ? 'is-selected' : ''
+                              }`}
+                              onClick={() => setDepartmentFilter(dept)}
+                            >
+                              <span>{dept}</span>
+                              {departmentFilter === dept && <Check size={14} />}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
