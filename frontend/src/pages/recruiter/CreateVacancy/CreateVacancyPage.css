@@ -500,6 +500,29 @@
   background: rgba(240, 185, 11, 0.06);
 }
 
+/* ── In-Between Shortlisting trigger ── */
+.cv-milestone-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1.5px dashed var(--comm-border, #2A2C38);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #9599A6;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cv-milestone-trigger:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(240, 185, 11, 0.06);
+}
+
 /* ── Assessment Test Toggle (2-col override) ── */
 .assessment-toggle-wrapper .pill-toggle-group {
   grid-template-columns: 1fr 1fr;
@@ -873,4 +896,278 @@
   .pill-toggle-group {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* ============================================================
+   In-Between Shortlisting Milestones Modal
+   Dark-theme modal following PaymentRequiredModal conventions.
+   Uses only tokens.css design tokens.
+   ============================================================ */
+
+.cv-mm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: cv-mm-fade-in 0.2s ease;
+}
+
+@keyframes cv-mm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cv-mm-modal {
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--comm-surface, #1A1B27);
+  border: 1px solid var(--comm-border, #2A2C38);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  position: relative;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  animation: cv-mm-slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cv-mm-slide-up {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cv-mm-modal::-webkit-scrollbar { width: 5px; }
+.cv-mm-modal::-webkit-scrollbar-track { background: transparent; }
+.cv-mm-modal::-webkit-scrollbar-thumb {
+  background: var(--comm-border, #2A2C38);
+  border-radius: var(--radius-full);
+}
+
+/* ── Header ── */
+.cv-mm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cv-mm-header__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cv-mm-header__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--accent, #F0B90B);
+  border: 1px solid rgba(240, 185, 11, 0.28);
+  flex-shrink: 0;
+}
+
+.cv-mm-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--comm-text, #E8EAF2);
+  margin: 0;
+}
+
+.cv-mm-subtitle {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--comm-text-muted, #5C6070);
+  margin: 4px 0 0;
+}
+
+.cv-mm-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #5C6070;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cv-mm-close:hover {
+  background: rgba(230, 57, 70, 0.15);
+  color: #E63946;
+}
+
+/* ── Milestone list ── */
+.cv-mm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cv-mm-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) 28px;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--comm-border, #2A2C38);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.cv-mm-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--accent, #F0B90B);
+  font-size: 0.72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.cv-mm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cv-mm-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--comm-text-muted, #5C6070);
+}
+
+.cv-mm-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--comm-border, #2A2C38);
+  border-radius: var(--radius-sm);
+  background: var(--comm-surface-raised, #23243A);
+  color: var(--comm-text, #E8EAF2);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.cv-mm-input:focus {
+  border-color: var(--accent, #F0B90B);
+}
+
+.cv-mm-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #5C6070;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cv-mm-remove:hover {
+  background: rgba(230, 57, 70, 0.15);
+  color: #E63946;
+}
+
+/* ── Add button ── */
+.cv-mm-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  margin-top: 12px;
+  border: 1.5px dashed var(--comm-border, #2A2C38);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #9599A6;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cv-mm-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(240, 185, 11, 0.06);
+}
+
+/* ── Footer ── */
+.cv-mm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--comm-border, #2A2C38);
+}
+
+.cv-mm-count {
+  font-size: 0.78rem;
+  color: var(--comm-text-muted, #5C6070);
+}
+
+.cv-mm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.cv-mm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cv-mm-btn--outline {
+  background: transparent;
+  border-color: var(--comm-border, #2A2C38);
+  color: var(--comm-text-muted, #5C6070);
+}
+
+.cv-mm-btn--outline:hover {
+  border-color: #3A3D4F;
+  color: var(--comm-text, #E8EAF2);
+}
+
+.cv-mm-btn--primary {
+  background: var(--accent, #F0B90B);
+  color: #12131C;
+}
+
+.cv-mm-btn--primary:hover {
+  filter: brightness(1.08);
 }

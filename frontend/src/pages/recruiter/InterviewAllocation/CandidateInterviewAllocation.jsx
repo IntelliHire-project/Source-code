@@ -13,12 +13,17 @@ import {
   ChevronRight,
   Clock3,
   ExternalLink,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
   RotateCcw,
   Save,
   Search,
   Sparkles,
   Star,
   Users,
+  Video,
   X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
@@ -58,6 +63,150 @@ const INITIAL_ALLOCATIONS = [
   { candidateId: 'APP-004', candidateName: 'Sara Jayawardena', slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' },
 ];
 
+// Assigned panel data model (id, name, meetingType, roundLabel, members[])
+const INITIAL_PANELS = [
+  {
+    id: 'panel-a',
+    name: 'Panel A (Technical Leads)',
+    meetingType: 'Google Meet',
+    meetingLink: 'https://meet.google.com/xyz-123',
+    roundLabel: 'Round 1 · HR Screening',
+    members: [
+      { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
+      { id: 'm2', name: 'Nirosha HR', role: 'HR Manager', email: 'nirosha.hr@company.com' },
+    ],
+  },
+];
+
+const MAX_VISIBLE_MEMBERS = 4;
+
+const PANEL_MEMBER_TONES = [
+  { background: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B' },
+  { background: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA' },
+  { background: 'rgba(34, 197, 94, 0.12)', color: '#4ADE80' },
+  { background: 'rgba(168, 85, 247, 0.12)', color: '#C084FC' },
+];
+
+const PANEL_MEETING_TYPES = {
+  'Google Meet': { icon: Video, label: 'Video Call (Google Meet)' },
+  'MS Teams': { icon: Video, label: 'Video Call (MS Teams)' },
+  'In-Person': { icon: MapPin, label: 'In-Person' },
+  'Phone Screening': { icon: Phone, label: 'Phone Screening' },
+};
+
+function getMeetingTypeMeta(meetingType) {
+  if (!meetingType) return { icon: MapPin, label: 'Not specified' };
+  return PANEL_MEETING_TYPES[meetingType] || { icon: Video, label: meetingType };
+}
+
+function panelMemberInitials(name = '') {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('');
+}
+
+function AssignedPanelCard({ panel, onOpen }) {
+  return (
+    <button type="button" className="assigned-panel-card assigned-panel-card--trigger" onClick={onOpen}>
+      <span className="assigned-panel-card__title">{panel.name}</span>
+      <ChevronRight size={16} className="assigned-panel-card__chevron" />
+    </button>
+  );
+}
+
+function PanelDetailsModal({ panel, onClose, onEditPanel, onReassignPanel }) {
+  const [showAllMembers, setShowAllMembers] = useState(false);
+  const members = Array.isArray(panel.members) ? panel.members : [];
+  const visibleMembers = showAllMembers ? members : members.slice(0, MAX_VISIBLE_MEMBERS);
+  const hiddenCount = members.length - visibleMembers.length;
+  const meetingMeta = getMeetingTypeMeta(panel.meetingType);
+  const MeetingIcon = meetingMeta.icon;
+  const isMeetingLinkUrl = panel.meetingLink && /^https?:\/\//i.test(panel.meetingLink);
+
+  return (
+    <div className="allocation-modal-backdrop" onClick={onClose}>
+      <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="allocation-modal__header">
+          <h3>{panel.name}</h3>
+          <button type="button" onClick={onClose} aria-label="Close panel details">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="assigned-panel-modal">
+          {panel.roundLabel && (
+            <span className="assigned-panel-card__round-badge">{panel.roundLabel}</span>
+          )}
+
+          <div className="assigned-panel-card__meeting">
+            <MeetingIcon size={16} className="assigned-panel-card__meeting-icon" />
+            <span className="assigned-panel-card__meeting-label">{meetingMeta.label}</span>
+            {isMeetingLinkUrl && (
+              <a
+                className="assigned-panel-card__meeting-link"
+                href={panel.meetingLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={panel.meetingLink}
+                aria-label="Open meeting link"
+              >
+                <ExternalLink size={13} />
+              </a>
+            )}
+          </div>
+
+          <div className="assigned-panel-card__members">
+            <span className="assigned-panel-card__members-label">Panel Members</span>
+            {members.length === 0 ? (
+              <p className="assigned-panel-card__members-empty">No members assigned yet.</p>
+            ) : (
+              <div className="assigned-panel-card__members-list">
+                {visibleMembers.map((member, index) => (
+                  <div className="assigned-panel-member" key={member.id || `member-${index}`}>
+                    <div
+                      className="assigned-panel-member__avatar"
+                      style={PANEL_MEMBER_TONES[index % PANEL_MEMBER_TONES.length]}
+                    >
+                      {panelMemberInitials(member.name)}
+                    </div>
+                    <div className="assigned-panel-member__info">
+                      <span className="assigned-panel-member__name">{member.name}</span>
+                      <span className="assigned-panel-member__role">{member.role}</span>
+                    </div>
+                  </div>
+                ))}
+                {(hiddenCount > 0 || showAllMembers) && (
+                  <button
+                    type="button"
+                    className="assigned-panel-member__more"
+                    onClick={() => setShowAllMembers((prev) => !prev)}
+                  >
+                    {showAllMembers ? 'Show less' : `+${hiddenCount} more`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="assigned-panel-card__actions">
+            <button type="button" className="btn-ghost-dark" onClick={onEditPanel}>
+              <Pencil size={13} />
+              <span>Edit Panel</span>
+            </button>
+            <button type="button" className="btn-ghost-dark" onClick={onReassignPanel}>
+              <RotateCcw size={13} />
+              <span>Reassign</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CandidateInterviewAllocationPage({ embeddedVacancy = null }) {
   const navigate = useNavigate();
 
@@ -66,11 +215,38 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const [interviewRound, setInterviewRound] = useState('Technical Interview');
   const [interviewDate, setInterviewDate] = useState('2026-08-03');
 
-  const [candidates, setCandidates] = useState(() =>
-    embeddedVacancy
-      ? INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }))
-      : INITIAL_CANDIDATES
-  );
+  const [roundsCount, setRoundsCount] = useState(3);
+  const [roundTitles, setRoundTitles] = useState(['HR Screening', 'Technical / Live Coding', 'System Design Architecture']);
+
+  const handleRoundsCountChange = (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (val >= 1 && val <= 10) {
+      setRoundsCount(val);
+      setRoundTitles(prev => {
+        const newTitles = [...prev];
+        while (newTitles.length < val) newTitles.push('');
+        return newTitles;
+      });
+    } else if (e.target.value === '') {
+      setRoundsCount('');
+    }
+  };
+
+  const handleRoundTitleChange = (index, val) => {
+    setRoundTitles(prev => {
+      const newTitles = [...prev];
+      newTitles[index] = val;
+      return newTitles;
+    });
+  };
+
+  const [candidates, setCandidates] = useState(() => {
+    if (embeddedVacancy) {
+      if (embeddedVacancy.title === 'Product Designer') return [];
+      return INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }));
+    }
+    return INITIAL_CANDIDATES;
+  });
   const [allocations, setAllocations] = useState(INITIAL_ALLOCATIONS);
   const [selectedSlotId, setSelectedSlotId] = useState('');
 
@@ -82,10 +258,22 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [reschedulingAllocation, setReschedulingAllocation] = useState(null);
   const [rescheduleSlotId, setRescheduleSlotId] = useState('');
+  const [viewingSlotModal, setViewingSlotModal] = useState(null);
+  const [showNoCandidatesModal, setShowNoCandidatesModal] = useState(false);
+  const [assignedPanels, setAssignedPanels] = useState(() =>
+    Array.isArray(embeddedVacancy?.panels) ? embeddedVacancy.panels : INITIAL_PANELS
+  );
+  const [viewingPanel, setViewingPanel] = useState(null);
   const itemsPerPage = 4;
-
+  
   // Header Navigation Active Tab State
   const activeSubTab = 'allocation'; // 'management' or 'allocation'
+
+  const openPanelManager = () => {
+    navigate('/recruiter/interviews', {
+      state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition },
+    });
+  };
 
   // Show Toast Utility
   const showToast = (msg, type = 'success') => {
@@ -251,10 +439,16 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const handleAutoAllocate = () => {
     const eligibleCandidates = [...filteredCandidates].sort((a, b) => b.score - a.score);
     const availableSlots = filteredSlots.map((slot) => ({ ...slot, rem: slot.cap }));
-    if (eligibleCandidates.length === 0 || availableSlots.length === 0) {
-      showToast('No eligible candidates or matching time slots are available.', 'error');
+    
+    if (eligibleCandidates.length === 0) {
+      setShowNoCandidatesModal(true);
       return;
     }
+    if (availableSlots.length === 0) {
+      showToast('No matching time slots are available.', 'error');
+      return;
+    }
+    
     const visibleIds = new Set(eligibleCandidates.map((candidate) => candidate.id));
     const newAllocations = allocations.filter((allocation) => !visibleIds.has(allocation.candidateId));
 
@@ -412,8 +606,8 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       )}
 
       {/* ── Filter Controls Card ── */}
-      <div className="card-surface filter-card-row">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+      <div className="card-surface filter-card-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', flex: 1, minWidth: '60%' }}>
           {!embeddedVacancy && (
             <div className="filter-item">
               <label className="filter-item-label">
@@ -438,89 +632,373 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
             </div>
           )}
 
-          <div className="filter-item">
-            <label className="filter-item-label">
-              <Star size={14} />
-              <span>INTERVIEW ROUND</span>
-            </label>
-            <div className="select-input-wrap">
-              <select
-                value={interviewRound}
-                onChange={(e) => setInterviewRound(e.target.value)}
-                className="form-control"
-              >
-                <option value="Technical Interview">Technical Interview</option>
-                <option value="HR Screening">HR Screening</option>
-                <option value="HR Portfolio Review">HR Portfolio Review</option>
-                <option value="Technical Case Study">Technical Case Study</option>
-                <option value="Final Cultural Fit">Final Cultural Fit</option>
-              </select>
-              <span className="select-arrow">▼</span>
+          <div className="dynamic-rounds-pipeline" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minWidth: '350px' }}>
+            <div style={{ paddingRight: '140px' }}>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-on-dark, #fff)', margin: '0 0 4px 0' }}>
+                Set Up Interview Rounds for This Vacancy
+              </h3>
+              <p style={{ fontSize: '0.75rem', color: '#9599A6', margin: 0 }}>
+                Choose the number of interview rounds and select the type for each round.
+              </p>
+            </div>
+            <div style={{ 
+              position: 'absolute', 
+              top: 0, 
+              right: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              background: 'rgba(240, 185, 11, 0.15)', 
+              border: '1px solid #F0B90B', 
+              borderRadius: '6px', 
+              padding: '0 10px', 
+              height: '32px' 
+            }}>
+              <label style={{ fontSize: '0.7rem', color: '#F0B90B', fontWeight: 700, margin: 0, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                ROUNDS COUNT:
+              </label>
+              <input 
+                type="number" 
+                min="1" 
+                max="10" 
+                value={roundsCount} 
+                onChange={handleRoundsCountChange}
+                style={{ 
+                  width: '28px', 
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#F0B90B', 
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                  textAlign: 'center',
+                  marginLeft: '4px',
+                  padding: 0
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {Array.from({ length: roundsCount || 0 }).map((_, idx) => (
+                <div key={idx} style={{ flex: '1 1 150px' }}>
+                  <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', marginBottom: '6px', fontWeight: 600 }}>
+                    ROUND {idx + 1} TITLE
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Add Round Name"
+                    value={roundTitles[idx] || ''} 
+                    onChange={(e) => handleRoundTitleChange(idx, e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-dark, #2A2C38)', background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-on-dark, #fff)', fontSize: '0.85rem', outline: 'none' }} 
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Next Step Section */}
+            <div style={{ 
+              marginTop: '24px', 
+              border: '1px solid var(--border-dark, #2A2C38)',
+              borderLeft: '4px solid #F0B90B',
+              backgroundColor: 'rgba(240, 185, 11, 0.04)',
+              borderRadius: '8px',
+              padding: '16px 20px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              flexWrap: 'wrap', 
+              gap: '16px' 
+            }}>
+              <div>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-on-dark, #fff)', margin: '0 0 4px 0' }}>
+                  Next Step: Schedule Interviews 
+                </h4>
+                <p style={{ fontSize: '0.75rem', color: '#9599A6', margin: 0 }}>
+                  Once rounds are configured, start scheduling interviews as per selected rounds.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <a
+                  href="https://calendar.google.com/calendar/r"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-schedule-inline"
+                  title="Open Google Calendar in a new tab"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '0 16px',
+                    height: '42px',
+                    borderRadius: '8px',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    backgroundColor: '#1E222D',
+                    border: '1px solid #2A2C38',
+                    color: '#4285F4',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease',
+                    boxShadow: 'none',
+                  }}
+                >
+                  <Calendar size={15} style={{ color: '#4285F4' }} />
+                  <span>Google Calendar Sync</span>
+                  <ExternalLink size={13} style={{ color: '#9599A6' }} />
+                </a>
+
+                <button
+                  type="button"
+                  className="btn-primary-accent btn-schedule-inline"
+                  onClick={() =>
+                    navigate('/recruiter/interviews', {
+                      state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
+                    })
+                  }
+                  style={{ height: '42px' }}
+                >
+                  <CalendarPlus size={16} />
+                  <span>Schedule Interviews</span>
+                </button>
+              </div>
             </div>
           </div>
-
-          <div className="filter-item">
-            <label className="filter-item-label">
-              <CalendarDays size={14} />
-              <span>INTERVIEW DATE</span>
-            </label>
-            <input
-              type="date"
-              value={interviewDate}
-              onChange={(e) => setInterviewDate(e.target.value)}
-              className="form-control date-picker-input"
-            />
-          </div>
-        </div>
-
-        {/* Action Buttons Group (Google Calendar + Schedule New Interview) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <a
-            href="https://calendar.google.com/calendar/r"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-schedule-inline"
-            title="Open Google Calendar in a new tab"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '0 16px',
-              height: '42px',
-              borderRadius: '8px',
-              fontSize: '0.84rem',
-              fontWeight: 600,
-              backgroundColor: '#1E222D',
-              border: '1px solid #2A2C38',
-              color: '#4285F4',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              boxShadow: 'none',
-            }}
-          >
-            <Calendar size={15} style={{ color: '#4285F4' }} />
-            <span>Google Calendar Sync</span>
-            <ExternalLink size={13} style={{ color: '#9599A6' }} />
-          </a>
-
-          <button
-            type="button"
-            className="btn-primary-accent btn-schedule-inline"
-            onClick={() =>
-              navigate('/recruiter/interviews', {
-                state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
-              })
-            }
-          >
-            <CalendarPlus size={16} />
-            <span>Schedule New Interview</span>
-          </button>
         </div>
       </div>
 
+          {/* ── Panel Details Section ── */}
+          <div className="card-surface" style={{ marginBottom: '24px' }}>
+            <div className="card-header-bar border-bottom-header">
+              <div className="card-title-group">
+                <span className="gold-indicator"></span>
+                <h2 className="card-title">Assigned Panel Details</h2>
+              </div>
+            </div>
+
+            {assignedPanels.length === 0 ? (
+              <div className="assigned-panels-empty">
+                <div className="assigned-panels-empty__icon">
+                  <Users size={22} />
+                </div>
+                <p className="assigned-panels-empty__title">No interview panels assigned yet</p>
+                <p className="assigned-panels-empty__hint">
+                  Create an interview panel for this vacancy to start scheduling interviews.
+                </p>
+                <button type="button" className="btn-primary-accent" onClick={openPanelManager}>
+                  <Plus size={15} />
+                  <span>Create Panel</span>
+                </button>
+              </div>
+            ) : (
+              <div className="assigned-panels-grid">
+                {assignedPanels.map((panel, index) => (
+                  <AssignedPanelCard
+                    key={panel.id || `panel-${index}`}
+                    panel={panel}
+                    onOpen={() => setViewingPanel(panel)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {viewingPanel && (
+            <PanelDetailsModal
+              panel={viewingPanel}
+              onClose={() => setViewingPanel(null)}
+              onEditPanel={openPanelManager}
+              onReassignPanel={openPanelManager}
+            />
+          )}
+
+          {/* ── Bottom Card: Allocation Results ── */}
+          <div className="card-surface results-card-section">
+            <div className="card-header-bar flex-between border-bottom-header">
+              <div className="card-title-group">
+                <span className="gold-indicator"></span>
+                <h2 className="card-title">Allocation Results</h2>
+              </div>
+
+              <div className="action-buttons-group">
+                <div className="allocation-results-search">
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search results..."
+                    aria-label="Search allocation results"
+                  />
+                </div>
+                <button type="button" className="btn-ghost-dark" onClick={() => setShowResetConfirm(true)}>
+                  <RotateCcw size={14} />
+                  <span>Reset</span>
+                </button>
+                <button type="button" className="btn-primary-accent" onClick={handleSaveAllocations}>
+                  <Save size={14} />
+                  <span>Save Allocation</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Results Table */}
+            <div className="table-responsive">
+              <table className="results-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '18%' }}>CANDIDATE NAME</th>
+                    <th style={{ width: '15%' }}>INTERVIEW ROUND</th>
+                    <th style={{ width: '12%' }}>PANEL NAME</th>
+                    <th style={{ width: '13%' }}>ASSIGNED TIME SLOT</th>
+                    <th style={{ width: '12%' }}>INTERVIEW DATE</th>
+                    <th style={{ width: '10%' }}>INTERVIEW TYPE</th>
+                    <th style={{ width: '12%' }}>ALLOCATION STATUS</th>
+                    <th style={{ width: '8%', textAlign: 'right' }}>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedAllocations.map((item) => (
+                    <tr key={item.candidateId}>
+                      <td className="font-bold cand-name-cell">{item.candidateName}</td>
+                      <td>
+                        <span className="type-tag" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                          {item.interviewRound || interviewRound}
+                        </span>
+                      </td>
+                      <td style={{ color: '#E0E1E6', fontSize: '0.85rem' }}>
+                        {item.panelName || 'Panel A'}
+                      </td>
+                      <td className="time-slot-cell">
+                        {item.assignedTime !== '—' && (
+                          <Clock3 size={14} />
+                        )}
+                        <span>{item.assignedTime}</span>
+                      </td>
+                      <td>{item.interviewDate}</td>
+                      <td>{item.interviewType}</td>
+                      <td>
+                        <span
+                          className={`status-result-badge ${
+                            item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'
+                          }`}
+                        >
+                          {item.status === 'ALLOCATED' ? (
+                            <>
+                              <CheckCircle2 size={12} />
+                              <span>ALLOCATED</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock3 size={12} />
+                              <span>PENDING</span>
+                            </>
+                          )}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {item.status === 'ALLOCATED' && (
+                          <div className="result-row-actions">
+                            <button
+                              type="button"
+                              className="btn-reschedule-row"
+                              onClick={() => {
+                                setReschedulingAllocation(item);
+                                setRescheduleSlotId(item.slotId);
+                              }}
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-unassign-row"
+                              onClick={() => handleRemoveAllocation(item.candidateId)}
+                              title="Unassign this candidate"
+                            >
+                              Unassign
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="allocation-mobile-list results-mobile-list">
+              {paginatedAllocations.map((item) => (
+                <article className="allocation-result-mobile-card" key={`mobile-${item.candidateId}`}>
+                  <div>
+                    <strong>{item.candidateName}</strong>
+                    <span className={`status-result-badge ${item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <dl>
+                    <div><dt>Round</dt><dd>{item.interviewRound || interviewRound}</dd></div>
+                    <div><dt>Panel</dt><dd>{item.panelName || 'Panel A'}</dd></div>
+                    <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
+                    <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
+                    <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
+                  </dl>
+                  {item.status === 'ALLOCATED' && (
+                    <div className="result-row-actions">
+                      <button type="button" className="btn-reschedule-row" onClick={() => {
+                        setReschedulingAllocation(item);
+                        setRescheduleSlotId(item.slotId);
+                      }}>Reschedule</button>
+                      <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId)}>
+                        Unassign
+                      </button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+
+            {/* Pagination Footer */}
+            {filteredAllocations.length > itemsPerPage && (
+              <div className="table-pagination-footer">
+              <span className="pagination-info">
+                Showing <strong>{paginatedAllocations.length}</strong> of <strong>{filteredAllocations.length}</strong> allocation results
+              </span>
+
+              <div className="pagination-controls">
+                <button
+                  type="button"
+                  className="page-nav-btn"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  aria-label="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    className={`page-num-btn ${pageNum === currentPage ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="page-nav-btn"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  aria-label="Next Page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+          {!embeddedVacancy && (
+            <>
           {/* ── Dual Workspace Grid: Shortlisted Candidates | Action Buttons | Available Time Slots ── */}
           <div className="allocation-workspace-grid">
-
             {/* Left Card: Shortlisted Candidates */}
             <div className="card-surface candidate-list-card">
               <div className="card-header-bar flex-between">
@@ -531,56 +1009,66 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 <span className="count-badge">{filteredCandidates.length} TOTAL</span>
               </div>
 
-              <div className="table-responsive">
-                <table className="alloc-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '36px', textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={allCandidatesSelected}
-                          onChange={handleSelectAllCandidates}
-                          className="styled-checkbox"
-                        />
-                      </th>
-                      <th>CANDIDATE NAME</th>
-                      <th>APP. ID</th>
-                      <th>SCORE</th>
-                      <th>STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCandidates.map((cand) => (
-                      <tr
-                        key={cand.id}
-                        className={cand.selected ? 'row-selected' : ''}
-                        onClick={() => handleToggleCandidateSelect(cand.id)}
-                      >
-                        <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+              {filteredCandidates.length === 0 ? (
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9599A6', borderTop: '1px solid #2A2C38' }}>
+                  <Users size={32} style={{ marginBottom: '16px', opacity: 0.3, display: 'inline-block' }} />
+                  <h4 style={{ color: '#fff', fontSize: '0.95rem', marginBottom: '8px', fontWeight: 600 }}>No candidates found</h4>
+                  <p style={{ fontSize: '0.8rem', lineHeight: '1.5', maxWidth: '250px', margin: '0 auto' }}>
+                    No candidates have been shortlisted yet. Open candidate details to shortlist them.
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="alloc-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '36px', textAlign: 'center' }}>
                           <input
                             type="checkbox"
-                            checked={cand.selected}
-                            onChange={() => handleToggleCandidateSelect(cand.id)}
+                            checked={allCandidatesSelected}
+                            onChange={handleSelectAllCandidates}
                             className="styled-checkbox"
                           />
-                        </td>
-                        <td className="cand-name-cell">
-                          <span className="cand-name">{cand.name}</span>
-                        </td>
-                        <td className="app-id-cell">{cand.id}</td>
-                        <td>
-                          <span className="score-badge">{cand.score}%</span>
-                        </td>
-                        <td>
-                          <span className={`status-pill ${cand.status === 'SHORTLISTED' ? 'pill-gold' : 'pill-grey'}`}>
-                            {cand.status}
-                          </span>
-                        </td>
+                        </th>
+                        <th>CANDIDATE NAME</th>
+                        <th>APP. ID</th>
+                        <th>SCORE</th>
+                        <th>STATUS</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredCandidates.map((cand) => (
+                        <tr
+                          key={cand.id}
+                          className={cand.selected ? 'row-selected' : ''}
+                          onClick={() => handleToggleCandidateSelect(cand.id)}
+                        >
+                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={cand.selected}
+                              onChange={() => handleToggleCandidateSelect(cand.id)}
+                              className="styled-checkbox"
+                            />
+                          </td>
+                          <td className="cand-name-cell">
+                            <span className="cand-name">{cand.name}</span>
+                          </td>
+                          <td className="app-id-cell">{cand.id}</td>
+                          <td>
+                            <span className="score-badge">{cand.score}%</span>
+                          </td>
+                          <td>
+                            <span className={`status-pill ${cand.status === 'SHORTLISTED' ? 'pill-gold' : 'pill-grey'}`}>
+                              {cand.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
               <div className="allocation-mobile-list">
                 {filteredCandidates.map((candidate) => (
                   <button
@@ -654,7 +1142,22 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                   <CalendarDays size={16} />
                   <h3 className="card-title">Available Time Slots</h3>
                 </div>
-                <span className="count-badge">{filteredSlots.length} SLOTS</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button 
+                    type="button"
+                    onClick={handleAutoAllocate}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px', 
+                      padding: '6px 12px', borderRadius: '6px', 
+                      backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
+                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    <Sparkles size={14} />
+                    Auto-Assign
+                  </button>
+                  <span className="count-badge">{filteredSlots.length} SLOTS</span>
+                </div>
               </div>
 
               <div className="table-responsive">
@@ -738,181 +1241,249 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 ))}
               </div>
             </div>
+          </div>
+            </>
+          )}
 
+
+        {/* ── Scheduled & Logged Time Slots Table Card (Exact Replica of Image 2) ── */}
+        <div className="an-table-section" style={{ marginTop: '28px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '14px', overflow: 'hidden' }}>
+          <div className="an-section-header" style={{ padding: '18px 24px', borderBottom: '1px solid #2A2C38', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#16171F' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="an-chart-gold-bar" style={{ width: '3.5px', height: '16px', backgroundColor: '#F0B90B', borderRadius: '2px', display: 'inline-block' }} />
+              <span className="an-section-title" style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#FFFFFF' }}>
+                INTERVIEW STAGE &amp; ALLOCATION TRACKING
+              </span>
+            </div>
+
+            <div className="an-local-search" style={{ width: '220px', height: '36px', padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '8px', color: '#9599A6' }}>
+              <Search size={14} />
+              <input
+                type="search"
+                placeholder="Search slots..."
+                aria-label="Search scheduled and logged slots"
+                style={{ width: '100%', border: 0, outline: 0, background: 'transparent', color: '#FFFFFF', fontSize: '0.82rem' }}
+              />
+            </div>
           </div>
 
-          {/* ── Bottom Card: Allocation Results ── */}
-          <div className="card-surface results-card-section">
-            <div className="card-header-bar flex-between border-bottom-header">
-              <div className="card-title-group">
-                <span className="gold-indicator"></span>
-                <h2 className="card-title">Allocation Results</h2>
-              </div>
+          <div className="an-table-wrap" style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="an-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#13141C', borderBottom: '1px solid #2A2C38' }}>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>CANDIDATE NAME / ROLE</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>INTERVIEW ROUND</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>SLOT ID</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>DATE &amp; TIME</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>TYPE</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>STATUS</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {INITIAL_SLOTS.slice(0, 5).map((slot, index) => {
+                  const isCompleted = index % 2 === 0;
+                  const candidate = INITIAL_CANDIDATES[index] || { name: 'Alice Fernando', jobPosition: 'Senior Software Engineer' };
+                  const slotIdFormatted = `#SLOT-10${index + 1}`;
 
-              <div className="action-buttons-group">
-                <div className="allocation-results-search">
-                  <Search size={15} />
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search results..."
-                    aria-label="Search allocation results"
-                  />
-                </div>
-                <button type="button" className="btn-ghost-dark" onClick={() => setShowResetConfirm(true)}>
-                  <RotateCcw size={14} />
-                  <span>Reset</span>
-                </button>
-                <button type="button" className="btn-primary-accent" onClick={handleSaveAllocations}>
-                  <Save size={14} />
-                  <span>Save Allocation</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Results Table */}
-            <div className="table-responsive">
-              <table className="results-table">
-                <thead>
-                  <tr>
-                    <th>CANDIDATE NAME</th>
-                    <th>ASSIGNED TIME SLOT</th>
-                    <th>INTERVIEW DATE</th>
-                    <th>INTERVIEW TYPE</th>
-                    <th>ALLOCATION STATUS</th>
-                    <th style={{ textAlign: 'right' }}>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedAllocations.map((item) => (
-                    <tr key={item.candidateId}>
-                      <td className="font-bold cand-name-cell">{item.candidateName}</td>
-                      <td className="time-slot-cell">
-                        {item.assignedTime !== '—' && (
-                          <Clock3 size={14} />
-                        )}
-                        <span>{item.assignedTime}</span>
+                  return (
+                    <tr key={slot.id || index} style={{ borderBottom: '1px solid #2A2C38', transition: 'background-color 0.15s ease' }}>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '0.9rem' }}>{candidate.name}</span>
+                          <span style={{ color: '#9599A6', fontSize: '0.78rem', fontWeight: 400 }}>{candidate.jobPosition}</span>
+                        </div>
                       </td>
-                      <td>{item.interviewDate}</td>
-                      <td>{item.interviewType}</td>
-                      <td>
-                        <span
-                          className={`status-result-badge ${
-                            item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'
-                          }`}
-                        >
-                          {item.status === 'ALLOCATED' ? (
-                            <>
-                              <CheckCircle2 size={12} />
-                              <span>ALLOCATED</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock3 size={12} />
-                              <span>PENDING</span>
-                            </>
-                          )}
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                        <span style={{ display: 'inline-block', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 14px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                          {slot.round || 'Technical Interview'}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {item.status === 'ALLOCATED' && (
-                          <div className="result-row-actions">
-                            <button
-                              type="button"
-                              className="btn-reschedule-row"
-                              onClick={() => {
-                                setReschedulingAllocation(item);
-                                setRescheduleSlotId(item.slotId);
-                              }}
-                            >
-                              Reschedule
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-unassign-row"
-                              onClick={() => handleRemoveAllocation(item.candidateId)}
-                              title="Unassign this candidate"
-                            >
-                              Unassign
-                            </button>
-                          </div>
-                        )}
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace' }}>
+                        {slotIdFormatted}
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 500 }}>
+                        {slot.date} ({slot.time})
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontSize: '0.85rem' }}>
+                        {slot.type}
+                      </td>
+                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 12px',
+                            borderRadius: '9999px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.03em',
+                            backgroundColor: isCompleted ? 'rgba(34, 197, 94, 0.12)' : 'rgba(240, 185, 11, 0.12)',
+                            color: isCompleted ? '#22C55E' : '#F0B90B',
+                            border: isCompleted ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid rgba(240, 185, 11, 0.25)',
+                          }}
+                        >
+                          {isCompleted && <CheckCircle2 size={12} />}
+                          <span>{isCompleted ? 'COMPLETED' : 'INTERVIEW SCHEDULED'}</span>
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right', verticalAlign: 'middle' }}>
+                        <button
+                          type="button"
+                          onClick={() => setViewingSlotModal(slot)}
+                          style={{
+                            backgroundColor: '#F0B90B',
+                            color: '#0D0E12',
+                            border: 'none',
+                            borderRadius: '9999px',
+                            padding: '6px 22px',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(240, 185, 11, 0.2)',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8C31D')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F0B90B')}
+                        >
+                          Manage
+                        </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls (Exact Match to Image 2) */}
+          <div className="an-pagination" style={{ padding: '16px 24px', borderTop: '1px solid #2A2C38', backgroundColor: '#16171F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="an-pagination-info" style={{ fontSize: '0.82rem', color: '#9599A6' }}>
+              Showing <strong style={{ color: '#FFFFFF' }}>1–5</strong> of <strong style={{ color: '#FFFFFF' }}>6</strong> records
+            </span>
+
+            <div className="an-pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                className="an-page-btn"
+                disabled
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#6E7079', display: 'grid', placeItems: 'center', cursor: 'not-allowed' }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                className="an-page-btn an-page-num is-active"
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#F0B90B', color: '#0D0E12', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                1
+              </button>
+              <button
+                type="button"
+                className="an-page-btn an-page-num"
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#FFFFFF', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                2
+              </button>
+              <button
+                type="button"
+                className="an-page-btn"
+                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#FFFFFF', display: 'grid', placeItems: 'center', cursor: 'pointer' }}
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
-            <div className="allocation-mobile-list results-mobile-list">
-              {paginatedAllocations.map((item) => (
-                <article className="allocation-result-mobile-card" key={`mobile-${item.candidateId}`}>
-                  <div>
-                    <strong>{item.candidateName}</strong>
-                    <span className={`status-result-badge ${item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'}`}>
-                      {item.status}
-                    </span>
-                  </div>
-                  <dl>
-                    <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
-                    <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
-                    <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
-                  </dl>
-                  {item.status === 'ALLOCATED' && (
-                    <div className="result-row-actions">
-                      <button type="button" className="btn-reschedule-row" onClick={() => {
-                        setReschedulingAllocation(item);
-                        setRescheduleSlotId(item.slotId);
-                      }}>Reschedule</button>
-                      <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId)}>
-                        Unassign
-                      </button>
-                    </div>
-                  )}
-                </article>
-              ))}
+          </div>
+        </div>
+
+      {/* ── Modal: Manage / View Slot Details ── */}
+      {viewingSlotModal && (
+        <div className="allocation-modal-backdrop" onClick={() => setViewingSlotModal(null)}>
+          <div
+            className="allocation-modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '580px', width: '92%', borderRadius: '16px', backgroundColor: '#16171F', border: '1px solid rgba(240, 185, 11, 0.3)', padding: '24px' }}
+          >
+            <div className="flex-between" style={{ paddingBottom: '16px', borderBottom: '1px solid #2A2C38', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '8px', height: '22px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  Interview Slot &amp; Evaluation Details
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingSlotModal(null)}
+                style={{ background: 'none', border: 'none', color: '#9599A6', fontSize: '1.4rem', cursor: 'pointer' }}
+              >
+                ×
+              </button>
             </div>
 
-            {/* Pagination Footer */}
-            {filteredAllocations.length > itemsPerPage && (
-              <div className="table-pagination-footer">
-              <span className="pagination-info">
-                Showing <strong>{paginatedAllocations.length}</strong> of <strong>{filteredAllocations.length}</strong> allocation results
-              </span>
-
-              <div className="pagination-controls">
-                <button
-                  type="button"
-                  className="page-nav-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  aria-label="Previous Page"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                  <button
-                    key={pageNum}
-                    type="button"
-                    className={`page-num-btn ${pageNum === currentPage ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(pageNum)}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="page-nav-btn"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  aria-label="Next Page"
-                >
-                  <ChevronRight size={16} />
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.88rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Interview Round:</span>
+                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>{viewingSlotModal.round || 'Technical Interview'} ({viewingSlotModal.type})</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Date &amp; Time:</span>
+                <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{viewingSlotModal.date} ({viewingSlotModal.time} - {viewingSlotModal.end || '10:00 AM'})</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Assigned Panel:</span>
+                <span style={{ color: '#F0B90B', fontWeight: 600 }}>Panel A (Technical Leads)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Evaluator Emails:</span>
+                <span style={{ color: '#9599A6', fontFamily: 'monospace', fontSize: '0.8rem' }}>saman.tech@company.com, nirosha.hr@company.com</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Evaluation Rating:</span>
+                <span style={{ color: '#F0B90B', fontWeight: 700 }}>⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
+                <span style={{ color: '#9599A6' }}>Hiring Recommendation:</span>
+                <span style={{ color: '#22C55E', fontWeight: 700 }}>✅ Recommended for Next Round</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ color: '#9599A6', fontWeight: 600 }}>Panel Feedback Notes &amp; Remarks:</span>
+                <div style={{ backgroundColor: '#1E222D', padding: '12px', borderRadius: '8px', color: '#D1D5DB', fontSize: '0.84rem', fontStyle: 'italic', border: '1px solid #2A2C38' }}>
+                  "Candidate demonstrated exceptional problem solving abilities, clean code architecture knowledge, and strong technical communication during the live session."
+                </div>
               </div>
             </div>
-          )}
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #2A2C38' }}>
+              <button
+                type="button"
+                className="btn-primary-accent"
+                style={{ flex: 1, padding: '11px 16px', fontWeight: 700, borderRadius: '8px', border: 'none', backgroundColor: '#F0B90B', color: '#0D0E12', cursor: 'pointer' }}
+                onClick={() => {
+                  const slotToEdit = viewingSlotModal;
+                  setViewingSlotModal(null);
+                  navigate('/recruiter/interviews', {
+                    state: {
+                      editSlot: slotToEdit,
+                      activeZohoType: 'Log'
+                    }
+                  });
+                }}
+              >
+                Edit Slot Settings
+              </button>
+              <button
+                type="button"
+                className="btn-ghost-dark"
+                style={{ padding: '11px 20px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: 'transparent', color: '#FFFFFF', cursor: 'pointer' }}
+                onClick={() => setViewingSlotModal(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
       {pendingReallocation && (
         <div className="allocation-modal-backdrop" onClick={() => setPendingReallocation(null)}>
@@ -1062,6 +1633,47 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
           {mainContent}
         </div>
       </div>
+
+      {/* No Candidates Modal */}
+      {showNoCandidatesModal && (
+        <div className="modal-backdrop" onClick={() => setShowNoCandidatesModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header border-bottom-header flex-between">
+              <h3 className="modal-title" style={{ fontSize: '1.1rem', fontWeight: 600 }}>No Candidates Available</h3>
+              <button type="button" className="modal-close-btn" onClick={() => setShowNoCandidatesModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body text-center" style={{ padding: '32px 24px' }}>
+              <Users size={48} style={{ color: '#9599A6', marginBottom: '16px', opacity: 0.5, display: 'inline-block' }} />
+              <h4 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '12px', fontWeight: 600 }}>
+                No Shortlisted Candidates
+              </h4>
+              <p style={{ color: '#9599A6', fontSize: '0.85rem', marginBottom: '24px', lineHeight: '1.6' }}>
+                There are currently no shortlisted candidates available to assign to your panels. Proceed to the Applicants section to review and shortlist candidates.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                <button 
+                  type="button" 
+                  className="btn-ghost-dark" 
+                  onClick={() => setShowNoCandidatesModal(false)}
+                  style={{ padding: '10px 20px', borderRadius: '6px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-primary-accent" 
+                  onClick={() => navigate('/recruiter/applicants/ranked')}
+                  style={{ padding: '10px 20px', borderRadius: '6px' }}
+                >
+                  Go to Applicants Section
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

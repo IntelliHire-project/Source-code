@@ -40,15 +40,7 @@ const NAV_ITEMS = [
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
-  {
-    label: 'Assessments',
-    icon: ClipboardCheck,
-    subItems: [
-      { label: 'Assessment Dashboard', path: '/recruiter/assessments' },
-      { label: 'Question Bank', path: '/recruiter/question-bank' },
-      { label: 'Create Assessment', path: '/recruiter/assessments/new' },
-    ],
-  },
+  { label: 'Assessments', icon: ClipboardCheck, path: '/recruiter/assessments' },
   { label: 'Interviews', icon: Calendar, path: '/recruiter/interviews' },
   {
     label: 'Analytics',

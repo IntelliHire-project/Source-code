@@ -31,12 +31,12 @@ export const APPLICANTS = [
   { id: 'VAC-001-c8', vacancyId: 'VAC-001', name: 'Marcus Webb', email: 'marcus.webb@example.com', score: 62, stage: 'rejected', appliedDate: '19 Jul 2026', resumeLink: '#resume-VAC-001-c8' },
 
   // ── VAC-002 · Product Designer ──
-  { id: 'VAC-002-c1', vacancyId: 'VAC-002', name: 'Nina Petrova', email: 'nina.petrova@example.com', score: 89, stage: 'shortlisted', appliedDate: '10 Jul 2026', resumeLink: '#resume-VAC-002-c1' },
-  { id: 'VAC-002-c2', vacancyId: 'VAC-002', name: 'Arjun Mehta', email: 'arjun.mehta@example.com', score: 88, stage: 'shortlisted', appliedDate: '11 Jul 2026', resumeLink: '#resume-VAC-002-c2' },
-  { id: 'VAC-002-c3', vacancyId: 'VAC-002', name: 'Elena Vargas', email: 'elena.vargas@example.com', score: 86, stage: 'shortlisted', appliedDate: '12 Jul 2026', resumeLink: '#resume-VAC-002-c3' },
-  { id: 'VAC-002-c4', vacancyId: 'VAC-002', name: 'Daniel Kim', email: 'daniel.kim@example.com', score: 85, stage: 'shortlisted', appliedDate: '12 Jul 2026', resumeLink: '#resume-VAC-002-c4' },
-  { id: 'VAC-002-c5', vacancyId: 'VAC-002', name: 'Mia Chen', email: 'mia.chen@example.com', score: 82, stage: 'interviewed', appliedDate: '18 Jul 2026', resumeLink: '#resume-VAC-002-c5' },
-  { id: 'VAC-002-c6', vacancyId: 'VAC-002', name: 'Leo Duarte', email: 'leo.duarte@example.com', score: 80, stage: 'interviewed', appliedDate: '19 Jul 2026', resumeLink: '#resume-VAC-002-c6' },
+  { id: 'VAC-002-c1', vacancyId: 'VAC-002', name: 'Nina Petrova', email: 'nina.petrova@example.com', score: 89, stage: 'applied', appliedDate: '10 Jul 2026', resumeLink: '#resume-VAC-002-c1' },
+  { id: 'VAC-002-c2', vacancyId: 'VAC-002', name: 'Arjun Mehta', email: 'arjun.mehta@example.com', score: 88, stage: 'applied', appliedDate: '11 Jul 2026', resumeLink: '#resume-VAC-002-c2' },
+  { id: 'VAC-002-c3', vacancyId: 'VAC-002', name: 'Elena Vargas', email: 'elena.vargas@example.com', score: 86, stage: 'applied', appliedDate: '12 Jul 2026', resumeLink: '#resume-VAC-002-c3' },
+  { id: 'VAC-002-c4', vacancyId: 'VAC-002', name: 'Daniel Kim', email: 'daniel.kim@example.com', score: 85, stage: 'applied', appliedDate: '12 Jul 2026', resumeLink: '#resume-VAC-002-c4' },
+  { id: 'VAC-002-c5', vacancyId: 'VAC-002', name: 'Mia Chen', email: 'mia.chen@example.com', score: 82, stage: 'applied', appliedDate: '18 Jul 2026', resumeLink: '#resume-VAC-002-c5' },
+  { id: 'VAC-002-c6', vacancyId: 'VAC-002', name: 'Leo Duarte', email: 'leo.duarte@example.com', score: 80, stage: 'applied', appliedDate: '19 Jul 2026', resumeLink: '#resume-VAC-002-c6' },
   { id: 'VAC-002-c7', vacancyId: 'VAC-002', name: 'Grace Liu', email: 'grace.liu@example.com', score: 71, stage: 'applied', appliedDate: '20 Jul 2026', resumeLink: '#resume-VAC-002-c7' },
   { id: 'VAC-002-c8', vacancyId: 'VAC-002', name: 'Peter Novak', email: 'peter.novak@example.com', score: 65, stage: 'rejected', appliedDate: '17 Jul 2026', resumeLink: '#resume-VAC-002-c8' },
   { id: 'VAC-002-c9', vacancyId: 'VAC-002', name: 'Fatima Ali', email: 'fatima.ali@example.com', score: 63, stage: 'rejected', appliedDate: '16 Jul 2026', resumeLink: '#resume-VAC-002-c9' },

@@ -14,7 +14,7 @@ import {
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import TransactionDetailsModal from './TransactionDetailsModal';
-import RefundModal from './RefundModal';
+
 import AdminToast from '../../../components/common/AdminToast';
 import { getTransactions, saveTransactions } from '../../../services/adminStorage';
 import './Payments.css';
@@ -49,15 +49,6 @@ const ALL_TRANSACTIONS = [
     logo: 'https://api.dicebear.com/7.x/initials/svg?seed=NC',
   },
   {
-    id: 'TRX-6548-JT',
-    company: 'DataPulse AI',
-    jobTitle: 'ML Operations Specialist',
-    date: 'Oct 22, 2023 - 16:20 PM',
-    amount: 1500.0,
-    status: 'refunded',
-    logo: 'https://api.dicebear.com/7.x/initials/svg?seed=DP',
-  },
-  {
     id: 'TRX-5439-RS',
     company: 'Stellar Fintech',
     jobTitle: 'Product Manager',
@@ -68,13 +59,8 @@ const ALL_TRANSACTIONS = [
   },
 ];
 
-const RECENT_REFUNDS = [
-  { id: 'TRX-99281-XC', company: 'Nexus Global Talent', time: '2H AGO', amount: 45000.0, status: 'Review Needed' },
-  { id: 'TRX-88123-ZZ', company: 'Aura Design', time: '5H AGO', amount: 1200.0, status: 'Review Needed' },
-  { id: 'TRX-77321-YY', company: 'CloudScale', time: '1D AGO', amount: 500.0, status: 'Review Needed' },
-];
 
-const STATUS_FILTERS = ['All Status', 'successful', 'failed', 'refunded', 'pending'];
+const STATUS_FILTERS = ['All Status', 'successful', 'failed', 'pending'];
 
 const fmt = (n) =>
   '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -87,7 +73,7 @@ export default function Payments() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [refundTransaction, setRefundTransaction] = useState(null);
+
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const filterMenuRef = useRef(null);
@@ -96,14 +82,11 @@ export default function Payments() {
   const kpiStats = useMemo(() => {
     const successful = transactions.filter(t => t.status === 'successful');
     const failed     = transactions.filter(t => t.status === 'failed');
-    const refunded   = transactions.filter(t => t.status === 'refunded');
     const totalRevenue  = successful.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-    const totalRefunded = refunded.reduce((s, t) => s + (Number(t.amount) || 0), 0);
     return {
       totalRevenue: totalRevenue || 142384.5,
       totalCount:   transactions.length || 1284,
       failedCount:  failed.length,
-      refundedAmt:  totalRefunded || 4120,
     };
   }, [transactions]);
 
@@ -156,8 +139,7 @@ export default function Payments() {
           <div className="txn-banner">
             <h1 className="txn-banner-title">Transaction History</h1>
             <p className="txn-banner-desc">
-              Monitor global revenue streams, manage recruiter payouts, and
-              handle refund requests with high-precision financial tracking tools.
+              Monitor global revenue streams and manage recruiter payouts with high-precision financial tracking tools.
             </p>
           </div>
 
@@ -179,22 +161,7 @@ export default function Payments() {
               <div className="txn-kpi-val">{kpiStats.totalCount.toLocaleString()}</div>
               <div className="txn-kpi-sub positive">↗ +8.2% from last month</div>
             </div>
-            <div className="txn-kpi-card">
-              <div className="txn-kpi-top">
-                <span className="txn-kpi-label">FAILED PAYMENTS</span>
-                <div className="txn-kpi-icon"><AlertCircle size={16} /></div>
-              </div>
-              <div className="txn-kpi-val">{kpiStats.failedCount}</div>
-              <div className="txn-kpi-sub negative">↘ -4.0% from last month</div>
-            </div>
-            <div className="txn-kpi-card">
-              <div className="txn-kpi-top">
-                <span className="txn-kpi-label">REFUNDS ISSUED</span>
-                <div className="txn-kpi-icon"><RefreshCcw size={16} /></div>
-              </div>
-              <div className="txn-kpi-val">{fmt(kpiStats.refundedAmt)}</div>
-              <div className="txn-kpi-sub positive">↗ +2.4% from last month</div>
-            </div>
+
           </div>
 
           {/* Controls & Table */}
@@ -253,7 +220,6 @@ export default function Payments() {
                     <th>JOB TITLE</th>
                     <th>DATE</th>
                     <th>AMOUNT</th>
-                    <th>STATUS</th>
                     <th>ACTIONS</th>
                   </tr>
                 </thead>
@@ -270,12 +236,7 @@ export default function Payments() {
                       <td>{t.jobTitle}</td>
                       <td className="txn-cell-muted">{t.date}</td>
                       <td className="txn-cell-strong">{fmt(t.amount)}</td>
-                      <td>
-                        <span className={`txn-status ${t.status}`}>
-                          <span className="txn-status-dot" />
-                          {t.status.charAt(0).toUpperCase() + t.status.slice(1)}
-                        </span>
-                      </td>
+
                       <td>
                         <button className="txn-action-btn" onClick={(e) => { e.stopPropagation(); setSelectedTransaction(t); }}>
                           <MoreHorizontal size={16} />
@@ -301,29 +262,6 @@ export default function Payments() {
             </div>
           </div>
 
-          {/* Bottom blocks */}
-          <div className="txn-bottom-blocks">
-            <div className="txn-refunds-card">
-              <div className="txn-refunds-header">
-                <Clock size={16} /> RECENT REFUND REQUESTS
-              </div>
-              <div className="txn-refunds-list">
-                {RECENT_REFUNDS.map((r, i) => (
-                  <div className="txn-refund-item" key={i} onClick={() => setRefundTransaction(r)} style={{cursor: 'pointer'}}>
-                    <div className="txn-refund-left">
-                      <div className="txn-refund-company">{r.company}</div>
-                      <div className="txn-refund-time">{r.time}</div>
-                    </div>
-                    <div className="txn-refund-right">
-                      <div className="txn-refund-amount">LKR {r.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                      <div className="txn-refund-status">{r.status}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button className="txn-refunds-viewall">View All Queue</button>
-            </div>
-          </div>
 
         </div>
       </div>
@@ -337,11 +275,6 @@ export default function Payments() {
         onClose={() => setSelectedTransaction(null)} 
       />
 
-      {/* Process Refund Modal */}
-      <RefundModal
-        refund={refundTransaction}
-        onClose={() => setRefundTransaction(null)}
-      />
 
 
     </div>

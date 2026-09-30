@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Braces, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Copy,
   Edit3, FileQuestion, Filter, Globe2, Plus, Search, Trash2, X,
@@ -15,6 +16,7 @@ const INITIAL_QUESTIONS = [
 ];
 
 function QuestionBankPage() {
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState(INITIAL_QUESTIONS);
   const [query, setQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -35,31 +37,12 @@ function QuestionBankPage() {
     return matchesQuery && matchesStatus && matchesCategory;
   }), [questions, query, statusFilter, categoryFilter]);
 
-  const resetEditor = () => {
-    setEditingId(null);
-    setForm({ title: '', category: 'Technical', difficulty: 'Easy', prompt: '' });
-    setAnswerType('Multiple Choice');
-    setOptions(['', '', '', '']);
-    setCorrect(0);
-  };
-
   const openCreate = () => {
-    resetEditor();
-    setDrawerOpen(true);
+    navigate('/recruiter/question-bank/add');
   };
 
   const openEdit = (question) => {
-    setEditingId(question.id);
-    setForm({
-      title: question.title,
-      category: question.category,
-      difficulty: question.difficulty,
-      prompt: question.prompt || question.title,
-    });
-    setAnswerType(question.type);
-    setOptions(question.options || ['', '', '', '']);
-    setCorrect(question.correct ?? 0);
-    setDrawerOpen(true);
+    navigate(`/recruiter/question-bank/edit/${question.id}`, { state: { editMode: true, question } });
   };
 
   const closeEditor = () => {

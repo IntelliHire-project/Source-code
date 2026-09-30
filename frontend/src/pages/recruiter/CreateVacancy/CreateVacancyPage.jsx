@@ -14,10 +14,12 @@ import {
   Clock,
   Plus,
   X,
+  CalendarRange,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import TagInput from '../../../components/common/TagInput';
+import CalendarPicker from '../../../components/common/CalendarPicker';
 import PillToggleGroup from '../../../components/common/PillToggleGroup';
 import ProgressBar from '../../../components/common/ProgressBar';
 import InsightPanel from '../../../components/common/InsightPanel';
@@ -202,6 +204,7 @@ function AutocompleteInput({ suggestions, value, onChange, placeholder, label, h
 
 function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const navigate = useNavigate();
 
   /* ── Form state ── */
@@ -216,6 +219,9 @@ function CreateVacancyPage() {
   const [salaryMax, setSalaryMax] = useState('');
   const [deadline, setDeadline] = useState('');
   const [shortlistCount, setShortlistCount] = useState('');
+  const [milestones, setMilestones] = useState([
+    { id: Date.now(), date: '', shortlistCount: '' },
+  ]);
   const [category, setCategory] = useState('');
   const [workMode, setWorkMode] = useState('remote');
   const [jobType, setJobType] = useState('full-time');
@@ -231,7 +237,20 @@ function CreateVacancyPage() {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setLastEdited((p) => p + 1), 60000);
     return () => clearInterval(timerRef.current);
-  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, category, workMode, jobType, selectedLocation, responsibilities]);
+  }, [jobTitle, jobDescription, skills, qualifications, experienceLevel, openings, salaryMin, salaryMax, deadline, shortlistCount, milestones, category, workMode, jobType, selectedLocation, responsibilities]);
+
+  useEffect(() => {
+    if (!showMilestoneModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setShowMilestoneModal(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [showMilestoneModal]);
 
   const addResponsibility = () => setResponsibilities([...responsibilities, '']);
   const removeResponsibility = (idx) => {
@@ -243,6 +262,15 @@ function CreateVacancyPage() {
     updated[idx] = value;
     setResponsibilities(updated);
   };
+
+  const completedMilestones = milestones.filter((m) => m.date && m.shortlistCount);
+
+  const addMilestone = () =>
+    setMilestones([...milestones, { id: Date.now(), date: '', shortlistCount: '' }]);
+  const removeMilestone = (id) =>
+    setMilestones(milestones.filter((m) => m.id !== id));
+  const updateMilestone = (id, field, value) =>
+    setMilestones(milestones.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
 
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
@@ -303,6 +331,7 @@ function CreateVacancyPage() {
                       salaryMax,
                       deadline,
                       shortlistCount,
+                      milestones: completedMilestones,
                       category,
                       workMode,
                       jobType,
@@ -591,12 +620,11 @@ function CreateVacancyPage() {
                   <label className="cv-label" htmlFor="cv-deadline">
                     Application Deadline
                   </label>
-                  <input
-                    id="cv-deadline"
-                    className="cv-input"
-                    type="date"
+                  <CalendarPicker
                     value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
+                    onChange={setDeadline}
+                    placeholder="Select a deadline"
+                    minDate={new Date().toISOString().slice(0, 10)}
                   />
                 </div>
 
@@ -612,6 +640,23 @@ function CreateVacancyPage() {
                     value={shortlistCount}
                     onChange={(e) => setShortlistCount(e.target.value)}
                   />
+                </div>
+
+                <div className="cv-field">
+                  <label className="cv-label">In-Between Shortlisting</label>
+                  <span className="cv-field-hint" style={{ marginBottom: 4 }}>
+                    Optional: shortlist candidates on chosen dates before the application deadline.
+                  </span>
+                  <button
+                    type="button"
+                    className="cv-milestone-trigger"
+                    onClick={() => setShowMilestoneModal(true)}
+                  >
+                    <Calendar size={14} />
+                    {completedMilestones.length > 0
+                      ? `Manage Milestones (${completedMilestones.length} set)`
+                      : 'Add Milestone'}
+                  </button>
                 </div>
               </section>
 
@@ -671,6 +716,7 @@ function CreateVacancyPage() {
                       salaryMax,
                       deadline,
                       shortlistCount,
+                      milestones: completedMilestones,
                       category,
                       workMode,
                       jobType,
@@ -686,6 +732,107 @@ function CreateVacancyPage() {
           </footer>
         </main>
       </div>
+
+      {showMilestoneModal && (
+        <div className="cv-mm-overlay" onClick={() => setShowMilestoneModal(false)}>
+          <div
+            className="cv-mm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cv-mm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="cv-mm-header">
+              <div className="cv-mm-header__left">
+                <div className="cv-mm-header__icon">
+                  <CalendarRange size={18} />
+                </div>
+                <div className="cv-mm-header__text">
+                  <h2 className="cv-mm-title" id="cv-mm-title">
+                    In-Between Shortlisting Milestones
+                  </h2>
+                  <p className="cv-mm-subtitle">
+                    Set intermediate dates before the application deadline where a set number of
+                    candidates will be shortlisted.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="cv-mm-close"
+                onClick={() => setShowMilestoneModal(false)}
+                aria-label="Close milestones modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="cv-mm-list">
+              {milestones.map((m, idx) => (
+                <div key={m.id} className="cv-mm-row">
+                  <span className="cv-mm-index">{idx + 1}</span>
+                  <div className="cv-mm-field">
+                    <label className="cv-mm-label">Date</label>
+                    <CalendarPicker
+                      value={m.date}
+                      onChange={(v) => updateMilestone(m.id, 'date', v)}
+                      placeholder="Select a date"
+                      minDate={new Date().toISOString().slice(0, 10)}
+                      maxDate={deadline || undefined}
+                    />
+                  </div>
+                  <div className="cv-mm-field">
+                    <label className="cv-mm-label">Shortlist Count</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="cv-mm-input"
+                      placeholder="e.g. 15"
+                      value={m.shortlistCount}
+                      onChange={(e) => updateMilestone(m.id, 'shortlistCount', e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="cv-mm-remove"
+                    onClick={() => removeMilestone(m.id)}
+                    title="Remove milestone"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button type="button" className="cv-mm-add" onClick={addMilestone}>
+              <Plus size={14} />
+              Add Milestone
+            </button>
+
+            <div className="cv-mm-footer">
+              <span className="cv-mm-count">
+                {milestones.length} milestone{milestones.length !== 1 ? 's' : ''} set
+              </span>
+              <div className="cv-mm-actions">
+                <button
+                  type="button"
+                  className="cv-mm-btn cv-mm-btn--outline"
+                  onClick={() => setShowMilestoneModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="cv-mm-btn cv-mm-btn--primary"
+                  onClick={() => setShowMilestoneModal(false)}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

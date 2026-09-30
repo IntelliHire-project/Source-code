@@ -10,6 +10,7 @@ import {
   User,
   Calendar,
   Zap,
+  Clock,
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -373,19 +374,21 @@ function ModerateContent() {
           </div>
 
           {/* Stats Widget Row */}
-          <section className="moderation-stats" aria-label="Moderation Metrics">
-            <div className="stat-card">
-              <span className="stat-card__label">Reported Items</span>
-              <div className="stat-card__value-group">
-                <span className="stat-card__value">{totalReported.toLocaleString()}</span>
+          <section className="txn-kpis moderation-stats" aria-label="Moderation Metrics" style={{ marginBottom: '24px' }}>
+            <div className="txn-kpi-card">
+              <div className="txn-kpi-top">
+                <span className="txn-kpi-label">REPORTED ITEMS</span>
+                <div className="txn-kpi-icon"><AlertTriangle size={16} /></div>
               </div>
+              <div className="txn-kpi-val">{totalReported.toLocaleString()}</div>
             </div>
-            <div className="stat-card">
-              <span className="stat-card__label">Pending Reports</span>
-              <div className="stat-card__value-group">
-                <span className="stat-card__value">{pendingCount}</span>
-                <span className="stat-card__trend up">+22%</span>
+            <div className="txn-kpi-card">
+              <div className="txn-kpi-top">
+                <span className="txn-kpi-label">PENDING REPORTS</span>
+                <div className="txn-kpi-icon"><Clock size={16} /></div>
               </div>
+              <div className="txn-kpi-val">{pendingCount}</div>
+              <div className="txn-kpi-sub positive">↗ +22% from last month</div>
             </div>
           </section>
 

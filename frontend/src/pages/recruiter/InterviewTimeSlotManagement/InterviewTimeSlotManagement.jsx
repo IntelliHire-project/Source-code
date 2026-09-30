@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
+  ArrowLeft,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -11,16 +12,21 @@ import {
   Trash2,
   Users,
   Calendar,
+  CalendarPlus,
   ExternalLink,
   Video,
   Building,
   Clock,
+  Sparkles,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
 import { VACANCIES } from '../../../data/vacancies';
+import { MOCK_CANDIDATES, enrichCandidateDetails, CandidateDetailView } from '../RankedApplicants/RankedApplicants';
 
 // ── Google Calendar URL Helper ─────────────────────────────────────────────
 const generateGoogleCalendarUrl = ({ title, description, interviewDate, startTime, endTime, location }) => {
@@ -361,6 +367,19 @@ function getTodayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
+function getWeekDays(dateStr) {
+  const d = new Date(dateStr || new Date());
+  const day = d.getDay();
+  const diff = d.getDate() - day; // Sunday is 0
+  const startOfWeek = new Date(d);
+  startOfWeek.setDate(diff);
+  return Array.from({ length: 7 }).map((_, i) => {
+    const cd = new Date(startOfWeek);
+    cd.setDate(startOfWeek.getDate() + i);
+    return cd;
+  });
+}
+
 function RecruiterInterviewTimeSlotManagementPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -372,12 +391,18 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [showZohoModal, setShowZohoModal] = useState(location.state?.openForm || false);
   const [showInlineForm, setShowInlineForm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showManualAssign, setShowManualAssign] = useState(false);
+  const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
+  const [viewingCandidate, setViewingCandidate] = useState(null);
+  const [autoAssignSummary, setAutoAssignSummary] = useState(null);
   
   // If we arrived from another page requesting to open the form directly, skip the choice modal
   // Wait, the flow is: Hero card -> Choice Modal -> Inline Form.
   // We can just open the Choice modal directly, or the inline form. I'll open the Choice modal.
   const [activeZohoType, setActiveZohoType] = useState('Google Meet');
-  const [positionFilter, setPositionFilter] = useState(initialSlots[0].jobPosition);
+  const [positionFilter, setPositionFilter] = useState(stateVacancy || initialSlots[0].jobPosition);
   const [formError, setFormError] = useState('');
   const [message, setMessage] = useState('');
   const [viewingSlot, setViewingSlot] = useState(null);
@@ -403,13 +428,16 @@ function RecruiterInterviewTimeSlotManagementPage() {
       name: 'Panel A (Technical Leads)',
       emails: 'saman.tech@company.com, nirosha.hr@company.com',
       capacity: 3,
-      slots: [
-        { id: 1, startTime: '09:00', endTime: '10:00' },
-        { id: 2, startTime: '10:15', endTime: '11:15' },
-        { id: 3, startTime: '11:30', endTime: '12:30' },
-      ],
+      selectedDate: new Date().toISOString().split('T')[0],
+      slots: [],
     },
   ]);
+
+  const handlePanelDateChange = (panelId, dateStr) => {
+    setPanels(prev =>
+      prev.map(p => (p.id === panelId ? { ...p, selectedDate: dateStr } : p))
+    );
+  };
 
   const handleRoundsCountChange = count => {
     const num = Math.max(1, Math.min(6, Number(count)));
@@ -443,24 +471,49 @@ function RecruiterInterviewTimeSlotManagementPage() {
     if (!customRoundInput.trim()) return;
     setRoundTypes(prev => [...prev, customRoundInput.trim()]);
     setRoundsCount(prev => prev + 1);
+    setFormData(prev => ({ ...prev, interviewRound: customRoundInput.trim() }));
     setCustomRoundInput('');
     setShowCustomInput(false);
   };
 
   const handlePanelCapacityChange = (panelId, newCapacity) => {
-    const cap = Math.max(1, Math.min(10, Number(newCapacity)));
+    const maxCapacity = Math.max(1, MOCK_CANDIDATES.filter(c => c.shortlisted).length);
+    const cap = Math.max(1, Math.min(maxCapacity, Number(newCapacity)));
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
-        const slotsCopy = [...p.slots];
-        while (slotsCopy.length < cap) {
-          const slotNum = slotsCopy.length + 1;
-          slotsCopy.push({ id: slotNum, startTime: '', endTime: '' });
-        }
         return {
           ...p,
           capacity: cap,
-          slots: slotsCopy.slice(0, cap),
+        };
+      })
+    );
+  };
+
+  const handleDailySlotCountChange = (panelId, date, newCount) => {
+    let desiredCount = Math.max(0, Number(newCount));
+    setPanels(prev =>
+      prev.map(p => {
+        if (p.id !== panelId) return p;
+        
+        const otherDateSlots = p.slots.filter(s => s.date !== date);
+        const maxAllowedForThisDate = p.capacity - otherDateSlots.length;
+        const count = Math.min(desiredCount, maxAllowedForThisDate);
+        
+        let thisDateSlots = p.slots.filter(s => s.date === date);
+        
+        if (thisDateSlots.length < count) {
+           let nextId = p.slots.length > 0 ? Math.max(...p.slots.map(s => s.id)) + 1 : 1;
+           while (thisDateSlots.length < count) {
+              thisDateSlots.push({ id: nextId++, date: date, startTime: '09:00' });
+           }
+        } else if (thisDateSlots.length > count) {
+           thisDateSlots = thisDateSlots.slice(0, count);
+        }
+        
+        return {
+          ...p,
+          slots: [...otherDateSlots, ...thisDateSlots],
         };
       })
     );
@@ -470,11 +523,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
-        const nextId = p.slots.length + 1;
+        const nextId = p.slots.length ? Math.max(...p.slots.map(s => s.id)) + 1 : 1;
         return {
           ...p,
           capacity: p.slots.length + 1,
-          slots: [...p.slots, { id: nextId, startTime: '', endTime: '' }],
+          slots: [...p.slots, { id: nextId, date: p.selectedDate, startTime: '09:00' }],
         };
       })
     );
@@ -484,11 +537,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
-        if (p.slots.length <= 1) return p;
         const updated = p.slots.filter(s => s.id !== slotId);
         return {
           ...p,
-          capacity: updated.length,
           slots: updated,
         };
       })
@@ -542,8 +593,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const jobPositions = useMemo(
-    () => [...new Set(slots.map(slot => slot.jobPosition))].sort(),
-    [slots]
+    () => {
+      const positions = [...new Set(slots.map(slot => slot.jobPosition))];
+      if (positionFilter && !positions.includes(positionFilter)) {
+        positions.push(positionFilter);
+      }
+      return positions.sort();
+    },
+    [slots, positionFilter]
   );
 
   // Filtered Slots
@@ -575,6 +632,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
     }
   }, [jobPositions, positionFilter]);
 
+  useEffect(() => {
+    if (location.state?.editSlot) {
+      const slot = location.state.editSlot;
+      setActiveZohoType(location.state.activeZohoType || 'Log');
+      setEditingSlotId(slot.id || 'SLOT-101');
+      setShowInlineForm(true);
+      setFormData({
+        interviewDate: slot.dateKey || '2026-08-03',
+        meetingLocation: slot.location || 'Executive Boardroom 3B, 2nd Floor, HQ Building',
+        additionalNotes: 'Candidate demonstrated exceptional problem solving abilities, clean code architecture knowledge, and strong technical communication during the live session.',
+      });
+      setTimeout(() => {
+        const el = document.getElementById('intelli-inline-interview-form');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+    }
+  }, [location.state]);
+
   const handleFieldChange = event => {
     const { name, value } = event.target;
     setFormData(current => ({ ...current, [name]: value }));
@@ -598,6 +673,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
     }
     setFormData({
       ...emptyForm,
+      jobPosition: positionFilter,
       interviewMedia: selectedMedia,
       interviewType: isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical'),
       meetingLocation: type === 'In-Person' 
@@ -745,23 +821,28 @@ function RecruiterInterviewTimeSlotManagementPage() {
       setSlots(current => [...createdSlots, ...current]);
       setPositionFilter(formData.jobPosition);
       setCurrentPage(1);
-      setMessage(`Successfully created ${createdSlots.length} interview time slots across ${panels.length} panel(s) & synced guest emails to Google Calendar!`);
 
-      // Automatically open Google Calendar event creation page in a new browser tab
-      if (panels.length > 0 && panels[0].slots.length > 0) {
-        const p1 = panels[0];
-        const s1 = p1.slots[0];
-        const gcalUrl = buildGoogleCalendarUrl({
-          title: `IntelliHire Interview: ${formData.customRoundName || formData.interviewRound} (${formData.jobPosition})`,
-          description: `INTELLIHIRE INTERVIEW DETAILS:\n  Job Position: ${formData.jobPosition}\n  Interview Round: ${formData.customRoundName || formData.interviewRound}\n  Platform / Media: ${formData.interviewMedia}\n  Panel: ${p1.name}\n  Emails: ${p1.emails}\n  Notes: ${formData.additionalNotes || 'N/A'}`,
-          dateStr: formData.interviewDate,
-          startTimeStr: s1.startTime,
-          endTimeStr: s1.endTime,
-          location: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? 'Google Meet Online' : 'Main Office Conference Room'),
-          addEmails: p1.emails,
-        });
+      if (activeZohoType === 'Log') {
+        setMessage(`Successfully logged ${createdSlots.length} past interview evaluation record(s)!`);
+      } else {
+        setMessage(`Successfully created ${createdSlots.length} interview time slots across ${panels.length} panel(s) & synced guest emails to Google Calendar!`);
 
-        window.open(gcalUrl, '_blank');
+        // Automatically open Google Calendar event creation page in a new browser tab for upcoming interviews
+        if (panels.length > 0 && panels[0].slots.length > 0) {
+          const p1 = panels[0];
+          const s1 = p1.slots[0];
+          const gcalUrl = buildGoogleCalendarUrl({
+            title: `IntelliHire Interview: ${formData.customRoundName || formData.interviewRound} (${formData.jobPosition})`,
+            description: `INTELLIHIRE INTERVIEW DETAILS:\n  Job Position: ${formData.jobPosition}\n  Interview Round: ${formData.customRoundName || formData.interviewRound}\n  Platform / Media: ${formData.interviewMedia}\n  Panel: ${p1.name}\n  Emails: ${p1.emails}\n  Notes: ${formData.additionalNotes || 'N/A'}`,
+            dateStr: formData.interviewDate,
+            startTimeStr: s1.startTime,
+            endTimeStr: s1.endTime,
+            location: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? 'Google Meet Online' : 'Main Office Conference Room'),
+            addEmails: p1.emails,
+          });
+
+          window.open(gcalUrl, '_blank');
+        }
       }
     }
 
@@ -806,24 +887,26 @@ function RecruiterInterviewTimeSlotManagementPage() {
         <div className="recruiter-content">
           <button
             type="button"
-            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/vacancies/VAC-001'))}
+            onClick={() => navigate('/recruiter/vacancies')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              backgroundColor: '#16171F',
-              border: '1px solid #2A2C38',
-              borderRadius: '8px',
-              color: '#F0B90B',
-              fontSize: '0.85rem',
+              gap: '8px',
+              background: 'none',
+              border: 'none',
+              padding: '0',
+              color: '#94A3B8',
+              fontSize: '0.98rem',
               fontWeight: 600,
               cursor: 'pointer',
-              marginBottom: '16px',
-              transition: 'all 0.2s ease',
+              marginBottom: '10px',
+              transition: 'color 0.2s ease',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#60A5FA')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#94A3B8')}
           >
-            <ChevronLeft size={16} /> Back to Active Vacancy
+            <ArrowLeft size={16} />
+            <span>Back to Vacancies</span>
           </button>
 
           {/* ── IntelliHire Interviews Hero Card (Rendered only when form is NOT active) ── */}
@@ -910,11 +993,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <style>{`
                 input[type="date"]::-webkit-calendar-picker-indicator,
                 input[type="time"]::-webkit-calendar-picker-indicator {
-                  filter: invert(82%) sepia(95%) saturate(2200%) hue-rotate(350deg) brightness(115%) contrast(105%) !important;
-                  cursor: pointer;
-                  opacity: 1;
-                  width: 18px;
-                  height: 18px;
+                  opacity: 0 !important;
+                  width: 32px !important;
+                  height: 100% !important;
+                  position: absolute !important;
+                  right: 0 !important;
+                  top: 0 !important;
+                  cursor: pointer !important;
+                  z-index: 2;
                 }
 
                 select.form-control, select {
@@ -973,65 +1059,19 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
               <form onSubmit={handleSubmit} className="slot-form">
 
-                {/* ── Section 1: Interview Date ── */}
-                <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '16px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                    1. INTERVIEW DATE
-                  </h4>
-                  <div style={{ maxWidth: '300px' }}>
-                    <label className="form-label" style={{ fontSize: '0.76rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '6px', letterSpacing: '0.03em' }}>
-                      {activeZohoType === 'Log' ? 'CONDUCTED DATE' : 'SELECT DATE'}
-                    </label>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="date"
-                        name="interviewDate"
-                        min={activeZohoType === 'Log' ? undefined : todayInputValue}
-                        value={formData.interviewDate}
-                        onChange={handleFieldChange}
-                        className="form-control"
-                        style={{ colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF', borderRadius: '8px', padding: '8px 12px', fontSize: '0.85rem', width: '100%' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Section 2: Dynamic Interview Rounds Pipeline ── */}
+                {/* ── Section 2: Select Interview Round ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                        2. DYNAMIC INTERVIEW ROUNDS PIPELINE
+                        2. SELECT INTERVIEW ROUND
                       </h4>
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
-                        Select total rounds for this hiring pipeline (e.g. 1, 2, 3, 4, 5) or add custom rounds
+                        Select the interview round you are scheduling for, or add a missing round.
                       </p>
                     </div>
 
-                    {/* Right-aligned container with Rounds Count & Add Custom Round Name Tab */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <label style={{ fontSize: '0.78rem', color: '#9599A6', fontWeight: 600 }}>Rounds Count:</label>
-                        <select
-                          value={roundsCount}
-                          onChange={(e) => handleRoundsCountChange(e.target.value)}
-                          style={{
-                            backgroundColor: '#1E222D',
-                            color: '#FFFFFF',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '0.85rem',
-                            fontWeight: 600,
-                          }}
-                        >
-                          <option value={1}>1 Round</option>
-                          <option value={2}>2 Rounds</option>
-                          <option value={3}>3 Rounds</option>
-                          <option value={4}>4 Rounds</option>
-                          <option value={5}>5 Rounds</option>
-                        </select>
-                      </div>
-
                       {!showCustomInput ? (
                         <button
                           type="button"
@@ -1051,13 +1091,13 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           }}
                         >
                           <Plus size={14} style={{ color: '#F0B90B' }} />
-                          <span>Add Custom Round Name</span>
+                          <span>Add Missing Round</span>
                         </button>
                       ) : (
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <input
                             type="text"
-                            placeholder="Custom round name..."
+                            placeholder="New round name..."
                             value={customRoundInput}
                             onChange={(e) => setCustomRoundInput(e.target.value)}
                             className="form-control"
@@ -1084,41 +1124,43 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     </div>
                   </div>
 
-                  {/* Dynamically Rendered Round Sections */}
-                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(roundsCount, 3)}, 1fr)`, gap: '12px' }}>
-                    {roundTypes.map((roundTitle, idx) => (
-                      <div key={idx} style={{ backgroundColor: '#1E222D', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                        <div style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.03em' }}>
-                          Round {idx + 1} Title
-                        </div>
-                        <select
-                          value={roundTitle}
-                          onChange={(e) => handleRoundTypeSelect(idx, e.target.value)}
-                          className="form-control"
-                          style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF' }}
-                        >
-                          <option value="HR Screening">HR Screening</option>
-                          <option value="Technical / Live Coding">Technical / Live Coding</option>
-                          <option value="System Design Architecture">System Design Architecture</option>
-                          <option value="Final Cultural Fit">Final Cultural Fit</option>
-                          <option value="Portfolio Review">Portfolio Review</option>
-                          <option value="Management Round">Management Round</option>
-                          <option value={roundTitle}>{roundTitle}</option>
-                        </select>
-                      </div>
-                    ))}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ flex: 1, backgroundColor: '#1E222D', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
+                      <label style={{ display: 'block', fontSize: '0.74rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.03em' }}>
+                        Selected Round
+                      </label>
+                      <select
+                        name="interviewRound"
+                        value={formData.interviewRound}
+                        onChange={handleFieldChange}
+                        className="form-control"
+                        style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF', width: '100%' }}
+                      >
+                        <option value="HR Screening">HR Screening</option>
+                        <option value="Technical / Live Coding">Technical / Live Coding</option>
+                        <option value="System Design Architecture">System Design Architecture</option>
+                        <option value="Final Cultural Fit">Final Cultural Fit</option>
+                        <option value="Portfolio Review">Portfolio Review</option>
+                        <option value="Management Round">Management Round</option>
+                        {roundTypes.filter(rt => !['HR Screening', 'Technical / Live Coding', 'System Design Architecture', 'Final Cultural Fit', 'Portfolio Review', 'Management Round'].includes(rt)).map((rt, i) => (
+                           <option key={i} value={rt}>{rt}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* ── Section 3: Dynamic Panel Splitting & Time Slots Generator ── */}
+                {/* ── Section 3: Panel Assignments & Time Slots Generator ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                        3. PANEL ASSIGNMENTS &amp; DYNAMIC TIME SLOTS GENERATOR
+                        {activeZohoType === 'Log' ? '3. CONDUCTED SESSION PANEL & TIME SLOT' : '3. PANEL ASSIGNMENTS & DYNAMIC TIME SLOTS GENERATOR'}
                       </h4>
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
-                        Set candidate capacity per panel to auto-generate exact time slots &amp; sync panel emails to Google Calendar
+                        {activeZohoType === 'Log'
+                          ? 'Record panel member emails & the completed interview session time'
+                          : 'Set candidate capacity per panel to auto-generate exact time slots & sync panel emails to Google Calendar'}
                       </p>
                     </div>
                     <button
@@ -1143,177 +1185,262 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     </button>
                   </div>
 
-                  {panels.map((p, pIdx) => (
-                    <div key={p.id} style={{ marginBottom: '16px', padding: '16px', backgroundColor: '#1E222D', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <input
-                          type="text"
-                          value={p.name}
-                          onChange={(e) => handlePanelNameChange(p.id, e.target.value)}
-                          className="form-control"
-                          style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.88rem', maxWidth: '280px', padding: '5px 10px', backgroundColor: '#16171F', borderRadius: '6px' }}
-                        />
-                        {panels.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemovePanel(p.id)}
-                            style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                          >
-                            Remove Panel
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="form-grid-2" style={{ marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>PANEL MEMBER EMAILS (ATTENDEES)</label>
-                          {(p.emails ? p.emails.split(',') : ['']).map((emailStr, eIdx) => (
-                            <div key={eIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {panels.map((p, pIdx) => {
+                    const weekDays = getWeekDays(p.selectedDate);
+                    return (
+                      <div key={p.id} style={{ marginBottom: '16px', backgroundColor: '#1E222D', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.15)', overflow: 'hidden' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '380px' }}>
+                          
+                          {/* Left Column: Panel Info */}
+                          <div style={{ padding: '16px', borderRight: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ marginBottom: '12px' }}>
                               <input
-                                type="email"
-                                value={emailStr.trim()}
-                                onChange={(e) => {
-                                  const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [''];
-                                  emailArr[eIdx] = e.target.value;
-                                  handlePanelEmailChange(p.id, emailArr.join(', '));
-                                }}
+                                type="text"
+                                value={p.name}
+                                onChange={(e) => handlePanelNameChange(p.id, e.target.value)}
                                 className="form-control"
-                                placeholder={`Panel Member #${eIdx + 1} Email (e.g. evaluator${eIdx + 1}@company.com)`}
-                                style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF' }}
+                                style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.9rem', width: '100%', padding: '6px 12px', backgroundColor: '#16171F', borderRadius: '6px', marginBottom: '12px' }}
                               />
-                              {(p.emails ? p.emails.split(',').length : 1) > 1 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  TOTAL CANDIDATE CAPACITY:
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max={Math.max(1, MOCK_CANDIDATES.filter(c => c.shortlisted).length)}
+                                  value={p.capacity}
+                                  onChange={(e) => handlePanelCapacityChange(p.id, e.target.value)}
+                                  className="form-control"
+                                  style={{ backgroundColor: '#16171F', color: '#FFFFFF', width: '80px', padding: '4px 8px' }}
+                                />
+                                <span style={{ color: '#22C55E', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                  Total shortlisted count: {MOCK_CANDIDATES.filter(c => c.shortlisted).length}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ flex: 1 }}>
+                              <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '8px' }}>PANEL MEMBER EMAILS (ATTENDEES)</label>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(p.emails ? p.emails.split(',') : ['']).map((emailStr, eIdx) => (
+                                  <div key={eIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <input
+                                      type="email"
+                                      value={emailStr.trim()}
+                                      onChange={(e) => {
+                                        const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [''];
+                                        emailArr[eIdx] = e.target.value;
+                                        handlePanelEmailChange(p.id, emailArr.join(', '));
+                                      }}
+                                      className="form-control"
+                                      placeholder={`Evaluator #${eIdx + 1} Email`}
+                                      style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF' }}
+                                    />
+                                    {(p.emails ? p.emails.split(',').length : 1) > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const emailArr = p.emails.split(',').map((item) => item.trim()).filter((_, idx) => idx !== eIdx);
+                                          handlePanelEmailChange(p.id, emailArr.join(', '));
+                                        }}
+                                        style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px' }}
+                                      >
+                                        ×
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const emailArr = p.emails.split(',').map((item) => item.trim()).filter((_, idx) => idx !== eIdx);
+                                    const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [];
+                                    emailArr.push('');
                                     handlePanelEmailChange(p.id, emailArr.join(', '));
                                   }}
-                                  style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px' }}
-                                  title="Remove Email"
+                                  style={{
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    color: '#F0B90B',
+                                    border: '1px solid #F0B90B',
+                                    borderRadius: '6px',
+                                    padding: '4px 12px',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    width: 'fit-content',
+                                    marginTop: '4px'
+                                  }}
                                 >
-                                  ×
+                                  <Plus size={13} style={{ color: '#F0B90B' }} />
+                                  <span>Add Email</span>
                                 </button>
-                              )}
+                              </div>
                             </div>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const emailArr = p.emails ? p.emails.split(',').map((item) => item.trim()) : [];
-                              emailArr.push('');
-                              handlePanelEmailChange(p.id, emailArr.join(', '));
-                            }}
-                            style={{
-                              alignSelf: 'flex-start',
-                              backgroundColor: 'rgba(240, 185, 11, 0.12)',
-                              color: '#F0B90B',
-                              border: '1px solid #F0B90B',
-                              borderRadius: '6px',
-                              padding: '4px 10px',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              marginTop: '2px',
-                            }}
-                          >
-                            <Plus size={13} style={{ color: '#F0B90B' }} />
-                            <span>Add Panel Member Email</span>
-                          </button>
-                        </div>
 
-                        <div>
-                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>CANDIDATE CAPACITY (INTERVIEW COUNT)</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={p.capacity}
-                            onChange={(e) => handlePanelCapacityChange(p.id, e.target.value)}
-                            className="form-control"
-                            placeholder="How many candidates?"
-                            style={{ backgroundColor: '#16171F', color: '#FFFFFF' }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Manual Time Slot Space for this Panel */}
-                      <div style={{ marginTop: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <div style={{ fontSize: '0.76rem', color: '#9599A6', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Clock size={15} style={{ color: '#F0B90B', stroke: '#F0B90B' }} />
-                            <span>MANUALLY CONFIGURED TIME SLOTS ({p.slots.length} SLOTS):</span>
+                            {panels.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePanel(p.id)}
+                                style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, alignSelf: 'flex-start', marginTop: '16px' }}
+                              >
+                                Remove Panel
+                              </button>
+                            )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleAddManualSlot(p.id)}
-                            style={{
-                              backgroundColor: 'rgba(240, 185, 11, 0.15)',
-                              color: '#F0B90B',
-                              border: '1px solid #F0B90B',
-                              borderRadius: '6px',
-                              padding: '3px 10px',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
-                          >
-                            <Plus size={13} style={{ color: '#F0B90B' }} />
-                            <span>Add Slot</span>
-                          </button>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '10px' }}>
-                          {p.slots.map((slot) => (
-                            <div key={slot.id} style={{ padding: '8px 10px', backgroundColor: '#16171F', border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '8px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>
-                                  Slot #{slot.id}
-                                </span>
-                                {p.slots.length > 1 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveManualSlot(p.id, slot.id)}
-                                    style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', lineHeight: 1 }}
-                                    title="Remove Slot"
-                                  >
-                                    ×
-                                  </button>
+
+                          {/* Right Column: Calendar View */}
+                          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', backgroundColor: '#13141C' }}>
+                            {/* Date Picker Header */}
+                            <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: '#9599A6', fontWeight: 600, fontSize: '0.75rem' }}>CALENDAR DATE</span>
+                              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input 
+                                  type="date" 
+                                  value={p.selectedDate} 
+                                  onChange={(e) => {
+                                    if (e.target.value) handlePanelDateChange(p.id, e.target.value);
+                                  }} 
+                                  style={{ 
+                                    backgroundColor: '#1E222D', 
+                                    color: '#FFFFFF', 
+                                    border: '1px solid rgba(255, 255, 255, 0.15)', 
+                                    padding: '4px 28px 4px 8px', 
+                                    borderRadius: '6px', 
+                                    fontSize: '0.8rem',
+                                    colorScheme: 'dark',
+                                    width: '135px'
+                                  }} 
+                                />
+                                <Calendar size={14} style={{ position: 'absolute', right: '8px', color: '#F0B90B', pointerEvents: 'none' }} />
+                              </div>
+                            </div>
+
+                            {/* Date Strip */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#16171F', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                              {weekDays.map((wd, i) => {
+                                const wdStr = wd.toISOString().split('T')[0];
+                                const isSelected = wdStr === p.selectedDate;
+                                const dayLabel = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][wd.getDay()];
+                                const dateNum = wd.getDate();
+                                return (
+                                  <div key={i} onClick={() => handlePanelDateChange(p.id, wdStr)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: '6px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: isSelected ? '#FFFFFF' : '#9599A6', fontWeight: 600 }}>{dayLabel}</span>
+                                    <div style={{
+                                      width: '28px', height: '28px', borderRadius: '50%', 
+                                      backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                                      color: isSelected ? '#000000' : '#FFFFFF',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      fontWeight: 700, fontSize: '0.8rem', transition: 'all 0.2s'
+                                    }}>
+                                      {dateNum}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Simple Slots List for Selected Date */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                              
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1E222D', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <label className="form-label" style={{ fontSize: '0.8rem', color: '#9599A6', fontWeight: 700, margin: 0 }}>SLOTS FOR THIS DAY:</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <span style={{ color: '#F0B90B', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(240, 185, 11, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                    Remaining count: {Math.max(0, p.capacity - p.slots.length)}
+                                  </span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="50"
+                                    value={p.slots.filter(s => s.date === p.selectedDate).length}
+                                    onChange={(e) => handleDailySlotCountChange(p.id, p.selectedDate, e.target.value)}
+                                    className="form-control"
+                                    style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '80px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {p.slots.filter(s => s.date === p.selectedDate).map((s, idx) => (
+                                  <div key={s.id} style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '12px',
+                                    backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                                    borderLeft: '3px solid #4285F4',
+                                    padding: '12px 16px',
+                                    borderRadius: '6px'
+                                  }}>
+                                    <span style={{ color: '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #{idx + 1}</span>
+                                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+                                      <input 
+                                        type="time" 
+                                        value={s.startTime || '09:00'} 
+                                        onChange={(e) => handleSlotTimeChange(p.id, s.id, 'startTime', e.target.value)} 
+                                        style={{ 
+                                          backgroundColor: '#1E222D', 
+                                          color: '#FFFFFF', 
+                                          border: '1px solid rgba(255, 255, 255, 0.15)', 
+                                          padding: '6px 32px 6px 12px', 
+                                          borderRadius: '6px', 
+                                          fontSize: '0.85rem',
+                                          colorScheme: 'dark',
+                                          width: '100%',
+                                          cursor: 'pointer'
+                                        }} 
+                                      />
+                                      <Clock size={14} style={{ position: 'absolute', right: '12px', color: '#4285F4', pointerEvents: 'none' }} />
+                                    </div>
+                                    <button 
+                                      onClick={() => handleRemoveManualSlot(p.id, s.id)} 
+                                      style={{ 
+                                        background: 'rgba(239, 68, 68, 0.1)', 
+                                        border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                        color: '#EF4444', 
+                                        cursor: 'pointer', 
+                                        fontSize: '1.1rem', 
+                                        lineHeight: 1, 
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '6px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'all 0.2s'
+                                      }} 
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                      }}
+                                      title="Remove Slot"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                                {p.slots.filter(s => s.date === p.selectedDate).length === 0 && (
+                                  <div style={{ color: '#9599A6', fontSize: '0.85rem', textAlign: 'center', padding: '24px 0' }}>
+                                    No slots added for this date.
+                                  </div>
                                 )}
                               </div>
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                                <input
-                                  type="time"
-                                  value={slot.startTime}
-                                  onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'startTime', e.target.value)}
-                                  className="form-control"
-                                  style={{ fontSize: '0.78rem', padding: '4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF' }}
-                                />
-                                <span style={{ color: '#9599A6', fontSize: '0.78rem' }}>to</span>
-                                <input
-                                  type="time"
-                                  value={slot.endTime}
-                                  onChange={(e) => handleSlotTimeChange(p.id, slot.id, 'endTime', e.target.value)}
-                                  className="form-control"
-                                  style={{ fontSize: '0.78rem', padding: '4px 6px', colorScheme: 'dark', backgroundColor: '#1E222D', color: '#FFFFFF' }}
-                                />
-                              </div>
                             </div>
-                          ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* ── Section 4: Mode-Specific Venue / Link Details ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '18px' }}>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
-                    4. ADDITIONAL DETAILS &amp; VENUE
+                    {activeZohoType === 'Log' ? '4. PAST EVALUATION RATING & RECOMMENDATION' : '4. ADDITIONAL DETAILS & VENUE'}
                   </h4>
                   <div className="form-grid-2">
                     {activeZohoType === 'In-Person' ? (
@@ -1330,18 +1457,31 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         />
                       </div>
                     ) : activeZohoType === 'Log' ? (
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>CANDIDATE EVALUATION RATING</label>
-                        <div className="select-input-wrap">
-                          <select className="form-control" style={{ backgroundColor: '#1E222D', color: '#FFFFFF' }}>
-                            <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</option>
-                            <option value="4">⭐⭐⭐⭐ (4 Stars - Strong Hire)</option>
-                            <option value="3">⭐⭐⭐ (3 Stars - Average / Borderline)</option>
-                            <option value="2">⭐⭐ (2 Stars - Weak Candidate)</option>
-                            <option value="1">⭐ (1 Star - Reject)</option>
-                          </select>
+                      <>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>CANDIDATE EVALUATION RATING</label>
+                          <div className="select-input-wrap">
+                            <select className="form-control" style={{ backgroundColor: '#1E222D', color: '#FFFFFF' }}>
+                              <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</option>
+                              <option value="4">⭐⭐⭐⭐ (4 Stars - Strong Hire)</option>
+                              <option value="3">⭐⭐⭐ (3 Stars - Average / Borderline)</option>
+                              <option value="2">⭐⭐ (2 Stars - Weak Candidate)</option>
+                              <option value="1">⭐ (1 Star - Reject)</option>
+                            </select>
+                          </div>
                         </div>
-                      </div>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>FINAL HIRING DECISION RECOMMENDATION</label>
+                          <div className="select-input-wrap">
+                            <select className="form-control" style={{ backgroundColor: '#1E222D', color: '#FFFFFF' }}>
+                              <option value="NEXT_ROUND">✅ Recommended for Next Round</option>
+                              <option value="HIRED">🎉 Direct Hire Recommendation</option>
+                              <option value="HOLD">⏳ Hold / Under Further Review</option>
+                              <option value="REJECTED">❌ Not Recommended / Rejected</option>
+                            </select>
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <div className="form-group">
                         <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>AUTO-GENERATED MEETING LINK (GOOGLE MEET / TEAMS)</label>
@@ -1357,12 +1497,12 @@ function RecruiterInterviewTimeSlotManagementPage() {
                       </div>
                     )}
 
-                    <div className="form-group">
+                    <div className="form-group" style={{ gridColumn: activeZohoType === 'Log' ? 'span 2' : 'auto' }}>
                       <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>
                         {activeZohoType === 'In-Person'
                           ? 'SECURITY & BUILDING INSTRUCTIONS'
                           : (activeZohoType === 'Log'
-                              ? 'PANEL EVALUATION FEEDBACK NOTES'
+                              ? 'PANEL EVALUATION FEEDBACK NOTES & REMARKS'
                               : 'ADDITIONAL INSTRUCTIONS')}
                       </label>
                       <input
@@ -1372,7 +1512,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           activeZohoType === 'In-Person'
                             ? 'e.g. Show ID at main reception, visitor pass required...'
                             : (activeZohoType === 'Log'
-                                ? 'e.g. Strong problem solving skills, recommendation...'
+                                ? 'e.g. Excellent problem solving skills, strong technical depth...'
                                 : 'Instructions for panel members or candidates...')
                         }
                         value={formData.additionalNotes}
@@ -1384,10 +1524,597 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   </div>
                 </div>
 
+                {/* ── Section 5: Auto-Assign Candidates Preview ── */}
+                {!editingSlotId && activeZohoType !== 'Log' && (
+                  <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
+                        5. CANDIDATE MATCHING &amp; ALLOCATION
+                      </h4>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (!showPreview) {
+                              let candIdx = 0;
+                              // For "Product Designer", there are no shortlisted candidates yet.
+                              const shortlisted = formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted);
+                              if (shortlisted.length > 0) {
+                                setPanels(prev => prev.map(p => ({
+                                  ...p,
+                                  slots: p.slots.map(s => {
+                                    if (s.assignedCandidate) return s;
+                                    const c = shortlisted[candIdx % shortlisted.length];
+                                    candIdx++;
+                                    return { ...s, assignedCandidate: c };
+                                  })
+                                })));
+                              }
+                            }
+                            setShowPreview(!showPreview);
+                            if (showManualAssign) setShowManualAssign(false);
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            padding: '6px 14px', borderRadius: '6px',
+                            backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
+                            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer'
+                          }}
+                        >
+                          <Sparkles size={14} />
+                          {showPreview ? 'Hide Candidate Matches' : 'Auto-Assign Candidates'}
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowManualAssign(!showManualAssign);
+                            if (showPreview) setShowPreview(false);
+                          }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            padding: '6px 14px', borderRadius: '6px',
+                            backgroundColor: 'transparent', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#FFFFFF',
+                            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer'
+                          }}
+                        >
+                          <Users size={14} />
+                          {showManualAssign ? 'Hide Manual Assignment' : 'Manually Assign Candidates'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {showPreview && (
+                      <div style={{ padding: '16px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '12px' }}>
+                        {(formData.jobPosition === 'Product Designer' ? [] : MOCK_CANDIDATES.filter(c => c.shortlisted)).length === 0 ? (
+                          <div style={{ padding: '24px', textAlign: 'center' }}>
+                            <Users size={32} style={{ color: '#9599A6', marginBottom: '12px', opacity: 0.5, display: 'inline-block' }} />
+                            <h4 style={{ color: '#fff', fontSize: '1.05rem', marginBottom: '8px', fontWeight: 600 }}>
+                              No Shortlisted Candidates
+                            </h4>
+                            <p style={{ color: '#9599A6', fontSize: '0.85rem', marginBottom: '20px', lineHeight: '1.6' }}>
+                              There are currently no shortlisted candidates available to assign to your panels. Proceed to the Applicants section to review and shortlist candidates.
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <button 
+                                type="button" 
+                                className="btn-primary-accent" 
+                                onClick={() => navigate('/recruiter/applicants/ranked')}
+                                style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.8rem' }}
+                              >
+                                Go to Applicants Section
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                              <CheckCircle2 size={16} style={{ color: '#22C55E' }} />
+                              <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.85rem' }}>AI Auto-Assignment Preview</h5>
+                            </div>
+                            <p style={{ margin: '0 0 16px 0', fontSize: '0.75rem', color: '#9599A6' }}>
+                              The following top-ranked shortlisted candidates will be matched and assigned to your configured panels upon saving. You can modify assignments if needed.
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {panels.map((p, idx) => (
+                            <div key={p.id} style={{ padding: '12px', backgroundColor: '#1E222D', borderRadius: '8px', border: '1px solid #2A2C38' }}>
+                              <strong style={{ color: '#F0B90B', fontSize: '0.75rem', display: 'block', marginBottom: '10px' }}>{p.name}</strong>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {p.slots.map((s, sIdx) => {
+                                  const c = s.assignedCandidate;
+                                  return (
+                                    <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', paddingBottom: '6px', borderBottom: sIdx < p.slots.length - 1 ? '1px solid #2A2C38' : 'none' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9599A6', minWidth: '120px' }}>
+                                        <Clock size={12} />
+                                        <span>{s.startTime || '09:00'} - {s.endTime || '10:00'}</span>
+                                      </div>
+                                      
+                                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <select
+                                          value={c?.name || ''}
+                                          onChange={(e) => {
+                                            const newCandName = e.target.value;
+                                            const selectedCand = MOCK_CANDIDATES.find(cand => cand.name === newCandName);
+                                            setPanels(prevPanels => prevPanels.map(pan => pan.id === p.id ? {
+                                              ...pan,
+                                              slots: pan.slots.map(slot => slot.id === s.id ? { ...slot, assignedCandidate: selectedCand } : slot)
+                                            } : pan));
+                                          }}
+                                          style={{ 
+                                            backgroundColor: '#1E222D', color: '#FFFFFF', 
+                                            border: '1px solid #2A2C38', borderRadius: '6px', 
+                                            padding: '6px 8px', fontSize: '0.75rem', outline: 'none',
+                                            flex: 1
+                                          }}
+                                        >
+                                          <option value="">Select Candidate...</option>
+                                          {MOCK_CANDIDATES.filter(cand => cand.shortlisted).map(cand => (
+                                            <option key={cand.name} value={cand.name}>{cand.name}</option>
+                                          ))}
+                                        </select>
+                                        
+                                        {c && (
+                                          <span style={{ color: '#22C55E', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                            {c.score || 90}% Match
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div style={{ marginLeft: '16px' }}>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.preventDefault(); setViewingCandidate(c); }}
+                                          disabled={!c}
+                                          style={{
+                                            background: 'none', border: '1px solid rgba(96, 165, 250, 0.3)', color: c ? '#60A5FA' : '#9599A6',
+                                            fontSize: '0.7rem', cursor: c ? 'pointer' : 'not-allowed', padding: '4px 10px', borderRadius: '4px',
+                                            backgroundColor: c ? 'rgba(96, 165, 250, 0.05)' : 'transparent', fontWeight: 600
+                                          }}
+                                        >
+                                          View Details
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        </>
+                        )}
+                      </div>
+                    )}
+
+                    {showManualAssign && (
+                      <div style={{ padding: '16px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '12px', marginTop: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '0.8fr auto 1.2fr', gap: '20px', alignItems: 'flex-start' }}>
+                          
+                          {/* Left side: Shortlisted Candidates */}
+                          <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', height: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Users size={16} style={{ color: '#F0B90B' }} />
+                                <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.9rem' }}>Shortlisted Candidates</h5>
+                              </div>
+                              <span style={{ backgroundColor: '#1E222D', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', color: '#9599A6', fontWeight: 600 }}>
+                                {MOCK_CANDIDATES.filter(c => c.shortlisted).length} TOTAL
+                              </span>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '40px 1.5fr 1fr 1fr', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
+                              <div></div>
+                              <div>Candidate Name</div>
+                              <div>Score</div>
+                              <div></div>
+                            </div>
+                            
+                            <div style={{}}>
+                              {MOCK_CANDIDATES.filter(c => c.shortlisted).map((cand, idx) => (
+                                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '40px 1.5fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38' }}>
+                                  <div>
+                                    <input 
+                                      type="radio" 
+                                      name="candidateSelect"
+                                      checked={selectedCandidates.includes(cand.name)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedCandidates([cand.name]);
+                                        }
+                                      }}
+                                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                  </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>{cand.name}</div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 700 }}>{cand.score || (88 - idx * 3)}%</div>
+                                  <div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); setViewingCandidate(cand); }}
+                                      style={{
+                                        background: 'none', border: '1px solid rgba(96, 165, 250, 0.3)', color: '#60A5FA',
+                                        fontSize: '0.7rem', cursor: 'pointer', padding: '4px 10px', borderRadius: '4px',
+                                        backgroundColor: 'rgba(96, 165, 250, 0.05)', fontWeight: 600
+                                      }}
+                                    >
+                                      View Details
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Middle side: Allocate/Remove buttons */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', marginTop: '40px' }}>
+                            <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', width: '140px', textAlign: 'center' }}>
+                              <div style={{ color: '#F0B90B', fontSize: '1.2rem', fontWeight: 800 }}>{selectedCandidates.length}</div>
+                              <div style={{ color: '#9599A6', fontSize: '0.75rem', marginBottom: '8px' }}>
+                                {selectedCandidates.length === 1 ? 'candidate' : 'candidates'}
+                              </div>
+                              <div style={{ color: '#9599A6', fontSize: '0.65rem' }}>{selectedSlotId ? `Slot selected` : 'No slot selected'}</div>
+                            </div>
+                            
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (selectedCandidates.length > 0 && selectedSlotId) {
+                                  setPanels(prevPanels => prevPanels.map(p => ({
+                                    ...p,
+                                    slots: p.slots.map(s => {
+                                      if (s.id === selectedSlotId) {
+                                        const candObj = MOCK_CANDIDATES.find(c => c.name === selectedCandidates[0]);
+                                        return { ...s, assignedCandidate: candObj };
+                                      }
+                                      return s;
+                                    })
+                                  })));
+                                  setSelectedCandidates([]);
+                                  setSelectedSlotId(null);
+                                  setAutoAssignSummary(null);
+                                }
+                              }}
+                              disabled={selectedCandidates.length === 0 || !selectedSlotId}
+                              style={{
+                                backgroundColor: (selectedCandidates.length > 0 && selectedSlotId) ? '#F0B90B' : 'rgba(240, 185, 11, 0.5)',
+                                color: '#0D0E12',
+                                padding: '10px 20px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                cursor: (selectedCandidates.length > 0 && selectedSlotId) ? 'pointer' : 'not-allowed',
+                                width: '140px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
+                              Allocate <ArrowRight size={14} />
+                            </button>
+                            
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (selectedSlotId) {
+                                  setPanels(prevPanels => prevPanels.map(p => ({
+                                    ...p,
+                                    slots: p.slots.map(s => {
+                                      if (s.id === selectedSlotId) {
+                                        return { ...s, assignedCandidate: null };
+                                      }
+                                      return s;
+                                    })
+                                  })));
+                                  setSelectedCandidates([]);
+                                  setSelectedSlotId(null);
+                                  setAutoAssignSummary(null);
+                                }
+                              }}
+                              disabled={!selectedSlotId}
+                              style={{
+                                backgroundColor: 'transparent',
+                                color: '#9599A6',
+                                padding: '10px 20px',
+                                borderRadius: '8px',
+                                border: '1px solid #2A2C38',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                cursor: selectedSlotId ? 'pointer' : 'not-allowed',
+                                width: '140px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '8px',
+                                opacity: selectedSlotId ? 1 : 0.5
+                              }}
+                            >
+                              <ArrowLeft size={14} /> Remove
+                            </button>
+                          </div>
+                          
+                          {/* Right side: Available Time Slots */}
+                          <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', height: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <CalendarDays size={16} style={{ color: '#F0B90B' }} />
+                                <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.9rem' }}>Available Time Slots</h5>
+                              </div>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button 
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const shortlisted = formData.jobPosition === 'Product Designer' 
+                                      ? [] 
+                                      : [...MOCK_CANDIDATES].filter(c => c.shortlisted).map((c, idx) => ({ ...c, displayScore: c.score || (88 - idx * 3) })).sort((a, b) => b.displayScore - a.displayScore);
+                                    if (shortlisted.length > 0) {
+                                      let candIdx = 0;
+                                      let summary = [];
+                                      const nextPanels = panels.map(p => ({
+                                        ...p,
+                                        slots: p.slots.map(s => {
+                                          if (s.assignedCandidate) return s;
+                                          if (candIdx >= shortlisted.length) return s;
+                                          const c = shortlisted[candIdx];
+                                          candIdx++;
+                                          summary.push({ candidate: c, slot: { ...s, panelNo: p.id }, panelName: p.name });
+                                          return { ...s, assignedCandidate: c };
+                                        })
+                                      }));
+                                      
+                                      while (candIdx < shortlisted.length) {
+                                        summary.push({ candidate: shortlisted[candIdx], slot: null, panelName: 'Unassigned Candidates' });
+                                        candIdx++;
+                                      }
+
+                                      setPanels(nextPanels);
+                                      setAutoAssignSummary(summary);
+                                    }
+                                  }}
+                                  style={{
+                                    backgroundColor: 'transparent', border: '1px solid #F0B90B', color: '#F0B90B',
+                                    padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600,
+                                    display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer'
+                                  }}
+                                >
+                                  <Sparkles size={12} /> Auto-Assign
+                                </button>
+                                <span style={{ backgroundColor: '#1E222D', padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', color: '#9599A6', fontWeight: 600 }}>
+                                  {panels.reduce((sum, p) => sum + p.slots.length, 0)} SLOTS
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 1fr', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
+                              <div></div>
+                              <div>Date</div>
+                              <div>Time</div>
+                              <div>Panel No</div>
+                              <div>Type</div>
+                              <div>Cap.</div>
+                              <div>Rem.</div>
+                            </div>
+                            
+                            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                              {panels.flatMap((p, pIdx) => p.slots.map(slot => ({ ...slot, panelNo: pIdx + 1, type: activeZohoType === 'In-Person' ? 'Physical' : 'Online' }))).map((slot, idx) => (
+                                <div key={slot.id} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38', opacity: slot.assignedCandidate ? 0.6 : 1 }}>
+                                  <div>
+                                    <input 
+                                      type="radio" 
+                                      name="selectedSlot"
+                                      checked={selectedSlotId === slot.id}
+                                      onChange={() => setSelectedSlotId(slot.id)}
+                                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                  </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>{formatDate(slot.date) || '03 Aug'}</div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Clock size={12} style={{ color: '#9599A6' }} />
+                                    {slot.startTime || '09:00 AM'}
+                                  </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>Panel {slot.panelNo}</div>
+                                  <div>
+                                    <span style={{ 
+                                      backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)', 
+                                      color: slot.type === 'Online' ? '#60A5FA' : '#A855F7', 
+                                      padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 
+                                    }}>
+                                      {slot.type}
+                                    </span>
+                                  </div>
+                                  <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 700 }}>1</div>
+                                  <div style={{ color: '#22C55E', fontSize: '0.85rem', fontWeight: 700 }}>{1 - (slot.assignedCandidate ? 1 : 0)}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Auto Assign Summary Section */}
+                        {autoAssignSummary && autoAssignSummary.length > 0 && (
+                          <div style={{ marginTop: '24px', backgroundColor: '#16171F', border: '1px solid #22C55E', borderRadius: '12px', padding: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                              <CheckCircle2 size={18} style={{ color: '#22C55E' }} />
+                              <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '1rem', fontWeight: 700 }}>Auto-Assignment Details</h5>
+                            </div>
+                            <p style={{ color: '#9599A6', fontSize: '0.8rem', marginBottom: '20px', lineHeight: 1.5 }}>
+                              Candidates have been optimally matched to available time slots based on their ranking score and earliest availability.
+                            </p>
+                            
+                            <div>
+                              {(() => {
+                                const allShortlisted = formData.jobPosition === 'Product Designer' 
+                                  ? [] 
+                                  : [...MOCK_CANDIDATES].filter(c => c.shortlisted).map((c, idx) => ({ ...c, displayScore: c.score || (88 - idx * 3) }));
+
+                                const groupedByPanel = autoAssignSummary.reduce((acc, match) => {
+                                  if (!acc[match.panelName]) acc[match.panelName] = [];
+                                  acc[match.panelName].push(match);
+                                  return acc;
+                                }, {});
+                                return Object.entries(groupedByPanel).map(([panelName, matches]) => (
+                                  <div key={panelName} style={{ marginBottom: '20px' }}>
+                                    <h6 style={{ color: '#F0B90B', fontSize: '0.85rem', marginBottom: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #2A2C38', paddingBottom: '6px' }}>
+                                      {panelName}
+                                    </h6>
+                                    <div style={{ overflowX: 'auto', borderRadius: '10px', border: '1px solid #2A2C38', backgroundColor: '#1E222D' }}>
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                                        <thead>
+                                          <tr style={{ backgroundColor: '#16171F', borderBottom: '1px solid #2A2C38' }}>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Candidate</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Match Score</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Date</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase' }}>Time</th>
+                                            <th style={{ padding: '12px 16px', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, textTransform: 'uppercase', textAlign: 'center' }}>Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {matches.map((match, idx) => (
+                                            <tr key={idx} style={{ borderBottom: idx < matches.length - 1 ? '1px solid #2A2C38' : 'none' }}>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(96, 165, 250, 0.1)', color: '#60A5FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>
+                                                    {match.candidate.name.charAt(0)}
+                                                  </div>
+                                                  <select
+                                                    value={match.candidate.name}
+                                                    disabled={!match.slot}
+                                                    onChange={(e) => {
+                                                      const newCandName = e.target.value;
+                                                      if (newCandName === match.candidate.name) return;
+                                                      
+                                                      const selectedCand = allShortlisted.find(c => c.name === newCandName) || null;
+                                                      
+                                                      setPanels(prevPanels => {
+                                                        let oldSlotId = null;
+                                                        let oldPanelId = null;
+                                                        if (selectedCand) {
+                                                          prevPanels.forEach(p => {
+                                                            p.slots.forEach(s => {
+                                                              if (s.assignedCandidate && s.assignedCandidate.name === newCandName) {
+                                                                oldSlotId = s.id;
+                                                                oldPanelId = p.id;
+                                                              }
+                                                            });
+                                                          });
+                                                        }
+
+                                                        const currentCand = match.candidate;
+                                                        const targetPanelId = match.slot.panelNo;
+                                                        const targetSlotId = match.slot.id;
+
+                                                        const newPanels = prevPanels.map(p => ({
+                                                          ...p,
+                                                          slots: p.slots.map(s => {
+                                                            if (p.id === targetPanelId && s.id === targetSlotId) {
+                                                              return { ...s, assignedCandidate: selectedCand };
+                                                            }
+                                                            if (oldSlotId && p.id === oldPanelId && s.id === oldSlotId) {
+                                                              return { ...s, assignedCandidate: currentCand };
+                                                            }
+                                                            return s;
+                                                          })
+                                                        }));
+                                                        
+                                                        let newSummary = [];
+                                                        newPanels.forEach(p => {
+                                                          p.slots.forEach(s => {
+                                                            if (s.assignedCandidate) {
+                                                              newSummary.push({ candidate: s.assignedCandidate, slot: { ...s, panelNo: p.id }, panelName: p.name });
+                                                            }
+                                                          });
+                                                        });
+                                                        setAutoAssignSummary(newSummary);
+                                                        
+                                                        return newPanels;
+                                                      });
+                                                    }}
+                                                    style={{
+                                                      backgroundColor: 'transparent',
+                                                      color: '#FFFFFF',
+                                                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                      borderRadius: '6px',
+                                                      padding: '4px 8px',
+                                                      fontSize: '0.85rem',
+                                                      fontWeight: 600,
+                                                      outline: 'none',
+                                                      width: '180px',
+                                                      cursor: 'pointer',
+                                                      appearance: 'none'
+                                                    }}
+                                                  >
+                                                    <option value="" style={{ color: '#000' }}>Unassign...</option>
+                                                    {allShortlisted.map(c => (
+                                                      <option key={c.name} value={c.name} style={{ color: '#000' }}>
+                                                        {c.name}
+                                                      </option>
+                                                    ))}
+                                                  </select>
+                                                </div>
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                <div style={{ color: '#22C55E', fontSize: '0.8rem', fontWeight: 700 }}>{match.candidate.displayScore}%</div>
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                {match.slot ? (
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
+                                                    <Calendar size={14} style={{ color: '#F0B90B' }} />
+                                                    <span>{formatDate(match.slot.date) || '03 Aug'}</span>
+                                                  </div>
+                                                ) : (
+                                                  <span style={{ color: '#EF4444' }}>-</span>
+                                                )}
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle' }}>
+                                                {match.slot ? (
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
+                                                    <Clock size={14} style={{ color: '#F0B90B' }} />
+                                                    <span>{match.slot.startTime || '09:00 AM'} - {match.slot.endTime || '10:00 AM'}</span>
+                                                  </div>
+                                                ) : (
+                                                  <span style={{ color: '#EF4444' }}>-</span>
+                                                )}
+                                              </td>
+                                              <td style={{ padding: '12px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
+                                                {match.slot ? (
+                                                  <span style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22C55E', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                                                    ASSIGNED
+                                                  </span>
+                                                ) : (
+                                                  <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                                                    UNASSIGNED
+                                                  </span>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Form Buttons */}
                 <div className="form-actions-row" style={{ marginTop: '24px' }}>
                   <button type="submit" className="btn-primary-accent" style={{ padding: '12px 24px' }}>
-                    <span>{editingSlotId ? 'Update Interview Slot' : 'Save & Sync Google Calendar'}</span>
+                    <span>
+                      {editingSlotId
+                        ? 'Update Interview Slot'
+                        : (activeZohoType === 'Log' ? 'Save Logged Interview' : 'Save & Sync Google Calendar')}
+                    </span>
                   </button>
                   <button type="button" className="btn-ghost-dark" onClick={() => setShowInlineForm(false)}>
                     Cancel
@@ -1408,15 +2135,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
           )}
           {formError && (
             <div className="alert-toast alert-danger">
-              <span>{formError}</span>
               <button type="button" className="toast-close" onClick={() => setFormError('')}>
                 ×
               </button>
             </div>
           )}
-
-
-
 
 
           {/* Footer Branding */}
@@ -1733,6 +2456,18 @@ function RecruiterInterviewTimeSlotManagementPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {/* ── Modal 2: Candidate Detail View ── */}
+      {viewingCandidate && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-dark, #0D0E12)', zIndex: 9999, overflowY: 'auto', padding: '24px' }}>
+          <CandidateDetailView 
+            candidate={enrichCandidateDetails(viewingCandidate)}
+            onBack={() => setViewingCandidate(null)}
+            onShortlist={() => {}}
+            onReject={() => {}}
+            onApprove={() => {}}
+          />
         </div>
       )}
     </div>

@@ -170,6 +170,8 @@ function PreviewVacancyPage() {
         experienceLevel: EXPERIENCE_LABELS[formState.experienceLevel] || formState.experienceLevel || SAMPLE_VACANCY.experienceLevel,
         openings: formState.openings || SAMPLE_VACANCY.openings,
         deadline: formState.deadline || SAMPLE_VACANCY.deadline,
+        shortlistCount: formState.shortlistCount || '',
+        milestones: formState.milestones || [],
       }
     : SAMPLE_VACANCY;
 
@@ -190,8 +192,20 @@ function PreviewVacancyPage() {
         ? new Date(v.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
         : 'Not set',
     },
+    {
+      icon: ClipboardCheck,
+      label: 'SHORTLIST TARGET',
+      value: v.shortlistCount ? `${v.shortlistCount} candidate${v.shortlistCount !== '1' ? 's' : ''}` : 'Not set',
+    },
     { icon: Globe, label: 'WORK MODE', value: v.workMode },
   ];
+
+  const MILESTONES = v.milestones.map((m) => ({
+    date: m.date
+      ? new Date(m.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      : 'Not set',
+    shortlistCount: m.shortlistCount || '—',
+  }));
 
   return (
     <div className="create-vacancy pv-shell">
@@ -378,6 +392,20 @@ function PreviewVacancyPage() {
                     <SummaryStatRow key={stat.label} {...stat} />
                   ))}
                 </div>
+
+                {/* Milestones */}
+                {MILESTONES.length > 0 && (
+                  <div className="pv-rail-section pv-milestones">
+                    <span className="pv-rail-label">IN-BETWEEN SHORTLISTING MILESTONES</span>
+                    {MILESTONES.map((m, i) => (
+                      <div key={i} className="pv-milestone">
+                        <span className="pv-milestone__index">{i + 1}</span>
+                        <span className="pv-milestone__date">{m.date}</span>
+                        <span className="pv-milestone__count">{m.shortlistCount}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Required Skills */}
                 <div className="pv-rail-skills">

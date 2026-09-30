@@ -48,6 +48,7 @@ import QuestionBankPage from '../pages/recruiter/Assessments/QuestionBankPage';
 import CreateAssessmentPage from '../pages/recruiter/Assessments/CreateAssessmentPage';
 import CandidateReportPage from '../pages/recruiter/Assessments/CandidateReportPage';
 import AssessmentPreviewPage from '../pages/recruiter/Assessments/AssessmentPreviewPage';
+import AddQuestionPage from '../pages/recruiter/Assessments/AddQuestionPage';
 import AssessmentCandidatesPage from '../pages/recruiter/Assessments/AssessmentCandidatesPage';
 import RecruiterProfilePage from '../pages/recruiter/RecruiterProfile/RecruiterProfilePage';
 import RecruiterSidebar from '../components/common/RecruiterSidebar';
@@ -60,7 +61,6 @@ import ModerateContent from '../pages/admin/ModerateCommunity/ModerateCommunity'
 import MonitorSystem from '../pages/admin/MonitorSystem/MonitorSystem';
 import ViewAuditLogs from '../pages/admin/ViewAuditLogs/ViewAuditLogs';
 import Payments from '../pages/admin/Payments/Payments';
-import JobModeration from '../pages/admin/JobModeration/JobModeration';
 import AdminProfile from '../pages/admin/AdminProfile/AdminProfile';
 import RoleSelection from '../pages/candidate/MockInterview/RoleSelection';
 import GeneratedQuestions from '../pages/candidate/MockInterview/GeneratedQuestions';
@@ -278,6 +278,8 @@ function AppRoutes() {
           element={<RecruiterProtected><AssessmentsPage /></RecruiterProtected>}
         />
         <Route path="/recruiter/question-bank" element={<RecruiterProtected><QuestionBankPage /></RecruiterProtected>} />
+        <Route path="/recruiter/question-bank/add" element={<RecruiterProtected><AddQuestionPage /></RecruiterProtected>} />
+        <Route path="/recruiter/question-bank/edit/:questionId" element={<RecruiterProtected><AddQuestionPage /></RecruiterProtected>} />
         <Route path="/recruiter/assessments/new" element={<RecruiterProtected><CreateAssessmentPage /></RecruiterProtected>} />
         <Route path="/recruiter/assessments/:assessmentId" element={<RecruiterProtected><AssessmentPreviewPage /></RecruiterProtected>} />
         <Route path="/recruiter/assessments/:assessmentId/edit" element={<RecruiterProtected><CreateAssessmentPage /></RecruiterProtected>} />
@@ -348,14 +350,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/admin/job-moderation"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <JobModeration />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+
           path="/admin/payments"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
