@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Users,
   Activity,
@@ -19,6 +19,7 @@ import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { getUsers, saveUsers, appendAuditLog } from '../../../services/adminStorage';
+import { fetchUsers } from '../../../api/userApi';
 import './ManageUsers.css';
 
 // Initial Mock Users data matching mockup + some pagination filler
@@ -38,6 +39,45 @@ function ManageUsers() {
   // Initialize from localStorage; seeds with INITIAL_USERS on first visit
   const [users, setUsers] = useState(() => getUsers(INITIAL_USERS));
   const [toast, setToast] = useState(null);
+
+  // Real users loaded from the backend (admin endpoint)
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState('');
+
+  // Load registered users from the database on mount
+  useEffect(() => {
+    let cancelled = false;
+    const loadUsers = async () => {
+      try {
+        const data = await fetchUsers();
+        if (cancelled) return;
+        if (Array.isArray(data.users)) {
+          const colors = ['#6B8CFF', '#22C55E', '#F0B90B', '#E63946', '#A79E8C'];
+          const mapped = data.users.map((u, i) => ({
+            id: u.id,
+            name: u.full_name,
+            email: u.email,
+            role: u.role.charAt(0).toUpperCase() + u.role.slice(1),
+            status: 'Active',
+            createdDate: u.created_at ? String(u.created_at).slice(0, 10) : '',
+            avatarColor: colors[i % colors.length],
+          }));
+          setUsers(mapped);
+          setUsersError('');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setUsersError('Could not load users from server. Showing local data instead.');
+        }
+      } finally {
+        if (!cancelled) setUsersLoading(false);
+      }
+    };
+    loadUsers();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   
   // Search, Filter, Sort and Pagination State
   const [searchQuery, setSearchQuery] = useState('');
@@ -450,7 +490,9 @@ function ManageUsers() {
                   ) : (
                     <tr>
                       <td colSpan="6" className="admin-table__empty-state">
-                        No users match the search criteria.
+                        {usersLoading
+                          ? 'Loading users...'
+                          : usersError || 'No users match the search criteria.'}
                       </td>
                     </tr>
                   )}

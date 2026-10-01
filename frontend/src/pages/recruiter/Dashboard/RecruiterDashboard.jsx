@@ -111,7 +111,6 @@ function RecruiterDashboard() {
           searchPlaceholder="Search applicants, vacancies, interviews..."
           onSearch={(q) => console.log('Searching for:', q)}
           onNotificationClick={() => console.log('Notifications opened')}
-          onLogout={() => console.log('Logging out')}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 

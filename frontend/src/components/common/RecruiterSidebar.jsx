@@ -15,8 +15,10 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
+  LogOut,
 } from 'lucide-react';
 import '../../style.css';
+import { useAuth } from '../../hooks/useAuth';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/recruiter/dashboard' },
@@ -62,6 +64,7 @@ const BOTTOM_ITEMS = [
 function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [expandedItems, setExpandedItems] = useState({
     'Job vacancies': true,
     Applicants: true,
@@ -247,12 +250,26 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
         </ul>
 
         <div className="sidebar-user-chip">
-          <div className="sidebar-user-chip__avatar">R</div>
+          <div className="sidebar-user-chip__avatar">
+            {user?.fullName?.split(' ').map((n) => n[0]).join('').toUpperCase() || 'R'}
+          </div>
           <div className="sidebar-user-chip__info">
-            <span className="sidebar-user-chip__name">Recruiter</span>
+            <span className="sidebar-user-chip__name">{user?.fullName || 'Recruiter'}</span>
             <span className="sidebar-user-chip__role">Recruiter Account</span>
           </div>
         </div>
+        <button
+          type="button"
+          className="sidebar-user-chip__signout"
+          onClick={() => {
+            logout();
+            navigate('/signin');
+            onClose();
+          }}
+        >
+          <LogOut size={16} />
+          <span>Sign Out</span>
+        </button>
       </aside>
     </>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import {
   LayoutDashboard,
   Users,
@@ -33,6 +34,8 @@ const BOTTOM_ITEMS = [
 
 function AdminSidebar({ isOpen = false, onClose, activeItem }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   function isActive(item) {
     if (activeItem) return item.label === activeItem;
@@ -112,14 +115,23 @@ function AdminSidebar({ isOpen = false, onClose, activeItem }) {
         <div className="admin-sidebar__user-card">
           <div className="admin-sidebar__user-info">
             <div className="admin-sidebar__user-avatar">
-              <div className="admin-sidebar__avatar-placeholder">JT</div>
+              <div className="admin-sidebar__avatar-placeholder">
+                {user?.fullName?.split(' ').map((n) => n[0]).join('').toUpperCase() || 'A'}
+              </div>
             </div>
             <div className="admin-sidebar__user-details">
-              <span className="admin-sidebar__user-name">Julian Thorne</span>
-              <span className="admin-sidebar__user-role">Senior Moderator</span>
+              <span className="admin-sidebar__user-name">{user?.fullName || 'Administrator'}</span>
+              <span className="admin-sidebar__user-role">Administrator</span>
             </div>
           </div>
-          <button className="admin-sidebar__signout-btn" onClick={() => console.log('Sign Out clicked')}>
+          <button
+            className="admin-sidebar__signout-btn"
+            onClick={() => {
+              logout();
+              navigate('/signin');
+              onClose();
+            }}
+          >
             <LogOut size={16} />
             <span>Sign Out</span>
           </button>
