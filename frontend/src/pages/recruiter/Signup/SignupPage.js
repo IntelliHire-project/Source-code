@@ -93,7 +93,7 @@ function RecruiterSignupPage() {
       );
 
       setStatusType('success');
-      setStatusMessage('Company registered successfully! Redirecting...');
+      setStatusMessage('Registration submitted successfully! Redirecting...');
 
       // Clear form
       setFormData({
@@ -106,11 +106,9 @@ function RecruiterSignupPage() {
         agreeTerms: false,
       });
 
-      // Redirect to the email verification step after successful registration
+      // Redirect to the pending approval page after successful registration
       setTimeout(() => {
-        navigate('/verify-email-sent', {
-          state: { email: formData.email, devVerificationUrl: data.devVerificationUrl },
-        });
+        navigate('/recruiter/pending-approval');
       }, 1500);
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'Unable to register company.';

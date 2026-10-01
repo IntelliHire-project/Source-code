@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../../../hooks/useAuth';
 import Layout from '../../../components/common/Layout';
 import { roleHomePath } from '../../../utils/roleRoutes';
@@ -24,6 +24,17 @@ function SignInPage() {
   const [devVerificationUrl, setDevVerificationUrl] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setStatusType('success');
+      setStatusMessage(location.state.message);
+    }
+    if (location.state?.email) {
+      setFormData(prev => ({ ...prev, email: location.state.email }));
+    }
+  }, [location.state]);
 
   const handleChange = event => {
     const { name, value, type, checked } = event.target;

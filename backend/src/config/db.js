@@ -25,6 +25,7 @@ const initializeDatabase = async () => {
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'candidate',
+        email_verified BOOLEAN NOT NULL DEFAULT true,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
@@ -72,35 +73,18 @@ const initializeDatabase = async () => {
           FROM information_schema.columns
           WHERE table_name = 'users' AND column_name = 'email_verified'
         ) THEN
-          ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT false;
+          ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT true;
+        ELSE
+          ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT true;
         END IF;
       END $$;
     `);
 
+    // Remove columns related to verification token
     await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'users' AND column_name = 'verification_token'
-        ) THEN
-          ALTER TABLE users ADD COLUMN verification_token TEXT;
-        END IF;
-      END $$;
-    `);
-
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'users' AND column_name = 'verification_token_expires_at'
-        ) THEN
-          ALTER TABLE users ADD COLUMN verification_token_expires_at TIMESTAMPTZ;
-        END IF;
-      END $$;
+      ALTER TABLE users
+      DROP COLUMN IF EXISTS verification_token,
+      DROP COLUMN IF EXISTS verification_token_expires_at;
     `);
   } finally {
     client.release();

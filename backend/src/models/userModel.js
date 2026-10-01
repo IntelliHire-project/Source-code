@@ -5,13 +5,14 @@ const db = require("../config/db");
  * @param {string} fullName 
  * @param {string} email 
  * @param {string} passwordHash 
+ * @param {string} role 
  * @returns {Promise<object>} Created user database record
  */
 const createUser = async (fullName, email, passwordHash, role = "candidate") => {
   const result = await db.query(
-    `INSERT INTO users (full_name, email, password_hash, role, created_at)
-     VALUES ($1, $2, $3, $4, NOW())
-     RETURNING id, full_name, email, role, created_at`,
+    `INSERT INTO users (full_name, email, password_hash, role, email_verified, created_at)
+     VALUES ($1, $2, $3, $4, true, NOW())
+     RETURNING id, full_name, email, role, email_verified, created_at`,
     [fullName, email, passwordHash, role]
   );
   return result.rows[0];
@@ -33,44 +34,13 @@ const findUserByEmail = async (email) => {
 };
 
 /**
- * Finds a user by their (hashed) verification token that has not expired.
- * @param {string} tokenHash - SHA-256 hash of the verification token
- * @returns {Promise<object|null>} User record or null if not found
- */
-const findUserByVerificationToken = async (tokenHash) => {
-  const result = await db.query(
-    `SELECT id, full_name, email, role, email_verified
-     FROM users
-     WHERE verification_token = $1
-       AND verification_token_expires_at > NOW()`,
-    [tokenHash]
-  );
-  return result.rows[0] || null;
-};
-
-/**
- * Stores a new verification token for a user.
- * @param {number} userId 
- * @param {string} tokenHash - SHA-256 hash of the verification token
- * @param {Date} expiresAt - Expiry timestamp
- */
-const setVerificationToken = async (userId, tokenHash, expiresAt) => {
-  await db.query(
-    `UPDATE users
-     SET verification_token = $2, verification_token_expires_at = $3
-     WHERE id = $1`,
-    [userId, tokenHash, expiresAt]
-  );
-};
-
-/**
- * Marks a user's email as verified and clears the verification token.
+ * Marks a user's email as verified.
  * @param {number} userId 
  */
 const markEmailVerified = async (userId) => {
   await db.query(
     `UPDATE users
-     SET email_verified = true, verification_token = NULL, verification_token_expires_at = NULL
+     SET email_verified = true
      WHERE id = $1`,
     [userId]
   );
@@ -109,7 +79,5 @@ module.exports = {
   findUserByEmail,
   findUserById,
   findAllUsers,
-  findUserByVerificationToken,
-  setVerificationToken,
   markEmailVerified,
 };

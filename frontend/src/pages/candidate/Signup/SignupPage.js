@@ -137,7 +137,9 @@ function SignupPage() {
       );
 
       setStatusType('success');
-      setStatusMessage(data.message || 'Account created successfully.');
+      setStatusMessage('Account created successfully! Redirecting to sign in...');
+
+      const registeredEmail = formData.email;
 
       setFormData({
         fullName: '',
@@ -149,10 +151,10 @@ function SignupPage() {
       });
       setCvFile(null);
 
-      // Redirect to the email verification step after successful registration
+      // Redirect to the candidate login page after successful registration
       setTimeout(() => {
-        navigate('/verify-email-sent', {
-          state: { email: formData.email, devVerificationUrl: data.devVerificationUrl },
+        navigate('/signin', {
+          state: { email: registeredEmail, message: 'Account created successfully! Please sign in.' },
         });
       }, 1500);
     } catch (error) {
