@@ -83,15 +83,17 @@ function RecruiterSignupPage() {
     setLoading(true);
     try {
       // Integration with existing signup method (sending contactName as fullName)
-      await signup(
+      const data = await signup(
         formData.contactName,
         formData.email,
+        formData.phone,
         formData.password,
-        formData.confirmPassword
+        formData.confirmPassword,
+        'recruiter'
       );
 
       setStatusType('success');
-      setStatusMessage('Company registered successfully! Redirecting...');
+      setStatusMessage('Registration submitted successfully! Redirecting...');
 
       // Clear form
       setFormData({
@@ -104,7 +106,7 @@ function RecruiterSignupPage() {
         agreeTerms: false,
       });
 
-      // Redirect to pending approval after successful registration
+      // Redirect to the pending approval page after successful registration
       setTimeout(() => {
         navigate('/recruiter/pending-approval');
       }, 1500);

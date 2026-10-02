@@ -10,6 +10,7 @@ import {
   Menu,
 } from 'lucide-react';
 import './TopBar.css';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * TopBar — Reusable dashboard top bar component.
@@ -98,6 +99,19 @@ function getInitials(name) {
     .join('');
 }
 
+function roleLabel(role) {
+  switch (role) {
+    case 'admin':
+      return 'Administrator';
+    case 'recruiter':
+      return 'Recruiter';
+    case 'candidate':
+      return 'Job Seeker';
+    default:
+      return '';
+  }
+}
+
 function TopBar({
   user = {},
   breadcrumbItems,
@@ -113,6 +127,14 @@ function TopBar({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user: authUser, logout } = useAuth();
+  const effectiveUser = authUser?.fullName
+    ? {
+        name: authUser.fullName,
+        role: roleLabel(authUser.role),
+        avatar: authUser.avatar,
+      }
+    : user;
   const [searchValue, setSearchValue] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -266,20 +288,20 @@ function TopBar({
           aria-expanded={dropdownOpen}
           aria-label="User menu"
         >
-          {user.avatar ? (
+          {effectiveUser.avatar ? (
             <span className="topbar__avatar">
-              <img src={user.avatar} alt={user.name || 'User avatar'} />
+              <img src={effectiveUser.avatar} alt={effectiveUser.name || 'User avatar'} />
             </span>
           ) : (
             <span className="topbar__avatar-initials" aria-hidden="true">
-              {getInitials(user.name)}
+              {getInitials(effectiveUser.name)}
             </span>
           )}
 
           <span className="topbar__user-info">
-            <span className="topbar__user-name">{user.name || 'User'}</span>
-            {user.role && (
-              <span className="topbar__user-role">{user.role}</span>
+            <span className="topbar__user-name">{effectiveUser.name || 'User'}</span>
+            {effectiveUser.role && (
+              <span className="topbar__user-role">{effectiveUser.role}</span>
             )}
           </span>
 
@@ -329,7 +351,12 @@ function TopBar({
                 onClick={(e) => {
                   e.stopPropagation();
                   setDropdownOpen(false);
-                  if (onLogout) onLogout();
+                  if (onLogout) {
+                    onLogout();
+                  } else {
+                    logout();
+                    navigate('/signin');
+                  }
                 }}
                 role="menuitem"
                 type="button"

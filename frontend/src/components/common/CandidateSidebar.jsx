@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import {
   LayoutDashboard,
   Sparkles,
@@ -28,8 +29,10 @@ const BOTTOM_ITEMS = [
   { label: 'Settings', icon: Settings, path: '/candidate/settings' },
 ];
 
-function CandidateSidebar({ isOpen = false, onClose, user }) {
+function CandidateSidebar({ isOpen = false, onClose }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   function isActive(item) {
     if (item.exact) return location.pathname === item.path;
@@ -106,15 +109,22 @@ function CandidateSidebar({ isOpen = false, onClose, user }) {
           <div className="admin-sidebar__user-info">
             <div className="admin-sidebar__user-avatar">
               <div className="admin-sidebar__avatar-placeholder">
-                {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                {user?.fullName?.split(' ').map((n) => n[0]).join('').toUpperCase() || 'U'}
               </div>
             </div>
             <div className="admin-sidebar__user-details">
-              <span className="admin-sidebar__user-name">{user?.name || 'User'}</span>
+              <span className="admin-sidebar__user-name">{user?.fullName || 'User'}</span>
               <span className="admin-sidebar__user-role">Job Seeker</span>
             </div>
           </div>
-          <button className="admin-sidebar__signout-btn" onClick={() => console.log('Sign Out clicked')}>
+          <button
+            className="admin-sidebar__signout-btn"
+            onClick={() => {
+              logout();
+              navigate('/signin');
+              onClose();
+            }}
+          >
             <LogOut size={16} />
             <span>Sign Out</span>
           </button>

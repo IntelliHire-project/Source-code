@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -17,6 +17,7 @@ import {
   Pencil,
   Copy,
   X,
+  Check,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -36,6 +37,44 @@ const STATUS_LABELS = {
   closed: 'Closed',
 };
 
+const MONTHS = {
+  Jan: 0,
+  Feb: 1,
+  Mar: 2,
+  Apr: 3,
+  May: 4,
+  Jun: 5,
+  Jul: 6,
+  Aug: 7,
+  Sep: 8,
+  Oct: 9,
+  Nov: 10,
+  Dec: 11,
+};
+
+function parseDate(dateStr = '') {
+  const [day, month, year] = dateStr.split(' ');
+  const monthIndex = MONTHS[month];
+  if (!day || monthIndex === undefined || !year) return 0;
+  return new Date(Number(year), monthIndex, Number(day)).getTime();
+}
+
+const STATUS_OPTIONS = [
+  { id: 'all', label: 'All statuses' },
+  { id: 'published', label: 'Published' },
+  { id: 'draft', label: 'Draft' },
+  { id: 'closed', label: 'Closed' },
+];
+
+const SORT_OPTIONS = [
+  { id: 'dateDesc', label: 'Newest first' },
+  { id: 'dateAsc', label: 'Oldest first' },
+  { id: 'titleAsc', label: 'Title A–Z' },
+  { id: 'titleDesc', label: 'Title Z–A' },
+  { id: 'applicantsDesc', label: 'Most applicants' },
+  { id: 'applicantsAsc', label: 'Fewest applicants' },
+];
+
 function StatCard({ icon: Icon, label, value, variant }) {
   return (
     <div className="vm-stat-card">
@@ -52,6 +91,12 @@ function VacancyManagementPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('dateDesc');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const toolbarRef = useRef(null);
   const navigate = useNavigate();
 
   const statCards = useMemo(() => {
@@ -77,16 +122,65 @@ function VacancyManagementPage() {
     ];
   }, []);
 
+  const departments = useMemo(
+    () => [...new Set(VACANCIES.map((v) => v.department))].sort(),
+    [],
+  );
+
+  const hasActiveFilters = statusFilter !== 'all' || departmentFilter !== 'all';
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, departmentFilter, sortBy]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (toolbarRef.current && !toolbarRef.current.contains(event.target)) {
+        setFilterOpen(false);
+        setSortOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return VACANCIES;
-    const q = search.toLowerCase();
-    return VACANCIES.filter(
+    const list = VACANCIES.filter(
       (v) =>
+        (statusFilter === 'all' || v.status === statusFilter) &&
+        (departmentFilter === 'all' || v.department === departmentFilter),
+    ).filter((v) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
         v.title.toLowerCase().includes(q) ||
         v.department.toLowerCase().includes(q) ||
-        v.id.toLowerCase().includes(q),
-    );
-  }, [search]);
+        v.id.toLowerCase().includes(q)
+      );
+    });
+
+    switch (sortBy) {
+      case 'titleAsc':
+        list.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'titleDesc':
+        list.sort((a, b) => b.title.localeCompare(a.title));
+        break;
+      case 'applicantsDesc':
+        list.sort((a, b) => getApplicants(b.id).length - getApplicants(a.id).length);
+        break;
+      case 'applicantsAsc':
+        list.sort((a, b) => getApplicants(a.id).length - getApplicants(b.id).length);
+        break;
+      case 'dateAsc':
+        list.sort((a, b) => parseDate(a.dateCreated) - parseDate(b.dateCreated));
+        break;
+      default:
+        list.sort((a, b) => parseDate(b.dateCreated) - parseDate(a.dateCreated));
+        break;
+    }
+    return list;
+  }, [search, statusFilter, departmentFilter, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -110,7 +204,6 @@ function VacancyManagementPage() {
           searchPlaceholder="Search vacancies…"
           onSearch={(q) => console.log('Search:', q)}
           onNotificationClick={() => console.log('Notifications clicked')}
-          onLogout={() => console.log('Logout')}
           onHamburgerClick={() => setSidebarOpen(true)}
         />
 
@@ -157,14 +250,125 @@ function VacancyManagementPage() {
                   }}
                 />
               </div>
-              <div className="vm-toolbar__right">
+              <div className="vm-toolbar__right" ref={toolbarRef}>
                 <span className="vm-toolbar__count">{filtered.length} results found</span>
-                <button type="button" className="vm-toolbar__icon-btn" aria-label="Filter">
-                  <Filter size={16} />
-                </button>
-                <button type="button" className="vm-toolbar__icon-btn" aria-label="Sort">
-                  <ArrowUpDown size={16} />
-                </button>
+
+                <div className="vm-toolbar__popover-wrap">
+                  <button
+                    type="button"
+                    className={`vm-toolbar__icon-btn ${hasActiveFilters ? 'is-active' : ''}`}
+                    aria-label="Filter"
+                    aria-expanded={filterOpen}
+                    onClick={() => {
+                      setFilterOpen((open) => !open);
+                      setSortOpen(false);
+                    }}
+                  >
+                    <Filter size={16} />
+                  </button>
+
+                  {filterOpen && (
+                    <div className="vm-toolbar__popover">
+                      <div className="vm-toolbar__popover-head">
+                        <span className="vm-toolbar__popover-title">Filter</span>
+                        {hasActiveFilters && (
+                          <button
+                            type="button"
+                            className="vm-toolbar__popover-clear"
+                            onClick={() => {
+                              setStatusFilter('all');
+                              setDepartmentFilter('all');
+                            }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="vm-toolbar__popover-columns">
+                        <div className="vm-toolbar__popover-group">
+                          <span className="vm-toolbar__popover-label">Status</span>
+                          {STATUS_OPTIONS.map((option) => (
+                            <button
+                              type="button"
+                              key={option.id}
+                              className={`vm-toolbar__popover-option ${
+                                statusFilter === option.id ? 'is-selected' : ''
+                              }`}
+                              onClick={() => setStatusFilter(option.id)}
+                            >
+                              <span>{option.label}</span>
+                              {statusFilter === option.id && <Check size={14} />}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="vm-toolbar__popover-group">
+                          <span className="vm-toolbar__popover-label">Department</span>
+                          <button
+                            type="button"
+                            className={`vm-toolbar__popover-option ${
+                              departmentFilter === 'all' ? 'is-selected' : ''
+                            }`}
+                            onClick={() => setDepartmentFilter('all')}
+                          >
+                            <span>All departments</span>
+                            {departmentFilter === 'all' && <Check size={14} />}
+                          </button>
+                          {departments.map((dept) => (
+                            <button
+                              type="button"
+                              key={dept}
+                              className={`vm-toolbar__popover-option ${
+                                departmentFilter === dept ? 'is-selected' : ''
+                              }`}
+                              onClick={() => setDepartmentFilter(dept)}
+                            >
+                              <span>{dept}</span>
+                              {departmentFilter === dept && <Check size={14} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="vm-toolbar__popover-wrap">
+                  <button
+                    type="button"
+                    className={`vm-toolbar__icon-btn ${sortBy !== 'dateDesc' ? 'is-active' : ''}`}
+                    aria-label="Sort"
+                    aria-expanded={sortOpen}
+                    onClick={() => {
+                      setSortOpen((open) => !open);
+                      setFilterOpen(false);
+                    }}
+                  >
+                    <ArrowUpDown size={16} />
+                  </button>
+
+                  {sortOpen && (
+                    <div className="vm-toolbar__popover">
+                      <div className="vm-toolbar__popover-head">
+                        <span className="vm-toolbar__popover-title">Sort by</span>
+                      </div>
+                      {SORT_OPTIONS.map((option) => (
+                        <button
+                          type="button"
+                          key={option.id}
+                          className={`vm-toolbar__popover-option ${
+                            sortBy === option.id ? 'is-selected' : ''
+                          }`}
+                          onClick={() => setSortBy(option.id)}
+                        >
+                          <span>{option.label}</span>
+                          {sortBy === option.id && <Check size={14} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -249,7 +453,7 @@ function VacancyManagementPage() {
                   {paginated.length === 0 && (
                     <tr>
                       <td colSpan={6} className="vm-table__empty">
-                        No vacancies match your search.
+                        No vacancies match your search or filters.
                       </td>
                     </tr>
                   )}
