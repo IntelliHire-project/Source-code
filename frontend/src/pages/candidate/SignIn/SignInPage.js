@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import useAuth from '../../../hooks/useAuth';
 import Layout from '../../../components/common/Layout';
 import { roleHomePath } from '../../../utils/roleRoutes';
@@ -22,6 +23,7 @@ function SignInPage() {
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [resending, setResending] = useState(false);
   const [devVerificationUrl, setDevVerificationUrl] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -217,7 +219,7 @@ function SignInPage() {
                     <input
                       id="password"
                       className="auth-input"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
@@ -225,6 +227,14 @@ function SignInPage() {
                       autoComplete="current-password"
                       required
                     />
+                    <button
+                      type="button"
+                      className="auth-input-icon-right"
+                      onClick={() => setShowPassword(prev => !prev)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
                 </div>
 
