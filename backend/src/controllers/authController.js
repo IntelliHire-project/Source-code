@@ -100,6 +100,22 @@ const resendVerification = async (req, res) => {
   return successResponse(res, "Email verification is not required.");
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const email = (req.body.email || "").trim();
+    if (!email) {
+      return errorResponse(res, "Email is required.", 400);
+    }
+    // const emailAddress = normalizeEmail(email);
+    
+    // In a real application, you would generate a reset token and send an email.
+    // For now, we simulate success without revealing account existence.
+    return successResponse(res, "If an account exists for this email, a reset link will be sent.");
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * Validates the current session and returns authenticated user details.
  */
@@ -136,6 +152,7 @@ module.exports = {
   login,
   verifyEmail,
   resendVerification,
+  forgotPassword,
   getCurrentUser,
   logout,
 };
