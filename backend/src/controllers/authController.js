@@ -2,6 +2,7 @@ const userModel = require("../models/userModel");
 const { hashPassword, verifyPassword } = require("../utils/password");
 const { successResponse, errorResponse } = require("../utils/response");
 const { signToken } = require("../services/tokenService");
+const { sendPasswordResetEmail } = require("../services/mailService");
 
 const normalizeEmail = email => email.trim().toLowerCase();
 
@@ -106,10 +107,19 @@ const forgotPassword = async (req, res, next) => {
     if (!email) {
       return errorResponse(res, "Email is required.", 400);
     }
-    // const emailAddress = normalizeEmail(email);
+    const emailAddress = normalizeEmail(email);
     
-    // In a real application, you would generate a reset token and send an email.
-    // For now, we simulate success without revealing account existence.
+    const user = await userModel.findUserByEmail(emailAddress);
+    
+    if (user) {
+      const token = signToken({ id: user.id, email: user.email, action: 'reset_password' });
+      await sendPasswordResetEmail({
+        to: user.email,
+        fullName: user.full_name,
+        token: token
+      });
+    }
+
     return successResponse(res, "If an account exists for this email, a reset link will be sent.");
   } catch (error) {
     next(error);
