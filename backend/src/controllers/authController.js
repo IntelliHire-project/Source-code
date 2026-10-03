@@ -100,9 +100,42 @@ const resendVerification = async (req, res) => {
   return successResponse(res, "Email verification is not required.");
 };
 
+/**
+ * Validates the current session and returns authenticated user details.
+ */
+const getCurrentUser = async (req, res, next) => {
+  try {
+    const user = await userModel.findUserById(req.user.id);
+
+    if (!user) {
+      return errorResponse(res, "User not found or session has expired.", 401);
+    }
+
+    return successResponse(res, "Session is active.", {
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handles explicit user logout on the backend.
+ */
+const logout = async (req, res) => {
+  return successResponse(res, "Signed out successfully.");
+};
+
 module.exports = {
   createAccount,
   login,
   verifyEmail,
   resendVerification,
+  getCurrentUser,
+  logout,
 };

@@ -27,14 +27,18 @@ function SignInPage() {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.state?.message) {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('session_expired') === 'true') {
+      setStatusType('error');
+      setStatusMessage('Your session has expired. Please sign in again to continue.');
+    } else if (location.state?.message) {
       setStatusType('success');
       setStatusMessage(location.state.message);
     }
     if (location.state?.email) {
       setFormData(prev => ({ ...prev, email: location.state.email }));
     }
-  }, [location.state]);
+  }, [location.state, location.search]);
 
   const handleChange = event => {
     const { name, value, type, checked } = event.target;
@@ -52,7 +56,7 @@ function SignInPage() {
     setDevVerificationUrl('');
 
     try {
-      const data = await login(formData.email, formData.password);
+      const data = await login(formData.email, formData.password, formData.rememberDevice);
       setStatusType('success');
       setStatusMessage('Signed in successfully!');
 

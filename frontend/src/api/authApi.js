@@ -43,3 +43,25 @@ export const resendVerification = async email => {
   const response = await apiInstance.post('/auth/resend-verification', { email });
   return response.data;
 };
+
+/**
+ * Validates the current session token with the backend and fetches fresh user details.
+ */
+export const getCurrentUser = async () => {
+  const response = await apiInstance.get('/auth/me');
+  return response.data;
+};
+
+/**
+ * Notifies the backend that the user is logging out.
+ */
+export const logoutUser = async () => {
+  try {
+    const response = await apiInstance.post('/auth/logout');
+    return response.data;
+  } catch {
+    // If offline or network error, frontend still clears local session
+    return null;
+  }
+};
+
