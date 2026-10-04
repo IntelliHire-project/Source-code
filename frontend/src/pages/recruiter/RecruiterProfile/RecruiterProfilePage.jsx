@@ -12,10 +12,14 @@ import {
   UserRoundCheck,
   ShieldCheck,
   X,
+  Eye,
+  EyeOff,
+  Save,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import { useAuth } from '../../../hooks/useAuth';
+import { changePassword } from '../../../api/authApi';
 import '../../../style.css';
 import './RecruiterProfilePage.css';
 
@@ -66,6 +70,47 @@ function RecruiterProfilePage() {
   const [editFormData, setEditFormData] = useState(() => getInitialProfile(user));
   const [activeTab, setActiveTab] = useState('personal');
   const completionPercent = 30;
+
+  // Change Password States
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordMessage({ type: '', text: '' });
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'Please fill in all fields.' });
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'New password and confirm password do not match.' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    
+    try {
+      await changePassword(currentPassword, newPassword);
+      setPasswordMessage({ type: 'success', text: 'Password successfully updated.' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to update password. Please try again later.';
+      setPasswordMessage({ type: 'error', text: errorMsg });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const handleChange = useCallback((event) => {
     const { name, value } = event.target;
@@ -478,7 +523,7 @@ function RecruiterProfilePage() {
                       <strong>Password</strong>
                       <span>••••••••</span>
                     </div>
-                    <button className="security-item__action">Change</button>
+                    <button className="security-item__action" onClick={() => setChangePasswordModalOpen(true)}>Change</button>
                   </div>
                   <div className="security-item">
                     <div className="security-item__icon">
@@ -796,6 +841,140 @@ function RecruiterProfilePage() {
                 <div className="modal-footer">
                   <button className="btn btn--secondary" type="button" onClick={handleEditClose}>Cancel</button>
                   <button className="btn btn--primary" type="button" onClick={handleSaveProfile}>Save Changes</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Change Password Modal */}
+          {changePasswordModalOpen && (
+            <div className="modal-overlay" onClick={() => setChangePasswordModalOpen(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <div className="modal-header__title">
+                    <Lock size={20} />
+                    <div>
+                      <h2>Change Password</h2>
+                      <p>Update your account password</p>
+                    </div>
+                  </div>
+                  <button className="modal-close-btn" type="button" onClick={() => setChangePasswordModalOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <form onSubmit={handleChangePasswordSubmit} className="modal-form" style={{ gap: '20px' }}>
+                    <div className="form-field">
+                      <label>Current Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showCurrentPassword ? "text" : "password"}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="Enter current password"
+                          style={{ paddingRight: '40px', width: '100%', padding: '10px', border: '1px solid var(--border-color)', borderRadius: '6px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)'
+                          }}
+                        >
+                          {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="form-field">
+                      <label>New Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Enter new password"
+                          style={{ paddingRight: '40px', width: '100%', padding: '10px', border: '1px solid var(--border-color)', borderRadius: '6px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)'
+                          }}
+                        >
+                          {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="form-field">
+                      <label>Confirm New Password</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                          style={{ paddingRight: '40px', width: '100%', padding: '10px', border: '1px solid var(--border-color)', borderRadius: '6px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)'
+                          }}
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {passwordMessage.text && (
+                      <div style={{ 
+                        padding: '12px', 
+                        borderRadius: '6px', 
+                        backgroundColor: passwordMessage.type === 'error' ? 'rgba(255, 59, 48, 0.1)' : 'rgba(52, 199, 89, 0.1)',
+                        color: passwordMessage.type === 'error' ? '#ff3b30' : '#34c759',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        marginTop: '10px'
+                      }}>
+                        {passwordMessage.type === 'success' && <ShieldCheck size={16} />}
+                        {passwordMessage.text}
+                      </div>
+                    )}
+
+                    <div className="modal-footer" style={{ marginTop: '20px' }}>
+                      <button className="btn btn--secondary" type="button" onClick={() => setChangePasswordModalOpen(false)}>Cancel</button>
+                      <button className="btn btn--primary" type="submit" disabled={passwordLoading}>
+                        <Save size={14} />
+                        {passwordLoading ? 'Updating...' : 'Update Password'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             </div>
