@@ -73,3 +73,14 @@ export const logoutUser = async () => {
   }
 };
 
+/**
+ * Changes the user's password.
+ */
+export const changePassword = async (currentPassword, newPassword) => {
+  const response = await apiInstance.post('/auth/change-password', {
+    currentPassword,
+    newPassword,
+  });
+  return response.data;
+};
+

@@ -9,6 +9,7 @@ const {
   forgotPassword,
   getCurrentUser,
   logout,
+  changePassword,
 } = require("../controllers/authController");
 
 const router = express.Router();
@@ -20,5 +21,6 @@ router.post("/resend-verification", resendVerification);
 router.post("/forgot-password", forgotPassword);
 router.get("/me", authMiddleware, getCurrentUser);
 router.post("/logout", authMiddleware, logout);
+router.post("/change-password", authMiddleware, changePassword);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import { KeyRound, ShieldCheck, Save } from 'lucide-react';
+import { changePassword } from '../../../api/authApi';
 import '../../../styles/candidate.css';
 
 function SettingsPage() {
@@ -33,18 +34,17 @@ function SettingsPage() {
 
     setLoading(true);
     
-    // Simulating API call for changing password
+    // Real API call for changing password
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // In a real implementation:
-      // await apiInstance.post('/auth/change-password', { currentPassword, newPassword });
+      await changePassword(currentPassword, newPassword);
       
       setMessage({ type: 'success', text: 'Password successfully updated.' });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update password. Please check your current password.' });
+      const errorMsg = error.response?.data?.message || 'Failed to update password. Please try again later.';
+      setMessage({ type: 'error', text: errorMsg });
     } finally {
       setLoading(false);
     }
