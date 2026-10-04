@@ -92,10 +92,10 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user, logout]);
 
-  const signup = async (fullName, email, phone, password, confirmPassword, role = 'candidate') => {
+  const signup = async (...args) => {
     setLoading(true);
     try {
-      const data = await apiSignup(fullName, email, phone, password, confirmPassword, role);
+      const data = await apiSignup(...args);
       if (data.token && data.user) {
         saveAuthSession(data.token, data.user, false);
         setUser(data.user);

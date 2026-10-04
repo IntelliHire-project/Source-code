@@ -131,13 +131,15 @@ function SignupPage() {
     }
 
     try {
-      const data = await signup(
-        formData.fullName,
-        formData.email,
-        formData.phone,
-        formData.password,
-        formData.confirmPassword
-      );
+      const data = await signup({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        role: 'candidate',
+        cvFile,
+      });
 
       setStatusType('success');
       setStatusMessage('Account created successfully! Redirecting to sign in...');
