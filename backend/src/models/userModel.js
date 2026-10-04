@@ -74,10 +74,20 @@ const findAllUsers = async () => {
   return result.rows;
 };
 
+const updatePassword = async (userId, newPasswordHash) => {
+  await db.query(
+    `UPDATE users
+     SET password_hash = $1
+     WHERE id = $2`,
+    [newPasswordHash, userId]
+  );
+};
+
 module.exports = {
   createUser,
   findUserByEmail,
   findUserById,
   findAllUsers,
   markEmailVerified,
+  updatePassword,
 };

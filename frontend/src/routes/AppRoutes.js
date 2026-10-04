@@ -19,6 +19,7 @@ import CommunityPage, {
 } from '../pages/community/CommunityPage';
 import CandidateProfilePage from '../pages/candidate/Profile/CandidateProfilePage';
 import CandidateDashboard from '../pages/candidate/CandidateDashboard/CandidateDashboard';
+import SettingsPage from '../pages/candidate/Settings/SettingsPage';
 import CvManagementPage from '../pages/candidate/Profile/CvManagementPage';
 import JobSearch from '../pages/candidate/jobs/JobSearch';
 import JobDetail from '../pages/candidate/jobs/JobDetail';
@@ -207,7 +208,7 @@ function AppRoutes() {
           <Route path="community/saved" element={<SavedPostsPage roleOverride="candidate" />} />
           <Route path="community/guidelines" element={<GuidelinesPage roleOverride="candidate" />} />
           <Route path="notifications" element={<CandidatePlaceholder title="Notifications" />} />
-          <Route path="settings" element={<CandidatePlaceholder title="Settings" />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route
           path="/recruiter/dashboard"

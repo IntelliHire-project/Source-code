@@ -157,6 +157,39 @@ const logout = async (req, res) => {
   return successResponse(res, "Signed out successfully.");
 };
 
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return errorResponse(res, "Current and new passwords are required.", 400);
+    }
+
+    if (newPassword.length < 8) {
+      return errorResponse(res, "New password must be at least 8 characters long.", 400);
+    }
+
+    // req.user is set by authMiddleware
+    const email = req.user.email;
+    const user = await userModel.findUserByEmail(email);
+
+    if (!user) {
+      return errorResponse(res, "User not found.", 404);
+    }
+
+    if (!verifyPassword(currentPassword, user.password_hash)) {
+      return errorResponse(res, "Incorrect current password.", 401);
+    }
+
+    const newPasswordHash = hashPassword(newPassword);
+    await userModel.updatePassword(user.id, newPasswordHash);
+
+    return successResponse(res, "Password updated successfully.");
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAccount,
   login,
@@ -165,4 +198,5 @@ module.exports = {
   forgotPassword,
   getCurrentUser,
   logout,
+  changePassword,
 };
