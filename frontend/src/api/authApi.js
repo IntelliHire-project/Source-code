@@ -45,6 +45,14 @@ export const resendVerification = async email => {
 };
 
 /**
+ * Requests a password reset link.
+ */
+export const requestPasswordReset = async email => {
+  const response = await apiInstance.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
+/**
  * Validates the current session token with the backend and fetches fresh user details.
  */
 export const getCurrentUser = async () => {

@@ -2,6 +2,7 @@ const userModel = require("../models/userModel");
 const { hashPassword, verifyPassword } = require("../utils/password");
 const { successResponse, errorResponse } = require("../utils/response");
 const { signToken } = require("../services/tokenService");
+const { sendPasswordResetEmail } = require("../services/mailService");
 
 const normalizeEmail = email => email.trim().toLowerCase();
 
@@ -100,6 +101,31 @@ const resendVerification = async (req, res) => {
   return successResponse(res, "Email verification is not required.");
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const email = (req.body.email || "").trim();
+    if (!email) {
+      return errorResponse(res, "Email is required.", 400);
+    }
+    const emailAddress = normalizeEmail(email);
+    
+    const user = await userModel.findUserByEmail(emailAddress);
+    
+    if (user) {
+      const token = signToken({ id: user.id, email: user.email, action: 'reset_password' });
+      await sendPasswordResetEmail({
+        to: user.email,
+        fullName: user.full_name,
+        token: token
+      });
+    }
+
+    return successResponse(res, "If an account exists for this email, a reset link will be sent.");
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * Validates the current session and returns authenticated user details.
  */
@@ -136,6 +162,7 @@ module.exports = {
   login,
   verifyEmail,
   resendVerification,
+  forgotPassword,
   getCurrentUser,
   logout,
 };
