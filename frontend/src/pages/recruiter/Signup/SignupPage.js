@@ -85,15 +85,18 @@ function RecruiterSignupPage() {
 
     setLoading(true);
     try {
-      // Integration with existing signup method (sending contactName as fullName)
-      const data = await signup(
-        formData.contactName,
-        formData.email,
-        formData.phone,
-        formData.password,
-        formData.confirmPassword,
-        'recruiter'
-      );
+      // Register company with recruiter profile details
+      const data = await signup({
+        fullName: formData.contactName,
+        contactName: formData.contactName,
+        companyName: formData.companyName,
+        industry: formData.industry,
+        email: formData.email,
+        phone: formData.phone || '',
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        role: 'recruiter',
+      });
 
       setStatusType('success');
       setStatusMessage('Registration submitted successfully! Redirecting...');
