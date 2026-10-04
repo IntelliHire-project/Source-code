@@ -15,35 +15,45 @@ import {
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { useAuth } from '../../../hooks/useAuth';
 import '../../../style.css';
 import './RecruiterProfilePage.css';
 
-const initialProfile = {
-  firstName: 'Sarah',
-  lastName: 'Parker',
-  workEmail: 'sarah.parker@intellihire.com',
-  contactNumber: '+94 77 123 4567',
-  jobTitle: 'Talent Acquisition Partner',
-  department: 'People Operations',
-  employeeId: 'IH-2048',
-  companyName: 'IntelliHire Labs',
-  industry: 'HR Tech & Talent Intelligence',
-  companyWebsite: 'https://www.intellihire.com',
-  companyAddress: 'Colombo 03, Sri Lanka',
-  companyDescription: 'IntelliHire Labs accelerates hiring with AI-driven recruiting, career preparation, and talent analytics.',
-  yearsExperience: '8+',
-  hiringSpecializations: 'Software Engineering, Product, Data & Design',
-  preferredLocations: 'Colombo, Remote, Singapore',
-  employmentTypes: ['Full-time', 'Part-time', 'Remote'],
-  bio: 'Sarah leads strategic hiring programs, builds high-performing recruitment pipelines, and uses intelligent screening workflows to improve recruiter efficiency.',
-  linkedin: 'https://www.linkedin.com/in/sarahparker',
-  username: 'sarah.parker',
-  lastLogin: 'Today, 09:42 AM',
-  accountStatus: 'Active',
+const getInitialProfile = (user) => {
+  if (!user) return {};
+  
+  const nameParts = (user.fullName || '').split(' ');
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
+  
+  return {
+    firstName,
+    lastName,
+    workEmail: user.email || '',
+    contactNumber: '',
+    jobTitle: '',
+    department: '',
+    employeeId: '',
+    companyName: '',
+    industry: '',
+    companyWebsite: '',
+    companyAddress: '',
+    companyDescription: '',
+    yearsExperience: '',
+    hiringSpecializations: '',
+    preferredLocations: '',
+    employmentTypes: [],
+    bio: '',
+    linkedin: '',
+    username: user.email?.split('@')[0] || '',
+    lastLogin: 'Today',
+    accountStatus: 'Active',
+  };
 };
 
 function RecruiterProfilePage() {
-  const [profile, setProfile] = useState(initialProfile);
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(() => getInitialProfile(user));
   const [notifications, setNotifications] = useState({
     email: true,
     alerts: true,
@@ -53,9 +63,9 @@ function RecruiterProfilePage() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState(initialProfile);
+  const [editFormData, setEditFormData] = useState(() => getInitialProfile(user));
   const [activeTab, setActiveTab] = useState('personal');
-  const completionPercent = 84;
+  const completionPercent = 30;
 
   const handleChange = useCallback((event) => {
     const { name, value } = event.target;
@@ -102,7 +112,7 @@ function RecruiterProfilePage() {
 
       <div className="create-vacancy__main">
         <TopBar
-          user={{ name: 'Sarah Parker', role: 'Talent Acquisition Partner' }}
+          user={{ name: user?.fullName || 'Recruiter', role: profile.jobTitle || 'Recruiter' }}
           notificationsCount={3}
           breadcrumbItems={[{ label: 'Recruiter Profile' }]}
           searchPlaceholder="Search profile details"
