@@ -221,19 +221,59 @@
   color: var(--accent);
 }
 
+/* Disable native browser password reveal and clear buttons (e.g. Edge black eye icon) */
+input::-ms-reveal,
+input::-ms-clear,
+.auth-input::-ms-reveal,
+.auth-input::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Prevent browser autofill from altering credential field colors */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus,
+.auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text-primary-dark) !important;
+  -webkit-box-shadow: 0 0 0 1000px #0b0b0f inset !important;
+  box-shadow: 0 0 0 1000px #0b0b0f inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: var(--text-primary-dark);
+}
+
+button.auth-input-icon-right,
 .auth-input-icon-right {
   position: absolute;
   right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
   width: 16px;
   height: 16px;
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: color 0.2s ease;
+  z-index: 2;
 }
 
+button.auth-input-icon-right:hover,
 .auth-input-icon-right:hover {
   color: var(--text-primary-dark);
 }
+
+button.auth-input-icon-right:focus-visible {
+  outline: 1px solid var(--accent);
+  border-radius: 4px;
+}
+
+
+
 
 /* Helper details */
 .auth-helper {
