@@ -175,6 +175,9 @@ const login = async (req, res, next) => {
       candidateProfile = await candidateModel.findCandidateByUserId(user.id);
     } else if (user.role === "recruiter") {
       recruiterProfile = await recruiterModel.findRecruiterByUserId(user.id);
+      if (recruiterProfile && recruiterProfile.approval_status !== "approved") {
+        return errorResponse(res, "Your account is pending approval from an administrator.", 403);
+      }
     }
 
     const token = signToken({

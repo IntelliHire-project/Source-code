@@ -74,6 +74,12 @@ function SignInPage() {
     } catch (error) {
       const status = error.response?.status;
       const message = error.response?.data?.message || error.message || 'Unable to sign in.';
+      
+      if (status === 403 && message.includes('pending approval')) {
+        navigate('/recruiter/pending-approval');
+        return;
+      }
+      
       setStatusType('error');
       setStatusMessage(message);
       if (status === 403) {

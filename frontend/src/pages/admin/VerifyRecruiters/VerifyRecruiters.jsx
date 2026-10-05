@@ -20,7 +20,8 @@ import {
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import AdminToast from '../../../components/common/AdminToast';
-import { getRecruiters, saveRecruiters, appendAuditLog } from '../../../services/adminStorage';
+import { appendAuditLog } from '../../../services/adminStorage';
+import { getRecruiters as fetchRecruitersAPI, updateRecruiterApproval } from '../../../api/adminApi';
 import './VerifyRecruiters.css';
 
 // Seeding Mock Verification Requests
@@ -241,9 +242,48 @@ const INITIAL_REQUESTS = [
 
 function VerifyRecruiters() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Initialize from localStorage; seeds with INITIAL_REQUESTS on first visit
-  const [requests, setRequests] = useState(() => getRecruiters(INITIAL_REQUESTS));
-  const [selectedId, setSelectedId] = useState(1);
+  const [requests, setRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    const loadRecruiters = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchRecruitersAPI();
+        if (data.data?.recruiters) {
+          const mapped = data.data.recruiters.map(r => ({
+            id: r.id,
+            companyName: r.company_name,
+            contactName: r.contact_name,
+            date: new Date(r.created_at).toLocaleDateString(),
+            status: r.approval_status === 'pending' ? 'Pending' : (r.approval_status === 'approved' ? 'Approved' : 'Rejected'),
+            ref: `REG-${r.id}-00`,
+            regId: `REG-ID-${r.id}`,
+            taxId: `VAT-${r.id}-112`,
+            operatingEntity: r.company_name,
+            employeeCount: 'Unknown',
+            submissionTime: new Date(r.created_at).toLocaleString(),
+            website: 'N/A',
+            category: r.industry,
+            logoColor: '#3A3F50',
+            notes: []
+          }));
+          setRequests(mapped);
+          
+          if (mapped.length > 0) {
+            setSelectedId(mapped[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch recruiters:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadRecruiters();
+  }, []);
+
+  const [selectedId, setSelectedId] = useState(null);
   const [activeTab, setActiveTab] = useState('Pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState(null);
@@ -324,7 +364,6 @@ function VerifyRecruiters() {
       return r;
     });
     setRequests(updatedRequests);
-    saveRecruiters(updatedRequests);
     appendAuditLog({ actionType: 'Review Note Added', module: 'RECRUITER_VERIFY' });
     setToast({ type: 'info', message: `Note added to ${selectedRecruiter.companyName}.` });
     setNewNoteText('');
@@ -336,47 +375,58 @@ function VerifyRecruiters() {
     setActionModal({ open: true, type, data });
   };
 
-  const handleActionConfirm = () => {
+  const handleActionConfirm = async () => {
     const { type, data } = actionModal;
     if (!data) return;
 
-    const newStatus = type === 'Approve' ? 'Approved' : 'Rejected';
-    const updatedRequests = requests.map(r => {
-      if (r.id === data.id) {
-        return { ...r, status: newStatus };
+    try {
+      const apiStatus = type === 'Approve' ? 'approved' : 'rejected';
+      await updateRecruiterApproval(data.id, apiStatus);
+
+      const newStatus = type === 'Approve' ? 'Approved' : 'Rejected';
+      const updatedRequests = requests.map(r => {
+        if (r.id === data.id) {
+          return { ...r, status: newStatus };
+        }
+        return r;
+      });
+      setRequests(updatedRequests);
+
+      // Log the action in the audit trail
+      appendAuditLog({
+        actionType: `Recruiter ${type}d`,
+        module: 'RECRUITER_VERIFY',
+        status: type === 'Approve' ? 'success' : 'failure',
+      });
+
+      setToast({
+        type: type === 'Approve' ? 'success' : 'error',
+        message: type === 'Approve'
+          ? `${data.companyName} has been approved for marketplace access.`
+          : `${data.companyName} request has been rejected.`,
+      });
+
+      // Auto-select next item in queue
+      const currentIndex = filteredRequests.findIndex(r => r.id === data.id);
+      let nextSelectedId = null;
+      if (filteredRequests.length > 1) {
+        if (currentIndex < filteredRequests.length - 1) {
+          nextSelectedId = filteredRequests[currentIndex + 1].id;
+        } else {
+          nextSelectedId = filteredRequests[currentIndex - 1].id;
+        }
       }
-      return r;
-    });
-    setRequests(updatedRequests);
-    saveRecruiters(updatedRequests);
+      if (nextSelectedId) setSelectedId(nextSelectedId);
 
-    // Log the action in the audit trail
-    appendAuditLog({
-      actionType: `Recruiter ${type}d`,
-      module: 'RECRUITER_VERIFY',
-      status: type === 'Approve' ? 'success' : 'failure',
-    });
-
-    setToast({
-      type: type === 'Approve' ? 'success' : 'error',
-      message: type === 'Approve'
-        ? `${data.companyName} has been approved for marketplace access.`
-        : `${data.companyName} request has been rejected.`,
-    });
-
-    // Auto-select next item in queue
-    const currentIndex = filteredRequests.findIndex(r => r.id === data.id);
-    let nextSelectedId = null;
-    if (filteredRequests.length > 1) {
-      if (currentIndex < filteredRequests.length - 1) {
-        nextSelectedId = filteredRequests[currentIndex + 1].id;
-      } else {
-        nextSelectedId = filteredRequests[currentIndex - 1].id;
-      }
+      setActionModal({ open: false, type: '', data: null });
+    } catch (err) {
+      console.error(err);
+      setToast({
+        type: 'error',
+        message: 'Failed to update recruiter status. Please try again.',
+      });
+      setActionModal({ open: false, type: '', data: null });
     }
-    if (nextSelectedId) setSelectedId(nextSelectedId);
-
-    setActionModal({ open: false, type: '', data: null });
   };
 
   return (

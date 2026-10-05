@@ -82,8 +82,36 @@ const sendPasswordResetEmail = async ({ to, fullName, token }) => {
   return { delivered: true };
 };
 
+const sendRecruiterApprovalEmail = async ({ to, fullName, companyName }) => {
+  if (!keys.smtpHost) {
+    console.log(`[dev-mail] Recruiter approval email for ${to} (${companyName})`);
+    return { delivered: false };
+  }
+
+  const port = Number(keys.smtpPort) || 587;
+  const transporter = nodemailer.createTransport({
+    host: keys.smtpHost,
+    port,
+    secure: port === 465,
+    auth: keys.smtpUser
+      ? { user: keys.smtpUser, pass: keys.smtpPass }
+      : undefined,
+  });
+
+  await transporter.sendMail({
+    from: keys.mailFrom,
+    to,
+    subject: "IntelliHire Recruiter Account Approved",
+    text: `Hi ${fullName},\n\nYour recruiter account for ${companyName} has been approved. You can now log in and access your dashboard.\n\n${keys.appUrl}/signin\n\nThanks,\nThe IntelliHire Team`,
+    html: `<p>Hi ${fullName},</p><p>Your recruiter account for <strong>${companyName}</strong> has been approved. You can now log in and access your dashboard.</p><p><a href="${keys.appUrl}/signin">Login here</a></p><p>Thanks,<br>The IntelliHire Team</p>`,
+  });
+
+  return { delivered: true };
+};
+
 module.exports = {
   sendVerificationEmail,
   buildVerificationUrl,
   sendPasswordResetEmail,
+  sendRecruiterApprovalEmail,
 };
