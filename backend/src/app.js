@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const valuesRoutes = require("./routes/valuesRoutes");
+const cvRoutes = require("./routes/cvRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 app.use("/values", valuesRoutes);
 app.use("/auth", authRoutes);
 app.use("/", adminRoutes);
+app.use("/cv", cvRoutes);
 
 // Global Error Handler Middleware (must be registered last)
 app.use(errorHandler);

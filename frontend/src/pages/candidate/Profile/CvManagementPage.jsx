@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
+import { uploadCV } from '../../../api/userApi';
 
 const INITIAL_DOCUMENTS = [
   {
@@ -50,6 +51,7 @@ function CvManagementPage() {
   const fileInputRef = useRef(null);
   const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const activeDoc = documents.find((d) => d.status === 'active');
 
@@ -79,18 +81,42 @@ function CvManagementPage() {
     fileInputRef.current?.click();
   }
 
-  function handleFileChange(e) {
+  async function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const newDoc = {
-      id: Date.now(),
-      filename: file.name,
-      uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      size: `${Math.round(file.size / 1024)} KB`,
-      status: 'archived',
-    };
-    setDocuments((prev) => [newDoc, ...prev]);
-    e.target.value = '';
+
+    if (file.type !== 'application/pdf') {
+      alert('Only PDF files are currently supported for AI processing.');
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const data = await uploadCV(file);
+      
+      const newDoc = {
+        id: Date.now(),
+        filename: file.name,
+        uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        size: `${Math.round(file.size / 1024)} KB`,
+        status: 'active', // Make the new CV active by default
+      };
+
+      setDocuments((prev) => [
+        newDoc,
+        ...prev.map(d => ({ ...d, status: d.status === 'active' ? 'archived' : d.status }))
+      ]);
+
+      alert(`CV uploaded successfully! Extracted ${data.data?.skills?.length || 0} skills.`);
+
+    } catch (error) {
+      console.error('Error uploading CV:', error);
+      alert('Failed to upload and process CV.');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
   }
 
   return (
@@ -153,9 +179,9 @@ function CvManagementPage() {
           <p className="cv-history-header__types">
             Accepted types: .PDF, .DOCX, .TXT (Max 10MB)
           </p>
-          <button type="button" className="candidate-btn candidate-btn--accent" onClick={handleUploadNew}>
+          <button type="button" className="candidate-btn candidate-btn--accent" onClick={handleUploadNew} disabled={isUploading}>
             <Upload size={14} />
-            Upload New CV
+            {isUploading ? 'Processing...' : 'Upload New CV'}
           </button>
         </div>
       </header>

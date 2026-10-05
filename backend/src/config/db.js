@@ -26,6 +26,8 @@ const initializeDatabase = async () => {
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'candidate',
         email_verified BOOLEAN NOT NULL DEFAULT true,
+        skills JSONB DEFAULT '[]'::jsonb,
+        experience JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
@@ -76,6 +78,32 @@ const initializeDatabase = async () => {
           ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT true;
         ELSE
           ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT true;
+        END IF;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'users' AND column_name = 'skills'
+        ) THEN
+          ALTER TABLE users ADD COLUMN skills JSONB DEFAULT '[]'::jsonb;
+        END IF;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'users' AND column_name = 'experience'
+        ) THEN
+          ALTER TABLE users ADD COLUMN experience JSONB DEFAULT '[]'::jsonb;
         END IF;
       END $$;
     `);
