@@ -55,6 +55,7 @@ router.put("/recruiters/:id/approval", authMiddleware, requireRole("admin"), asy
     if (status === "approved") {
        const user = await userModel.findUserById(updated.user_id);
        if (user) {
+         await userModel.markEmailVerified(user.id);
          await sendRecruiterApprovalEmail({
            to: user.email, 
            fullName: user.full_name, 

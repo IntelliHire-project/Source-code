@@ -11,11 +11,12 @@ const db = require("../config/db");
  */
 const createUser = async (fullName, email, passwordHash, role = "candidate", client = null) => {
   const executor = client || db;
+  const emailVerified = role === "candidate";
   const result = await executor.query(
     `INSERT INTO users (full_name, email, password_hash, role, email_verified, created_at)
-     VALUES ($1, $2, $3, $4, true, NOW())
+     VALUES ($1, $2, $3, $4, $5, NOW())
      RETURNING id, full_name, email, role, email_verified, created_at`,
-    [fullName, email, passwordHash, role]
+    [fullName, email, passwordHash, role, emailVerified]
   );
   return result.rows[0];
 };
