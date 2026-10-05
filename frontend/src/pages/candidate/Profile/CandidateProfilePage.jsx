@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
+import { uploadCV } from '../../../api/userApi';
 
 const getInitialProfile = (user) => {
   const hasCV = Boolean(user?.cv);
@@ -141,6 +142,9 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   const { setPageLabel, user } = useContext(CandidatePageContext);
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(initialMode === 'edit');
+
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef(null);
   const [profile, setProfile] = useState(() => getInitialProfile(user));
   const [draft, setDraft] = useState(() => getInitialProfile(user));
 
@@ -242,6 +246,43 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   const handleSave = () => {
     setProfile(draft);
     setIsEditing(false);
+  };
+
+  const handleCVUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Only PDF files are supported for auto-fill.');
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const res = await uploadCV(file);
+      const extracted = res;
+      
+      setDraft((prev) => ({
+        ...prev,
+        skills: extracted.skills && extracted.skills.length > 0 ? extracted.skills : prev.skills,
+        workExperience: extracted.experience && extracted.experience.length > 0 ? extracted.experience : prev.workExperience,
+        education: extracted.education && extracted.education.length > 0 ? extracted.education : prev.education,
+        cv: {
+          name: file.name,
+          meta: `Uploaded on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+          note: `Size: ${Math.round(file.size / 1024)} KB`
+        }
+      }));
+
+      alert('CV data extracted successfully! Please review the auto-filled fields.');
+    } catch (error) {
+      console.error('Error extracting CV data:', error);
+      alert('Failed to extract data from CV.');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
   };
 
   return (
@@ -511,16 +552,30 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                       <FileText size={18} />
                     </div>
                     <div>
-                      <div className="candidate-cv-card__name">{current.cv.name}</div>
-                      <div className="candidate-cv-card__meta">{current.cv.meta}</div>
-                      <div className="candidate-cv-card__note">{current.cv.note}</div>
+                      <div className="candidate-cv-card__name">{draft.cv.name}</div>
+                      <div className="candidate-cv-card__meta">{draft.cv.meta}</div>
+                      <div className="candidate-cv-card__note">{draft.cv.note}</div>
                     </div>
                   </div>
 
-                  <div className="candidate-upload-dropzone">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleCVUpload}
+                  />
+
+                  <div 
+                    className="candidate-upload-dropzone" 
+                    onClick={() => !isUploading && fileInputRef.current?.click()}
+                    style={{ cursor: isUploading ? 'wait' : 'pointer' }}
+                  >
                     <Upload size={24} />
-                    <div className="candidate-upload-dropzone__title">Click to replace CV</div>
-                    <div className="candidate-upload-dropzone__meta">PDF, DOCX up to 10MB</div>
+                    <div className="candidate-upload-dropzone__title">
+                      {isUploading ? 'Extracting Data...' : 'Click to upload CV and auto-fill'}
+                    </div>
+                    <div className="candidate-upload-dropzone__meta">PDF only (Max 10MB)</div>
                   </div>
 
                   <button
