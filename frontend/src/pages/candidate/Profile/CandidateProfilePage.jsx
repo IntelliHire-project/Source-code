@@ -142,8 +142,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   const { setPageLabel, user } = useContext(CandidatePageContext);
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(initialMode === 'edit');
-  const [profile, setProfile] = useState(INITIAL_PROFILE);
-  const [draft, setDraft] = useState(INITIAL_PROFILE);
+
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef(null);
   const [profile, setProfile] = useState(() => getInitialProfile(user));

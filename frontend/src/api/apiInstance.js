@@ -3,9 +3,6 @@ import { getToken, clearAuthSession } from '../services/storage';
 
 const apiInstance = axios.create({
   baseURL: '/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Automatically inject JWT authentication headers
