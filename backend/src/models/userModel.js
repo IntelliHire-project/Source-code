@@ -92,6 +92,8 @@ const updateCandidateProfile = async (userId, skills, experience) => {
     [JSON.stringify(skills || []), JSON.stringify(experience || []), userId]
   );
   return result.rows[0] || null;
+};
+
 const updatePassword = async (userId, newPasswordHash) => {
   await db.query(
     `UPDATE users
