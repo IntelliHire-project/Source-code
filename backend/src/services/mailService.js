@@ -7,6 +7,11 @@ const keys = require("../../key");
 const buildVerificationUrl = (token) => `${keys.appUrl}/verify-email?token=${token}`;
 
 /**
+ * Builds the public password reset URL.
+ */
+const buildResetUrl = (token) => `${keys.appUrl}/reset-password?token=${token}`;
+
+/**
  * Sends an account verification email.
  *
  * When SMTP credentials are configured in the environment this sends a real
@@ -48,7 +53,37 @@ const sendVerificationEmail = async ({ to, fullName, token }) => {
   return { delivered: true };
 };
 
+const sendPasswordResetEmail = async ({ to, fullName, token }) => {
+  const resetUrl = buildResetUrl(token);
+
+  if (!keys.smtpHost) {
+    console.log(`[dev-mail] Password reset email for ${to}: ${resetUrl}`);
+    return { delivered: false, resetUrl };
+  }
+
+  const port = Number(keys.smtpPort) || 587;
+  const transporter = nodemailer.createTransport({
+    host: keys.smtpHost,
+    port,
+    secure: port === 465,
+    auth: keys.smtpUser
+      ? { user: keys.smtpUser, pass: keys.smtpPass }
+      : undefined,
+  });
+
+  await transporter.sendMail({
+    from: keys.mailFrom,
+    to,
+    subject: "Reset your IntelliHire password",
+    text: `Hi ${fullName},\n\nPlease reset your password by clicking the link below:\n${resetUrl}\n\nThe link expires in 1 hour.\n\nIf you did not request a password reset, you can safely ignore this email.`,
+    html: `<p>Hi ${fullName},</p><p>Please reset your password by clicking the link below:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>The link expires in 1 hour.</p><p>If you did not request a password reset, you can safely ignore this email.</p>`,
+  });
+
+  return { delivered: true };
+};
+
 module.exports = {
   sendVerificationEmail,
   buildVerificationUrl,
+  sendPasswordResetEmail,
 };

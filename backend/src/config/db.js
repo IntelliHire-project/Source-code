@@ -114,6 +114,50 @@ const initializeDatabase = async () => {
       DROP COLUMN IF EXISTS verification_token,
       DROP COLUMN IF EXISTS verification_token_expires_at;
     `);
+
+    // Create candidates profile table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS candidates (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        phone TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Create candidate CVs table (supports multiple CVs with active flag)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS candidate_cvs (
+        id SERIAL PRIMARY KEY,
+        candidate_id INTEGER NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+        cv_name TEXT NOT NULL,
+        cv_url TEXT NOT NULL,
+        cv_public_id TEXT,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Create recruiters profile table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS recruiters (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        company_name TEXT NOT NULL,
+        industry TEXT NOT NULL,
+        approval_status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Create indices for fast lookups
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_candidates_user_id ON candidates(user_id);
+      CREATE INDEX IF NOT EXISTS idx_candidate_cvs_candidate_id ON candidate_cvs(candidate_id);
+      CREATE INDEX IF NOT EXISTS idx_recruiters_user_id ON recruiters(user_id);
+    `);
   } finally {
     client.release();
   }

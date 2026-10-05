@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { useAuth } from '../../../hooks/useAuth';
 import '../../../style.css';
 import './RecruiterDashboard.css';
 
@@ -81,6 +82,7 @@ const DASHBOARD_ANALYTICS_TOTALS = {
 };
 
 function RecruiterDashboard() {
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeDate, setActiveDate] = useState('');
   const [hoveredChartPoint, setHoveredChartPoint] = useState(null);
@@ -103,7 +105,7 @@ function RecruiterDashboard() {
 
       <div className="create-vacancy__main">
         <TopBar
-          user={{ name: 'Sarah Parker', role: 'Talent Acquisition Partner' }}
+          user={{ name: user?.fullName || 'Recruiter', role: 'Talent Acquisition Partner' }}
           notificationsCount={3}
           breadcrumbItems={[
             { label: 'Dashboard' },
@@ -119,7 +121,7 @@ function RecruiterDashboard() {
           {/* ── 1. Welcome Section ── */}
           <section className="recruiter-welcome-banner">
             <div className="welcome-title-grp">
-              <h1>Welcome back, Sarah 👋</h1>
+              <h1>Welcome back, {user?.fullName ? user.fullName.split(' ')[0] : 'Sarah'} 👋</h1>
               <p>Here is your intelligence overview for today. Let's find your next perfect hire.</p>
               <div className="welcome-actions-row">
                 <button className="welcome-action-btn" onClick={() => navigate('/recruiter/create-vacancy')}>

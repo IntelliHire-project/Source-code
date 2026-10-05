@@ -1,19 +1,34 @@
+const pool = require("../config/db");
 const userModel = require("../models/userModel");
+const candidateModel = require("../models/candidateModel");
+const recruiterModel = require("../models/recruiterModel");
+const cloudinaryService = require("../services/cloudinaryService");
 const { hashPassword, verifyPassword } = require("../utils/password");
 const { successResponse, errorResponse } = require("../utils/response");
 const { signToken } = require("../services/tokenService");
+const { sendPasswordResetEmail } = require("../services/mailService");
 
-const normalizeEmail = email => email.trim().toLowerCase();
+const normalizeEmail = (email) => email.trim().toLowerCase();
 
 const PUBLIC_ROLES = ["candidate", "recruiter"];
 
+/**
+ * Creates a new account with role-specific tables (candidates or recruiters).
+ * Supports optional CV upload for candidates streamed to Cloudinary.
+ */
 const createAccount = async (req, res, next) => {
+  let uploadedCv = null;
+  const client = await pool.connect();
+
   try {
-    const fullName = (req.body.fullName || req.body.name || "").trim();
+    const fullName = (req.body.fullName || req.body.name || req.body.contactName || "").trim();
     const email = (req.body.email || "").trim();
     const password = req.body.password || "";
     const confirmPassword = req.body.confirmPassword || req.body.confirm_password || password;
     const requestedRole = req.body.role || "candidate";
+    const phone = (req.body.phone || "").trim();
+    const companyName = (req.body.companyName || req.body.company_name || "").trim();
+    const industry = (req.body.industry || "").trim();
 
     if (!fullName || !email || !password) {
       return errorResponse(res, "Full name, email, and password are required.", 400);
@@ -31,26 +46,109 @@ const createAccount = async (req, res, next) => {
       return errorResponse(res, "Invalid account role.", 400);
     }
 
-    const emailAddress = normalizeEmail(email);
+    if (requestedRole === "recruiter") {
+      if (!companyName) {
+        return errorResponse(res, "Company name is required for recruiter registration.", 400);
+      }
+      if (!industry) {
+        return errorResponse(res, "Industry is required for recruiter registration.", 400);
+      }
+    }
 
+    const emailAddress = normalizeEmail(email);
     const existingUser = await userModel.findUserByEmail(emailAddress);
 
     if (existingUser) {
       return errorResponse(res, "An account with that email already exists.", 409);
     }
 
-    const passwordHash = hashPassword(password);
+    // If candidate uploaded a CV file, upload to Cloudinary
+    if (requestedRole === "candidate" && req.file) {
+      try {
+        const uploadResult = await cloudinaryService.uploadBuffer(
+          req.file.buffer,
+          req.file.originalname
+        );
+        uploadedCv = {
+          name: req.file.originalname,
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        };
+      } catch (uploadError) {
+        console.error("Cloudinary CV upload error:", uploadError);
+        return errorResponse(res, "Failed to upload CV file. Please try again.", 500);
+      }
+    }
 
-    const createdUser = await userModel.createUser(fullName, emailAddress, passwordHash, requestedRole);
+    // Begin database transaction across users and role-specific tables
+    await client.query("BEGIN");
+
+    const passwordHash = hashPassword(password);
+    const createdUser = await userModel.createUser(
+      fullName,
+      emailAddress,
+      passwordHash,
+      requestedRole,
+      client
+    );
+
+    let candidateProfile = null;
+    let recruiterProfile = null;
+
+    if (requestedRole === "candidate") {
+      candidateProfile = await candidateModel.createCandidate(createdUser.id, phone, client);
+      if (uploadedCv) {
+        const cvRecord = await candidateModel.addCandidateCV(
+          candidateProfile.id,
+          uploadedCv.name,
+          uploadedCv.url,
+          uploadedCv.publicId,
+          true,
+          client
+        );
+        candidateProfile.cvs = [cvRecord];
+        candidateProfile.activeCv = cvRecord;
+      } else {
+        candidateProfile.cvs = [];
+        candidateProfile.activeCv = null;
+      }
+    } else if (requestedRole === "recruiter") {
+      recruiterProfile = await recruiterModel.createRecruiter(
+        createdUser.id,
+        companyName,
+        industry,
+        "pending",
+        client
+      );
+    }
+
+    await client.query("COMMIT");
 
     return successResponse(
       res,
       "Account created successfully.",
-      { user: createdUser },
+      {
+        user: {
+          ...createdUser,
+          candidate: candidateProfile,
+          recruiter: recruiterProfile,
+        },
+      },
       201
     );
   } catch (error) {
+    await client.query("ROLLBACK");
+    // Clean up uploaded file if transaction rolled back
+    if (uploadedCv && uploadedCv.publicId) {
+      try {
+        await cloudinaryService.deleteFile(uploadedCv.publicId);
+      } catch (cleanupError) {
+        console.error("Failed to clean up Cloudinary asset after rollback:", cleanupError);
+      }
+    }
     next(error);
+  } finally {
+    client.release();
   }
 };
 
@@ -64,11 +162,19 @@ const login = async (req, res, next) => {
     }
 
     const emailAddress = normalizeEmail(email);
-
     const user = await userModel.findUserByEmail(emailAddress);
 
     if (!user || !verifyPassword(password, user.password_hash)) {
       return errorResponse(res, "Invalid email or password.", 401);
+    }
+
+    let candidateProfile = null;
+    let recruiterProfile = null;
+
+    if (user.role === "candidate") {
+      candidateProfile = await candidateModel.findCandidateByUserId(user.id);
+    } else if (user.role === "recruiter") {
+      recruiterProfile = await recruiterModel.findRecruiterByUserId(user.id);
     }
 
     const token = signToken({
@@ -85,6 +191,8 @@ const login = async (req, res, next) => {
         fullName: user.full_name,
         email: user.email,
         role: user.role,
+        candidate: candidateProfile,
+        recruiter: recruiterProfile,
       },
     });
   } catch (error) {
@@ -100,9 +208,233 @@ const resendVerification = async (req, res) => {
   return successResponse(res, "Email verification is not required.");
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const email = (req.body.email || "").trim();
+    if (!email) {
+      return errorResponse(res, "Email is required.", 400);
+    }
+    const emailAddress = normalizeEmail(email);
+
+    const user = await userModel.findUserByEmail(emailAddress);
+
+    if (user) {
+      const token = signToken({ id: user.id, email: user.email, action: "reset_password" });
+      await sendPasswordResetEmail({
+        to: user.email,
+        fullName: user.full_name,
+        token: token,
+      });
+    }
+
+    return successResponse(res, "If an account exists for this email, a reset link will be sent.");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Validates the current session and returns authenticated user details including role profile.
+ */
+const getCurrentUser = async (req, res, next) => {
+  try {
+    const user = await userModel.findUserById(req.user.id);
+
+    if (!user) {
+      return errorResponse(res, "User not found or session has expired.", 401);
+    }
+
+    let candidateProfile = null;
+    let recruiterProfile = null;
+
+    if (user.role === "candidate") {
+      candidateProfile = await candidateModel.findCandidateByUserId(user.id);
+    } else if (user.role === "recruiter") {
+      recruiterProfile = await recruiterModel.findRecruiterByUserId(user.id);
+    }
+
+    return successResponse(res, "Session is active.", {
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        role: user.role,
+        candidate: candidateProfile,
+        recruiter: recruiterProfile,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handles explicit user logout on the backend.
+ */
+const logout = async (req, res) => {
+  return successResponse(res, "Signed out successfully.");
+};
+
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return errorResponse(res, "Current and new passwords are required.", 400);
+    }
+
+    if (newPassword.length < 8) {
+      return errorResponse(res, "New password must be at least 8 characters long.", 400);
+    }
+
+    const email = req.user.email;
+    const user = await userModel.findUserByEmail(email);
+
+    if (!user) {
+      return errorResponse(res, "User not found.", 404);
+    }
+
+    if (!verifyPassword(currentPassword, user.password_hash)) {
+      return errorResponse(res, "Incorrect current password.", 401);
+    }
+
+    const newPasswordHash = hashPassword(newPassword);
+    await userModel.updatePassword(user.id, newPasswordHash);
+
+    return successResponse(res, "Password updated successfully.");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Gets all CVs for the authenticated candidate.
+ */
+const getCandidateCVs = async (req, res, next) => {
+  try {
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    const cvs = await candidateModel.findCandidateCVs(candidate.id);
+    return successResponse(res, "CVs retrieved successfully.", { cvs });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Uploads a new CV for the authenticated candidate.
+ */
+const uploadCandidateCV = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return errorResponse(res, "Please select a CV file to upload.", 400);
+    }
+
+    let candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      // Create candidate record if not yet created
+      candidate = await candidateModel.createCandidate(req.user.id);
+    }
+
+    const makeActive = req.body.setActive === "true" || req.body.setActive === true || true;
+
+    const uploadResult = await cloudinaryService.uploadBuffer(
+      req.file.buffer,
+      req.file.originalname
+    );
+
+    const cv = await candidateModel.addCandidateCV(
+      candidate.id,
+      req.file.originalname,
+      uploadResult.secure_url,
+      uploadResult.public_id,
+      makeActive
+    );
+
+    return successResponse(res, "CV uploaded successfully.", { cv }, 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Sets a specific CV as the active CV for the candidate.
+ */
+const setActiveCandidateCV = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    const activatedCV = await candidateModel.setActiveCV(candidate.id, cvId);
+    if (!activatedCV) {
+      return errorResponse(res, "CV not found or access denied.", 404);
+    }
+
+    return successResponse(res, "Active CV updated successfully.", { cv: activatedCV });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Deletes a CV belonging to the candidate.
+ */
+const deleteCandidateCV = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    const cv = await candidateModel.findCVById(cvId, candidate.id);
+    if (!cv) {
+      return errorResponse(res, "CV not found.", 404);
+    }
+
+    // Delete from database
+    await candidateModel.deleteCV(candidate.id, cvId);
+
+    // Delete from Cloudinary
+    if (cv.cv_public_id) {
+      try {
+        await cloudinaryService.deleteFile(cv.cv_public_id);
+      } catch (err) {
+        console.error("Cloudinary delete error:", err);
+      }
+    }
+
+    return successResponse(res, "CV deleted successfully.");
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAccount,
   login,
   verifyEmail,
   resendVerification,
+  forgotPassword,
+  getCurrentUser,
+  logout,
+  changePassword,
+  getCandidateCVs,
+  uploadCandidateCV,
+  setActiveCandidateCV,
+  deleteCandidateCV,
 };

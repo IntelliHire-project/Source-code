@@ -26,59 +26,77 @@ import { useNavigate } from 'react-router-dom';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import { uploadCV } from '../../../api/userApi';
 
-const INITIAL_PROFILE = {
-  fullName: 'Alex Rivera',
-  headline: 'Senior Full Stack Engineer',
-  email: 'alex.rivera@example.com',
-  phone: '+1 (555) 123-4567',
-  location: 'San Francisco, CA',
-  linkedIn: 'linkedin.com/in/airivera',
-  portfolio: 'alexrivera.dev',
-  bioSummary:
-    'Innovative software engineer with 8+ years of experience in building scalable web applications. Passionate about AI-driven solutions and user-centric design.',
-  status: 'Open to Work',
-  language: 'English (Native)',
-  joined: 'Joined May 2024',
-  avatar:
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=280&h=280&q=80',
-  cv: {
-    name: 'Alex_Rivera_CV_2024_Final.pdf',
-    meta: 'Uploaded on May 12, 2024',
-    note: 'PDF, DOCX up to 10MB',
-  },
-  skills: ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Python', 'Docker', 'GraphQL'],
-  workExperience: [
-    {
-      id: 'exp-1',
-      title: 'Senior Software Engineer',
-      company: 'TechFlow Solutions',
-      period: 'Jan 2021 - Present',
-      description:
-        'Leading the core platform team in migrating legacy systems to a microservices architecture using React and Node.js.',
-    },
-    {
-      id: 'exp-2',
-      title: 'Full Stack Developer',
-      company: 'CloudSphere Inc.',
-      period: 'Mar 2018 - Dec 2020',
-      description:
-        'Developed and maintained client-facing dashboards, improving user engagement by 40% through optimized performance.',
-    },
-  ],
-  education: [
-    {
-      id: 'edu-1',
-      title: 'Master of Computer Science',
-      school: 'Stanford University',
-      period: '2016 - 2018',
-    },
-    {
-      id: 'edu-2',
-      title: 'B.S. in Software Engineering',
-      school: 'Georgia Institute of Technology',
-      period: '2012 - 2016',
-    },
-  ],
+const getInitialProfile = (user) => {
+  const hasCV = Boolean(user?.cv);
+
+  return {
+    fullName: user?.name || '',
+    headline: hasCV ? 'Senior Full Stack Engineer' : '',
+    email: user?.email || '',
+    phone: hasCV ? '+1 (555) 123-4567' : '',
+    location: hasCV ? 'San Francisco, CA' : '',
+    linkedIn: hasCV ? 'linkedin.com/in/airivera' : '',
+    portfolio: hasCV ? 'alexrivera.dev' : '',
+    bioSummary: hasCV
+      ? 'Innovative software engineer with 8+ years of experience in building scalable web applications. Passionate about AI-driven solutions and user-centric design.'
+      : '',
+    status: hasCV ? 'Open to Work' : 'Open to Work',
+    language: hasCV ? 'English (Native)' : 'English',
+    joined: user?.joined || 'Joined May 2024',
+    avatar:
+      user?.avatar ||
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=280&h=280&q=80',
+    cv: hasCV
+      ? {
+          name: 'Alex_Rivera_CV_2024_Final.pdf',
+          meta: 'Uploaded on May 12, 2024',
+          note: 'PDF, DOCX up to 10MB',
+        }
+      : {
+          name: '',
+          meta: '',
+          note: 'PDF, DOCX up to 10MB',
+        },
+    skills: hasCV
+      ? ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Python', 'Docker', 'GraphQL']
+      : [],
+    workExperience: hasCV
+      ? [
+          {
+            id: 'exp-1',
+            title: 'Senior Software Engineer',
+            company: 'TechFlow Solutions',
+            period: 'Jan 2021 - Present',
+            description:
+              'Leading the core platform team in migrating legacy systems to a microservices architecture using React and Node.js.',
+          },
+          {
+            id: 'exp-2',
+            title: 'Full Stack Developer',
+            company: 'CloudSphere Inc.',
+            period: 'Mar 2018 - Dec 2020',
+            description:
+              'Developed and maintained client-facing dashboards, improving user engagement by 40% through optimized performance.',
+          },
+        ]
+      : [],
+    education: hasCV
+      ? [
+          {
+            id: 'edu-1',
+            title: 'Master of Computer Science',
+            school: 'Stanford University',
+            period: '2016 - 2018',
+          },
+          {
+            id: 'edu-2',
+            title: 'B.S. in Software Engineering',
+            school: 'Georgia Institute of Technology',
+            period: '2012 - 2016',
+          },
+        ]
+      : [],
+  };
 };
 
 function Field({ label, value, onChange, placeholder, type = 'text', textarea = false }) {
@@ -114,7 +132,7 @@ function InfoRow({ icon: Icon, label, value }) {
       </div>
       <div className="candidate-info-row__text">
         <span className="candidate-info-row__label">{label}</span>
-        <span className="candidate-info-row__value">{value}</span>
+        <span className="candidate-info-row__value">{value || '-'}</span>
       </div>
     </div>
   );
@@ -128,6 +146,8 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   const [draft, setDraft] = useState(INITIAL_PROFILE);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef(null);
+  const [profile, setProfile] = useState(() => getInitialProfile(user));
+  const [draft, setDraft] = useState(() => getInitialProfile(user));
 
   const current = isEditing ? draft : profile;
   const pageLabel = isEditing ? 'EDIT PROFILE' : 'CANDIDATE PROFILE';
@@ -135,6 +155,14 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   useEffect(() => {
     setPageLabel(pageLabel);
   }, [pageLabel, setPageLabel]);
+
+  // Update profile if user context changes (e.g. login updates)
+  useEffect(() => {
+    if (user) {
+      setProfile(getInitialProfile(user));
+      setDraft(getInitialProfile(user));
+    }
+  }, [user]);
 
   const setDraftValue = (field) => (event) => {
     const { value } = event.target;

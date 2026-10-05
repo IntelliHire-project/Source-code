@@ -6,10 +6,12 @@ const db = require("../config/db");
  * @param {string} email 
  * @param {string} passwordHash 
  * @param {string} role 
+ * @param {object|null} [client=null] Optional transaction client
  * @returns {Promise<object>} Created user database record
  */
-const createUser = async (fullName, email, passwordHash, role = "candidate") => {
-  const result = await db.query(
+const createUser = async (fullName, email, passwordHash, role = "candidate", client = null) => {
+  const executor = client || db;
+  const result = await executor.query(
     `INSERT INTO users (full_name, email, password_hash, role, email_verified, created_at)
      VALUES ($1, $2, $3, $4, true, NOW())
      RETURNING id, full_name, email, role, email_verified, created_at`,
@@ -90,6 +92,13 @@ const updateCandidateProfile = async (userId, skills, experience) => {
     [JSON.stringify(skills || []), JSON.stringify(experience || []), userId]
   );
   return result.rows[0] || null;
+const updatePassword = async (userId, newPasswordHash) => {
+  await db.query(
+    `UPDATE users
+     SET password_hash = $1
+     WHERE id = $2`,
+    [newPasswordHash, userId]
+  );
 };
 
 module.exports = {
@@ -99,4 +108,5 @@ module.exports = {
   findAllUsers,
   markEmailVerified,
   updateCandidateProfile,
+  updatePassword,
 };
