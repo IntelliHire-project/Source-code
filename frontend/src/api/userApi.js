@@ -16,10 +16,6 @@ export const uploadCV = async (file) => {
   const formData = new FormData();
   formData.append('cv', file);
 
-  const response = await apiInstance.post('/cv/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  const response = await apiInstance.post('/cv/upload', formData);
   return response.data;
 };

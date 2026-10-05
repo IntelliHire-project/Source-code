@@ -108,7 +108,7 @@ function CvManagementPage() {
         ...prev.map(d => ({ ...d, status: d.status === 'active' ? 'archived' : d.status }))
       ]);
 
-      alert(`CV uploaded successfully! Extracted ${data.data?.skills?.length || 0} skills.`);
+      alert(`CV uploaded successfully! Extracted ${data.skills?.length || 0} skills.`);
 
     } catch (error) {
       console.error('Error uploading CV:', error);
