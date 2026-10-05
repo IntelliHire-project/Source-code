@@ -43,6 +43,10 @@ const uploadCV = async (req, res) => {
       return errorResponse(res, "Could not extract text from the PDF.", 400);
     }
 
+    console.log("\n--- SUCCESSFULLY EXTRACTED TEXT FROM PDF ---");
+    console.log(cvText.substring(0, 500) + "\n... [Truncated for logs]");
+    console.log("--------------------------------------------\n");
+
     // Extract skills, experience, and education using Gemini
     const extractedData = await extractCVData(cvText);
 

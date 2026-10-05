@@ -261,7 +261,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     try {
       setIsUploading(true);
       const res = await uploadCV(file);
-      const extracted = res.data;
+      const extracted = res;
       
       setDraft((prev) => ({
         ...prev,
