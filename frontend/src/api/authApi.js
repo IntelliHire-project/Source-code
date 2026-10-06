@@ -133,7 +133,7 @@ export const getCandidateCVs = async () => {
 
 /**
  * Uploads a new CV file for the candidate.
- * @param {File} file - The PDF or DOCX file
+ * @param {File} file - The PDF file
  * @param {boolean} [setActive=true] - Whether to activate this CV
  */
 export const uploadCandidateCV = async (file, setActive = true) => {

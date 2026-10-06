@@ -24,7 +24,7 @@ const INITIAL_DOCUMENTS = [
   },
   {
     id: 2,
-    filename: 'Alex_Rivera_CV_2024_Draft.docx',
+    filename: 'Alex_Rivera_CV_2024_Draft.pdf',
     uploadDate: 'Apr 28, 2024',
     size: '198 KB',
     status: 'archived',
@@ -38,7 +38,7 @@ const INITIAL_DOCUMENTS = [
   },
   {
     id: 4,
-    filename: 'Alex_Rivera_Resume_2023.docx',
+    filename: 'Alex_Rivera_Resume_2023.pdf',
     uploadDate: 'Sep 3, 2023',
     size: '156 KB',
     status: 'archived',
@@ -85,7 +85,8 @@ function CvManagementPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (fileExt !== '.pdf' && file.type !== 'application/pdf') {
       alert('Only PDF files are currently supported for AI processing.');
       e.target.value = '';
       return;
@@ -124,7 +125,7 @@ function CvManagementPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.docx,.txt"
+        accept=".pdf,application/pdf"
         className="cv-management__file-input"
         onChange={handleFileChange}
         aria-hidden="true"
@@ -177,7 +178,7 @@ function CvManagementPage() {
         </div>
         <div className="cv-history-header__right">
           <p className="cv-history-header__types">
-            Accepted types: .PDF, .DOCX, .TXT (Max 10MB)
+            Accepted types: .PDF (Max 10MB)
           </p>
           <button type="button" className="candidate-btn candidate-btn--accent" onClick={handleUploadNew} disabled={isUploading}>
             <Upload size={14} />

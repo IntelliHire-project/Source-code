@@ -50,12 +50,12 @@ const getInitialProfile = (user) => {
       ? {
           name: 'Alex_Rivera_CV_2024_Final.pdf',
           meta: 'Uploaded on May 12, 2024',
-          note: 'PDF, DOCX up to 10MB',
+          note: 'PDF up to 10MB',
         }
       : {
           name: '',
           meta: '',
-          note: 'PDF, DOCX up to 10MB',
+          note: 'PDF up to 10MB',
         },
     skills: hasCV
       ? ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Python', 'Docker', 'GraphQL']

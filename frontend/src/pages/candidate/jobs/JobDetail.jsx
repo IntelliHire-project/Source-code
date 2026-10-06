@@ -130,6 +130,14 @@ function JobDetail() {
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (fileExt !== '.pdf' && file.type !== 'application/pdf') {
+      alert('Only PDF files are supported.');
+      e.target.value = '';
+      return;
+    }
+
     const newCv = {
       id: Date.now(),
       filename: file.name.replace(/\.[^.]+$/, '').toUpperCase(),
@@ -283,7 +291,7 @@ function JobDetail() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.docx,.txt"
+              accept=".pdf,application/pdf"
               className="job-detail__file-input"
               onChange={handleFileChange}
             />
