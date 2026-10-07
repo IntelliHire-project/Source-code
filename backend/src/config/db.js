@@ -95,9 +95,44 @@ const initializeDatabase = async () => {
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         phone TEXT,
+        skills JSONB DEFAULT '[]'::jsonb,
+        education JSONB DEFAULT '[]'::jsonb,
+        experience JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Add JSONB and text columns if they don't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'candidates' AND column_name = 'skills'
+        ) THEN
+          ALTER TABLE candidates ADD COLUMN skills JSONB DEFAULT '[]'::jsonb;
+          ALTER TABLE candidates ADD COLUMN education JSONB DEFAULT '[]'::jsonb;
+          ALTER TABLE candidates ADD COLUMN experience JSONB DEFAULT '[]'::jsonb;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'candidates' AND column_name = 'headline'
+        ) THEN
+          ALTER TABLE candidates ADD COLUMN headline TEXT;
+          ALTER TABLE candidates ADD COLUMN location TEXT;
+          ALTER TABLE candidates ADD COLUMN language TEXT;
+          ALTER TABLE candidates ADD COLUMN bio TEXT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'candidates' AND column_name = 'linkedin'
+        ) THEN
+          ALTER TABLE candidates ADD COLUMN linkedin TEXT;
+        END IF;
+      END $$;
     `);
 
     // Create candidate CVs table (supports multiple CVs with active flag)

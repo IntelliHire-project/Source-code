@@ -65,9 +65,11 @@ const addCandidateCV = async (
  */
 const findCandidateByUserId = async (userId) => {
   const candidateResult = await db.query(
-    `SELECT id, user_id, phone, created_at, updated_at
-     FROM candidates
-     WHERE user_id = $1`,
+    `SELECT c.id, c.user_id, c.phone, c.skills, c.education, c.experience, c.headline, c.location, c.language, c.bio, c.linkedin, c.created_at, c.updated_at,
+            u.full_name as name, u.email
+     FROM candidates c
+     JOIN users u ON c.user_id = u.id
+     WHERE c.user_id = $1`,
     [userId]
   );
 
@@ -225,6 +227,41 @@ const deleteCV = async (candidateId, cvId) => {
   }
 };
 
+/**
+ * Updates candidate profile data (skills, education, experience, headline, location, language, bio)
+ * @param {number} candidateId 
+ * @param {object} profileData 
+ * @returns {Promise<object|null>} Updated candidate record
+ */
+const updateCandidateProfileData = async (candidateId, profileData) => {
+  const { skills, education, experience, headline, location, language, bio, phone, linkedin } = profileData;
+  
+  // Conditionally update phone if it's provided in the payload
+  const phoneUpdate = phone !== undefined ? `phone = COALESCE($9, phone),` : ``;
+  const linkedinUpdate = linkedin !== undefined ? `linkedin = COALESCE(${phone !== undefined ? '$10' : '$9'}, linkedin),` : ``;
+  
+  const result = await db.query(
+    `UPDATE candidates
+     SET skills = $1, education = $2, experience = $3, 
+         headline = $4, location = $5, language = $6, bio = $7, ${phoneUpdate} ${linkedinUpdate} updated_at = NOW()
+     WHERE id = $8
+     RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, linkedin, created_at, updated_at`,
+    [
+      JSON.stringify(skills || []),
+      JSON.stringify(education || []),
+      JSON.stringify(experience || []),
+      headline || null,
+      location || null,
+      language || null,
+      bio || null,
+      candidateId,
+      ...(phone !== undefined ? [phone || null] : []),
+      ...(linkedin !== undefined ? [linkedin || null] : [])
+    ]
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   createCandidate,
   addCandidateCV,
@@ -234,4 +271,5 @@ module.exports = {
   findCVById,
   updateCV,
   deleteCV,
+  updateCandidateProfileData,
 };

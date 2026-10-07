@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
-import { uploadCV } from '../../../api/userApi';
+import { uploadCV, getCandidateProfile, updateCandidateProfile } from '../../../api/userApi';
+import { uploadCandidateCV } from '../../../api/authApi';
 
 const getInitialProfile = (user) => {
   const hasCV = Boolean(user?.cv);
@@ -35,7 +36,7 @@ const getInitialProfile = (user) => {
     email: user?.email || '',
     phone: hasCV ? '+1 (555) 123-4567' : '',
     location: hasCV ? 'San Francisco, CA' : '',
-    linkedIn: hasCV ? 'linkedin.com/in/airivera' : '',
+    linkedIn: '',
     portfolio: hasCV ? 'alexrivera.dev' : '',
     bioSummary: hasCV
       ? 'Innovative software engineer with 8+ years of experience in building scalable web applications. Passionate about AI-driven solutions and user-centric design.'
@@ -139,7 +140,7 @@ function InfoRow({ icon: Icon, label, value }) {
 }
 
 function CandidateProfilePage({ initialMode = 'view' }) {
-  const { setPageLabel, user } = useContext(CandidatePageContext);
+  const { setPageLabel, user, updateAuthUser } = useContext(CandidatePageContext);
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(initialMode === 'edit');
 
@@ -155,12 +156,37 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     setPageLabel(pageLabel);
   }, [pageLabel, setPageLabel]);
 
-  // Update profile if user context changes (e.g. login updates)
   useEffect(() => {
-    if (user) {
-      setProfile(getInitialProfile(user));
-      setDraft(getInitialProfile(user));
-    }
+    const fetchProfile = async () => {
+      if (user) {
+        try {
+          const res = await getCandidateProfile();
+          const candidateData = res;
+          const mergedProfile = {
+            ...getInitialProfile(user),
+            fullName: candidateData.name || user.fullName || user.name || '',
+            email: candidateData.email || user.email || '',
+            phone: candidateData.phone || '',
+            headline: candidateData.headline || '',
+            location: candidateData.location || '',
+            linkedIn: candidateData.linkedin || '',
+            language: candidateData.language || '',
+            bioSummary: candidateData.bio || '',
+            skills: candidateData.skills || [],
+            education: candidateData.education || [],
+            workExperience: candidateData.experience || [],
+          };
+          setProfile(mergedProfile);
+          setDraft(mergedProfile);
+        } catch (error) {
+          console.error("Failed to fetch candidate profile:", error);
+          const initial = getInitialProfile(user);
+          setProfile(initial);
+          setDraft(initial);
+        }
+      }
+    };
+    fetchProfile();
   }, [user]);
 
   const setDraftValue = (field) => (event) => {
@@ -243,9 +269,37 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     setIsEditing(false);
   };
 
-  const handleSave = () => {
-    setProfile(draft);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      await updateCandidateProfile({
+        skills: draft.skills,
+        education: draft.education,
+        experience: draft.workExperience,
+        headline: draft.headline,
+        location: draft.location,
+        language: draft.language,
+        bio: draft.bioSummary,
+        phone: draft.phone,
+        linkedin: draft.linkedIn,
+        fullName: draft.fullName,
+        email: draft.email,
+      });
+      
+      // Update global auth context so the header and sidebar reflect the new name and email
+      if (updateAuthUser) {
+        updateAuthUser({
+          fullName: draft.fullName,
+          email: draft.email
+        });
+      }
+
+      setProfile(draft);
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert(error.response?.data?.message || 'Failed to update profile. Please try again.');
+    }
   };
 
   const handleCVUpload = async (e) => {
@@ -265,6 +319,14 @@ function CandidateProfilePage({ initialMode = 'view' }) {
       
       setDraft((prev) => ({
         ...prev,
+        fullName: extracted.name || prev.fullName,
+        email: extracted.email || prev.email,
+        phone: extracted.phone || prev.phone,
+        headline: extracted.headline || prev.headline,
+        location: extracted.location || prev.location,
+        linkedIn: extracted.linkedin || prev.linkedIn,
+        language: extracted.language || prev.language,
+        bioSummary: extracted.bio || prev.bioSummary,
         skills: extracted.skills && extracted.skills.length > 0 ? extracted.skills : prev.skills,
         workExperience: extracted.experience && extracted.experience.length > 0 ? extracted.experience : prev.workExperience,
         education: extracted.education && extracted.education.length > 0 ? extracted.education : prev.education,
@@ -274,6 +336,13 @@ function CandidateProfilePage({ initialMode = 'view' }) {
           note: `Size: ${Math.round(file.size / 1024)} KB`
         }
       }));
+
+      // Also upload and save this CV to the candidate's account permanently as active CV
+      try {
+        await uploadCandidateCV(file, true);
+      } catch (uploadErr) {
+        console.error('Failed to save CV permanently:', uploadErr);
+      }
 
       alert('CV data extracted successfully! Please review the auto-filled fields.');
     } catch (error) {

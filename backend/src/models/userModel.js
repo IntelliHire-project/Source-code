@@ -85,6 +85,18 @@ const updatePassword = async (userId, newPasswordHash) => {
   );
 };
 
+const updateUser = async (userId, fullName, email) => {
+  const result = await db.query(
+    `UPDATE users
+     SET full_name = COALESCE($1, full_name),
+         email = COALESCE($2, email)
+     WHERE id = $3
+     RETURNING id, full_name, email, role, created_at`,
+    [fullName, email, userId]
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   createUser,
   findUserByEmail,
@@ -92,4 +104,5 @@ module.exports = {
   findAllUsers,
   markEmailVerified,
   updatePassword,
+  updateUser,
 };
