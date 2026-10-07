@@ -65,12 +65,9 @@ const addCandidateCV = async (
  */
 const findCandidateByUserId = async (userId) => {
   const candidateResult = await db.query(
-    `SELECT c.id, c.user_id, c.phone, c.skills, c.education, c.experience, 
-            c.headline, c.location, c.language, c.bio, c.created_at, c.updated_at,
-            u.full_name as name, u.email
-     FROM candidates c
-     JOIN users u ON c.user_id = u.id
-     WHERE c.user_id = $1`,
+    `SELECT id, user_id, phone, skills, education, experience, headline, location, language, bio, created_at, updated_at
+     FROM candidates
+     WHERE user_id = $1`,
     [userId]
   );
 
@@ -228,50 +225,32 @@ const deleteCV = async (candidateId, cvId) => {
   }
 };
 
-const updateCandidateProfileData = async (candidateId, profileData, userId) => {
-  const { skills, education, experience, headline, location, language, bio, phone, fullName, email } = profileData;
-  const client = await db.connect();
-  try {
-    await client.query('BEGIN');
-
-    // Update users table if fullName or email is provided
-    if (userId && (fullName || email)) {
-      await client.query(
-        `UPDATE users 
-         SET full_name = COALESCE($1, full_name), 
-             email = COALESCE($2, email)
-         WHERE id = $3`,
-        [fullName || null, email || null, userId]
-      );
-    }
-
-    const result = await client.query(
-      `UPDATE candidates
-       SET skills = $1, education = $2, experience = $3, 
-           headline = $4, location = $5, language = $6, bio = $7, phone = $8, updated_at = NOW()
-       WHERE id = $9
-       RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, created_at, updated_at`,
-      [
-        JSON.stringify(skills || []),
-        JSON.stringify(education || []),
-        JSON.stringify(experience || []),
-        headline || null,
-        location || null,
-        language || null,
-        bio || null,
-        phone || null,
-        candidateId
-      ]
-    );
-
-    await client.query('COMMIT');
-    return result.rows[0] || null;
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+/**
+ * Updates candidate profile data (skills, education, experience, headline, location, language, bio)
+ * @param {number} candidateId 
+ * @param {object} profileData 
+ * @returns {Promise<object|null>} Updated candidate record
+ */
+const updateCandidateProfileData = async (candidateId, profileData) => {
+  const { skills, education, experience, headline, location, language, bio } = profileData;
+  const result = await db.query(
+    `UPDATE candidates
+     SET skills = $1, education = $2, experience = $3, 
+         headline = $4, location = $5, language = $6, bio = $7, updated_at = NOW()
+     WHERE id = $8
+     RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, created_at, updated_at`,
+    [
+      JSON.stringify(skills || []),
+      JSON.stringify(education || []),
+      JSON.stringify(experience || []),
+      headline || null,
+      location || null,
+      language || null,
+      bio || null,
+      candidateId
+    ]
+  );
+  return result.rows[0] || null;
 };
 
 module.exports = {

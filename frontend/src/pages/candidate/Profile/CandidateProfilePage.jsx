@@ -164,7 +164,6 @@ function CandidateProfilePage({ initialMode = 'view' }) {
           const mergedProfile = {
             ...getInitialProfile(user),
             fullName: candidateData.name || user.name || '',
-            email: candidateData.email || user.email || '',
             phone: candidateData.phone || '',
             headline: candidateData.headline || '',
             location: candidateData.location || '',
@@ -277,17 +276,13 @@ function CandidateProfilePage({ initialMode = 'view' }) {
         location: draft.location,
         language: draft.language,
         bio: draft.bioSummary,
-        phone: draft.phone,
-        fullName: draft.fullName,
-        email: draft.email,
       });
       setProfile(draft);
       setIsEditing(false);
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update profile:', error);
-      const message = error.response?.data?.message || 'Failed to update profile. Please try again.';
-      alert(message);
+      alert('Failed to update profile. Please try again.');
     }
   };
 
@@ -304,24 +299,20 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     try {
       setIsUploading(true);
       const res = await uploadCV(file);
-      const extracted = res.data || res;
-      
-      if (!extracted) {
-        throw new Error('Failed to extract data from CV.');
-      }
+      const extracted = res;
       
       setDraft((prev) => ({
         ...prev,
-        fullName: extracted?.name || prev.fullName,
-        email: extracted?.email || prev.email,
-        phone: extracted?.phone || prev.phone,
-        headline: extracted?.headline || prev.headline,
-        location: extracted?.location || prev.location,
-        language: extracted?.language || prev.language,
-        bioSummary: extracted?.bio || prev.bioSummary,
-        skills: extracted?.skills?.length > 0 ? extracted.skills : prev.skills,
-        workExperience: extracted?.experience?.length > 0 ? extracted.experience : prev.workExperience,
-        education: extracted?.education?.length > 0 ? extracted.education : prev.education,
+        fullName: extracted.name || prev.fullName,
+        email: extracted.email || prev.email,
+        phone: extracted.phone || prev.phone,
+        headline: extracted.headline || prev.headline,
+        location: extracted.location || prev.location,
+        language: extracted.language || prev.language,
+        bioSummary: extracted.bio || prev.bioSummary,
+        skills: extracted.skills && extracted.skills.length > 0 ? extracted.skills : prev.skills,
+        workExperience: extracted.experience && extracted.experience.length > 0 ? extracted.experience : prev.workExperience,
+        education: extracted.education && extracted.education.length > 0 ? extracted.education : prev.education,
         cv: {
           name: file.name,
           meta: `Uploaded on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,

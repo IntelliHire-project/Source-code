@@ -98,66 +98,7 @@ const createAccount = async (req, res, next) => {
     let recruiterProfile = null;
 
     if (requestedRole === "candidate") {
-      let nlpData = null;
-      if (req.file) {
-        try {
-          const pdf = require('pdf-parse');
-          const { extractCVData } = require('../services/nlpService');
-          const pdfData = await pdf(req.file.buffer);
-          if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
-            nlpData = await extractCVData(pdfData.text);
-          }
-        } catch (nlpError) {
-          console.error("Signup NLP Extraction Error:", nlpError);
-          // Proceed without NLP data if extraction fails
-        }
-      }
-
       candidateProfile = await candidateModel.createCandidate(createdUser.id, phone, client);
-      
-      if (nlpData) {
-        // Prepare data to save
-        const profileData = {
-          skills: nlpData.skills || [],
-          education: (nlpData.education || []).map((edu, index) => ({
-            ...edu,
-            id: `edu-${Date.now()}-${index}`
-          })),
-          experience: (nlpData.experience || []).map((exp, index) => ({
-            ...exp,
-            id: `exp-${Date.now()}-${index}`
-          })),
-          headline: nlpData.headline || null,
-          location: nlpData.location || null,
-          language: nlpData.language || null,
-          bio: nlpData.bio || null,
-          phone: phone || nlpData.phone || null,
-          fullName: fullName,
-          email: emailAddress
-        };
-        // We do not use the client-based update here as updateCandidateProfileData opens a new pool.
-        // To be safe within the transaction, we must use the client. Let's execute the raw update.
-        await client.query(
-          `UPDATE candidates
-           SET skills = $1, education = $2, experience = $3, 
-               headline = $4, location = $5, language = $6, bio = $7, phone = $8, updated_at = NOW()
-           WHERE id = $9`,
-          [
-            JSON.stringify(profileData.skills),
-            JSON.stringify(profileData.education),
-            JSON.stringify(profileData.experience),
-            profileData.headline,
-            profileData.location,
-            profileData.language,
-            profileData.bio,
-            profileData.phone,
-            candidateProfile.id
-          ]
-        );
-        
-        candidateProfile = { ...candidateProfile, ...profileData };
-      }
-
       if (uploadedCv) {
         const cvRecord = await candidateModel.addCandidateCV(
           candidateProfile.id,

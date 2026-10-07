@@ -11,7 +11,7 @@ const updateProfile = async (req, res) => {
       return errorResponse(res, "Candidate profile not found.", 404);
     }
 
-    const updatedProfile = await updateCandidateProfileData(candidate.id, profileData, userId);
+    const updatedProfile = await updateCandidateProfileData(candidate.id, profileData);
     if (!updatedProfile) {
       return errorResponse(res, "Failed to update profile.", 500);
     }
@@ -19,9 +19,6 @@ const updateProfile = async (req, res) => {
     return successResponse(res, "Profile updated successfully.", updatedProfile);
   } catch (error) {
     console.error("Error updating candidate profile:", error);
-    if (error.code === '23505' && error.constraint === 'users_email_key') {
-      return errorResponse(res, "The email address extracted from the CV is already registered to another account. Please use your original email.", 400);
-    }
     return errorResponse(res, "An error occurred while updating the profile.", 500);
   }
 };
