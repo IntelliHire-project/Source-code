@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   Download,
   FileText,
-  Replace,
   Trash2,
   Upload,
   AlertCircle,
@@ -15,7 +14,6 @@ import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import {
   getCandidateCVs,
   uploadCandidateCV,
-  replaceCandidateCV,
   setActiveCandidateCV,
   downloadCandidateCV,
   deleteCandidateCV,
@@ -47,7 +45,6 @@ function CvManagementPage() {
   const [documents, setDocuments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [replacingDocId, setReplacingDocId] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -123,16 +120,7 @@ function CvManagementPage() {
     }
   }
 
-  function handleReplace(id) {
-    setReplacingDocId(id);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-      fileInputRef.current.click();
-    }
-  }
-
   function handleUploadNew() {
-    setReplacingDocId(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
@@ -197,40 +185,23 @@ function CvManagementPage() {
       setIsUploading(true);
       setFeedback(null);
 
-      if (replacingDocId) {
-        // Replacing existing CV
-        const res = await replaceCandidateCV(replacingDocId, file);
-        const updated = res?.cv || res?.data?.cv || res?.data;
-        if (updated && updated.id) {
-          const formatted = formatDoc(updated);
-          setDocuments((prev) =>
-            prev.map((d) => (d.id === replacingDocId ? formatted : d))
-          );
-        }
-        await fetchDocuments();
-        setFeedback({
-          type: 'success',
-          message: `CV "${file.name}" replaced successfully.`,
-        });
-      } else {
-        // Uploading new CV
-        const res = await uploadCandidateCV(file, true);
-        const newCv = res?.cv || res?.data?.cv || res?.data;
-        if (newCv && newCv.id) {
-          const formatted = formatDoc(newCv);
-          setDocuments((prev) => [
-            formatted,
-            ...prev.map((d) => ({ ...d, status: 'archived' })),
-          ]);
-        }
-        await fetchDocuments();
-        setFeedback({
-          type: 'success',
-          message: `CV "${file.name}" uploaded and set as active document.`,
-        });
+      // Uploading new CV (automatically becomes active, archiving previous)
+      const res = await uploadCandidateCV(file, true);
+      const newCv = res?.cv || res?.data?.cv || res?.data;
+      if (newCv && newCv.id) {
+        const formatted = formatDoc(newCv);
+        setDocuments((prev) => [
+          formatted,
+          ...prev.map((d) => ({ ...d, status: 'archived' })),
+        ]);
       }
+      await fetchDocuments();
+      setFeedback({
+        type: 'success',
+        message: `CV "${file.name}" uploaded successfully and set as active document. Previous CV moved to history.`,
+      });
     } catch (err) {
-      console.error('Error uploading/replacing CV:', err);
+      console.error('Error uploading CV:', err);
       const errorMsg =
         err.response?.data?.message || 'Failed to upload CV. Please try again.';
       setFeedback({
@@ -239,7 +210,6 @@ function CvManagementPage() {
       });
     } finally {
       setIsUploading(false);
-      setReplacingDocId(null);
       if (e.target) e.target.value = '';
     }
   }
@@ -376,13 +346,11 @@ function CvManagementPage() {
                 <button
                   type="button"
                   className="candidate-btn candidate-btn--accent"
-                  onClick={() => handleReplace(activeDoc.id)}
+                  onClick={handleUploadNew}
                   disabled={isUploading}
                 >
-                  <Replace size={14} />
-                  {isUploading && replacingDocId === activeDoc.id
-                    ? 'Replacing...'
-                    : 'Replace'}
+                  <Upload size={14} />
+                  {isUploading ? 'Uploading...' : 'Upload New CV'}
                 </button>
               </div>
             </section>
@@ -407,7 +375,7 @@ function CvManagementPage() {
                 disabled={isUploading}
               >
                 <Upload size={14} />
-                {isUploading && !replacingDocId ? 'Uploading...' : 'Upload New CV'}
+                {isUploading ? 'Uploading...' : 'Upload New CV'}
               </button>
             </div>
           </header>
