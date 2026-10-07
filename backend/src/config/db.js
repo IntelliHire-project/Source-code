@@ -170,9 +170,36 @@ const initializeDatabase = async () => {
         company_name TEXT NOT NULL,
         industry TEXT NOT NULL,
         approval_status TEXT NOT NULL DEFAULT 'pending',
+        company_website TEXT,
+        company_reg_number TEXT,
+        company_location TEXT,
+        company_linkedin TEXT,
+        job_title TEXT,
+        phone_number TEXT,
+        linkedin_url TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Add new columns to existing recruiters table if they don't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'recruiters' AND column_name = 'company_website'
+        ) THEN
+          ALTER TABLE recruiters ADD COLUMN company_website TEXT;
+          ALTER TABLE recruiters ADD COLUMN company_reg_number TEXT;
+          ALTER TABLE recruiters ADD COLUMN company_location TEXT;
+          ALTER TABLE recruiters ADD COLUMN company_linkedin TEXT;
+          ALTER TABLE recruiters ADD COLUMN job_title TEXT;
+          ALTER TABLE recruiters ADD COLUMN phone_number TEXT;
+          ALTER TABLE recruiters ADD COLUMN linkedin_url TEXT;
+        END IF;
+      END $$;
     `);
 
     // Create indices for fast lookups
