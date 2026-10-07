@@ -133,7 +133,7 @@ export const getCandidateCVs = async () => {
 
 /**
  * Uploads a new CV file for the candidate.
- * @param {File} file - The PDF or DOCX file
+ * @param {File} file - The PDF file
  * @param {boolean} [setActive=true] - Whether to activate this CV
  */
 export const uploadCandidateCV = async (file, setActive = true) => {
@@ -155,6 +155,34 @@ export const uploadCandidateCV = async (file, setActive = true) => {
  */
 export const setActiveCandidateCV = async (cvId) => {
   const response = await apiInstance.put(`/auth/candidate/cvs/${cvId}/active`);
+  return response.data;
+};
+
+/**
+ * Replaces an existing candidate CV with a new file.
+ * @param {number} cvId
+ * @param {File} file
+ */
+export const replaceCandidateCV = async (cvId, file) => {
+  const formData = new FormData();
+  formData.append('cv', file);
+
+  const response = await apiInstance.put(`/auth/candidate/cvs/${cvId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+/**
+ * Downloads a candidate CV directly from backend as blob.
+ * @param {number} cvId
+ */
+export const downloadCandidateCV = async (cvId) => {
+  const response = await apiInstance.get(`/auth/candidate/cvs/${cvId}/download`, {
+    responseType: 'blob',
+  });
   return response.data;
 };
 

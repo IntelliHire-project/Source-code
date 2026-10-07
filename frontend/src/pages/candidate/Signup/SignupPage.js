@@ -64,8 +64,13 @@ function SignupPage() {
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      const validTypes = ['.pdf', '.doc', '.docx'];
       const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+      if (fileExt !== '.pdf' && file.type !== 'application/pdf') {
+        setStatusType('error');
+        setStatusMessage('Invalid file format. Only PDF files are allowed.');
+        return;
+      }
 
       if (file.size > 5 * 1024 * 1024) {
         setStatusType('error');
@@ -81,6 +86,14 @@ function SignupPage() {
   const handleFileSelect = e => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+      if (fileExt !== '.pdf' && file.type !== 'application/pdf') {
+        setStatusType('error');
+        setStatusMessage('Invalid file format. Only PDF files are allowed.');
+        return;
+      }
+
       if (file.size > 5 * 1024 * 1024) {
         setStatusType('error');
         setStatusMessage('File size exceeds the 5MB limit.');
@@ -465,7 +478,7 @@ function SignupPage() {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileSelect}
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,application/pdf"
                   style={{ display: 'none' }}
                 />
 
@@ -484,7 +497,7 @@ function SignupPage() {
                       <line x1="12" x2="12" y1="3" y2="15" />
                     </svg>
                     <p className="auth-upload-title">Drag & drop your CV here</p>
-                    <p className="auth-upload-subtitle">PDF, DOC, DOCX up to 5MB</p>
+                    <p className="auth-upload-subtitle">PDF up to 5MB</p>
                   </div>
                 ) : (
                   <div className="auth-file-selected">

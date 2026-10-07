@@ -1,3 +1,5 @@
+const path = require("path");
+const fs = require("fs");
 const pool = require("../config/db");
 const userModel = require("../models/userModel");
 const candidateModel = require("../models/candidateModel");
@@ -314,11 +316,11 @@ const getCandidateCVs = async (req, res, next) => {
   try {
     const candidate = await candidateModel.findCandidateByUserId(req.user.id);
     if (!candidate) {
-      return errorResponse(res, "Candidate profile not found.", 404);
+      return successResponse(res, "CVs retrieved successfully.", { cvs: [] });
     }
 
     const cvs = await candidateModel.findCandidateCVs(candidate.id);
-    return successResponse(res, "CVs retrieved successfully.", { cvs });
+    return successResponse(res, "CVs retrieved successfully.", { cvs: cvs || [] });
   } catch (error) {
     next(error);
   }
@@ -339,22 +341,107 @@ const uploadCandidateCV = async (req, res, next) => {
       candidate = await candidateModel.createCandidate(req.user.id);
     }
 
-    const makeActive = req.body.setActive === "true" || req.body.setActive === true || true;
+    const makeActive = req.body.setActive === "false" ? false : true;
 
     const uploadResult = await cloudinaryService.uploadBuffer(
       req.file.buffer,
       req.file.originalname
     );
 
+    const fileSizeFormatted = req.file.size
+      ? `${Math.round(req.file.size / 1024)} KB`
+      : null;
+
     const cv = await candidateModel.addCandidateCV(
       candidate.id,
       req.file.originalname,
       uploadResult.secure_url,
       uploadResult.public_id,
-      makeActive
+      makeActive,
+      null,
+      fileSizeFormatted
     );
 
+    // Save a local copy for direct, fast, reliable downloads
+    try {
+      const cvsDir = path.join(__dirname, "../../uploads/cvs");
+      if (!fs.existsSync(cvsDir)) {
+        fs.mkdirSync(cvsDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(cvsDir, `${cv.id}.pdf`), req.file.buffer);
+    } catch (saveErr) {
+      console.error("Local CV save warning:", saveErr);
+    }
+
     return successResponse(res, "CV uploaded successfully.", { cv }, 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Replaces an existing CV file for the candidate.
+ */
+const replaceCandidateCV = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    if (!req.file) {
+      return errorResponse(res, "Please select a replacement CV file to upload.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    const oldCv = await candidateModel.findCVById(cvId, candidate.id);
+    if (!oldCv) {
+      return errorResponse(res, "CV not found.", 404);
+    }
+
+    const uploadResult = await cloudinaryService.uploadBuffer(
+      req.file.buffer,
+      req.file.originalname
+    );
+
+    const fileSizeFormatted = req.file.size
+      ? `${Math.round(req.file.size / 1024)} KB`
+      : null;
+
+    const updatedCv = await candidateModel.updateCV(
+      candidate.id,
+      cvId,
+      req.file.originalname,
+      uploadResult.secure_url,
+      uploadResult.public_id,
+      fileSizeFormatted
+    );
+
+    // Save local copy
+    try {
+      const cvsDir = path.join(__dirname, "../../uploads/cvs");
+      if (!fs.existsSync(cvsDir)) {
+        fs.mkdirSync(cvsDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(cvsDir, `${cvId}.pdf`), req.file.buffer);
+    } catch (saveErr) {
+      console.error("Local CV replace warning:", saveErr);
+    }
+
+    // Clean up old Cloudinary asset
+    if (oldCv.cv_public_id) {
+      try {
+        await cloudinaryService.deleteFile(oldCv.cv_public_id);
+      } catch (err) {
+        console.error("Cloudinary cleanup error during replace:", err);
+      }
+    }
+
+    return successResponse(res, "CV replaced successfully.", { cv: updatedCv });
   } catch (error) {
     next(error);
   }
@@ -387,6 +474,44 @@ const setActiveCandidateCV = async (req, res, next) => {
 };
 
 /**
+ * Downloads candidate CV directly as an authentic PDF binary stream.
+ */
+const downloadCandidateCV = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    const cv = await candidateModel.findCVById(cvId, candidate.id);
+    if (!cv) {
+      return errorResponse(res, "CV not found.", 404);
+    }
+
+    const cvsDir = path.join(__dirname, "../../uploads/cvs");
+    const localPath = path.join(cvsDir, `${cvId}.pdf`);
+
+    if (fs.existsSync(localPath)) {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${encodeURIComponent(cv.cv_name)}"`
+      );
+      return fs.createReadStream(localPath).pipe(res);
+    }
+
+    return errorResponse(res, "CV document file is not found on server.", 404);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Deletes a CV belonging to the candidate.
  */
 const deleteCandidateCV = async (req, res, next) => {
@@ -408,6 +533,16 @@ const deleteCandidateCV = async (req, res, next) => {
 
     // Delete from database
     await candidateModel.deleteCV(candidate.id, cvId);
+
+    // Delete local copy if exists
+    try {
+      const localPath = path.join(__dirname, "../../uploads/cvs", `${cvId}.pdf`);
+      if (fs.existsSync(localPath)) {
+        fs.unlinkSync(localPath);
+      }
+    } catch (e) {
+      console.error("Local CV delete error:", e);
+    }
 
     // Delete from Cloudinary
     if (cv.cv_public_id) {
@@ -435,6 +570,8 @@ module.exports = {
   changePassword,
   getCandidateCVs,
   uploadCandidateCV,
+  replaceCandidateCV,
   setActiveCandidateCV,
+  downloadCandidateCV,
   deleteCandidateCV,
 };

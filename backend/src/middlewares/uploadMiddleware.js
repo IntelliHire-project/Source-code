@@ -3,22 +3,21 @@ const multer = require("multer");
 // Use in-memory buffer storage so files can be directly streamed to Cloudinary
 const storage = multer.memoryStorage();
 
-// Allowed file extensions and MIME types for CV documents
+// Allowed file extensions and MIME types for CV documents (PDF only)
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/octet-stream", // Fallback for some browsers on doc/docx
+  "application/x-pdf",
+  "application/octet-stream", // Fallback for some browsers on PDF
 ];
 
 const fileFilter = (req, file, cb) => {
   const ext = file.originalname.substring(file.originalname.lastIndexOf(".")).toLowerCase();
-  const validExtensions = [".pdf", ".doc", ".docx"];
+  const validExtensions = [".pdf"];
 
-  if (validExtensions.includes(ext) || ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+  if (validExtensions.includes(ext) && (ALLOWED_MIME_TYPES.includes(file.mimetype) || file.mimetype === "application/pdf")) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file format. Only PDF, DOC, and DOCX files are allowed."), false);
+    cb(new Error("Invalid file format. Only PDF files are allowed."), false);
   }
 };
 

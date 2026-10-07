@@ -109,8 +109,22 @@ const initializeDatabase = async () => {
         cv_url TEXT NOT NULL,
         cv_public_id TEXT,
         is_active BOOLEAN NOT NULL DEFAULT true,
+        file_size TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'candidate_cvs' AND column_name = 'file_size'
+        ) THEN
+          ALTER TABLE candidate_cvs ADD COLUMN file_size TEXT;
+        END IF;
+      END $$;
     `);
 
     // Create recruiters profile table

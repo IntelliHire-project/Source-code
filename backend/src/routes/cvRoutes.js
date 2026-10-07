@@ -24,7 +24,20 @@ const storage = multer.diskStorage({
     cb(null, file.fieldname + '-' + uniqueSuffix + '.pdf');
   }
 });
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.pdf' && (file.mimetype === 'application/pdf' || file.mimetype === 'application/octet-stream')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file format. Only PDF files are allowed.'), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 router.post('/upload', authMiddleware, roleMiddleware('candidate'), upload.single('cv'), uploadCV);
 
