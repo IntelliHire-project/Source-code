@@ -69,9 +69,10 @@ const findUserById = async (id) => {
  */
 const findAllUsers = async () => {
   const result = await db.query(
-    `SELECT id, full_name, email, role, created_at
-     FROM users
-     ORDER BY created_at DESC`
+    `SELECT u.id, u.full_name, u.email, u.role, u.created_at, r.approval_status AS recruiter_status, r.company_name, r.industry
+     FROM users u
+     LEFT JOIN recruiters r ON u.id = r.user_id
+     ORDER BY u.created_at DESC`
   );
   return result.rows;
 };
