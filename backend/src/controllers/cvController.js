@@ -1,6 +1,6 @@
 const fs = require('fs');
 const pdf = require('pdf-parse');
-const { extractCVData } = require('../services/geminiService');
+const { extractCVData } = require('../services/nlpService');
 const { findUserById } = require('../models/userModel');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -47,13 +47,20 @@ const uploadCV = async (req, res) => {
     console.log(cvText.substring(0, 500) + "\n... [Truncated for logs]");
     console.log("--------------------------------------------\n");
 
-    // Extract skills, experience, and education using Gemini
+    // Extract skills, experience, and education using NLP service
     const extractedData = await extractCVData(cvText);
 
     // Remove the temporary file
     fs.unlinkSync(file.path);
 
     return successResponse(res, "CV processed successfully.", {
+      name: extractedData.name || null,
+      email: extractedData.email || null,
+      phone: extractedData.phone || null,
+      location: extractedData.location || null,
+      headline: extractedData.headline || null,
+      bio: extractedData.bio || null,
+      language: extractedData.language || null,
       skills: extractedData.skills || [],
       experience: (extractedData.experience || []).map((exp, index) => ({
         ...exp,

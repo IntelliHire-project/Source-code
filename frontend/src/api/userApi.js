@@ -19,3 +19,13 @@ export const uploadCV = async (file) => {
   const response = await apiInstance.post('/cv/upload', formData);
   return response.data;
 };
+
+export const getCandidateProfile = async () => {
+  const response = await apiInstance.get('/candidate/profile');
+  return response.data;
+};
+
+export const updateCandidateProfile = async (profileData) => {
+  const response = await apiInstance.put('/candidate/profile', profileData);
+  return response.data;
+};

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
-import { uploadCV } from '../../../api/userApi';
+import { uploadCV, getCandidateProfile, updateCandidateProfile } from '../../../api/userApi';
 
 const getInitialProfile = (user) => {
   const hasCV = Boolean(user?.cv);
@@ -155,12 +155,36 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     setPageLabel(pageLabel);
   }, [pageLabel, setPageLabel]);
 
-  // Update profile if user context changes (e.g. login updates)
   useEffect(() => {
-    if (user) {
-      setProfile(getInitialProfile(user));
-      setDraft(getInitialProfile(user));
-    }
+    const fetchProfile = async () => {
+      if (user) {
+        try {
+          const res = await getCandidateProfile();
+          const candidateData = res.data;
+          const mergedProfile = {
+            ...getInitialProfile(user),
+            fullName: candidateData.name || user.name || '',
+            email: candidateData.email || user.email || '',
+            phone: candidateData.phone || '',
+            headline: candidateData.headline || '',
+            location: candidateData.location || '',
+            language: candidateData.language || '',
+            bioSummary: candidateData.bio || '',
+            skills: candidateData.skills || [],
+            education: candidateData.education || [],
+            workExperience: candidateData.experience || [],
+          };
+          setProfile(mergedProfile);
+          setDraft(mergedProfile);
+        } catch (error) {
+          console.error("Failed to fetch candidate profile:", error);
+          const initial = getInitialProfile(user);
+          setProfile(initial);
+          setDraft(initial);
+        }
+      }
+    };
+    fetchProfile();
   }, [user]);
 
   const setDraftValue = (field) => (event) => {
@@ -243,9 +267,28 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     setIsEditing(false);
   };
 
-  const handleSave = () => {
-    setProfile(draft);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      await updateCandidateProfile({
+        skills: draft.skills,
+        education: draft.education,
+        experience: draft.workExperience,
+        headline: draft.headline,
+        location: draft.location,
+        language: draft.language,
+        bio: draft.bioSummary,
+        phone: draft.phone,
+        fullName: draft.fullName,
+        email: draft.email,
+      });
+      setProfile(draft);
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      const message = error.response?.data?.message || 'Failed to update profile. Please try again.';
+      alert(message);
+    }
   };
 
   const handleCVUpload = async (e) => {
@@ -261,13 +304,24 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     try {
       setIsUploading(true);
       const res = await uploadCV(file);
-      const extracted = res;
+      const extracted = res.data || res;
+      
+      if (!extracted) {
+        throw new Error('Failed to extract data from CV.');
+      }
       
       setDraft((prev) => ({
         ...prev,
-        skills: extracted.skills && extracted.skills.length > 0 ? extracted.skills : prev.skills,
-        workExperience: extracted.experience && extracted.experience.length > 0 ? extracted.experience : prev.workExperience,
-        education: extracted.education && extracted.education.length > 0 ? extracted.education : prev.education,
+        fullName: extracted?.name || prev.fullName,
+        email: extracted?.email || prev.email,
+        phone: extracted?.phone || prev.phone,
+        headline: extracted?.headline || prev.headline,
+        location: extracted?.location || prev.location,
+        language: extracted?.language || prev.language,
+        bioSummary: extracted?.bio || prev.bioSummary,
+        skills: extracted?.skills?.length > 0 ? extracted.skills : prev.skills,
+        workExperience: extracted?.experience?.length > 0 ? extracted.experience : prev.workExperience,
+        education: extracted?.education?.length > 0 ? extracted.education : prev.education,
         cv: {
           name: file.name,
           meta: `Uploaded on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,

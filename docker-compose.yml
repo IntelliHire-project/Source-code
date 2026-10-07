@@ -25,6 +25,11 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "8080:80"
+  nlp:
+    build:
+      context: ./nlp
+    ports:
+      - "5001:5001"
   api:
     build:
       context: ./backend
