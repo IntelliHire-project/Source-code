@@ -1,7 +1,7 @@
 const fs = require('fs');
 const pdf = require('pdf-parse');
 const { extractCVData } = require('../services/geminiService');
-const { updateCandidateProfile, findUserById } = require('../models/userModel');
+const { findUserById } = require('../models/userModel');
 const { successResponse, errorResponse } = require('../utils/response');
 
 const uploadCV = async (req, res) => {

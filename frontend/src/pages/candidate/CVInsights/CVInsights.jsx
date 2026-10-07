@@ -111,7 +111,7 @@ const MOCK_AI_RESPONSES = [
   },
   {
     keywords: ['ATS', 'ats', 'parse', 'scanner', 'filter'],
-    text: 'To improve ATS compatibility: (1) Use standard section headings (Experience, Education, Skills). (2) Avoid tables, columns, or graphics the parser may skip. (3) Spell out acronyms at least once (e.g., "CI/CD (Continuous Integration/Continuous Deployment)"). (4) Use .docx or PDF format as the job post recommends.',
+    text: 'To improve ATS compatibility: (1) Use standard section headings (Experience, Education, Skills). (2) Avoid tables, columns, or graphics the parser may skip. (3) Spell out acronyms at least once (e.g., "CI/CD (Continuous Integration/Continuous Deployment)"). (4) Use standard PDF format.',
   },
 ];
 
@@ -382,6 +382,14 @@ function CVInsights() {
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (fileExt !== '.pdf' && file.type !== 'application/pdf') {
+      alert('Only PDF files are supported.');
+      e.target.value = '';
+      return;
+    }
+
     const newCv = {
       id: Date.now(),
       filename: file.name.replace(/\.[^.]+$/, '').toUpperCase(),
@@ -472,7 +480,7 @@ function CVInsights() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.docx,.txt"
+          accept=".pdf,application/pdf"
           className="cv-insights__file-input"
           onChange={handleFileChange}
         />
