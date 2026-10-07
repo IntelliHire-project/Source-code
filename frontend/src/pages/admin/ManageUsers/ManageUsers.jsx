@@ -75,6 +75,8 @@ function ManageUsers() {
             jobTitle: u.job_title || 'N/A',
             phoneNumber: u.phone_number || 'N/A',
             linkedinUrl: u.linkedin_url || 'N/A',
+            statusDate: u.recruiter_updated_at ? new Date(u.recruiter_updated_at).toLocaleString() : '',
+            recruiterStatus: u.recruiter_status || 'pending',
           }));
           setUsers(mapped);
           setUsersError('');
@@ -624,7 +626,17 @@ function ManageUsers() {
                           </span>
                         </td>
                         <td className="admin-table__date-text">{user.createdDate}</td>
-                        <td className="admin-table__actions-cell text-right">
+                        <td className="admin-table__actions-cell text-right" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          {user.role === 'Recruiter' && (
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleViewRecruiter(user)}
+                              title="View Recruiter Info"
+                              style={{ color: '#6B8CFF' }}
+                            >
+                              <Eye size={16} />
+                            </button>
+                          )}
                           <button
                             className="admin-table__action-btn"
                             onClick={() => handleOpenEditModal(user)}
@@ -985,6 +997,14 @@ function ManageUsers() {
                   <span style={{ color: 'var(--admin-text-light)' }}>Registered On</span>
                   <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.createdDate}</strong>
                 </div>
+                {viewUser.recruiterStatus !== 'pending' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--admin-border-light)', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--admin-text-light)' }}>
+                      {viewUser.recruiterStatus === 'approved' ? 'Approved On' : 'Rejected On'}
+                    </span>
+                    <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.statusDate}</strong>
+                  </div>
+                )}
               </div>
             </div>
 
