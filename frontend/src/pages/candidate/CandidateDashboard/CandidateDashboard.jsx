@@ -13,7 +13,7 @@ function CandidateDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pageLabel, setPageLabel] = useState('CANDIDATE PROFILE');
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateAuthUser } = useAuth();
 
   // Map the auth user to the expected shape, with fallbacks for UI
   const candidateUser = {
@@ -23,7 +23,7 @@ function CandidateDashboard() {
   };
 
   return (
-    <CandidatePageContext.Provider value={{ setPageLabel, user: candidateUser }}>
+    <CandidatePageContext.Provider value={{ setPageLabel, user: candidateUser, updateAuthUser }}>
       <div className="admin-theme candidate-dashboard">
         <CandidateSidebar
           isOpen={sidebarOpen}

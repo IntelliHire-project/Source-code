@@ -125,6 +125,13 @@ const initializeDatabase = async () => {
           ALTER TABLE candidates ADD COLUMN language TEXT;
           ALTER TABLE candidates ADD COLUMN bio TEXT;
         END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'candidates' AND column_name = 'linkedin'
+        ) THEN
+          ALTER TABLE candidates ADD COLUMN linkedin TEXT;
+        END IF;
       END $$;
     `);
 

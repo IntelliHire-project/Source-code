@@ -1,4 +1,5 @@
 const { findCandidateByUserId, updateCandidateProfileData } = require('../models/candidateModel');
+const { updateUser, findUserById } = require('../models/userModel');
 const { successResponse, errorResponse } = require('../utils/response');
 
 const updateProfile = async (req, res) => {
@@ -16,6 +17,18 @@ const updateProfile = async (req, res) => {
       return errorResponse(res, "Failed to update profile.", 500);
     }
 
+    if (profileData.fullName || profileData.email) {
+      try {
+        await updateUser(userId, profileData.fullName, profileData.email);
+      } catch (userUpdateErr) {
+        if (userUpdateErr.code === '23505') { // Postgres unique violation
+          return errorResponse(res, "The email extracted from your CV is already in use by another account. Please use a different email.", 400);
+        }
+        throw userUpdateErr;
+      }
+    }
+
+    // optionally, refetch the user to return combined data, but returning updatedProfile is fine as the frontend relies on its own draft for now.
     return successResponse(res, "Profile updated successfully.", updatedProfile);
   } catch (error) {
     console.error("Error updating candidate profile:", error);

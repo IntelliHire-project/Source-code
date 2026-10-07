@@ -96,11 +96,12 @@ const createAccount = async (req, res, next) => {
 
     let candidateProfile = null;
     let recruiterProfile = null;
+    let cvRecord = null;
 
     if (requestedRole === "candidate") {
       candidateProfile = await candidateModel.createCandidate(createdUser.id, phone, client);
       if (uploadedCv) {
-        const cvRecord = await candidateModel.addCandidateCV(
+        cvRecord = await candidateModel.addCandidateCV(
           candidateProfile.id,
           uploadedCv.name,
           uploadedCv.url,
@@ -125,6 +126,42 @@ const createAccount = async (req, res, next) => {
     }
 
     await client.query("COMMIT");
+
+    // Extract CV Data in the background/foreground to populate candidate profile
+    if (requestedRole === "candidate" && req.file && candidateProfile) {
+      try {
+        const pdf = require('pdf-parse');
+        const { extractCVData } = require('../services/nlpService');
+        const pdfData = await pdf(req.file.buffer);
+        if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
+          const extractedData = await extractCVData(pdfData.text);
+          const profileData = {
+            headline: extractedData.headline || null,
+            location: extractedData.location || null,
+            linkedin: extractedData.linkedin || null,
+            language: extractedData.language || null,
+            bio: extractedData.bio || null,
+            skills: extractedData.skills || [],
+            experience: (extractedData.experience || []).map((exp, index) => ({
+              ...exp,
+              id: `exp-${Date.now()}-${index}`
+            })),
+            education: (extractedData.education || []).map((edu, index) => ({
+              ...edu,
+              id: `edu-${Date.now()}-${index}`
+            }))
+          };
+          const updatedProfile = await candidateModel.updateCandidateProfileData(candidateProfile.id, profileData);
+          if (updatedProfile) {
+             updatedProfile.cvs = candidateProfile.cvs;
+             updatedProfile.activeCv = candidateProfile.activeCv;
+             candidateProfile = updatedProfile;
+          }
+        }
+      } catch (err) {
+        console.error("CV extraction during signup failed:", err);
+      }
+    }
 
     return successResponse(
       res,
@@ -362,16 +399,7 @@ const uploadCandidateCV = async (req, res, next) => {
       fileSizeFormatted
     );
 
-    // Save a local copy for direct, fast, reliable downloads
-    try {
-      const cvsDir = path.join(__dirname, "../../uploads/cvs");
-      if (!fs.existsSync(cvsDir)) {
-        fs.mkdirSync(cvsDir, { recursive: true });
-      }
-      fs.writeFileSync(path.join(cvsDir, `${cv.id}.pdf`), req.file.buffer);
-    } catch (saveErr) {
-      console.error("Local CV save warning:", saveErr);
-    }
+    // Removed local file caching
 
     return successResponse(res, "CV uploaded successfully.", { cv }, 201);
   } catch (error) {
@@ -421,16 +449,7 @@ const replaceCandidateCV = async (req, res, next) => {
       fileSizeFormatted
     );
 
-    // Save local copy
-    try {
-      const cvsDir = path.join(__dirname, "../../uploads/cvs");
-      if (!fs.existsSync(cvsDir)) {
-        fs.mkdirSync(cvsDir, { recursive: true });
-      }
-      fs.writeFileSync(path.join(cvsDir, `${cvId}.pdf`), req.file.buffer);
-    } catch (saveErr) {
-      console.error("Local CV replace warning:", saveErr);
-    }
+    // Removed local copy saving
 
     // Clean up old Cloudinary asset
     if (oldCv.cv_public_id) {
@@ -493,19 +512,12 @@ const downloadCandidateCV = async (req, res, next) => {
       return errorResponse(res, "CV not found.", 404);
     }
 
-    const cvsDir = path.join(__dirname, "../../uploads/cvs");
-    const localPath = path.join(cvsDir, `${cvId}.pdf`);
-
-    if (fs.existsSync(localPath)) {
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${encodeURIComponent(cv.cv_name)}"`
-      );
-      return fs.createReadStream(localPath).pipe(res);
+    // Redirect to Cloudinary URL
+    if (cv.cv_url) {
+      return res.redirect(cv.cv_url);
     }
 
-    return errorResponse(res, "CV document file is not found on server.", 404);
+    return errorResponse(res, "CV document URL is not found.", 404);
   } catch (error) {
     next(error);
   }
@@ -534,15 +546,7 @@ const deleteCandidateCV = async (req, res, next) => {
     // Delete from database
     await candidateModel.deleteCV(candidate.id, cvId);
 
-    // Delete local copy if exists
-    try {
-      const localPath = path.join(__dirname, "../../uploads/cvs", `${cvId}.pdf`);
-      if (fs.existsSync(localPath)) {
-        fs.unlinkSync(localPath);
-      }
-    } catch (e) {
-      console.error("Local CV delete error:", e);
-    }
+    // Removed local copy deletion
 
     // Delete from Cloudinary
     if (cv.cv_public_id) {

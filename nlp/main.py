@@ -27,6 +27,10 @@ def extract_cv(cv: CVText):
     email_match = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
     if email_match:
         email = email_match.group(0)
+    else:
+        email_match = re.search(r'[a-zA-Z0-9_.+-]+\s*@\s*[a-zA-Z0-9-]+\s*\.\s*[a-zA-Z0-9-.]+', text)
+        if email_match:
+            email = email_match.group(0).replace(" ", "")
         
     # Extract name (using first PERSON entity found)
     name = None
@@ -34,6 +38,14 @@ def extract_cv(cv: CVText):
         if ent.label_ == "PERSON":
             name = ent.text
             break
+            
+    if not name:
+        # Fallback: assume the first non-empty line with 2-3 words is the name
+        for line in text.split('\n')[:5]:
+            words = line.strip().split()
+            if 1 < len(words) < 5 and not any(char.isdigit() for char in line):
+                name = line.strip().title()
+                break
             
     # Extract skills
     skills = []
@@ -69,10 +81,21 @@ def extract_cv(cv: CVText):
             
         if current_section == "education":
             if len(line) > 5 and len(education) < 3:
+                title = "Degree/Program"
+                title_match = re.search(r'(BSc|Bachelor|MSc|Master|PhD|G\.C\.E|Degree|Diploma|B\.Sc)', line, re.IGNORECASE)
+                if title_match:
+                    start_idx = title_match.start()
+                    title = line[start_idx:start_idx+40].strip()
+                    
+                period = "Unknown"
+                period_match = re.search(r'(20\d{2}.*?[-–to]+.*?(?:20\d{2}|present|current|expected))|(20\d{2})', line, re.IGNORECASE)
+                if period_match:
+                    period = period_match.group(0).strip()
+
                 education.append({
-                    "title": "Degree/Program",
+                    "title": title,
                     "school": line.strip(),
-                    "period": "Unknown"
+                    "period": period
                 })
         elif current_section == "experience":
             if len(line) > 5 and len(experience) < 5:
@@ -93,7 +116,7 @@ def extract_cv(cv: CVText):
 
     # Extract Phone
     phone = None
-    phone_match = re.search(r'\+?\d[\d -]{8,15}\d', text)
+    phone_match = re.search(r'(?:(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})|(?:\+?\d[\d \-\(\)]{8,15}\d)', text)
     if phone_match:
         phone = phone_match.group(0).strip()
         
@@ -103,6 +126,20 @@ def extract_cv(cv: CVText):
         if ent.label_ == "GPE":
             location = ent.text
             break
+    if not location:
+        loc_match = re.search(r'(Colombo|Kandy|Galle|Malabe|Moratuwa|Kelaniya|Jaffna|Matara|Nugegoda|Sri Lanka|SriLanka|USA|UK|London|New York)', text, re.IGNORECASE)
+        if loc_match:
+            location = loc_match.group(0).title()
+
+    # Extract LinkedIn
+    linkedin = None
+    linkedin_match = re.search(r'(?:https?://)?(?:www\.)?linkedin\.com/(?:in/|profile/|pub/)?[a-zA-Z0-9_.-]+/?', text_lower)
+    if linkedin_match:
+        linkedin = linkedin_match.group(0).rstrip('/')
+    else:
+        linkedin_match = re.search(r'linkedin\s*\.\s*com\s*/\s*(?:in|profile|pub)\s*/\s*[a-zA-Z0-9_.-]+/?', text_lower)
+        if linkedin_match:
+            linkedin = linkedin_match.group(0).replace(" ", "").rstrip('/')
 
     # Extract Headline
     headline = None
@@ -110,10 +147,14 @@ def extract_cv(cv: CVText):
     if experience and len(experience) > 0 and experience[0].get("title") != "Professional Role":
         headline = experience[0].get("title")
     else:
-        for line in lines[:10]:
-            if "engineer" in line.lower() or "developer" in line.lower() or "manager" in line.lower():
-                headline = line.strip()
-                break
+        headline_match = re.search(r'(software\s*engineer|developer|data\s*scientist|manager|architect|analyst|full\s*stack|frontend|backend|student|undergraduate|intern|ai\s*enthusiast|computer\s*science)', text_lower)
+        if headline_match:
+            headline = headline_match.group(0).title()
+        else:
+            for line in lines[:10]:
+                if "engineer" in line.lower() or "developer" in line.lower() or "manager" in line.lower():
+                    headline = line.strip()
+                    break
                 
     if 'bio' in locals() and type(bio) == str:
         bio = bio.strip()
@@ -130,6 +171,7 @@ def extract_cv(cv: CVText):
         "email": email,
         "phone": phone,
         "location": location,
+        "linkedin": linkedin,
         "headline": headline,
         "bio": bio,
         "language": language,

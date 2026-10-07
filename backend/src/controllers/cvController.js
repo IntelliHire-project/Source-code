@@ -44,7 +44,7 @@ const uploadCV = async (req, res) => {
     }
 
     console.log("\n--- SUCCESSFULLY EXTRACTED TEXT FROM PDF ---");
-    console.log(cvText.substring(0, 500) + "\n... [Truncated for logs]");
+    console.log(cvText);
     console.log("--------------------------------------------\n");
 
     // Extract skills, experience, and education using NLP service
@@ -59,6 +59,7 @@ const uploadCV = async (req, res) => {
       phone: extractedData.phone || null,
       location: extractedData.location || null,
       headline: extractedData.headline || null,
+      linkedin: extractedData.linkedin || null,
       bio: extractedData.bio || null,
       language: extractedData.language || null,
       skills: extractedData.skills || [],
