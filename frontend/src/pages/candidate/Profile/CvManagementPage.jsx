@@ -365,18 +365,9 @@ function CvManagementPage() {
               </p>
             </div>
             <div className="cv-history-header__right">
-              <p className="cv-history-header__types">
+              <span className="cv-history-header__types">
                 Accepted types: .PDF (Max 5MB)
-              </p>
-              <button
-                type="button"
-                className="candidate-btn candidate-btn--accent"
-                onClick={handleUploadNew}
-                disabled={isUploading}
-              >
-                <Upload size={14} />
-                {isUploading ? 'Uploading...' : 'Upload New CV'}
-              </button>
+              </span>
             </div>
           </header>
 

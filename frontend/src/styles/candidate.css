@@ -1011,7 +1011,7 @@
 
 .cv-history-header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 20px;
@@ -1032,16 +1032,18 @@
 
 .cv-history-header__right {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+  align-items: center;
   flex-shrink: 0;
 }
 
 .cv-history-header__types {
   margin: 0;
   font-size: 0.76rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
 }
 
 /* ── File Table ── */
