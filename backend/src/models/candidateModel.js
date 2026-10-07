@@ -35,7 +35,8 @@ const addCandidateCV = async (
   cvUrl,
   cvPublicId = null,
   isActive = true,
-  client = null
+  client = null,
+  fileSize = null
 ) => {
   const executor = client || db;
 
@@ -49,10 +50,10 @@ const addCandidateCV = async (
   }
 
   const result = await executor.query(
-    `INSERT INTO candidate_cvs (candidate_id, cv_name, cv_url, cv_public_id, is_active, created_at)
-     VALUES ($1, $2, $3, $4, $5, NOW())
-     RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, created_at`,
-    [candidateId, cvName, cvUrl, cvPublicId, isActive]
+    `INSERT INTO candidate_cvs (candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+     RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at`,
+    [candidateId, cvName, cvUrl, cvPublicId, isActive, fileSize]
   );
   return result.rows[0];
 };
@@ -64,9 +65,11 @@ const addCandidateCV = async (
  */
 const findCandidateByUserId = async (userId) => {
   const candidateResult = await db.query(
-    `SELECT id, user_id, phone, created_at, updated_at
-     FROM candidates
-     WHERE user_id = $1`,
+    `SELECT c.id, c.user_id, c.phone, c.skills, c.education, c.experience, c.headline, c.location, c.language, c.bio, c.linkedin, c.created_at, c.updated_at,
+            u.full_name as name, u.email
+     FROM candidates c
+     JOIN users u ON c.user_id = u.id
+     WHERE c.user_id = $1`,
     [userId]
   );
 
@@ -74,7 +77,7 @@ const findCandidateByUserId = async (userId) => {
   if (!candidate) return null;
 
   const cvsResult = await db.query(
-    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, created_at
+    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at
      FROM candidate_cvs
      WHERE candidate_id = $1
      ORDER BY is_active DESC, created_at DESC`,
@@ -94,7 +97,7 @@ const findCandidateByUserId = async (userId) => {
  */
 const findCandidateCVs = async (candidateId) => {
   const result = await db.query(
-    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, created_at
+    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at
      FROM candidate_cvs
      WHERE candidate_id = $1
      ORDER BY is_active DESC, created_at DESC`,
@@ -127,7 +130,7 @@ const setActiveCV = async (candidateId, cvId) => {
       `UPDATE candidate_cvs
        SET is_active = true
        WHERE id = $1 AND candidate_id = $2
-       RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, created_at`,
+       RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at`,
       [cvId, candidateId]
     );
 
@@ -149,10 +152,31 @@ const setActiveCV = async (candidateId, cvId) => {
  */
 const findCVById = async (cvId, candidateId) => {
   const result = await db.query(
-    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, created_at
+    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at
      FROM candidate_cvs
      WHERE id = $1 AND candidate_id = $2`,
     [cvId, candidateId]
+  );
+  return result.rows[0] || null;
+};
+
+/**
+ * Updates an existing CV document (for replacement).
+ * @param {number} candidateId
+ * @param {number} cvId
+ * @param {string} cvName
+ * @param {string} cvUrl
+ * @param {string} cvPublicId
+ * @param {string} [fileSize=null]
+ * @returns {Promise<object|null>}
+ */
+const updateCV = async (candidateId, cvId, cvName, cvUrl, cvPublicId = null, fileSize = null) => {
+  const result = await db.query(
+    `UPDATE candidate_cvs
+     SET cv_name = $1, cv_url = $2, cv_public_id = $3, file_size = $4, created_at = NOW()
+     WHERE id = $5 AND candidate_id = $6
+     RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at`,
+    [cvName, cvUrl, cvPublicId, fileSize, cvId, candidateId]
   );
   return result.rows[0] || null;
 };
@@ -172,7 +196,7 @@ const deleteCV = async (candidateId, cvId) => {
     const deletedResult = await client.query(
       `DELETE FROM candidate_cvs
        WHERE id = $1 AND candidate_id = $2
-       RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active`,
+       RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size`,
       [cvId, candidateId]
     );
 
@@ -203,6 +227,41 @@ const deleteCV = async (candidateId, cvId) => {
   }
 };
 
+/**
+ * Updates candidate profile data (skills, education, experience, headline, location, language, bio)
+ * @param {number} candidateId 
+ * @param {object} profileData 
+ * @returns {Promise<object|null>} Updated candidate record
+ */
+const updateCandidateProfileData = async (candidateId, profileData) => {
+  const { skills, education, experience, headline, location, language, bio, phone, linkedin } = profileData;
+  
+  // Conditionally update phone if it's provided in the payload
+  const phoneUpdate = phone !== undefined ? `phone = COALESCE($9, phone),` : ``;
+  const linkedinUpdate = linkedin !== undefined ? `linkedin = COALESCE(${phone !== undefined ? '$10' : '$9'}, linkedin),` : ``;
+  
+  const result = await db.query(
+    `UPDATE candidates
+     SET skills = $1, education = $2, experience = $3, 
+         headline = $4, location = $5, language = $6, bio = $7, ${phoneUpdate} ${linkedinUpdate} updated_at = NOW()
+     WHERE id = $8
+     RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, linkedin, created_at, updated_at`,
+    [
+      JSON.stringify(skills || []),
+      JSON.stringify(education || []),
+      JSON.stringify(experience || []),
+      headline || null,
+      location || null,
+      language || null,
+      bio || null,
+      candidateId,
+      ...(phone !== undefined ? [phone || null] : []),
+      ...(linkedin !== undefined ? [linkedin || null] : [])
+    ]
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   createCandidate,
   addCandidateCV,
@@ -210,5 +269,7 @@ module.exports = {
   findCandidateCVs,
   setActiveCV,
   findCVById,
+  updateCV,
   deleteCV,
+  updateCandidateProfileData,
 };

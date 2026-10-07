@@ -1,3 +1,5 @@
+const path = require("path");
+const fs = require("fs");
 const pool = require("../config/db");
 const userModel = require("../models/userModel");
 const candidateModel = require("../models/candidateModel");
@@ -94,11 +96,12 @@ const createAccount = async (req, res, next) => {
 
     let candidateProfile = null;
     let recruiterProfile = null;
+    let cvRecord = null;
 
     if (requestedRole === "candidate") {
       candidateProfile = await candidateModel.createCandidate(createdUser.id, phone, client);
       if (uploadedCv) {
-        const cvRecord = await candidateModel.addCandidateCV(
+        cvRecord = await candidateModel.addCandidateCV(
           candidateProfile.id,
           uploadedCv.name,
           uploadedCv.url,
@@ -123,6 +126,42 @@ const createAccount = async (req, res, next) => {
     }
 
     await client.query("COMMIT");
+
+    // Extract CV Data in the background/foreground to populate candidate profile
+    if (requestedRole === "candidate" && req.file && candidateProfile) {
+      try {
+        const pdf = require('pdf-parse');
+        const { extractCVData } = require('../services/nlpService');
+        const pdfData = await pdf(req.file.buffer);
+        if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
+          const extractedData = await extractCVData(pdfData.text);
+          const profileData = {
+            headline: extractedData.headline || null,
+            location: extractedData.location || null,
+            linkedin: extractedData.linkedin || null,
+            language: extractedData.language || null,
+            bio: extractedData.bio || null,
+            skills: extractedData.skills || [],
+            experience: (extractedData.experience || []).map((exp, index) => ({
+              ...exp,
+              id: `exp-${Date.now()}-${index}`
+            })),
+            education: (extractedData.education || []).map((edu, index) => ({
+              ...edu,
+              id: `edu-${Date.now()}-${index}`
+            }))
+          };
+          const updatedProfile = await candidateModel.updateCandidateProfileData(candidateProfile.id, profileData);
+          if (updatedProfile) {
+             updatedProfile.cvs = candidateProfile.cvs;
+             updatedProfile.activeCv = candidateProfile.activeCv;
+             candidateProfile = updatedProfile;
+          }
+        }
+      } catch (err) {
+        console.error("CV extraction during signup failed:", err);
+      }
+    }
 
     return successResponse(
       res,
@@ -320,11 +359,11 @@ const getCandidateCVs = async (req, res, next) => {
   try {
     const candidate = await candidateModel.findCandidateByUserId(req.user.id);
     if (!candidate) {
-      return errorResponse(res, "Candidate profile not found.", 404);
+      return successResponse(res, "CVs retrieved successfully.", { cvs: [] });
     }
 
     const cvs = await candidateModel.findCandidateCVs(candidate.id);
-    return successResponse(res, "CVs retrieved successfully.", { cvs });
+    return successResponse(res, "CVs retrieved successfully.", { cvs: cvs || [] });
   } catch (error) {
     next(error);
   }
@@ -345,22 +384,89 @@ const uploadCandidateCV = async (req, res, next) => {
       candidate = await candidateModel.createCandidate(req.user.id);
     }
 
-    const makeActive = req.body.setActive === "true" || req.body.setActive === true || true;
+    const makeActive = req.body.setActive === "false" ? false : true;
 
     const uploadResult = await cloudinaryService.uploadBuffer(
       req.file.buffer,
       req.file.originalname
     );
 
+    const fileSizeFormatted = req.file.size
+      ? `${Math.round(req.file.size / 1024)} KB`
+      : null;
+
     const cv = await candidateModel.addCandidateCV(
       candidate.id,
       req.file.originalname,
       uploadResult.secure_url,
       uploadResult.public_id,
-      makeActive
+      makeActive,
+      null,
+      fileSizeFormatted
     );
 
+    // Removed local file caching
+
     return successResponse(res, "CV uploaded successfully.", { cv }, 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Replaces an existing CV file for the candidate.
+ */
+const replaceCandidateCV = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    if (!req.file) {
+      return errorResponse(res, "Please select a replacement CV file to upload.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    const oldCv = await candidateModel.findCVById(cvId, candidate.id);
+    if (!oldCv) {
+      return errorResponse(res, "CV not found.", 404);
+    }
+
+    const uploadResult = await cloudinaryService.uploadBuffer(
+      req.file.buffer,
+      req.file.originalname
+    );
+
+    const fileSizeFormatted = req.file.size
+      ? `${Math.round(req.file.size / 1024)} KB`
+      : null;
+
+    const updatedCv = await candidateModel.updateCV(
+      candidate.id,
+      cvId,
+      req.file.originalname,
+      uploadResult.secure_url,
+      uploadResult.public_id,
+      fileSizeFormatted
+    );
+
+    // Removed local copy saving
+
+    // Clean up old Cloudinary asset
+    if (oldCv.cv_public_id) {
+      try {
+        await cloudinaryService.deleteFile(oldCv.cv_public_id);
+      } catch (err) {
+        console.error("Cloudinary cleanup error during replace:", err);
+      }
+    }
+
+    return successResponse(res, "CV replaced successfully.", { cv: updatedCv });
   } catch (error) {
     next(error);
   }
@@ -393,6 +499,37 @@ const setActiveCandidateCV = async (req, res, next) => {
 };
 
 /**
+ * Downloads candidate CV directly as an authentic PDF binary stream.
+ */
+const downloadCandidateCV = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    const cv = await candidateModel.findCVById(cvId, candidate.id);
+    if (!cv) {
+      return errorResponse(res, "CV not found.", 404);
+    }
+
+    // Redirect to Cloudinary URL
+    if (cv.cv_url) {
+      return res.redirect(cv.cv_url);
+    }
+
+    return errorResponse(res, "CV document URL is not found.", 404);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Deletes a CV belonging to the candidate.
  */
 const deleteCandidateCV = async (req, res, next) => {
@@ -414,6 +551,8 @@ const deleteCandidateCV = async (req, res, next) => {
 
     // Delete from database
     await candidateModel.deleteCV(candidate.id, cvId);
+
+    // Removed local copy deletion
 
     // Delete from Cloudinary
     if (cv.cv_public_id) {
@@ -441,6 +580,8 @@ module.exports = {
   changePassword,
   getCandidateCVs,
   uploadCandidateCV,
+  replaceCandidateCV,
   setActiveCandidateCV,
+  downloadCandidateCV,
   deleteCandidateCV,
 };

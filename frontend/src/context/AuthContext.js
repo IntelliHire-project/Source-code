@@ -120,12 +120,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateAuthUser = useCallback((newUserData) => {
+    setUser((prevUser) => {
+      const updatedUser = { ...prevUser, ...newUserData };
+      // Also update local storage if it exists
+      const token = getToken();
+      if (token) {
+        saveAuthSession(token, updatedUser, !!localStorage.getItem('token'));
+      }
+      return updatedUser;
+    });
+  }, []);
+
   const value = {
     user,
     loading,
     signup,
     login,
     logout,
+    updateAuthUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
