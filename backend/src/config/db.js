@@ -80,37 +80,13 @@ const initializeDatabase = async () => {
       END $$;
     `);
 
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'users' AND column_name = 'skills'
-        ) THEN
-          ALTER TABLE users ADD COLUMN skills JSONB DEFAULT '[]'::jsonb;
-        END IF;
-      END $$;
-    `);
-
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'users' AND column_name = 'experience'
-        ) THEN
-          ALTER TABLE users ADD COLUMN experience JSONB DEFAULT '[]'::jsonb;
-        END IF;
-      END $$;
-    `);
-
-    // Remove columns related to verification token
+    // Remove columns related to verification token, skills, and experience
     await client.query(`
       ALTER TABLE users
       DROP COLUMN IF EXISTS verification_token,
-      DROP COLUMN IF EXISTS verification_token_expires_at;
+      DROP COLUMN IF EXISTS verification_token_expires_at,
+      DROP COLUMN IF EXISTS skills,
+      DROP COLUMN IF EXISTS experience;
     `);
 
     // Create candidates profile table
