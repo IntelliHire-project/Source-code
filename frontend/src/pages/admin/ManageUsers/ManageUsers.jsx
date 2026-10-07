@@ -13,7 +13,10 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -58,9 +61,13 @@ function ManageUsers() {
             name: u.full_name,
             email: u.email,
             role: u.role.charAt(0).toUpperCase() + u.role.slice(1),
-            status: 'Active',
+            status: u.role === 'recruiter' && u.recruiter_status 
+              ? (u.recruiter_status === 'approved' ? 'Active' : u.recruiter_status === 'rejected' ? 'Inactive' : 'Pending')
+              : 'Active',
             createdDate: u.created_at ? String(u.created_at).slice(0, 10) : '',
             avatarColor: colors[i % colors.length],
+            companyName: u.company_name || 'N/A',
+            industry: u.industry || 'N/A',
           }));
           setUsers(mapped);
           setUsersError('');
@@ -102,6 +109,46 @@ function ManageUsers() {
   // Delete Dialog State
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+
+  // View Modal State
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewUser, setViewUser] = useState(null);
+
+  // Handlers for Recruiter Verification
+  const handleViewRecruiter = (user) => {
+    setViewUser(user);
+    setViewModalOpen(true);
+  };
+
+  const handleApproveRecruiter = async (user) => {
+    try {
+      // Optmistic update
+      const updatedUsers = users.map((u) =>
+        u.id === user.id ? { ...u, status: 'Active' } : u
+      );
+      setUsers(updatedUsers);
+      saveUsers(updatedUsers);
+      setToast({ type: 'success', message: `Recruiter "${user.name}" approved successfully.` });
+      // In a real scenario, make API call here
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to approve recruiter.' });
+    }
+  };
+
+  const handleRejectRecruiter = async (user) => {
+    try {
+      // Optmistic update
+      const updatedUsers = users.map((u) =>
+        u.id === user.id ? { ...u, status: 'Inactive' } : u
+      );
+      setUsers(updatedUsers);
+      saveUsers(updatedUsers);
+      setToast({ type: 'warning', message: `Recruiter "${user.name}" rejected.` });
+      // In a real scenario, make API call here
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to reject recruiter.' });
+    }
+  };
 
   // Status Filter options
   const statusOptions = ['All Status', 'Active', 'Inactive', 'Pending'];
@@ -280,6 +327,10 @@ function ManageUsers() {
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
 
+  const pendingUsers = useMemo(() => {
+    return users.filter(u => u.status === 'Pending');
+  }, [users]);
+
   // Initials for avatar
   const getInitials = (name) => {
     if (!name) return '?';
@@ -369,6 +420,80 @@ function ManageUsers() {
               </div>
             </div>
           </div>
+
+          {/* Pending Users Panel */}
+          {pendingUsers.length > 0 && (
+            <div className="admin-registry-card" style={{ marginBottom: '2rem', border: '1px solid var(--admin-warning-bg)' }}>
+              <div className="admin-registry-card__header" style={{ borderBottom: '1px solid var(--admin-border-light)' }}>
+                <div className="admin-registry-card__title-row">
+                  <Shield size={18} className="admin-registry-card__title-icon" style={{ color: 'var(--admin-warning-text)' }} />
+                  <h2 className="admin-registry-card__title">Pending Approvals ({pendingUsers.length})</h2>
+                </div>
+              </div>
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>NAME</th>
+                      <th>EMAIL ADDRESS</th>
+                      <th>ROLE</th>
+                      <th>STATUS</th>
+                      <th>CREATED DATE</th>
+                      <th className="text-right">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingUsers.map(user => (
+                      <tr key={user.id} style={{ backgroundColor: 'var(--admin-bg-light)' }}>
+                        <td>
+                          <div className="admin-table__name-cell">
+                            <div className="admin-table__avatar" style={{ backgroundColor: user.avatarColor || '#F0B90B' }}>
+                              {getInitials(user.name)}
+                            </div>
+                            <span className="admin-table__name-text">{user.name}</span>
+                          </div>
+                        </td>
+                        <td className="admin-table__email-text">{user.email}</td>
+                        <td><span className="admin-table__role-badge">{user.role}</span></td>
+                        <td>
+                          <span className={`admin-table__status-badge admin-table__status-badge--pending`}>
+                            Pending
+                          </span>
+                        </td>
+                        <td className="admin-table__date-text">{user.createdDate}</td>
+                        <td className="admin-table__actions-cell text-right" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          <button
+                            className="admin-table__action-btn"
+                            onClick={() => handleViewRecruiter(user)}
+                            title="View Recruiter Info"
+                            style={{ color: '#6B8CFF' }}
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            className="admin-table__action-btn"
+                            onClick={() => handleApproveRecruiter(user)}
+                            title="Approve Recruiter"
+                            style={{ color: '#22C55E' }}
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                          <button
+                            className="admin-table__action-btn"
+                            onClick={() => handleRejectRecruiter(user)}
+                            title="Reject Recruiter"
+                            style={{ color: '#E63946' }}
+                          >
+                            <XCircle size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* User Registry Panel */}
           <div className="admin-registry-card">
@@ -743,6 +868,81 @@ function ManageUsers() {
                 onClick={handleConfirmDelete}
               >
                 Confirm Revocation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* View Recruiter Modal */}
+      {viewModalOpen && viewUser && (
+        <div className="admin-modal-overlay" onClick={() => setViewModalOpen(false)}>
+          <div
+            className="admin-modal-container"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">Recruiter Details</h3>
+              <button className="admin-modal-close" onClick={() => setViewModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Full Name</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.name}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Email Address</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.email}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Company Name</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.companyName}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Industry</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.industry}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Created Date</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.createdDate}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn admin-btn--secondary"
+                onClick={() => setViewModalOpen(false)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={() => {
+                  handleApproveRecruiter(viewUser);
+                  setViewModalOpen(false);
+                }}
+                style={{ backgroundColor: '#22C55E', color: '#fff', border: 'none' }}
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={() => {
+                  handleRejectRecruiter(viewUser);
+                  setViewModalOpen(false);
+                }}
+                style={{ backgroundColor: '#E63946', color: '#fff', border: 'none' }}
+              >
+                Reject
               </button>
             </div>
           </div>

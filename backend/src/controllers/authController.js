@@ -175,6 +175,9 @@ const login = async (req, res, next) => {
       candidateProfile = await candidateModel.findCandidateByUserId(user.id);
     } else if (user.role === "recruiter") {
       recruiterProfile = await recruiterModel.findRecruiterByUserId(user.id);
+      if (recruiterProfile && recruiterProfile.approval_status === "pending") {
+        return errorResponse(res, "Your recruiter account is pending verification by an admin. You cannot log in yet.", 403);
+      }
     }
 
     const token = signToken({
@@ -251,6 +254,9 @@ const getCurrentUser = async (req, res, next) => {
       candidateProfile = await candidateModel.findCandidateByUserId(user.id);
     } else if (user.role === "recruiter") {
       recruiterProfile = await recruiterModel.findRecruiterByUserId(user.id);
+      if (recruiterProfile && recruiterProfile.approval_status === "pending") {
+        return errorResponse(res, "Your recruiter account is pending verification by an admin. You cannot log in yet.", 403);
+      }
     }
 
     return successResponse(res, "Session is active.", {
