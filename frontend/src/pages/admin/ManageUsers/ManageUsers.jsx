@@ -114,39 +114,67 @@ function ManageUsers() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewUser, setViewUser] = useState(null);
 
+  // Confirm Modal States
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
+  const [actionUser, setActionUser] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+
   // Handlers for Recruiter Verification
   const handleViewRecruiter = (user) => {
     setViewUser(user);
     setViewModalOpen(true);
   };
 
-  const handleApproveRecruiter = async (user) => {
+  const handleOpenApproveConfirm = (user) => {
+    setActionUser(user);
+    setApproveConfirmOpen(true);
+    setViewModalOpen(false);
+  };
+
+  const confirmApproveRecruiter = async () => {
+    if (!actionUser) return;
     try {
       // Optmistic update
       const updatedUsers = users.map((u) =>
-        u.id === user.id ? { ...u, status: 'Active' } : u
+        u.id === actionUser.id ? { ...u, status: 'Active' } : u
       );
       setUsers(updatedUsers);
       saveUsers(updatedUsers);
-      setToast({ type: 'success', message: `Recruiter "${user.name}" approved successfully.` });
+      setToast({ type: 'success', message: `Recruiter "${actionUser.name}" approved successfully.` });
       // In a real scenario, make API call here
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to approve recruiter.' });
+    } finally {
+      setApproveConfirmOpen(false);
+      setActionUser(null);
     }
   };
 
-  const handleRejectRecruiter = async (user) => {
+  const handleOpenRejectConfirm = (user) => {
+    setActionUser(user);
+    setRejectReason('');
+    setRejectConfirmOpen(true);
+    setViewModalOpen(false);
+  };
+
+  const confirmRejectRecruiter = async () => {
+    if (!actionUser) return;
     try {
       // Optmistic update
       const updatedUsers = users.map((u) =>
-        u.id === user.id ? { ...u, status: 'Inactive' } : u
+        u.id === actionUser.id ? { ...u, status: 'Inactive' } : u
       );
       setUsers(updatedUsers);
       saveUsers(updatedUsers);
-      setToast({ type: 'warning', message: `Recruiter "${user.name}" rejected.` });
-      // In a real scenario, make API call here
+      setToast({ type: 'warning', message: `Recruiter "${actionUser.name}" rejected. Reason: ${rejectReason}` });
+      // In a real scenario, make API call here with rejectReason
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to reject recruiter.' });
+    } finally {
+      setRejectConfirmOpen(false);
+      setActionUser(null);
+      setRejectReason('');
     }
   };
 
@@ -472,7 +500,7 @@ function ManageUsers() {
                           </button>
                           <button
                             className="admin-table__action-btn"
-                            onClick={() => handleApproveRecruiter(user)}
+                            onClick={() => handleOpenApproveConfirm(user)}
                             title="Approve Recruiter"
                             style={{ color: '#22C55E' }}
                           >
@@ -480,7 +508,7 @@ function ManageUsers() {
                           </button>
                           <button
                             className="admin-table__action-btn"
-                            onClick={() => handleRejectRecruiter(user)}
+                            onClick={() => handleOpenRejectConfirm(user)}
                             title="Reject Recruiter"
                             style={{ color: '#E63946' }}
                           >
@@ -925,10 +953,7 @@ function ManageUsers() {
               <button
                 type="button"
                 className="admin-btn"
-                onClick={() => {
-                  handleApproveRecruiter(viewUser);
-                  setViewModalOpen(false);
-                }}
+                onClick={() => handleOpenApproveConfirm(viewUser)}
                 style={{ backgroundColor: '#22C55E', color: '#fff', border: 'none' }}
               >
                 Approve
@@ -936,13 +961,104 @@ function ManageUsers() {
               <button
                 type="button"
                 className="admin-btn"
-                onClick={() => {
-                  handleRejectRecruiter(viewUser);
-                  setViewModalOpen(false);
-                }}
+                onClick={() => handleOpenRejectConfirm(viewUser)}
                 style={{ backgroundColor: '#E63946', color: '#fff', border: 'none' }}
               >
                 Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Approve Confirm Modal */}
+      {approveConfirmOpen && (
+        <div className="admin-modal-overlay" onClick={() => setApproveConfirmOpen(false)}>
+          <div
+            className="admin-modal-container"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">Confirm Approval</h3>
+              <button className="admin-modal-close" onClick={() => setApproveConfirmOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="admin-modal-body">
+              <p>Are you sure you want to approve recruiter <strong>{actionUser?.name}</strong>?</p>
+              <p style={{ marginTop: '0.5rem', color: 'var(--admin-text-light)' }}>
+                This will grant them full access to the system.
+              </p>
+            </div>
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn admin-btn--secondary"
+                onClick={() => setApproveConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={confirmApproveRecruiter}
+                style={{ backgroundColor: '#22C55E', color: '#fff', border: 'none' }}
+              >
+                Confirm Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Confirm Modal */}
+      {rejectConfirmOpen && (
+        <div className="admin-modal-overlay" onClick={() => setRejectConfirmOpen(false)}>
+          <div
+            className="admin-modal-container"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">Confirm Rejection</h3>
+              <button className="admin-modal-close" onClick={() => setRejectConfirmOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="admin-modal-body">
+              <p>Are you sure you want to reject recruiter <strong>{actionUser?.name}</strong>?</p>
+              <div className="admin-form-group" style={{ marginTop: '1rem' }}>
+                <label className="admin-form-label" htmlFor="reject-reason">
+                  Reason for Rejection (Optional)
+                </label>
+                <textarea
+                  id="reject-reason"
+                  className="admin-form-input"
+                  rows="3"
+                  placeholder="Enter reason for rejection..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  style={{ resize: 'vertical' }}
+                ></textarea>
+              </div>
+            </div>
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn admin-btn--secondary"
+                onClick={() => setRejectConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={confirmRejectRecruiter}
+                style={{ backgroundColor: '#E63946', color: '#fff', border: 'none' }}
+              >
+                Confirm Reject
               </button>
             </div>
           </div>
