@@ -22,7 +22,7 @@ import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { getUsers, saveUsers, appendAuditLog } from '../../../services/adminStorage';
-import { fetchUsers } from '../../../api/userApi';
+import { fetchUsers, updateRecruiterStatus } from '../../../api/userApi';
 import './ManageUsers.css';
 
 // Initial Mock Users data matching mockup + some pagination filler
@@ -68,6 +68,15 @@ function ManageUsers() {
             avatarColor: colors[i % colors.length],
             companyName: u.company_name || 'N/A',
             industry: u.industry || 'N/A',
+            companyWebsite: u.company_website || 'N/A',
+            companyRegNumber: u.company_reg_number || 'N/A',
+            companyLocation: u.company_location || 'N/A',
+            companyLinkedin: u.company_linkedin || 'N/A',
+            jobTitle: u.job_title || 'N/A',
+            phoneNumber: u.phone_number || 'N/A',
+            linkedinUrl: u.linkedin_url || 'N/A',
+            statusDate: u.recruiter_updated_at ? new Date(u.recruiter_updated_at).toLocaleString() : '',
+            recruiterStatus: u.recruiter_status || 'pending',
           }));
           setUsers(mapped);
           setUsersError('');
@@ -135,6 +144,8 @@ function ManageUsers() {
   const confirmApproveRecruiter = async () => {
     if (!actionUser) return;
     try {
+      await updateRecruiterStatus(actionUser.id, 'approved');
+      
       // Optmistic update
       const updatedUsers = users.map((u) =>
         u.id === actionUser.id ? { ...u, status: 'Active' } : u
@@ -142,7 +153,6 @@ function ManageUsers() {
       setUsers(updatedUsers);
       saveUsers(updatedUsers);
       setToast({ type: 'success', message: `Recruiter "${actionUser.name}" approved successfully.` });
-      // In a real scenario, make API call here
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to approve recruiter.' });
     } finally {
@@ -161,6 +171,8 @@ function ManageUsers() {
   const confirmRejectRecruiter = async () => {
     if (!actionUser) return;
     try {
+      await updateRecruiterStatus(actionUser.id, 'rejected');
+
       // Optmistic update
       const updatedUsers = users.map((u) =>
         u.id === actionUser.id ? { ...u, status: 'Inactive' } : u
@@ -168,7 +180,6 @@ function ManageUsers() {
       setUsers(updatedUsers);
       saveUsers(updatedUsers);
       setToast({ type: 'warning', message: `Recruiter "${actionUser.name}" rejected. Reason: ${rejectReason}` });
-      // In a real scenario, make API call here with rejectReason
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to reject recruiter.' });
     } finally {
@@ -615,7 +626,17 @@ function ManageUsers() {
                           </span>
                         </td>
                         <td className="admin-table__date-text">{user.createdDate}</td>
-                        <td className="admin-table__actions-cell text-right">
+                        <td className="admin-table__actions-cell text-right" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          {user.role === 'Recruiter' && (
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleViewRecruiter(user)}
+                              title="View Recruiter Info"
+                              style={{ color: '#6B8CFF' }}
+                            >
+                              <Eye size={16} />
+                            </button>
+                          )}
                           <button
                             className="admin-table__action-btn"
                             onClick={() => handleOpenEditModal(user)}
@@ -918,15 +939,32 @@ function ManageUsers() {
             </div>
 
             <div className="admin-modal-body">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', maxHeight: '60vh', overflowY: 'auto' }}>
+                <h4 style={{ color: 'var(--accent)', marginBottom: '-0.5rem', fontSize: '0.9rem', textTransform: 'uppercase' }}>Recruiter Information</h4>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--admin-text-light)' }}>Full Name</span>
                   <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.name}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Job Title / Position</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.jobTitle}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--admin-text-light)' }}>Email Address</span>
                   <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.email}</strong>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Phone Number</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.phoneNumber}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>LinkedIn URL</span>
+                  <a href={viewUser.linkedinUrl !== 'N/A' ? viewUser.linkedinUrl : '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+                    {viewUser.linkedinUrl}
+                  </a>
+                </div>
+
+                <h4 style={{ color: 'var(--accent)', marginTop: '0.5rem', marginBottom: '-0.5rem', fontSize: '0.9rem', textTransform: 'uppercase' }}>Company Information</h4>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--admin-text-light)' }}>Company Name</span>
                   <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.companyName}</strong>
@@ -935,10 +973,38 @@ function ManageUsers() {
                   <span style={{ color: 'var(--admin-text-light)' }}>Industry</span>
                   <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.industry}</strong>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Registration Number</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.companyRegNumber}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Location</span>
+                  <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.companyLocation}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Website</span>
+                  <a href={viewUser.companyWebsite !== 'N/A' ? viewUser.companyWebsite : '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+                    {viewUser.companyWebsite}
+                  </a>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--admin-border-light)', paddingBottom: '0.5rem' }}>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Company LinkedIn</span>
+                  <a href={viewUser.companyLinkedin !== 'N/A' ? viewUser.companyLinkedin : '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
+                    {viewUser.companyLinkedin}
+                  </a>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem' }}>
-                  <span style={{ color: 'var(--admin-text-light)' }}>Created Date</span>
+                  <span style={{ color: 'var(--admin-text-light)' }}>Registered On</span>
                   <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.createdDate}</strong>
                 </div>
+                {viewUser.recruiterStatus !== 'pending' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--admin-border-light)', paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--admin-text-light)' }}>
+                      {viewUser.recruiterStatus === 'approved' ? 'Approved On' : 'Rejected On'}
+                    </span>
+                    <strong style={{ color: 'var(--admin-text-main)' }}>{viewUser.statusDate}</strong>
+                  </div>
+                )}
               </div>
             </div>
 

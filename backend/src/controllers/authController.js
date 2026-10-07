@@ -31,6 +31,13 @@ const createAccount = async (req, res, next) => {
     const phone = (req.body.phone || "").trim();
     const companyName = (req.body.companyName || req.body.company_name || "").trim();
     const industry = (req.body.industry || "").trim();
+    const companyWebsite = (req.body.companyWebsite || "").trim();
+    const companyRegNumber = (req.body.companyRegNumber || "").trim();
+    const companyLocation = (req.body.companyLocation || "").trim();
+    const companyLinkedin = (req.body.companyLinkedin || "").trim();
+    const jobTitle = (req.body.jobTitle || "").trim();
+    const phoneNumber = (req.body.phoneNumber || phone || "").trim();
+    const linkedinUrl = (req.body.linkedinUrl || "").trim();
 
     if (!fullName || !email || !password) {
       return errorResponse(res, "Full name, email, and password are required.", 400);
@@ -49,12 +56,13 @@ const createAccount = async (req, res, next) => {
     }
 
     if (requestedRole === "recruiter") {
-      if (!companyName) {
-        return errorResponse(res, "Company name is required for recruiter registration.", 400);
-      }
-      if (!industry) {
-        return errorResponse(res, "Industry is required for recruiter registration.", 400);
-      }
+      if (!companyName) return errorResponse(res, "Company name is required for recruiter registration.", 400);
+      if (!industry) return errorResponse(res, "Industry is required for recruiter registration.", 400);
+      if (!companyWebsite) return errorResponse(res, "Company Website is required for recruiter registration.", 400);
+      if (!companyRegNumber) return errorResponse(res, "Company Registration Number is required for recruiter registration.", 400);
+      if (!companyLocation) return errorResponse(res, "Company Location is required for recruiter registration.", 400);
+      if (!jobTitle) return errorResponse(res, "Job Title is required for recruiter registration.", 400);
+      if (!phoneNumber) return errorResponse(res, "Phone Number is required for recruiter registration.", 400);
     }
 
     const emailAddress = normalizeEmail(email);
@@ -118,8 +126,17 @@ const createAccount = async (req, res, next) => {
     } else if (requestedRole === "recruiter") {
       recruiterProfile = await recruiterModel.createRecruiter(
         createdUser.id,
-        companyName,
-        industry,
+        {
+          companyName,
+          industry,
+          companyWebsite,
+          companyRegNumber,
+          companyLocation,
+          companyLinkedin,
+          jobTitle,
+          phoneNumber,
+          linkedinUrl
+        },
         "pending",
         client
       );

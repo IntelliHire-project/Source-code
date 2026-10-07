@@ -29,3 +29,11 @@ export const updateCandidateProfile = async (profileData) => {
   const response = await apiInstance.put('/candidate/profile', profileData);
   return response.data;
 };
+
+/**
+ * Updates a recruiter's approval status (admin only).
+ */
+export const updateRecruiterStatus = async (id, status) => {
+  const response = await apiInstance.put(`/users/${id}/recruiter-status`, { status });
+  return response.data;
+};

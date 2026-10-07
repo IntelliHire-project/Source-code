@@ -12,9 +12,16 @@ import '../../../App.css';
 function RecruiterSignupPage() {
   const [formData, setFormData] = useState({
     companyName: '',
-    contactName: '',
     industry: '',
+    companyWebsite: '',
+    companyRegNumber: '',
+    companyLocation: '',
+    companyLinkedin: '',
+    contactName: '',
+    jobTitle: '',
     email: '',
+    phone: '',
+    linkedinUrl: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false,
@@ -49,15 +56,51 @@ function RecruiterSignupPage() {
       return;
     }
 
-    if (!formData.contactName.trim()) {
-      setStatusType('error');
-      setStatusMessage('Contact Person Name is required.');
-      return;
-    }
-
     if (!formData.industry) {
       setStatusType('error');
       setStatusMessage('Please select your industry.');
+      return;
+    }
+
+    if (!formData.companyWebsite.trim()) {
+      setStatusType('error');
+      setStatusMessage('Company Website is required.');
+      return;
+    }
+
+    if (!formData.companyRegNumber.trim()) {
+      setStatusType('error');
+      setStatusMessage('Company Registration Number is required.');
+      return;
+    }
+
+    if (!formData.companyLocation.trim()) {
+      setStatusType('error');
+      setStatusMessage('Company Location is required.');
+      return;
+    }
+
+    if (!formData.contactName.trim()) {
+      setStatusType('error');
+      setStatusMessage('Full Name is required.');
+      return;
+    }
+
+    if (!formData.jobTitle.trim()) {
+      setStatusType('error');
+      setStatusMessage('Job Title is required.');
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setStatusType('error');
+      setStatusMessage('Business Email is required.');
+      return;
+    }
+
+    if (!formData.phone.trim()) {
+      setStatusType('error');
+      setStatusMessage('Phone Number is required.');
       return;
     }
 
@@ -91,8 +134,14 @@ function RecruiterSignupPage() {
         contactName: formData.contactName,
         companyName: formData.companyName,
         industry: formData.industry,
+        companyWebsite: formData.companyWebsite,
+        companyRegNumber: formData.companyRegNumber,
+        companyLocation: formData.companyLocation,
+        companyLinkedin: formData.companyLinkedin,
+        jobTitle: formData.jobTitle,
         email: formData.email,
-        phone: formData.phone || '',
+        phone: formData.phone,
+        linkedinUrl: formData.linkedinUrl,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
         role: 'recruiter',
@@ -104,9 +153,16 @@ function RecruiterSignupPage() {
       // Clear form
       setFormData({
         companyName: '',
-        contactName: '',
         industry: '',
+        companyWebsite: '',
+        companyRegNumber: '',
+        companyLocation: '',
+        companyLinkedin: '',
+        contactName: '',
+        jobTitle: '',
         email: '',
+        phone: '',
+        linkedinUrl: '',
         password: '',
         confirmPassword: '',
         agreeTerms: false,
@@ -267,18 +323,15 @@ function RecruiterSignupPage() {
               </div>
 
               <form className="auth-form" onSubmit={handleSubmit}>
-                {/* Row 1: Company Name & Contact Name */}
+                {/* --- Company Information --- */}
+                <h3 style={{ color: '#fff', fontSize: '1rem', marginTop: '1rem', marginBottom: '0.5rem', borderBottom: '1px solid #333', paddingBottom: '0.25rem' }}>Company Information</h3>
+                
                 <div className="auth-row">
                   <div className="auth-field">
                     <div className="auth-label-row">
-                      <label className="auth-label" htmlFor="companyName">Company Name</label>
+                      <label className="auth-label" htmlFor="companyName">Company Name *</label>
                     </div>
                     <div className="auth-input-container">
-                      <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
-                        <path d="M9 22v-4h6v4" />
-                        <path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01" />
-                      </svg>
                       <input
                         id="companyName"
                         className="auth-input"
@@ -288,49 +341,21 @@ function RecruiterSignupPage() {
                         onChange={handleChange}
                         placeholder="e.g. Tech Solutions"
                         required
+                        style={{ paddingLeft: '14px' }}
                       />
                     </div>
                   </div>
 
                   <div className="auth-field">
                     <div className="auth-label-row">
-                      <label className="auth-label" htmlFor="contactName">Contact Name</label>
+                      <label className="auth-label" htmlFor="industry">Industry *</label>
                     </div>
                     <div className="auth-input-container">
-                      <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      <input
-                        id="contactName"
-                        className="auth-input"
-                        type="text"
-                        name="contactName"
-                        value={formData.contactName}
-                        onChange={handleChange}
-                        placeholder="e.g. Jane Doe"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Row 2: Select Industry & Email */}
-                <div className="auth-row">
-                  <div className="auth-field">
-                    <div className="auth-label-row">
-                      <label className="auth-label" htmlFor="industry">Industry</label>
-                    </div>
-                    <div className="auth-input-container">
-                      <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                      </svg>
                       <select
                         id="industry"
                         className="auth-input recruiter-select"
                         name="industry"
-                        style={{ paddingRight: '14px', appearance: 'none', background: 'transparent' }}
+                        style={{ paddingLeft: '14px', paddingRight: '14px', appearance: 'none', background: 'transparent' }}
                         value={formData.industry}
                         onChange={handleChange}
                         required
@@ -346,16 +371,136 @@ function RecruiterSignupPage() {
                       </select>
                     </div>
                   </div>
+                </div>
+
+                <div className="auth-row">
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="companyWebsite">Company Website *</label>
+                    </div>
+                    <div className="auth-input-container">
+                      <input
+                        id="companyWebsite"
+                        className="auth-input"
+                        type="url"
+                        name="companyWebsite"
+                        value={formData.companyWebsite}
+                        onChange={handleChange}
+                        placeholder="https://example.com"
+                        required
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
 
                   <div className="auth-field">
                     <div className="auth-label-row">
-                      <label className="auth-label" htmlFor="email">Email Address</label>
+                      <label className="auth-label" htmlFor="companyRegNumber">Company Registration Number *</label>
                     </div>
                     <div className="auth-input-container">
-                      <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="20" height="16" x="2" y="4" rx="2" />
-                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                      </svg>
+                      <input
+                        id="companyRegNumber"
+                        className="auth-input"
+                        type="text"
+                        name="companyRegNumber"
+                        value={formData.companyRegNumber}
+                        onChange={handleChange}
+                        placeholder="e.g. CRN-12345"
+                        required
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="auth-row">
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="companyLocation">Company Location *</label>
+                    </div>
+                    <div className="auth-input-container">
+                      <input
+                        id="companyLocation"
+                        className="auth-input"
+                        type="text"
+                        name="companyLocation"
+                        value={formData.companyLocation}
+                        onChange={handleChange}
+                        placeholder="City, Country"
+                        required
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="companyLinkedin">Company LinkedIn URL</label>
+                    </div>
+                    <div className="auth-input-container">
+                      <input
+                        id="companyLinkedin"
+                        className="auth-input"
+                        type="url"
+                        name="companyLinkedin"
+                        value={formData.companyLinkedin}
+                        onChange={handleChange}
+                        placeholder="https://linkedin.com/company/..."
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- Recruiter Information --- */}
+                <h3 style={{ color: '#fff', fontSize: '1rem', marginTop: '1rem', marginBottom: '0.5rem', borderBottom: '1px solid #333', paddingBottom: '0.25rem' }}>Recruiter Information</h3>
+
+                <div className="auth-row">
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="contactName">Full Name *</label>
+                    </div>
+                    <div className="auth-input-container">
+                      <input
+                        id="contactName"
+                        className="auth-input"
+                        type="text"
+                        name="contactName"
+                        value={formData.contactName}
+                        onChange={handleChange}
+                        placeholder="e.g. Jane Doe"
+                        required
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="jobTitle">Job Title / Position *</label>
+                    </div>
+                    <div className="auth-input-container">
+                      <input
+                        id="jobTitle"
+                        className="auth-input"
+                        type="text"
+                        name="jobTitle"
+                        value={formData.jobTitle}
+                        onChange={handleChange}
+                        placeholder="e.g. Senior HR Manager"
+                        required
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="auth-row">
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="email">Business Email *</label>
+                    </div>
+                    <div className="auth-input-container">
                       <input
                         id="email"
                         className="auth-input"
@@ -366,22 +511,60 @@ function RecruiterSignupPage() {
                         placeholder="name@company.com"
                         autoComplete="email"
                         required
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="phone">Phone Number *</label>
+                    </div>
+                    <div className="auth-input-container">
+                      <input
+                        id="phone"
+                        className="auth-input"
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="+1 (555) 000-0000"
+                        required
+                        style={{ paddingLeft: '14px' }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Row 3: Passwords */}
                 <div className="auth-row">
                   <div className="auth-field">
                     <div className="auth-label-row">
-                      <label className="auth-label" htmlFor="password">Password</label>
+                      <label className="auth-label" htmlFor="linkedinUrl">LinkedIn Profile URL</label>
                     </div>
                     <div className="auth-input-container">
-                      <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
+                      <input
+                        id="linkedinUrl"
+                        className="auth-input"
+                        type="url"
+                        name="linkedinUrl"
+                        value={formData.linkedinUrl}
+                        onChange={handleChange}
+                        placeholder="https://linkedin.com/in/..."
+                        style={{ paddingLeft: '14px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* --- Account --- */}
+                <h3 style={{ color: '#fff', fontSize: '1rem', marginTop: '1rem', marginBottom: '0.5rem', borderBottom: '1px solid #333', paddingBottom: '0.25rem' }}>Account</h3>
+
+                <div className="auth-row">
+                  <div className="auth-field">
+                    <div className="auth-label-row">
+                      <label className="auth-label" htmlFor="password">Password *</label>
+                    </div>
+                    <div className="auth-input-container">
                       <input
                         id="password"
                         className="auth-input"
@@ -392,6 +575,7 @@ function RecruiterSignupPage() {
                         placeholder="••••••••"
                         autoComplete="new-password"
                         required
+                        style={{ paddingLeft: '14px' }}
                       />
                       <button
                         type="button"
@@ -406,13 +590,9 @@ function RecruiterSignupPage() {
 
                   <div className="auth-field">
                     <div className="auth-label-row">
-                      <label className="auth-label" htmlFor="confirmPassword">Confirm Password</label>
+                      <label className="auth-label" htmlFor="confirmPassword">Confirm Password *</label>
                     </div>
                     <div className="auth-input-container">
-                      <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        <path d="m9 11 2 2 4-4" />
-                      </svg>
                       <input
                         id="confirmPassword"
                         className="auth-input"
@@ -423,6 +603,7 @@ function RecruiterSignupPage() {
                         placeholder="••••••••"
                         autoComplete="new-password"
                         required
+                        style={{ paddingLeft: '14px' }}
                       />
                       <button
                         type="button"

@@ -2,38 +2,49 @@ const db = require("../config/db");
 
 /**
  * Creates a recruiter profile record linked to a user.
- * @param {number} userId - Foreign key referencing users.id
- * @param {string} companyName - Company or organization name
- * @param {string} industry - Industry sector (tech, finance, healthcare, etc.)
- * @param {string} [approvalStatus="pending"] - Verification status
- * @param {object} [client=null] - Optional transaction client
- * @returns {Promise<object>} Created recruiter record
  */
 const createRecruiter = async (
   userId,
-  companyName,
-  industry,
+  recruiterData,
   approvalStatus = "pending",
   client = null
 ) => {
+  const {
+    companyName,
+    industry,
+    companyWebsite,
+    companyRegNumber,
+    companyLocation,
+    companyLinkedin,
+    jobTitle,
+    phoneNumber,
+    linkedinUrl
+  } = recruiterData;
+
   const executor = client || db;
   const result = await executor.query(
-    `INSERT INTO recruiters (user_id, company_name, industry, approval_status, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, NOW(), NOW())
-     RETURNING id, user_id, company_name, industry, approval_status, created_at, updated_at`,
-    [userId, companyName, industry, approvalStatus]
+    `INSERT INTO recruiters (
+      user_id, company_name, industry, company_website, company_reg_number, 
+      company_location, company_linkedin, job_title, phone_number, linkedin_url, 
+      approval_status, created_at, updated_at
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+     RETURNING *`,
+    [
+      userId, companyName, industry, companyWebsite || null, companyRegNumber || null,
+      companyLocation || null, companyLinkedin || null, jobTitle || null, phoneNumber || null,
+      linkedinUrl || null, approvalStatus
+    ]
   );
   return result.rows[0];
 };
 
 /**
  * Finds recruiter profile by user ID.
- * @param {number} userId 
- * @returns {Promise<object|null>} Recruiter record or null
  */
 const findRecruiterByUserId = async (userId) => {
   const result = await db.query(
-    `SELECT id, user_id, company_name, industry, approval_status, created_at, updated_at
+    `SELECT *
      FROM recruiters
      WHERE user_id = $1`,
     [userId]

@@ -743,7 +743,7 @@ button.auth-input-icon-right:focus-visible {
 
 @media (min-width: 1024px) {
   .auth-split-layout {
-    grid-template-columns: 55% 45%;
+    grid-template-columns: 40% 60%;
   }
 }
 
@@ -928,6 +928,21 @@ button.auth-input-icon-right:focus-visible {
   background: transparent;
   position: relative;
   z-index: 10;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+.auth-form-side::-webkit-scrollbar {
+  width: 6px;
+}
+
+.auth-form-side::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.auth-form-side::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Auth Role Toggle Switch */
@@ -1141,8 +1156,8 @@ button.auth-input-icon-right:focus-visible {
   .auth-form-side {
     margin-top: 0px;
     padding-top: 0px;
-    height: 100%;
-    justify-content: center;
+    height: 100vh;
+    justify-content: flex-start;
   }
 
   .auth-card {
