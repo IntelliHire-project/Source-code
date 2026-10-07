@@ -76,24 +76,6 @@ const findAllUsers = async () => {
   return result.rows;
 };
 
-/**
- * Updates a candidate's profile with skills and experience.
- * @param {number} userId 
- * @param {Array<string>} skills 
- * @param {Array<object>} experience 
- * @returns {Promise<object>} Updated user record
- */
-const updateCandidateProfile = async (userId, skills, experience) => {
-  const result = await db.query(
-    `UPDATE users
-     SET skills = $1, experience = $2
-     WHERE id = $3
-     RETURNING id, full_name, email, role, skills, experience, created_at`,
-    [JSON.stringify(skills || []), JSON.stringify(experience || []), userId]
-  );
-  return result.rows[0] || null;
-};
-
 const updatePassword = async (userId, newPasswordHash) => {
   await db.query(
     `UPDATE users
@@ -109,6 +91,5 @@ module.exports = {
   findUserById,
   findAllUsers,
   markEmailVerified,
-  updateCandidateProfile,
   updatePassword,
 };
