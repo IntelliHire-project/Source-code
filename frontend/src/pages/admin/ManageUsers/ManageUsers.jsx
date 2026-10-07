@@ -22,7 +22,7 @@ import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { getUsers, saveUsers, appendAuditLog } from '../../../services/adminStorage';
-import { fetchUsers } from '../../../api/userApi';
+import { fetchUsers, updateRecruiterStatus } from '../../../api/userApi';
 import './ManageUsers.css';
 
 // Initial Mock Users data matching mockup + some pagination filler
@@ -135,6 +135,8 @@ function ManageUsers() {
   const confirmApproveRecruiter = async () => {
     if (!actionUser) return;
     try {
+      await updateRecruiterStatus(actionUser.id, 'approved');
+      
       // Optmistic update
       const updatedUsers = users.map((u) =>
         u.id === actionUser.id ? { ...u, status: 'Active' } : u
@@ -142,7 +144,6 @@ function ManageUsers() {
       setUsers(updatedUsers);
       saveUsers(updatedUsers);
       setToast({ type: 'success', message: `Recruiter "${actionUser.name}" approved successfully.` });
-      // In a real scenario, make API call here
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to approve recruiter.' });
     } finally {
@@ -161,6 +162,8 @@ function ManageUsers() {
   const confirmRejectRecruiter = async () => {
     if (!actionUser) return;
     try {
+      await updateRecruiterStatus(actionUser.id, 'rejected');
+
       // Optmistic update
       const updatedUsers = users.map((u) =>
         u.id === actionUser.id ? { ...u, status: 'Inactive' } : u
@@ -168,7 +171,6 @@ function ManageUsers() {
       setUsers(updatedUsers);
       saveUsers(updatedUsers);
       setToast({ type: 'warning', message: `Recruiter "${actionUser.name}" rejected. Reason: ${rejectReason}` });
-      // In a real scenario, make API call here with rejectReason
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to reject recruiter.' });
     } finally {
