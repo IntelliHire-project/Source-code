@@ -13,7 +13,9 @@ const {
   changePassword,
   getCandidateCVs,
   uploadCandidateCV,
+  replaceCandidateCV,
   setActiveCandidateCV,
+  downloadCandidateCV,
   deleteCandidateCV,
 } = require("../controllers/authController");
 
@@ -32,6 +34,8 @@ router.post("/change-password", authMiddleware, changePassword);
 // Candidate CV management routes
 router.get("/candidate/cvs", authMiddleware, getCandidateCVs);
 router.post("/candidate/cvs", authMiddleware, uploadCv, uploadCandidateCV);
+router.get("/candidate/cvs/:id/download", authMiddleware, downloadCandidateCV);
+router.put("/candidate/cvs/:id", authMiddleware, uploadCv, replaceCandidateCV);
 router.put("/candidate/cvs/:id/active", authMiddleware, setActiveCandidateCV);
 router.delete("/candidate/cvs/:id", authMiddleware, deleteCandidateCV);
 
