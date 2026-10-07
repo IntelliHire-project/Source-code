@@ -26,8 +26,6 @@ const initializeDatabase = async () => {
         password_hash TEXT NOT NULL,
         role TEXT NOT NULL DEFAULT 'candidate',
         email_verified BOOLEAN NOT NULL DEFAULT true,
-        skills JSONB DEFAULT '[]'::jsonb,
-        experience JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `);
