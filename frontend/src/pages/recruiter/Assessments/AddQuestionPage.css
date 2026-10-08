@@ -220,7 +220,7 @@
 /* ── Two-column layout ── */
 .aq-two-col {
   display: grid;
-  grid-template-columns: 1fr 180px;
+  grid-template-columns: 1fr 240px;
   gap: 16px;
 }
 
@@ -283,7 +283,17 @@
   align-items: center;
   gap: 8px;
 }
-.aq-points-input input { flex: 1; }
+.aq-points-input input {
+  flex: 1;
+  min-width: 50px;
+  padding: 0 4px;
+  -moz-appearance: textfield;
+}
+.aq-points-input input::-webkit-outer-spin-button,
+.aq-points-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 .aq-points-input > button {
   width: 34px; height: 34px;
   border: 1px solid rgba(255, 255, 255, 0.12);

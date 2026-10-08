@@ -6,6 +6,7 @@ import {
   Sparkles,
   Briefcase,
   FileText,
+  FileCheck,
   KeyRound,
   Users,
   Bell,
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { label: 'CV insights', icon: Sparkles, path: '/candidate/cv-insights' },
   { label: 'Find jobs', icon: Briefcase, path: '/candidate/jobs' },
   { label: 'My applications', icon: FileText, path: '/candidate/applications' },
+  { label: 'My assessments', icon: FileCheck, path: '/candidate/assessments' },
   { label: 'Mock interviews', icon: KeyRound, path: '/candidate/mock-interviews' },
   { label: 'Community', icon: Users, path: '/candidate/community' },
 ];

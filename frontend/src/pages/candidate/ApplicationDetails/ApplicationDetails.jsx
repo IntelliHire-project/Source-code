@@ -235,8 +235,8 @@ function AssessmentCard({ assessment }) {
         </div>
 
         <div className="application-detail__invite-actions">
-          <button type="button" className="application-detail__invite-primary">Start assessment</button>
-          <button type="button" className="application-detail__invite-secondary">Review instructions</button>
+          <button type="button" className="application-detail__invite-primary" onClick={() => navigate('/a/A-001')}>Start assessment</button>
+          <button type="button" className="application-detail__invite-secondary" onClick={() => navigate('/a/A-001')}>Review instructions</button>
         </div>
 
         <p className="application-detail__invite-note">

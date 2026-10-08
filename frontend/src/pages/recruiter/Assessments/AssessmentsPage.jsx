@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Clock,
   Clock3,
+  Code2,
   Copy,
   Download,
   Edit3,
@@ -24,13 +25,16 @@ import {
   Lock,
   MessageSquare,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   Send,
   Settings2,
   Shield,
+  ShieldAlert,
   ShieldCheck,
   Shuffle,
+  Sparkles,
   Star,
   Trash2,
   TrendingUp,
@@ -49,14 +53,14 @@ import './AssessmentsPage.css';
 ───────────────────────────────────────────────────────────────── */
 
 const QUESTIONS = [
-  { id: 'Q-001', snippet: 'Explain the difference between REST and GraphQL APIs and when you would choose one over the other.', role: 'Software Engineer', skills: ['API Design', 'REST', 'GraphQL'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10 },
-  { id: 'Q-002', snippet: 'Which of the following is NOT a JavaScript data type? (A) undefined (B) boolean (C) float (D) symbol', role: 'Software Engineer', skills: ['JavaScript', 'Core JS'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['undefined', 'boolean', 'float', 'symbol'], correct: 2 },
-  { id: 'Q-003', snippet: 'Write a function to find the longest substring without repeating characters.', role: 'Software Engineer', skills: ['Algorithms', 'Java'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 20 },
-  { id: 'Q-004', snippet: 'Describe three key differences between SQL and NoSQL databases and provide use cases for each.', role: 'QA Engineer', skills: ['SQL', 'Database'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10 },
-  { id: 'Q-005', snippet: 'What is the output of the following React code snippet? (A) renders null (B) throws error (C) renders empty div (D) renders children', role: 'Software Engineer', skills: ['React', 'JSX'], type: 'MCQ', difficulty: 'Medium', evalMode: 'Auto-graded', points: 5, options: ['renders null', 'throws error', 'renders empty div', 'renders children'], correct: 0 },
-  { id: 'Q-006', snippet: 'Describe the requirements gathering process you would follow when joining a new project mid-sprint.', role: 'Business Analyst', skills: ['Requirements', 'Agile'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10 },
-  { id: 'Q-007', snippet: 'Implement a binary search tree with insert, search, and in-order traversal methods.', role: 'Software Engineer', skills: ['Algorithms', 'Data Structures'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 25 },
-  { id: 'Q-008', snippet: 'Which HTTP status code represents a successful resource creation? (A) 200 (B) 201 (C) 204 (D) 301', role: 'QA Engineer', skills: ['HTTP', 'REST'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['200 OK', '201 Created', '204 No Content', '301 Redirect'], correct: 1 },
+  { id: 'Q-001', snippet: 'Explain the difference between REST and GraphQL APIs and when you would choose one over the other.', role: 'Software Engineer', skills: ['API Design', 'REST', 'GraphQL'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-002', snippet: 'Which of the following is NOT a JavaScript data type? (A) undefined (B) boolean (C) float (D) symbol', role: 'Software Engineer', skills: ['JavaScript', 'Core JS'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['undefined', 'boolean', 'float', 'symbol'], correct: 2, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-003', snippet: 'Write a function to find the longest substring without repeating characters.', role: 'Software Engineer', skills: ['Algorithms', 'Java'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 20, section: 'Section 3: Coding & Problem Solving' },
+  { id: 'Q-004', snippet: 'Describe three key differences between SQL and NoSQL databases and provide use cases for each.', role: 'QA Engineer', skills: ['SQL', 'Database'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-005', snippet: 'What is the output of the following React code snippet? (A) renders null (B) throws error (C) renders empty div (D) renders children', role: 'Software Engineer', skills: ['React', 'JSX'], type: 'MCQ', difficulty: 'Medium', evalMode: 'Auto-graded', points: 5, options: ['renders null', 'throws error', 'renders empty div', 'renders children'], correct: 0, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-006', snippet: 'Describe the requirements gathering process you would follow when joining a new project mid-sprint.', role: 'Business Analyst', skills: ['Requirements', 'Agile'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10, section: 'Section 1: General & Aptitude' },
+  { id: 'Q-007', snippet: 'Implement a binary search tree with insert, search, and in-order traversal methods.', role: 'Software Engineer', skills: ['Algorithms', 'Data Structures'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 25, section: 'Section 3: Coding & Problem Solving' },
+  { id: 'Q-008', snippet: 'Which HTTP status code represents a successful resource creation? (A) 200 (B) 201 (C) 204 (D) 301', role: 'QA Engineer', skills: ['HTTP', 'REST'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['200 OK', '201 Created', '204 No Content', '301 Redirect'], correct: 1, section: 'Section 1: General & Aptitude' },
 ];
 
 const ASSESSMENTS = [
@@ -145,6 +149,16 @@ function RecommendationBadge({ rec }) {
   return <span className="am-rec am-rec--pending"><Clock size={11} />Pending</span>;
 }
 
+function SectionBadge({ section }) {
+  if (!section) return null;
+  const isSec1 = section.includes('Aptitude') || section.includes('General') || section.includes('Section 1');
+  const isSec2 = section.includes('Technical') || section.includes('Section 2');
+  const isSec3 = section.includes('Coding') || section.includes('Section 3');
+  const cls = isSec1 ? 'am-sec-badge--aptitude' : isSec2 ? 'am-sec-badge--tech' : isSec3 ? 'am-sec-badge--coding' : 'am-sec-badge--default';
+  const label = isSec1 ? 'Sec 1: Aptitude' : isSec2 ? 'Sec 2: Technical' : isSec3 ? 'Sec 3: Coding' : section;
+  return <span className={`am-sec-badge ${cls}`} title={section}>{label}</span>;
+}
+
 /* ─────────────────────────────────────────────────────────────────
    TAB 1 — QUESTION BANK
 ───────────────────────────────────────────────────────────────── */
@@ -153,6 +167,7 @@ function QuestionBankTab() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState(QUESTIONS);
   const [query, setQuery] = useState('');
+  const [sectionFilter, setSectionFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
   const [diffFilter, setDiffFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
@@ -160,6 +175,13 @@ function QuestionBankTab() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [previewQ, setPreviewQ] = useState(null);
   const [notice, setNotice] = useState('');
+
+  const SECTION_TABS = [
+    { id: 'All', label: 'All Sections' },
+    { id: 'Section 1: General & Aptitude', label: 'Section 1: Aptitude' },
+    { id: 'Section 2: Technical Concepts', label: 'Section 2: Technical' },
+    { id: 'Section 3: Coding & Problem Solving', label: 'Section 3: Coding' },
+  ];
 
   const openCreate = () => {
     navigate('/recruiter/question-bank/add');
@@ -170,13 +192,14 @@ function QuestionBankTab() {
   };
 
   const filtered = useMemo(() => questions.filter(q => {
-    const text = `${q.snippet} ${q.role} ${q.type} ${q.difficulty} ${q.evalMode}`.toLowerCase();
+    const text = `${q.snippet} ${q.role} ${q.type} ${q.difficulty} ${q.evalMode} ${q.section || ''}`.toLowerCase();
     return text.includes(query.toLowerCase())
+      && (sectionFilter === 'All' || q.section === sectionFilter)
       && (roleFilter === 'All' || q.role === roleFilter)
       && (diffFilter === 'All' || q.difficulty === diffFilter)
       && (typeFilter === 'All' || q.type === typeFilter)
       && (evalFilter === 'All' || q.evalMode === evalFilter);
-  }), [questions, query, roleFilter, diffFilter, typeFilter, evalFilter]);
+  }), [questions, query, sectionFilter, roleFilter, diffFilter, typeFilter, evalFilter]);
 
   const duplicate = (q) => {
     setQuestions([{ ...q, id: `Q-${String(Date.now()).slice(-3)}`, snippet: `${q.snippet} (Copy)` }, ...questions]);
@@ -193,6 +216,23 @@ function QuestionBankTab() {
 
   return (
     <div className="am-tab-panel">
+      {/* ── Section Pills Navigation ── */}
+      <div className="am-section-pills-bar">
+        {SECTION_TABS.map(tab => {
+          const count = tab.id === 'All' ? questions.length : questions.filter(q => q.section === tab.id).length;
+          return (
+            <button
+              key={tab.id}
+              className={`am-section-pill-btn ${sectionFilter === tab.id ? 'active' : ''}`}
+              onClick={() => setSectionFilter(tab.id)}
+            >
+              <span>{tab.label}</span>
+              <span className="am-section-pill-count">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* ── Toolbar ── */}
       <div className="am-toolbar">
         <label className="am-search">
@@ -201,14 +241,22 @@ function QuestionBankTab() {
         </label>
         <div className="am-filter-wrap">
           <button className={`am-btn am-btn--ghost ${filtersOpen ? 'is-active' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)}>
-            <Filter size={15} /> Filters {(roleFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
+            <Filter size={15} /> Filters {(sectionFilter !== 'All' || roleFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
           </button>
           {filtersOpen && (
             <div className="am-filter-panel">
               <div className="am-filter-panel__header">
                 <span>Filters</span>
-                <button onClick={() => { setRoleFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
+                <button onClick={() => { setSectionFilter('All'); setRoleFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
               </div>
+              <label className="am-filter-label">Section
+                <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
+                  <option value="All">All Sections</option>
+                  <option value="Section 1: General & Aptitude">Section 1: General & Aptitude</option>
+                  <option value="Section 2: Technical Concepts">Section 2: Technical Concepts</option>
+                  <option value="Section 3: Coding & Problem Solving">Section 3: Coding</option>
+                </select>
+              </label>
               <label className="am-filter-label">Job Role
                 <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
                   <option>All</option>
@@ -260,7 +308,8 @@ function QuestionBankTab() {
         <table className="am-table">
           <thead>
             <tr>
-              <th style={{ width: '36%' }}>Question Snippet</th>
+              <th style={{ width: '32%' }}>Question Snippet</th>
+              <th>Section</th>
               <th>Job Role & Skills</th>
               <th>Type</th>
               <th>Difficulty</th>
@@ -278,6 +327,7 @@ function QuestionBankTab() {
                     <span className="am-q-pts"><Award size={12} /> {q.points} pts</span>
                   </div>
                 </td>
+                <td><SectionBadge section={q.section} /></td>
                 <td>
                   <div className="am-skill-wrap">
                     <span className="am-role-pill">{q.role}</span>
@@ -298,7 +348,7 @@ function QuestionBankTab() {
               </tr>
             ))}
             {!filtered.length && (
-              <tr><td colSpan={6} className="am-table-empty">
+              <tr><td colSpan={7} className="am-table-empty">
                 <HelpCircle size={32} />
                 <strong>No questions found</strong>
                 <span>Try adjusting your search or filters, or add a new question.</span>
@@ -387,20 +437,41 @@ function AssessmentsTab() {
   const [selectedQs, setSelectedQs] = useState([]);
   const [notice, setNotice] = useState('');
 
+  const [customVacancy, setCustomVacancy] = useState('');
+
   const [form, setForm] = useState({
-    title: '', vacancy: '', duration: 60, passing: 70,
+    title: '', vacancy: '', duration: 90, passing: 70,
     autoSend: false, randomize: false, blockCopyPaste: false,
-    sections: [{ name: 'Section 1: Aptitude', duration: 15 }, { name: 'Section 2: Technical', duration: 30 }],
+    sections: [
+      { name: 'Section 1: General & Aptitude', duration: 15 },
+      { name: 'Section 2: Technical Concepts', duration: 30 },
+      { name: 'Section 3: Coding & Problem Solving', duration: 45 }
+    ],
   });
 
   const filtered = assessments.filter(a => `${a.name} ${a.vacancy} ${a.status}`.toLowerCase().includes(query.toLowerCase()));
 
-  const openWizard = () => { setWizardStep(1); setForm({ title: '', vacancy: '', duration: 60, passing: 70, autoSend: false, randomize: false, blockCopyPaste: false, sections: [{ name: 'Section 1: Aptitude', duration: 15 }, { name: 'Section 2: Technical', duration: 30 }] }); setSelectedQs([]); setWizardOpen(true); };
+  const openWizard = () => {
+    setWizardStep(1);
+    setCustomVacancy('');
+    setForm({
+      title: '', vacancy: '', duration: 90, passing: 70,
+      autoSend: false, randomize: false, blockCopyPaste: false,
+      sections: [
+        { name: 'Section 1: General & Aptitude', duration: 15 },
+        { name: 'Section 2: Technical Concepts', duration: 30 },
+        { name: 'Section 3: Coding & Problem Solving', duration: 45 }
+      ]
+    });
+    setSelectedQs([]);
+    setWizardOpen(true);
+  };
 
   const publishAssessment = () => {
     if (!form.title.trim()) return;
+    const resolvedVacancy = form.vacancy === 'Other' ? (customVacancy.trim() || 'Custom Vacancy') : (form.vacancy || 'Not linked');
     setAssessments([{
-      id: `A-${String(Date.now()).slice(-3)}`, name: form.title, vacancy: form.vacancy || 'Not linked',
+      id: `A-${String(Date.now()).slice(-3)}`, name: form.title, vacancy: resolvedVacancy,
       duration: form.duration, passing: form.passing, totalQ: selectedQs.length, invited: 0, status: 'Draft',
     }, ...assessments]);
     setWizardOpen(false);
@@ -509,18 +580,66 @@ function AssessmentsTab() {
             <div className="am-modal__body">
               {wizardStep === 1 && (
                 <div className="am-form-grid am-form-grid--wide">
-                  <label className="am-form-label" style={{ gridColumn: '1/-1' }}>Assessment Title *
-                    <input className="am-form-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Senior Frontend Engineer Assessment" />
-                  </label>
                   <label className="am-form-label" style={{ gridColumn: '1/-1' }}>Target Job Vacancy
-                    <select className="am-form-input" value={form.vacancy} onChange={e => setForm({ ...form, vacancy: e.target.value })}>
+                    <select
+                      className="am-form-input"
+                      value={form.vacancy}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setForm(prev => ({
+                          ...prev,
+                          vacancy: val,
+                        }));
+                      }}
+                    >
                       <option value="">— Select a published vacancy —</option>
                       <option>Senior Software Engineer — React</option>
                       <option>QA Engineer — Automation</option>
                       <option>Business Analyst — Fintech</option>
                       <option>Junior DevOps Engineer</option>
                       <option>Java Backend Developer</option>
+                      <option value="Other">Other (Custom vacancy / role...)</option>
                     </select>
+                  </label>
+
+                  {form.vacancy === 'Other' && (
+                    <label className="am-form-label" style={{ gridColumn: '1/-1' }}>
+                      Custom Vacancy / Role Name *
+                      <input
+                        className="am-form-input"
+                        value={customVacancy}
+                        onChange={e => setCustomVacancy(e.target.value)}
+                        placeholder="Type custom role or vacancy (e.g. Lead Mobile Developer)..."
+                        autoFocus
+                      />
+                    </label>
+                  )}
+
+                  <label className="am-form-label" style={{ gridColumn: '1/-1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span>Assessment Title *</span>
+                      <button
+                        type="button"
+                        className="am-auto-gen-btn"
+                        onClick={() => {
+                          const targetRole = form.vacancy === 'Other' ? customVacancy.trim() : form.vacancy;
+                          if (targetRole) {
+                            setForm(prev => ({ ...prev, title: `${targetRole} Assessment` }));
+                          } else {
+                            setForm(prev => ({ ...prev, title: 'Technical Assessment' }));
+                          }
+                        }}
+                        title="Auto-generate title based on selected vacancy"
+                      >
+                        <Sparkles size={12} /> Auto-Generate Title
+                      </button>
+                    </div>
+                    <input
+                      className="am-form-input"
+                      value={form.title}
+                      onChange={e => setForm({ ...form, title: e.target.value })}
+                      placeholder="e.g., Senior Software Engineer — React Assessment"
+                    />
                   </label>
                   <label className="am-form-label">Time Limit (minutes)
                     <input className="am-form-input" type="number" min={10} max={300} value={form.duration} onChange={e => setForm({ ...form, duration: +e.target.value })} />
@@ -551,27 +670,44 @@ function AssessmentsTab() {
 
                   <div className="am-qpicker-header">
                     <div>
-                      <strong>Selected Questions</strong>
-                      <span className="am-badge am-badge--neutral">{selectedQs.length} selected</span>
+                      <strong>Selected Questions ({selectedQs.length})</strong>
+                      <span className="am-badge am-badge--neutral">
+                        {selectedQs.reduce((sum, q) => sum + (q.points || 0), 0)} Total Points
+                      </span>
                     </div>
                     <button className="am-btn am-btn--ghost" onClick={() => setPickerOpen(true)}><BookOpen size={15} /> Select from Question Bank</button>
                   </div>
+
                   {selectedQs.length > 0 ? (
-                    <div className="am-selected-qs">
-                      {selectedQs.map(q => (
-                        <div key={q.id} className="am-selected-q">
-                          <span className="am-q-id">{q.id}</span>
-                          <span className="am-selected-q__text">{q.snippet.slice(0, 60)}…</span>
-                          <TypeBadge type={q.type} />
-                          <button className="am-icon-btn danger" onClick={() => setSelectedQs(selectedQs.filter(x => x.id !== q.id))}><X size={14} /></button>
-                        </div>
-                      ))}
+                    <div className="am-wizard-sec-groups">
+                      {['Section 1: General & Aptitude', 'Section 2: Technical Concepts', 'Section 3: Coding & Problem Solving'].map(secName => {
+                        const secQs = selectedQs.filter(q => (q.section || 'Section 2: Technical Concepts') === secName);
+                        if (!secQs.length) return null;
+                        return (
+                          <div key={secName} className="am-wizard-sec-group">
+                            <div className="am-wizard-sec-head">
+                              <span className="am-wizard-sec-title">{secName}</span>
+                              <span className="am-badge am-badge--neutral">{secQs.length} Qs · {secQs.reduce((s, q) => s + (q.points || 0), 0)} pts</span>
+                            </div>
+                            <div className="am-selected-qs">
+                              {secQs.map(q => (
+                                <div key={q.id} className="am-selected-q">
+                                  <span className="am-q-id">{q.id}</span>
+                                  <span className="am-selected-q__text">{q.snippet.slice(0, 60)}…</span>
+                                  <TypeBadge type={q.type} />
+                                  <button className="am-icon-btn danger" onClick={() => setSelectedQs(selectedQs.filter(x => x.id !== q.id))}><X size={14} /></button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="am-qpicker-empty" onClick={() => setPickerOpen(true)}>
                       <BookOpen size={28} />
                       <strong>No questions selected</strong>
-                      <span>Click "Select from Question Bank" to add questions</span>
+                      <span>Click "Select from Question Bank" to add questions by section</span>
                     </div>
                   )}
                 </div>
@@ -642,39 +778,79 @@ function AssessmentsTab() {
         </div>
       )}
 
-      {/* ── Question Picker Modal ── */}
+      {/* ── Question Picker Modal (Grouped by Section) ── */}
       {pickerOpen && (
         <div className="am-overlay" style={{ zIndex: 200 }} onMouseDown={e => e.target === e.currentTarget && setPickerOpen(false)}>
           <div className="am-modal am-modal--picker">
             <header className="am-modal__header">
-              <div><h2>Select from Question Bank</h2><p>Check questions to add them to this assessment</p></div>
+              <div>
+                <h2>Select from Question Bank</h2>
+                <p>Questions are organized by section. Add entire sections or individual items.</p>
+              </div>
               <button className="am-drawer__close" onClick={() => setPickerOpen(false)}><X size={20} /></button>
             </header>
             <div className="am-modal__body am-picker-body">
-              {QUESTIONS.map(q => {
-                const isSelected = selectedQs.some(x => x.id === q.id);
+              {['Section 1: General & Aptitude', 'Section 2: Technical Concepts', 'Section 3: Coding & Problem Solving'].map(secName => {
+                const secQs = QUESTIONS.filter(q => (q.section || 'Section 2: Technical Concepts') === secName);
+                const allInSecSelected = secQs.length > 0 && secQs.every(q => selectedQs.some(x => x.id === q.id));
+                const countSelectedInSec = secQs.filter(q => selectedQs.some(x => x.id === q.id)).length;
+
                 return (
-                  <label key={q.id} className={`am-picker-row ${isSelected ? 'selected' : ''}`}>
-                    <input type="checkbox" checked={isSelected} onChange={e => {
-                      if (e.target.checked) setSelectedQs([...selectedQs, q]);
-                      else setSelectedQs(selectedQs.filter(x => x.id !== q.id));
-                    }} />
-                    <div className="am-picker-row__content">
-                      <span className="am-q-id">{q.id}</span>
-                      <p>{q.snippet.slice(0, 80)}…</p>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                        <TypeBadge type={q.type} />
-                        <DifficultyBadge level={q.difficulty} />
-                        <span className="am-skill-pill">{q.role}</span>
+                  <div key={secName} className="am-picker-section-block">
+                    <div className="am-picker-section-header">
+                      <div className="am-picker-section-title">
+                        <strong>{secName}</strong>
+                        <span className="am-badge am-badge--neutral">{countSelectedInSec}/{secQs.length} selected</span>
                       </div>
+                      <button
+                        type="button"
+                        className={`am-section-bulk-btn ${allInSecSelected ? 'is-selected' : ''}`}
+                        onClick={() => {
+                          if (allInSecSelected) {
+                            const secIds = new Set(secQs.map(q => q.id));
+                            setSelectedQs(selectedQs.filter(q => !secIds.has(q.id)));
+                          } else {
+                            const existingIds = new Set(selectedQs.map(q => q.id));
+                            const toAdd = secQs.filter(q => !existingIds.has(q.id));
+                            setSelectedQs([...selectedQs, ...toAdd]);
+                          }
+                        }}
+                      >
+                        {allInSecSelected ? <><CheckCircle2 size={13} /> Remove All Section</> : <><Plus size={13} /> Add All in Section ({secQs.length})</>}
+                      </button>
                     </div>
-                    <span className="am-preview-pts"><Award size={12} /> {q.points}pts</span>
-                  </label>
+
+                    <div className="am-picker-section-items">
+                      {secQs.map(q => {
+                        const isSelected = selectedQs.some(x => x.id === q.id);
+                        return (
+                          <label key={q.id} className={`am-picker-row ${isSelected ? 'selected' : ''}`}>
+                            <input type="checkbox" checked={isSelected} onChange={e => {
+                              if (e.target.checked) setSelectedQs([...selectedQs, q]);
+                              else setSelectedQs(selectedQs.filter(x => x.id !== q.id));
+                            }} />
+                            <div className="am-picker-row__content">
+                              <span className="am-q-id">{q.id}</span>
+                              <p>{q.snippet.slice(0, 80)}…</p>
+                              <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                <TypeBadge type={q.type} />
+                                <DifficultyBadge level={q.difficulty} />
+                                <span className="am-skill-pill">{q.role}</span>
+                              </div>
+                            </div>
+                            <span className="am-preview-pts"><Award size={12} /> {q.points}pts</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
             <footer className="am-modal__footer">
-              <span className="am-picker-count"><strong>{selectedQs.length}</strong> questions selected</span>
+              <span className="am-picker-count">
+                <strong>{selectedQs.length}</strong> questions selected ({selectedQs.reduce((s, q) => s + (q.points || 0), 0)} pts)
+              </span>
               <button className="am-btn am-btn--primary" onClick={() => setPickerOpen(false)}><CheckCircle2 size={16} /> Done</button>
             </footer>
           </div>
@@ -711,15 +887,30 @@ function CandidateResultsTab() {
     { label: 'Avg. Score', value: `${avgScore}%`, icon: BarChart3, color: 'gold' },
   ];
 
+  const [rubrics, setRubrics] = useState({});
+
   const openGrading = (c) => {
     setGradingCandidate(c);
     const initScores = {};
     const initComments = {};
+    const initRubrics = {};
     c.responses.forEach(r => {
-      if (r.type !== 'MCQ') { initScores[r.id] = r.manualScore ?? ''; initComments[r.id] = r.evaluatorComment ?? ''; }
+      if (r.type !== 'MCQ') {
+        initScores[r.id] = r.manualScore ?? '';
+        initComments[r.id] = r.evaluatorComment ?? '';
+        if (r.type === 'Coding') {
+          initRubrics[r.id] = {
+            cleanliness: r.manualScore ? 4 : 0,
+            optimization: r.manualScore ? 4 : 0,
+            readability: r.manualScore ? 5 : 0,
+            architecture: r.manualScore ? 4 : 0,
+          };
+        }
+      }
     });
     setManualScores(initScores);
     setComments(initComments);
+    setRubrics(initRubrics);
     setRecommendation(c.recommendation || 'Pending');
   };
 
@@ -731,14 +922,14 @@ function CandidateResultsTab() {
     setCandidates(candidates.map(c => c.id === gradingCandidate.id
       ? {
         ...c, manualStatus: 'Graded', finalScore,
-        recommendation,
+        recommendation: recommendation === 'Pending' ? (finalScore >= 70 ? 'Shortlist' : 'Reject') : recommendation,
         responses: c.responses.map(r => r.type !== 'MCQ' ? { ...r, manualScore: +manualScores[r.id] || 0, evaluatorComment: comments[r.id] || '' } : r),
       }
       : c
     ));
     setGradingCandidate(null);
-    setNotice(`Grades saved for ${gradingCandidate.name}. Final score: ${finalScore}%`);
-    setTimeout(() => setNotice(''), 5000);
+    setNotice(`Technical evaluation finalized for ${gradingCandidate.name}! Official Score: ${finalScore}% · Report unlocked.`);
+    setTimeout(() => setNotice(''), 6000);
   };
 
   return (
@@ -799,10 +990,17 @@ function CandidateResultsTab() {
                 <td><span className="am-a-meta" style={{ fontSize: '0.8rem' }}>{c.completedDate}</span></td>
                 <td><span className="am-score-chip">{c.autoScore != null ? `${c.autoScore}%` : '—'}</span></td>
                 <td>
-                  <span className={`am-review-status ${c.manualStatus === 'Graded' ? 'graded' : 'needs-grading'}`}>
-                    {c.manualStatus === 'Graded' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                    {c.manualStatus}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                    <span className={`am-review-status ${c.manualStatus === 'Graded' ? 'graded' : 'needs-grading'}`}>
+                      {c.manualStatus === 'Graded' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                      {c.manualStatus === 'Graded' ? 'Graded' : 'Pending Review'}
+                    </span>
+                    {c.responses.some(r => r.type === 'Coding') && (
+                      <span className="am-coding-flag-pill" title="Contains coding challenges requiring manual evaluation">
+                        <Code2 size={10} /> Coding Assessment
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   {c.finalScore != null
@@ -813,7 +1011,7 @@ function CandidateResultsTab() {
                 <td><RecommendationBadge rec={c.recommendation} /></td>
                 <td style={{ textAlign: 'center' }}>
                   <button className="am-btn am-btn--review" onClick={() => openGrading(c)}>
-                    <Eye size={14} /> {c.manualStatus === 'Needs Grading' ? 'Review & Grade' : 'View Report'}
+                    <Eye size={14} /> {c.manualStatus === 'Graded' ? 'View Report' : 'Review & Evaluate'}
                   </button>
                 </td>
               </tr>
@@ -889,10 +1087,67 @@ function CandidateResultsTab() {
 
             {/* Right Panel */}
             <main className="am-grading-right">
+              {/* Header with Title and Print/Export Dossier Action */}
               <div className="am-grading-right__header">
-                <h3>Response Review</h3>
-                <span className="am-badge am-badge--neutral">{gradingCandidate.responses.length} questions</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#FFFFFF' }}>Response Review</h3>
+                  <span className="am-badge am-badge--neutral" style={{ marginTop: '4px' }}>
+                    {gradingCandidate.responses.length} questions
+                  </span>
+                </div>
+
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {gradingCandidate.manualStatus === 'Graded' ? (
+                    <button
+                      type="button"
+                      className="am-btn am-btn--print"
+                      onClick={() => window.print()}
+                      title="Print or Save Official Candidate Report as PDF"
+                    >
+                      <Printer size={15} /> Export PDF / Print Report
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="am-btn am-btn--print-locked"
+                      disabled
+                      title="Complete manual grading of all questions below and click 'Save Grades' to unlock official dossier printing"
+                    >
+                      <Lock size={14} /> Report Locked (Grade First)
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Printable Dossier Header (Only renders on @media print) */}
+              <div className="am-print-header">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #222', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '20px', color: '#111827' }}>IntelliHire — Candidate Assessment Dossier</h2>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Confidential Technical Interviewer Dossier &amp; Submission Audit</span>
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: '#374151' }}>
+                    <div>Candidate: <strong>{gradingCandidate.name}</strong></div>
+                    <div>Applied Role: <strong>{gradingCandidate.role}</strong></div>
+                    <div>Final Score: <strong>{gradingCandidate.finalScore ?? gradingCandidate.autoScore}% ({gradingCandidate.manualStatus})</strong></div>
+                    <div>Completed: <strong>{gradingCandidate.completedDate}</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mandatory Review Alert Banner */}
+              {gradingCandidate.responses.some(r => r.type === 'Coding') && gradingCandidate.manualStatus !== 'Graded' && (
+                <div className="am-mandatory-alert-card">
+                  <div className="am-mandatory-alert-icon">
+                    <ShieldAlert size={18} />
+                  </div>
+                  <div className="am-mandatory-alert-body">
+                    <strong>Mandatory Technical Interviewer Review Required</strong>
+                    <p>This assessment contains hands-on programming challenges. Final scores, candidate ranking, and printable dossier export remain locked until all coding solutions are manually evaluated.</p>
+                  </div>
+                </div>
+              )}
+
               <div className="am-responses">
                 {gradingCandidate.responses.map((r, idx) => (
                   <div key={r.id} className="am-response-card">
@@ -910,17 +1165,115 @@ function CandidateResultsTab() {
                     <p className="am-response-question">{r.question}</p>
                     <div className="am-response-answer">
                       <label className="am-response-answer__label"><MessageSquare size={12} /> Candidate's Answer</label>
-                      {r.type === 'Coding'
-                        ? <pre className="am-code-block">{r.answer}</pre>
-                        : <p className="am-answer-text">{r.answer}</p>
-                      }
+                      {r.type === 'Coding' ? (
+                        <div>
+                          <div className="am-coding-meta-bar">
+                            <span className="am-code-lang-tag"><Braces size={11} /> JavaScript · Algorithm Challenge</span>
+                            <div className={`am-test-runner-pill ${r.answer.includes('Could not complete') ? 'failed' : 'passed'}`}>
+                              {r.answer.includes('Could not complete') ? <XCircle size={12} /> : <CheckCircle2 size={12} />}
+                              <span>{r.answer.includes('Could not complete') ? '0/4 Tests Passed (Incomplete Solution)' : '4/4 Automated Test Cases Passed'}</span>
+                              <small>({r.answer.includes('Could not complete') ? 'DNF' : '28ms · 16.4 MB'})</small>
+                            </div>
+                          </div>
+                          <pre className="am-code-block">{r.answer}</pre>
+                        </div>
+                      ) : (
+                        <p className="am-answer-text">{r.answer}</p>
+                      )}
                     </div>
                     {r.type !== 'MCQ' && (
                       <div className="am-manual-grading">
                         <div className="am-rubric">
-                          <label className="am-response-answer__label"><Eye size={12} /> Scoring Rubric</label>
+                          <label className="am-response-answer__label"><Eye size={12} /> Scoring Rubric & Benchmark</label>
                           <p className="am-rubric-text">{r.rubric}</p>
                         </div>
+
+                        {/* Interactive Coding Rubrics */}
+                        {r.type === 'Coding' && (
+                          <div className="am-coding-rubrics-card">
+                            <div className="am-coding-rubrics-title">
+                              <span>Technical Evaluation Criteria (1–5 Scale)</span>
+                            </div>
+                            <div className="am-coding-rubric-grid">
+                              <div className="am-rubric-metric">
+                                <span>Code Cleanliness</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.cleanliness || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), cleanliness: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="am-rubric-metric">
+                                <span>Optimization</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.optimization || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), optimization: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="am-rubric-metric">
+                                <span>Readability & Naming</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.readability || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), readability: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="am-rubric-metric">
+                                <span>Edge Cases</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.architecture || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), architecture: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="am-score-input-row">
                           <label className="am-form-label">Score
                             <div className="am-score-input-wrap">
@@ -936,12 +1289,12 @@ function CandidateResultsTab() {
                               <span className="am-score-max">/ {r.maxPoints} pts</span>
                             </div>
                           </label>
-                          <label className="am-form-label am-comment-label">Evaluator Comments
+                          <label className="am-form-label am-comment-label">Evaluator Comments & Feedback
                             <textarea
                               className="am-form-input am-form-textarea"
                               value={comments[r.id] ?? ''}
                               onChange={e => setComments({ ...comments, [r.id]: e.target.value })}
-                              placeholder="Add feedback or notes for this response..."
+                              placeholder="Add specific feedback or interview notes for this response..."
                               rows={2}
                             />
                           </label>
@@ -950,11 +1303,33 @@ function CandidateResultsTab() {
                     )}
                   </div>
                 ))}
+
+                {/* Printable Interviewer Evaluation Scorecard */}
+                <div className="am-print-scorecard">
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#111827' }}>
+                    ✍️ Technical Interviewer Evaluation Scorecard
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', color: '#374151' }}>
+                    <div>Code Cleanliness &amp; Style: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                    <div>Algorithmic Optimization: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                    <div>System Architecture Knowledge: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                    <div>Technical Communication: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '10px', borderTop: '1px solid #d1d5db', fontSize: '12px', color: '#374151' }}>
+                    <div>Interviewer Signature: _______________________</div>
+                    <div>Decision: [ &nbsp;] Strong Hire &nbsp;&nbsp; [ &nbsp;] Hire &nbsp;&nbsp; [ &nbsp;] Hold &nbsp;&nbsp; [ &nbsp;] Reject</div>
+                  </div>
+                </div>
               </div>
+
+              {/* Bottom Footer Actions */}
               <div className="am-grading-footer">
-                <button className="am-btn am-btn--ghost" onClick={() => setGradingCandidate(null)}>Cancel</button>
+                <button className="am-btn am-btn--ghost" onClick={() => setGradingCandidate(null)}>
+                  {gradingCandidate.manualStatus === 'Graded' ? 'Close' : 'Cancel'}
+                </button>
+
                 <button className="am-btn am-btn--primary" onClick={saveGrades}>
-                  <CheckCircle2 size={16} /> Save Grades &amp; Shortlist for Interview
+                  <CheckCircle2 size={16} /> {gradingCandidate.manualStatus === 'Graded' ? 'Update Evaluation & Grades' : 'Finalize Review & Unlock Report'}
                 </button>
               </div>
             </main>

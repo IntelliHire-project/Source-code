@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, Clock3, FileText, HelpCircle, Plus, Save, SlidersHorizontal, Trash2, Upload } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Clock3, FileText, HelpCircle, Plus, Save, SlidersHorizontal, Sparkles, Trash2, Upload } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AssessmentShell from './AssessmentShell';
 import './AssessmentFlow.css';
+
+const JOB_ROLES = [
+  'Senior Software Engineer — React',
+  'Senior Backend Engineer — Node/Java',
+  'Full Stack Developer',
+  'QA Automation Engineer',
+  'DevOps & Cloud Engineer',
+  'Data Scientist & ML',
+  'Business Analyst — Fintech'
+];
 
 const STARTER_QUESTIONS = [
   { id: 1, title: 'Describe the difference between server-side rendering and client-side rendering.', text: 'Describe the difference between server-side rendering and client-side rendering.', points: 10, type: 'Long Answer' },
@@ -16,7 +26,39 @@ function CreateAssessmentPage() {
   const [questions, setQuestions] = useState(STARTER_QUESTIONS);
   const [expanded, setExpanded] = useState(1);
   const [saved, setSaved] = useState(false);
-  const [config, setConfig] = useState({ title: 'Senior Frontend Engineer - React', role: 'Software Engineering', description: 'This assessment evaluates core React competencies, architectural patterns, and problem-solving skills for senior-level candidates.', duration: 60, difficulty: 'Senior' });
+  const [customRole, setCustomRole] = useState('');
+
+  const [config, setConfig] = useState({
+    title: isEditing ? 'Senior Software Engineer — React Assessment — Senior' : '',
+    role: isEditing ? 'Senior Software Engineer — React' : '',
+    description: 'This assessment evaluates core competencies, architectural patterns, and hands-on coding problem-solving skills.',
+    duration: 60,
+    difficulty: 'Senior'
+  });
+
+  const handleRoleChange = (newRole) => {
+    setConfig({
+      ...config,
+      role: newRole,
+    });
+  };
+
+  const handleDifficultyChange = (newDiff) => {
+    setConfig({
+      ...config,
+      difficulty: newDiff,
+    });
+  };
+
+  const handleAutoGenerateTitle = () => {
+    const target = config.role === 'Other' ? customRole.trim() : config.role;
+    if (target) {
+      setConfig(prev => ({ ...prev, title: `${target} Assessment — ${prev.difficulty}` }));
+    } else {
+      setConfig(prev => ({ ...prev, title: `Technical Assessment — ${prev.difficulty}` }));
+    }
+  };
+
   const updateQuestion = (id, key, value) => setQuestions(questions.map((q) => q.id === id ? { ...q, [key]: value } : q));
   return (
     <AssessmentShell currentPage={isEditing ? 'Edit Assessment' : 'Create Assessment'}>
@@ -30,10 +72,56 @@ function CreateAssessmentPage() {
           <aside>
             <section className="ca-config">
               <h2><SlidersHorizontal size={20} /> Configuration</h2><p>General settings for this assessment.</p>
-              <label>Assessment Title<input value={config.title} onChange={(e) => setConfig({ ...config, title: e.target.value })} /></label>
-              <label>Target Role<input value={config.role} onChange={(e) => setConfig({ ...config, role: e.target.value })} /></label>
+
+              <label>Target Job Vacancy / Role
+                <select value={config.role} onChange={(e) => handleRoleChange(e.target.value)}>
+                  <option value="">— Select a vacancy / role —</option>
+                  {JOB_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  <option value="Other">Other (Custom vacancy / role...)</option>
+                </select>
+              </label>
+
+              {config.role === 'Other' && (
+                <label>Custom Vacancy / Role Name *
+                  <input
+                    value={customRole}
+                    onChange={(e) => setCustomRole(e.target.value)}
+                    placeholder="Type custom role or vacancy..."
+                    autoFocus
+                  />
+                </label>
+              )}
+
+              <label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span>Assessment Title</span>
+                  <button
+                    type="button"
+                    className="af-auto-gen-btn"
+                    onClick={handleAutoGenerateTitle}
+                    title="Auto-generate title based on selected vacancy and difficulty"
+                  >
+                    <Sparkles size={12} /> Auto-Generate Title
+                  </button>
+                </div>
+                <input
+                  value={config.title}
+                  onChange={(e) => setConfig({ ...config, title: e.target.value })}
+                  placeholder="e.g., Senior Software Engineer Assessment"
+                />
+              </label>
+
               <label>Description<textarea value={config.description} onChange={(e) => setConfig({ ...config, description: e.target.value })} /></label>
-              <div className="qb-form-grid"><label>Duration<div className="ca-input-icon"><Clock3 size={16} /><input type="number" value={config.duration} onChange={(e) => setConfig({ ...config, duration: e.target.value })} /></div><small>Minutes</small></label><label>Difficulty<select value={config.difficulty} onChange={(e) => setConfig({ ...config, difficulty: e.target.value })}><option>Junior</option><option>Mid-level</option><option>Senior</option></select></label></div>
+              <div className="qb-form-grid">
+                <label>Duration<div className="ca-input-icon"><Clock3 size={16} /><input type="number" value={config.duration} onChange={(e) => setConfig({ ...config, duration: e.target.value })} /></div><small>Minutes</small></label>
+                <label>Difficulty
+                  <select value={config.difficulty} onChange={(e) => handleDifficultyChange(e.target.value)}>
+                    <option>Junior</option>
+                    <option>Mid-level</option>
+                    <option>Senior</option>
+                  </select>
+                </label>
+              </div>
             </section>
             <section className="ca-tips"><div className="ca-tips-head"><h2>Recruiter Tips</h2><HelpCircle size={42} /></div><p><CheckCircle2 size={18} /> Keep assessments under <b>90 minutes</b> to ensure a high completion rate.</p><p><CheckCircle2 size={18} /> Include at least one coding challenge for senior roles.</p><button onClick={() => navigate('/recruiter/question-bank')}>View Best Practices <ChevronDown size={16} /></button></section>
           </aside>

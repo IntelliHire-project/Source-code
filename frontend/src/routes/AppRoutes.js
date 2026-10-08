@@ -28,6 +28,8 @@ import MyApplications from '../pages/candidate/MyApplications/MyApplications';
 import ApplicationDetails from '../pages/candidate/ApplicationDetails/ApplicationDetails';
 import CVInsights from '../pages/candidate/CVInsights/CVInsights';
 import DashboardPage from '../pages/candidate/DashboardPage/DashboardPage';
+import TakeAssessmentPage from '../pages/candidate/Assessments/TakeAssessmentPage';
+import CandidateAssessmentsListPage from '../pages/candidate/Assessments/CandidateAssessmentsListPage';
 import RecruiterDashboard from '../pages/recruiter/Dashboard/RecruiterDashboard';
 import RankedApplicants from '../pages/recruiter/RankedApplicants/RankedApplicants';
 import InterviewedApplicants from '../pages/recruiter/InterviewedApplicants/InterviewedApplicants';
@@ -209,7 +211,11 @@ function AppRoutes() {
           <Route path="community/guidelines" element={<GuidelinesPage roleOverride="candidate" />} />
           <Route path="notifications" element={<CandidatePlaceholder title="Notifications" />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="assessments" element={<CandidateAssessmentsListPage />} />
+          <Route path="assessments/:assessmentId" element={<TakeAssessmentPage />} />
         </Route>
+        <Route path="/candidate/my-assessments" element={<CandidateAssessmentsListPage />} />
+        <Route path="/a/:assessmentId" element={<TakeAssessmentPage />} />
         <Route
           path="/recruiter/dashboard"
           element={<RecruiterProtected><RecruiterDashboard /></RecruiterProtected>}
