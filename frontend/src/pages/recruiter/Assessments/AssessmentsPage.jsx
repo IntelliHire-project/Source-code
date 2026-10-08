@@ -32,6 +32,7 @@ import {
   Shield,
   ShieldCheck,
   Shuffle,
+  Sparkles,
   Star,
   Trash2,
   TrendingUp,
@@ -388,6 +389,8 @@ function AssessmentsTab() {
   const [selectedQs, setSelectedQs] = useState([]);
   const [notice, setNotice] = useState('');
 
+  const [autoTitle, setAutoTitle] = useState(true);
+
   const [form, setForm] = useState({
     title: '', vacancy: '', duration: 60, passing: 70,
     autoSend: false, randomize: false, blockCopyPaste: false,
@@ -396,7 +399,13 @@ function AssessmentsTab() {
 
   const filtered = assessments.filter(a => `${a.name} ${a.vacancy} ${a.status}`.toLowerCase().includes(query.toLowerCase()));
 
-  const openWizard = () => { setWizardStep(1); setForm({ title: '', vacancy: '', duration: 60, passing: 70, autoSend: false, randomize: false, blockCopyPaste: false, sections: [{ name: 'Section 1: Aptitude', duration: 15 }, { name: 'Section 2: Technical', duration: 30 }] }); setSelectedQs([]); setWizardOpen(true); };
+  const openWizard = () => {
+    setWizardStep(1);
+    setAutoTitle(true);
+    setForm({ title: '', vacancy: '', duration: 60, passing: 70, autoSend: false, randomize: false, blockCopyPaste: false, sections: [{ name: 'Section 1: Aptitude', duration: 15 }, { name: 'Section 2: Technical', duration: 30 }] });
+    setSelectedQs([]);
+    setWizardOpen(true);
+  };
 
   const publishAssessment = () => {
     if (!form.title.trim()) return;
@@ -510,11 +519,19 @@ function AssessmentsTab() {
             <div className="am-modal__body">
               {wizardStep === 1 && (
                 <div className="am-form-grid am-form-grid--wide">
-                  <label className="am-form-label" style={{ gridColumn: '1/-1' }}>Assessment Title *
-                    <input className="am-form-input" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Senior Frontend Engineer Assessment" />
-                  </label>
                   <label className="am-form-label" style={{ gridColumn: '1/-1' }}>Target Job Vacancy
-                    <select className="am-form-input" value={form.vacancy} onChange={e => setForm({ ...form, vacancy: e.target.value })}>
+                    <select
+                      className="am-form-input"
+                      value={form.vacancy}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setForm(prev => ({
+                          ...prev,
+                          vacancy: val,
+                          title: autoTitle && val ? `${val} Assessment` : prev.title
+                        }));
+                      }}
+                    >
                       <option value="">— Select a published vacancy —</option>
                       <option>Senior Software Engineer — React</option>
                       <option>QA Engineer — Automation</option>
@@ -522,6 +539,44 @@ function AssessmentsTab() {
                       <option>Junior DevOps Engineer</option>
                       <option>Java Backend Developer</option>
                     </select>
+                  </label>
+
+                  <label className="am-form-label" style={{ gridColumn: '1/-1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span>Assessment Title *</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {autoTitle ? (
+                          <span style={{ fontSize: '11px', background: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B', padding: '2px 8px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                            <Sparkles size={11} /> Auto-generated
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>Custom Title</span>
+                        )}
+                        <button
+                          type="button"
+                          style={{ background: 'transparent', border: 'none', color: '#F0B90B', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
+                          onClick={() => {
+                            if (!autoTitle) {
+                              setAutoTitle(true);
+                              if (form.vacancy) setForm(prev => ({ ...prev, title: `${prev.vacancy} Assessment` }));
+                            } else {
+                              setAutoTitle(false);
+                            }
+                          }}
+                        >
+                          {autoTitle ? 'Customize' : 'Revert to Auto'}
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      className="am-form-input"
+                      value={form.title}
+                      onChange={e => {
+                        setAutoTitle(false);
+                        setForm({ ...form, title: e.target.value });
+                      }}
+                      placeholder="e.g., Senior Software Engineer — React Assessment"
+                    />
                   </label>
                   <label className="am-form-label">Time Limit (minutes)
                     <input className="am-form-input" type="number" min={10} max={300} value={form.duration} onChange={e => setForm({ ...form, duration: +e.target.value })} />
