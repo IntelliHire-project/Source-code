@@ -25,6 +25,7 @@ const INITIAL_QUESTIONS = [
     author: 'Sarah Miller',
     date: '2026-07-21',
     category: 'Backend Engineering',
+    section: 'Section 2: Technical Concepts',
     type: 'Open Ended',
     difficulty: 'Medium',
     status: 'Published',
@@ -37,6 +38,7 @@ const INITIAL_QUESTIONS = [
     author: 'Marcus Chen',
     date: '2026-07-18',
     category: 'Algorithms & Data Structures',
+    section: 'Section 3: Coding & Problem Solving',
     type: 'Coding',
     difficulty: 'Hard',
     status: 'Published',
@@ -57,6 +59,7 @@ const INITIAL_QUESTIONS = [
     author: 'Sarah Miller',
     date: '2026-07-15',
     category: 'Frontend Core',
+    section: 'Section 2: Technical Concepts',
     type: 'Multiple Choice',
     difficulty: 'Medium',
     status: 'Published',
@@ -69,6 +72,7 @@ const INITIAL_QUESTIONS = [
     author: 'Sarah Miller',
     date: '2026-07-12',
     category: 'Soft Skills',
+    section: 'Section 1: General & Aptitude',
     type: 'Open Ended',
     difficulty: 'Medium',
     status: 'Draft',
@@ -81,6 +85,7 @@ const INITIAL_QUESTIONS = [
     author: 'Marcus Chen',
     date: '2026-07-05',
     category: 'Backend Engineering',
+    section: 'Section 3: Coding & Problem Solving',
     type: 'Coding',
     difficulty: 'Hard',
     status: 'Published',
@@ -101,6 +106,7 @@ const INITIAL_QUESTIONS = [
     author: 'Alex Vance',
     date: '2026-07-01',
     category: 'System Architecture',
+    section: 'Section 2: Technical Concepts',
     type: 'Multiple Choice',
     difficulty: 'Hard',
     status: 'Published',
@@ -109,11 +115,19 @@ const INITIAL_QUESTIONS = [
   },
 ];
 
+const SECTION_OPTIONS = [
+  { id: 'All', label: 'All Sections' },
+  { id: 'Section 1: General & Aptitude', label: 'Section 1: Aptitude & Reasoning' },
+  { id: 'Section 2: Technical Concepts', label: 'Section 2: Technical Concepts' },
+  { id: 'Section 3: Coding & Problem Solving', label: 'Section 3: Coding Challenges' },
+];
+
 function QuestionBankPage() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState(INITIAL_QUESTIONS);
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [activeSection, setActiveSection] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [notice, setNotice] = useState('');
   
@@ -122,11 +136,12 @@ function QuestionBankPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const visible = useMemo(() => questions.filter((q) => {
-    const matchesQuery = `${q.title} ${q.category} ${q.type} ${q.status}`.toLowerCase().includes(query.toLowerCase());
+    const matchesQuery = `${q.title} ${q.category} ${q.type} ${q.status} ${q.section || ''}`.toLowerCase().includes(query.toLowerCase());
     const matchesStatus = statusFilter === 'All' || q.status === statusFilter;
     const matchesCategory = activeCategory === 'All' || q.category === activeCategory;
-    return matchesQuery && matchesStatus && matchesCategory;
-  }), [questions, query, statusFilter, activeCategory]);
+    const matchesSection = activeSection === 'All' || q.section === activeSection;
+    return matchesQuery && matchesStatus && matchesCategory && matchesSection;
+  }), [questions, query, statusFilter, activeCategory, activeSection]);
 
   const openCreate = () => {
     navigate('/recruiter/question-bank/add');
@@ -160,6 +175,40 @@ function QuestionBankPage() {
             <button type="button" onClick={() => setNotice('')}><X size={15} /></button>
           </div>
         )}
+
+        {/* ── Section Filter Pills Bar ── */}
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '12px' }}>
+          {SECTION_OPTIONS.map((sec) => {
+            const isActive = activeSection === sec.id;
+            const count = sec.id === 'All' ? questions.length : questions.filter(q => q.section === sec.id).length;
+            return (
+              <button
+                key={sec.id}
+                onClick={() => setActiveSection(sec.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '16px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  border: isActive ? '1px solid #f0b90b' : '1px solid rgba(255,255,255,0.1)',
+                  background: isActive ? 'rgba(240, 185, 11, 0.15)' : 'rgba(22, 23, 32, 0.7)',
+                  color: isActive ? '#f0b90b' : '#94a3b8',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>{sec.label}</span>
+                <span style={{ fontSize: '11px', background: isActive ? '#f0b90b' : 'rgba(255,255,255,0.1)', color: isActive ? '#0d0e13' : '#cbd5e1', padding: '1px 6px', borderRadius: '10px' }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* ── Category Filter Pills Bar ── */}
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '16px' }}>
@@ -234,6 +283,11 @@ function QuestionBankPage() {
               </div>
 
               <div className="qb-tags">
+                {q.section && (
+                  <span style={{ background: q.section.includes('Coding') ? 'rgba(240, 185, 11, 0.15)' : q.section.includes('Aptitude') ? 'rgba(168, 85, 247, 0.15)' : 'rgba(59, 130, 246, 0.15)', color: q.section.includes('Coding') ? '#FCD34D' : q.section.includes('Aptitude') ? '#C084FC' : '#60A5FA', border: '1px solid rgba(255,255,255,0.12)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>
+                    {q.section.replace('Section ', 'Sec ')}
+                  </span>
+                )}
                 <span style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.3)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
                   {q.category}
                 </span>

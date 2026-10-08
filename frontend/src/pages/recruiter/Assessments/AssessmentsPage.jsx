@@ -51,14 +51,14 @@ import './AssessmentsPage.css';
 ───────────────────────────────────────────────────────────────── */
 
 const QUESTIONS = [
-  { id: 'Q-001', snippet: 'Explain the difference between REST and GraphQL APIs and when you would choose one over the other.', role: 'Software Engineer', skills: ['API Design', 'REST', 'GraphQL'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10 },
-  { id: 'Q-002', snippet: 'Which of the following is NOT a JavaScript data type? (A) undefined (B) boolean (C) float (D) symbol', role: 'Software Engineer', skills: ['JavaScript', 'Core JS'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['undefined', 'boolean', 'float', 'symbol'], correct: 2 },
-  { id: 'Q-003', snippet: 'Write a function to find the longest substring without repeating characters.', role: 'Software Engineer', skills: ['Algorithms', 'Java'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 20 },
-  { id: 'Q-004', snippet: 'Describe three key differences between SQL and NoSQL databases and provide use cases for each.', role: 'QA Engineer', skills: ['SQL', 'Database'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10 },
-  { id: 'Q-005', snippet: 'What is the output of the following React code snippet? (A) renders null (B) throws error (C) renders empty div (D) renders children', role: 'Software Engineer', skills: ['React', 'JSX'], type: 'MCQ', difficulty: 'Medium', evalMode: 'Auto-graded', points: 5, options: ['renders null', 'throws error', 'renders empty div', 'renders children'], correct: 0 },
-  { id: 'Q-006', snippet: 'Describe the requirements gathering process you would follow when joining a new project mid-sprint.', role: 'Business Analyst', skills: ['Requirements', 'Agile'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10 },
-  { id: 'Q-007', snippet: 'Implement a binary search tree with insert, search, and in-order traversal methods.', role: 'Software Engineer', skills: ['Algorithms', 'Data Structures'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 25 },
-  { id: 'Q-008', snippet: 'Which HTTP status code represents a successful resource creation? (A) 200 (B) 201 (C) 204 (D) 301', role: 'QA Engineer', skills: ['HTTP', 'REST'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['200 OK', '201 Created', '204 No Content', '301 Redirect'], correct: 1 },
+  { id: 'Q-001', snippet: 'Explain the difference between REST and GraphQL APIs and when you would choose one over the other.', role: 'Software Engineer', skills: ['API Design', 'REST', 'GraphQL'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-002', snippet: 'Which of the following is NOT a JavaScript data type? (A) undefined (B) boolean (C) float (D) symbol', role: 'Software Engineer', skills: ['JavaScript', 'Core JS'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['undefined', 'boolean', 'float', 'symbol'], correct: 2, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-003', snippet: 'Write a function to find the longest substring without repeating characters.', role: 'Software Engineer', skills: ['Algorithms', 'Java'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 20, section: 'Section 3: Coding & Problem Solving' },
+  { id: 'Q-004', snippet: 'Describe three key differences between SQL and NoSQL databases and provide use cases for each.', role: 'QA Engineer', skills: ['SQL', 'Database'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-005', snippet: 'What is the output of the following React code snippet? (A) renders null (B) throws error (C) renders empty div (D) renders children', role: 'Software Engineer', skills: ['React', 'JSX'], type: 'MCQ', difficulty: 'Medium', evalMode: 'Auto-graded', points: 5, options: ['renders null', 'throws error', 'renders empty div', 'renders children'], correct: 0, section: 'Section 2: Technical Concepts' },
+  { id: 'Q-006', snippet: 'Describe the requirements gathering process you would follow when joining a new project mid-sprint.', role: 'Business Analyst', skills: ['Requirements', 'Agile'], type: 'Short Answer', difficulty: 'Medium', evalMode: 'Manual Review', points: 10, section: 'Section 1: General & Aptitude' },
+  { id: 'Q-007', snippet: 'Implement a binary search tree with insert, search, and in-order traversal methods.', role: 'Software Engineer', skills: ['Algorithms', 'Data Structures'], type: 'Coding', difficulty: 'Hard', evalMode: 'Manual Review', points: 25, section: 'Section 3: Coding & Problem Solving' },
+  { id: 'Q-008', snippet: 'Which HTTP status code represents a successful resource creation? (A) 200 (B) 201 (C) 204 (D) 301', role: 'QA Engineer', skills: ['HTTP', 'REST'], type: 'MCQ', difficulty: 'Easy', evalMode: 'Auto-graded', points: 5, options: ['200 OK', '201 Created', '204 No Content', '301 Redirect'], correct: 1, section: 'Section 1: General & Aptitude' },
 ];
 
 const ASSESSMENTS = [
@@ -147,6 +147,16 @@ function RecommendationBadge({ rec }) {
   return <span className="am-rec am-rec--pending"><Clock size={11} />Pending</span>;
 }
 
+function SectionBadge({ section }) {
+  if (!section) return null;
+  const isSec1 = section.includes('Aptitude') || section.includes('General') || section.includes('Section 1');
+  const isSec2 = section.includes('Technical') || section.includes('Section 2');
+  const isSec3 = section.includes('Coding') || section.includes('Section 3');
+  const cls = isSec1 ? 'am-sec-badge--aptitude' : isSec2 ? 'am-sec-badge--tech' : isSec3 ? 'am-sec-badge--coding' : 'am-sec-badge--default';
+  const label = isSec1 ? 'Sec 1: Aptitude' : isSec2 ? 'Sec 2: Technical' : isSec3 ? 'Sec 3: Coding' : section;
+  return <span className={`am-sec-badge ${cls}`} title={section}>{label}</span>;
+}
+
 /* ─────────────────────────────────────────────────────────────────
    TAB 1 — QUESTION BANK
 ───────────────────────────────────────────────────────────────── */
@@ -155,6 +165,7 @@ function QuestionBankTab() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState(QUESTIONS);
   const [query, setQuery] = useState('');
+  const [sectionFilter, setSectionFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
   const [diffFilter, setDiffFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
@@ -162,6 +173,13 @@ function QuestionBankTab() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [previewQ, setPreviewQ] = useState(null);
   const [notice, setNotice] = useState('');
+
+  const SECTION_TABS = [
+    { id: 'All', label: 'All Sections' },
+    { id: 'Section 1: General & Aptitude', label: 'Section 1: Aptitude' },
+    { id: 'Section 2: Technical Concepts', label: 'Section 2: Technical' },
+    { id: 'Section 3: Coding & Problem Solving', label: 'Section 3: Coding' },
+  ];
 
   const openCreate = () => {
     navigate('/recruiter/question-bank/add');
@@ -172,13 +190,14 @@ function QuestionBankTab() {
   };
 
   const filtered = useMemo(() => questions.filter(q => {
-    const text = `${q.snippet} ${q.role} ${q.type} ${q.difficulty} ${q.evalMode}`.toLowerCase();
+    const text = `${q.snippet} ${q.role} ${q.type} ${q.difficulty} ${q.evalMode} ${q.section || ''}`.toLowerCase();
     return text.includes(query.toLowerCase())
+      && (sectionFilter === 'All' || q.section === sectionFilter)
       && (roleFilter === 'All' || q.role === roleFilter)
       && (diffFilter === 'All' || q.difficulty === diffFilter)
       && (typeFilter === 'All' || q.type === typeFilter)
       && (evalFilter === 'All' || q.evalMode === evalFilter);
-  }), [questions, query, roleFilter, diffFilter, typeFilter, evalFilter]);
+  }), [questions, query, sectionFilter, roleFilter, diffFilter, typeFilter, evalFilter]);
 
   const duplicate = (q) => {
     setQuestions([{ ...q, id: `Q-${String(Date.now()).slice(-3)}`, snippet: `${q.snippet} (Copy)` }, ...questions]);
@@ -195,6 +214,23 @@ function QuestionBankTab() {
 
   return (
     <div className="am-tab-panel">
+      {/* ── Section Pills Navigation ── */}
+      <div className="am-section-pills-bar">
+        {SECTION_TABS.map(tab => {
+          const count = tab.id === 'All' ? questions.length : questions.filter(q => q.section === tab.id).length;
+          return (
+            <button
+              key={tab.id}
+              className={`am-section-pill-btn ${sectionFilter === tab.id ? 'active' : ''}`}
+              onClick={() => setSectionFilter(tab.id)}
+            >
+              <span>{tab.label}</span>
+              <span className="am-section-pill-count">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* ── Toolbar ── */}
       <div className="am-toolbar">
         <label className="am-search">
@@ -203,14 +239,22 @@ function QuestionBankTab() {
         </label>
         <div className="am-filter-wrap">
           <button className={`am-btn am-btn--ghost ${filtersOpen ? 'is-active' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)}>
-            <Filter size={15} /> Filters {(roleFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
+            <Filter size={15} /> Filters {(sectionFilter !== 'All' || roleFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
           </button>
           {filtersOpen && (
             <div className="am-filter-panel">
               <div className="am-filter-panel__header">
                 <span>Filters</span>
-                <button onClick={() => { setRoleFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
+                <button onClick={() => { setSectionFilter('All'); setRoleFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
               </div>
+              <label className="am-filter-label">Section
+                <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
+                  <option value="All">All Sections</option>
+                  <option value="Section 1: General & Aptitude">Section 1: General & Aptitude</option>
+                  <option value="Section 2: Technical Concepts">Section 2: Technical Concepts</option>
+                  <option value="Section 3: Coding & Problem Solving">Section 3: Coding</option>
+                </select>
+              </label>
               <label className="am-filter-label">Job Role
                 <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
                   <option>All</option>
@@ -262,7 +306,8 @@ function QuestionBankTab() {
         <table className="am-table">
           <thead>
             <tr>
-              <th style={{ width: '36%' }}>Question Snippet</th>
+              <th style={{ width: '32%' }}>Question Snippet</th>
+              <th>Section</th>
               <th>Job Role & Skills</th>
               <th>Type</th>
               <th>Difficulty</th>
@@ -280,6 +325,7 @@ function QuestionBankTab() {
                     <span className="am-q-pts"><Award size={12} /> {q.points} pts</span>
                   </div>
                 </td>
+                <td><SectionBadge section={q.section} /></td>
                 <td>
                   <div className="am-skill-wrap">
                     <span className="am-role-pill">{q.role}</span>
@@ -300,7 +346,7 @@ function QuestionBankTab() {
               </tr>
             ))}
             {!filtered.length && (
-              <tr><td colSpan={6} className="am-table-empty">
+              <tr><td colSpan={7} className="am-table-empty">
                 <HelpCircle size={32} />
                 <strong>No questions found</strong>
                 <span>Try adjusting your search or filters, or add a new question.</span>
@@ -392,9 +438,13 @@ function AssessmentsTab() {
   const [customVacancy, setCustomVacancy] = useState('');
 
   const [form, setForm] = useState({
-    title: '', vacancy: '', duration: 60, passing: 70,
+    title: '', vacancy: '', duration: 90, passing: 70,
     autoSend: false, randomize: false, blockCopyPaste: false,
-    sections: [{ name: 'Section 1: Aptitude', duration: 15 }, { name: 'Section 2: Technical', duration: 30 }],
+    sections: [
+      { name: 'Section 1: General & Aptitude', duration: 15 },
+      { name: 'Section 2: Technical Concepts', duration: 30 },
+      { name: 'Section 3: Coding & Problem Solving', duration: 45 }
+    ],
   });
 
   const filtered = assessments.filter(a => `${a.name} ${a.vacancy} ${a.status}`.toLowerCase().includes(query.toLowerCase()));
@@ -402,7 +452,15 @@ function AssessmentsTab() {
   const openWizard = () => {
     setWizardStep(1);
     setCustomVacancy('');
-    setForm({ title: '', vacancy: '', duration: 60, passing: 70, autoSend: false, randomize: false, blockCopyPaste: false, sections: [{ name: 'Section 1: Aptitude', duration: 15 }, { name: 'Section 2: Technical', duration: 30 }] });
+    setForm({
+      title: '', vacancy: '', duration: 90, passing: 70,
+      autoSend: false, randomize: false, blockCopyPaste: false,
+      sections: [
+        { name: 'Section 1: General & Aptitude', duration: 15 },
+        { name: 'Section 2: Technical Concepts', duration: 30 },
+        { name: 'Section 3: Coding & Problem Solving', duration: 45 }
+      ]
+    });
     setSelectedQs([]);
     setWizardOpen(true);
   };
@@ -610,27 +668,44 @@ function AssessmentsTab() {
 
                   <div className="am-qpicker-header">
                     <div>
-                      <strong>Selected Questions</strong>
-                      <span className="am-badge am-badge--neutral">{selectedQs.length} selected</span>
+                      <strong>Selected Questions ({selectedQs.length})</strong>
+                      <span className="am-badge am-badge--neutral">
+                        {selectedQs.reduce((sum, q) => sum + (q.points || 0), 0)} Total Points
+                      </span>
                     </div>
                     <button className="am-btn am-btn--ghost" onClick={() => setPickerOpen(true)}><BookOpen size={15} /> Select from Question Bank</button>
                   </div>
+
                   {selectedQs.length > 0 ? (
-                    <div className="am-selected-qs">
-                      {selectedQs.map(q => (
-                        <div key={q.id} className="am-selected-q">
-                          <span className="am-q-id">{q.id}</span>
-                          <span className="am-selected-q__text">{q.snippet.slice(0, 60)}…</span>
-                          <TypeBadge type={q.type} />
-                          <button className="am-icon-btn danger" onClick={() => setSelectedQs(selectedQs.filter(x => x.id !== q.id))}><X size={14} /></button>
-                        </div>
-                      ))}
+                    <div className="am-wizard-sec-groups">
+                      {['Section 1: General & Aptitude', 'Section 2: Technical Concepts', 'Section 3: Coding & Problem Solving'].map(secName => {
+                        const secQs = selectedQs.filter(q => (q.section || 'Section 2: Technical Concepts') === secName);
+                        if (!secQs.length) return null;
+                        return (
+                          <div key={secName} className="am-wizard-sec-group">
+                            <div className="am-wizard-sec-head">
+                              <span className="am-wizard-sec-title">{secName}</span>
+                              <span className="am-badge am-badge--neutral">{secQs.length} Qs · {secQs.reduce((s, q) => s + (q.points || 0), 0)} pts</span>
+                            </div>
+                            <div className="am-selected-qs">
+                              {secQs.map(q => (
+                                <div key={q.id} className="am-selected-q">
+                                  <span className="am-q-id">{q.id}</span>
+                                  <span className="am-selected-q__text">{q.snippet.slice(0, 60)}…</span>
+                                  <TypeBadge type={q.type} />
+                                  <button className="am-icon-btn danger" onClick={() => setSelectedQs(selectedQs.filter(x => x.id !== q.id))}><X size={14} /></button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="am-qpicker-empty" onClick={() => setPickerOpen(true)}>
                       <BookOpen size={28} />
                       <strong>No questions selected</strong>
-                      <span>Click "Select from Question Bank" to add questions</span>
+                      <span>Click "Select from Question Bank" to add questions by section</span>
                     </div>
                   )}
                 </div>
@@ -701,39 +776,79 @@ function AssessmentsTab() {
         </div>
       )}
 
-      {/* ── Question Picker Modal ── */}
+      {/* ── Question Picker Modal (Grouped by Section) ── */}
       {pickerOpen && (
         <div className="am-overlay" style={{ zIndex: 200 }} onMouseDown={e => e.target === e.currentTarget && setPickerOpen(false)}>
           <div className="am-modal am-modal--picker">
             <header className="am-modal__header">
-              <div><h2>Select from Question Bank</h2><p>Check questions to add them to this assessment</p></div>
+              <div>
+                <h2>Select from Question Bank</h2>
+                <p>Questions are organized by section. Add entire sections or individual items.</p>
+              </div>
               <button className="am-drawer__close" onClick={() => setPickerOpen(false)}><X size={20} /></button>
             </header>
             <div className="am-modal__body am-picker-body">
-              {QUESTIONS.map(q => {
-                const isSelected = selectedQs.some(x => x.id === q.id);
+              {['Section 1: General & Aptitude', 'Section 2: Technical Concepts', 'Section 3: Coding & Problem Solving'].map(secName => {
+                const secQs = QUESTIONS.filter(q => (q.section || 'Section 2: Technical Concepts') === secName);
+                const allInSecSelected = secQs.length > 0 && secQs.every(q => selectedQs.some(x => x.id === q.id));
+                const countSelectedInSec = secQs.filter(q => selectedQs.some(x => x.id === q.id)).length;
+
                 return (
-                  <label key={q.id} className={`am-picker-row ${isSelected ? 'selected' : ''}`}>
-                    <input type="checkbox" checked={isSelected} onChange={e => {
-                      if (e.target.checked) setSelectedQs([...selectedQs, q]);
-                      else setSelectedQs(selectedQs.filter(x => x.id !== q.id));
-                    }} />
-                    <div className="am-picker-row__content">
-                      <span className="am-q-id">{q.id}</span>
-                      <p>{q.snippet.slice(0, 80)}…</p>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                        <TypeBadge type={q.type} />
-                        <DifficultyBadge level={q.difficulty} />
-                        <span className="am-skill-pill">{q.role}</span>
+                  <div key={secName} className="am-picker-section-block">
+                    <div className="am-picker-section-header">
+                      <div className="am-picker-section-title">
+                        <strong>{secName}</strong>
+                        <span className="am-badge am-badge--neutral">{countSelectedInSec}/{secQs.length} selected</span>
                       </div>
+                      <button
+                        type="button"
+                        className={`am-section-bulk-btn ${allInSecSelected ? 'is-selected' : ''}`}
+                        onClick={() => {
+                          if (allInSecSelected) {
+                            const secIds = new Set(secQs.map(q => q.id));
+                            setSelectedQs(selectedQs.filter(q => !secIds.has(q.id)));
+                          } else {
+                            const existingIds = new Set(selectedQs.map(q => q.id));
+                            const toAdd = secQs.filter(q => !existingIds.has(q.id));
+                            setSelectedQs([...selectedQs, ...toAdd]);
+                          }
+                        }}
+                      >
+                        {allInSecSelected ? <><CheckCircle2 size={13} /> Remove All Section</> : <><Plus size={13} /> Add All in Section ({secQs.length})</>}
+                      </button>
                     </div>
-                    <span className="am-preview-pts"><Award size={12} /> {q.points}pts</span>
-                  </label>
+
+                    <div className="am-picker-section-items">
+                      {secQs.map(q => {
+                        const isSelected = selectedQs.some(x => x.id === q.id);
+                        return (
+                          <label key={q.id} className={`am-picker-row ${isSelected ? 'selected' : ''}`}>
+                            <input type="checkbox" checked={isSelected} onChange={e => {
+                              if (e.target.checked) setSelectedQs([...selectedQs, q]);
+                              else setSelectedQs(selectedQs.filter(x => x.id !== q.id));
+                            }} />
+                            <div className="am-picker-row__content">
+                              <span className="am-q-id">{q.id}</span>
+                              <p>{q.snippet.slice(0, 80)}…</p>
+                              <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                <TypeBadge type={q.type} />
+                                <DifficultyBadge level={q.difficulty} />
+                                <span className="am-skill-pill">{q.role}</span>
+                              </div>
+                            </div>
+                            <span className="am-preview-pts"><Award size={12} /> {q.points}pts</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
             </div>
             <footer className="am-modal__footer">
-              <span className="am-picker-count"><strong>{selectedQs.length}</strong> questions selected</span>
+              <span className="am-picker-count">
+                <strong>{selectedQs.length}</strong> questions selected ({selectedQs.reduce((s, q) => s + (q.points || 0), 0)} pts)
+              </span>
               <button className="am-btn am-btn--primary" onClick={() => setPickerOpen(false)}><CheckCircle2 size={16} /> Done</button>
             </footer>
           </div>
