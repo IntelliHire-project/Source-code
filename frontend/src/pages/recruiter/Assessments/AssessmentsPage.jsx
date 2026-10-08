@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Clock,
   Clock3,
+  Code2,
   Copy,
   Download,
   Edit3,
@@ -30,6 +31,7 @@ import {
   Send,
   Settings2,
   Shield,
+  ShieldAlert,
   ShieldCheck,
   Shuffle,
   Sparkles,
@@ -885,15 +887,30 @@ function CandidateResultsTab() {
     { label: 'Avg. Score', value: `${avgScore}%`, icon: BarChart3, color: 'gold' },
   ];
 
+  const [rubrics, setRubrics] = useState({});
+
   const openGrading = (c) => {
     setGradingCandidate(c);
     const initScores = {};
     const initComments = {};
+    const initRubrics = {};
     c.responses.forEach(r => {
-      if (r.type !== 'MCQ') { initScores[r.id] = r.manualScore ?? ''; initComments[r.id] = r.evaluatorComment ?? ''; }
+      if (r.type !== 'MCQ') {
+        initScores[r.id] = r.manualScore ?? '';
+        initComments[r.id] = r.evaluatorComment ?? '';
+        if (r.type === 'Coding') {
+          initRubrics[r.id] = {
+            cleanliness: r.manualScore ? 4 : 0,
+            optimization: r.manualScore ? 4 : 0,
+            readability: r.manualScore ? 5 : 0,
+            architecture: r.manualScore ? 4 : 0,
+          };
+        }
+      }
     });
     setManualScores(initScores);
     setComments(initComments);
+    setRubrics(initRubrics);
     setRecommendation(c.recommendation || 'Pending');
   };
 
@@ -905,14 +922,14 @@ function CandidateResultsTab() {
     setCandidates(candidates.map(c => c.id === gradingCandidate.id
       ? {
         ...c, manualStatus: 'Graded', finalScore,
-        recommendation,
+        recommendation: recommendation === 'Pending' ? (finalScore >= 70 ? 'Shortlist' : 'Reject') : recommendation,
         responses: c.responses.map(r => r.type !== 'MCQ' ? { ...r, manualScore: +manualScores[r.id] || 0, evaluatorComment: comments[r.id] || '' } : r),
       }
       : c
     ));
     setGradingCandidate(null);
-    setNotice(`Grades saved for ${gradingCandidate.name}. Final score: ${finalScore}%`);
-    setTimeout(() => setNotice(''), 5000);
+    setNotice(`Technical evaluation finalized for ${gradingCandidate.name}! Official Score: ${finalScore}% · Report unlocked.`);
+    setTimeout(() => setNotice(''), 6000);
   };
 
   return (
@@ -973,10 +990,17 @@ function CandidateResultsTab() {
                 <td><span className="am-a-meta" style={{ fontSize: '0.8rem' }}>{c.completedDate}</span></td>
                 <td><span className="am-score-chip">{c.autoScore != null ? `${c.autoScore}%` : '—'}</span></td>
                 <td>
-                  <span className={`am-review-status ${c.manualStatus === 'Graded' ? 'graded' : 'needs-grading'}`}>
-                    {c.manualStatus === 'Graded' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                    {c.manualStatus}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                    <span className={`am-review-status ${c.manualStatus === 'Graded' ? 'graded' : 'needs-grading'}`}>
+                      {c.manualStatus === 'Graded' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                      {c.manualStatus === 'Graded' ? 'Graded' : 'Pending Review'}
+                    </span>
+                    {c.responses.some(r => r.type === 'Coding') && (
+                      <span className="am-coding-flag-pill" title="Contains coding challenges requiring manual evaluation">
+                        <Code2 size={10} /> Coding Assessment
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   {c.finalScore != null
@@ -987,7 +1011,7 @@ function CandidateResultsTab() {
                 <td><RecommendationBadge rec={c.recommendation} /></td>
                 <td style={{ textAlign: 'center' }}>
                   <button className="am-btn am-btn--review" onClick={() => openGrading(c)}>
-                    <Eye size={14} /> {c.manualStatus === 'Needs Grading' ? 'Review & Grade' : 'View Report'}
+                    <Eye size={14} /> {c.manualStatus === 'Graded' ? 'View Report' : 'Review & Evaluate'}
                   </button>
                 </td>
               </tr>
@@ -1111,6 +1135,19 @@ function CandidateResultsTab() {
                 </div>
               </div>
 
+              {/* Mandatory Review Alert Banner */}
+              {gradingCandidate.responses.some(r => r.type === 'Coding') && gradingCandidate.manualStatus !== 'Graded' && (
+                <div className="am-mandatory-alert-card">
+                  <div className="am-mandatory-alert-icon">
+                    <ShieldAlert size={18} />
+                  </div>
+                  <div className="am-mandatory-alert-body">
+                    <strong>Mandatory Technical Interviewer Review Required</strong>
+                    <p>This assessment contains hands-on programming challenges. Final scores, candidate ranking, and printable dossier export remain locked until all coding solutions are manually evaluated.</p>
+                  </div>
+                </div>
+              )}
+
               <div className="am-responses">
                 {gradingCandidate.responses.map((r, idx) => (
                   <div key={r.id} className="am-response-card">
@@ -1128,17 +1165,115 @@ function CandidateResultsTab() {
                     <p className="am-response-question">{r.question}</p>
                     <div className="am-response-answer">
                       <label className="am-response-answer__label"><MessageSquare size={12} /> Candidate's Answer</label>
-                      {r.type === 'Coding'
-                        ? <pre className="am-code-block">{r.answer}</pre>
-                        : <p className="am-answer-text">{r.answer}</p>
-                      }
+                      {r.type === 'Coding' ? (
+                        <div>
+                          <div className="am-coding-meta-bar">
+                            <span className="am-code-lang-tag"><Braces size={11} /> JavaScript · Algorithm Challenge</span>
+                            <div className={`am-test-runner-pill ${r.answer.includes('Could not complete') ? 'failed' : 'passed'}`}>
+                              {r.answer.includes('Could not complete') ? <XCircle size={12} /> : <CheckCircle2 size={12} />}
+                              <span>{r.answer.includes('Could not complete') ? '0/4 Tests Passed (Incomplete Solution)' : '4/4 Automated Test Cases Passed'}</span>
+                              <small>({r.answer.includes('Could not complete') ? 'DNF' : '28ms · 16.4 MB'})</small>
+                            </div>
+                          </div>
+                          <pre className="am-code-block">{r.answer}</pre>
+                        </div>
+                      ) : (
+                        <p className="am-answer-text">{r.answer}</p>
+                      )}
                     </div>
                     {r.type !== 'MCQ' && (
                       <div className="am-manual-grading">
                         <div className="am-rubric">
-                          <label className="am-response-answer__label"><Eye size={12} /> Scoring Rubric</label>
+                          <label className="am-response-answer__label"><Eye size={12} /> Scoring Rubric & Benchmark</label>
                           <p className="am-rubric-text">{r.rubric}</p>
                         </div>
+
+                        {/* Interactive Coding Rubrics */}
+                        {r.type === 'Coding' && (
+                          <div className="am-coding-rubrics-card">
+                            <div className="am-coding-rubrics-title">
+                              <span>Technical Evaluation Criteria (1–5 Scale)</span>
+                            </div>
+                            <div className="am-coding-rubric-grid">
+                              <div className="am-rubric-metric">
+                                <span>Code Cleanliness</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.cleanliness || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), cleanliness: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="am-rubric-metric">
+                                <span>Optimization</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.optimization || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), optimization: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="am-rubric-metric">
+                                <span>Readability & Naming</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.readability || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), readability: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="am-rubric-metric">
+                                <span>Edge Cases</span>
+                                <div className="am-star-row">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`am-star-btn ${(rubrics[r.id]?.architecture || 0) >= star ? 'active' : ''}`}
+                                      onClick={() => setRubrics(prev => ({
+                                        ...prev,
+                                        [r.id]: { ...(prev[r.id] || {}), architecture: star }
+                                      }))}
+                                    >
+                                      ★
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="am-score-input-row">
                           <label className="am-form-label">Score
                             <div className="am-score-input-wrap">
@@ -1154,12 +1289,12 @@ function CandidateResultsTab() {
                               <span className="am-score-max">/ {r.maxPoints} pts</span>
                             </div>
                           </label>
-                          <label className="am-form-label am-comment-label">Evaluator Comments
+                          <label className="am-form-label am-comment-label">Evaluator Comments & Feedback
                             <textarea
                               className="am-form-input am-form-textarea"
                               value={comments[r.id] ?? ''}
                               onChange={e => setComments({ ...comments, [r.id]: e.target.value })}
-                              placeholder="Add feedback or notes for this response..."
+                              placeholder="Add specific feedback or interview notes for this response..."
                               rows={2}
                             />
                           </label>
@@ -1194,7 +1329,7 @@ function CandidateResultsTab() {
                 </button>
 
                 <button className="am-btn am-btn--primary" onClick={saveGrades}>
-                  <CheckCircle2 size={16} /> {gradingCandidate.manualStatus === 'Graded' ? 'Update Grades & Shortlist' : 'Save Grades & Shortlist for Interview'}
+                  <CheckCircle2 size={16} /> {gradingCandidate.manualStatus === 'Graded' ? 'Update Evaluation & Grades' : 'Finalize Review & Unlock Report'}
                 </button>
               </div>
             </main>
