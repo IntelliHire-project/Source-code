@@ -20,6 +20,36 @@ import {
 } from 'lucide-react';
 import './TakeAssessmentPage.css';
 
+/* ── MULTI-LANGUAGE STARTER TEMPLATES ── */
+const LANGUAGE_TEMPLATES = {
+  javascript: `function solution(input) {
+  // Write your JavaScript (Node.js) solution here
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), 300);
+  };
+}`,
+  python: `def solution(input_val):
+    # Write your Python 3.10 solution here
+    # Example: debounce or target calculation logic
+    pass`,
+  java: `public class Solution {
+    public static Object solution(Object input) {
+        // Write your Java solution here
+        return null;
+    }
+}`,
+  cpp: `#include <iostream>
+using namespace std;
+
+auto solution(auto input) {
+    // Write your C++20 solution here
+    return 0;
+}`
+};
+
 /* ── MOCK ASSESSMENT DATA FOR CANDIDATE ── */
 const SAMPLE_ASSESSMENTS = {
   'A-001': {
@@ -33,8 +63,8 @@ const SAMPLE_ASSESSMENTS = {
     instructions: [
       'Ensure a stable internet connection during the assessment session.',
       'Do not refresh or navigate away from the test window while the timer is active.',
-      'Each question carries weightage based on complexity. Flag questions to review later.',
-      'Coding assessments are evaluated against test cases and subject to interviewer review.'
+      'Each question carries weightage based on complexity and skill domain category.',
+      'Coding assessments are evaluated against public sample test cases & hidden edge test cases.'
     ],
     questions: [
       {
@@ -54,7 +84,7 @@ const SAMPLE_ASSESSMENTS = {
       {
         id: 'Q2',
         title: 'State Management & Custom Hooks',
-        category: 'React & Hooks',
+        category: 'React & State',
         type: 'multi',
         points: 20,
         prompt: 'Which statements are TRUE regarding custom React hooks? (Select all that apply)',
@@ -67,22 +97,30 @@ const SAMPLE_ASSESSMENTS = {
       },
       {
         id: 'Q3',
-        title: 'Web Performance Optimization',
-        category: 'Performance',
+        title: 'Web Performance & Lazy Loading',
+        category: 'Performance & Architecture',
         type: 'text',
         points: 25,
-        prompt: 'Explain how code-splitting, lazy loading, and React.memo improve web application performance under heavy load.',
+        prompt: 'Explain how code-splitting, lazy loading, and React.memo improve web application performance under heavy traffic loads.',
       },
       {
         id: 'Q4',
-        title: 'Algorithm: Array Debounce & Throttle Implementation',
-        category: 'Coding Challenge',
+        title: 'Algorithm: Custom Debounce Utility',
+        category: 'Algorithms & Data Structures',
         type: 'coding',
         points: 40,
-        prompt: 'Implement a custom debounce function in JavaScript that delays invoking the target function until after `wait` milliseconds have elapsed since the last call.',
-        defaultCode: `function debounce(func, wait) {\n  let timeout;\n  return function(...args) {\n    const context = this;\n    clearTimeout(timeout);\n    timeout = setTimeout(() => func.apply(context, args), wait);\n  };\n}\n\n// Test execution:\nconst log = () => console.log('Debounced Triggered!');\nconst debouncedLog = debounce(log, 300);\ndebouncedLog();`,
+        prompt: 'Implement a custom debounce function that delays invoking the target function until after `wait` milliseconds have elapsed since the last time the debounced function was invoked.',
+        inputFormat: 'fn (Function), wait (Integer in milliseconds)',
+        outputFormat: 'Debounced function wrapping target call',
+        constraints: '0 <= wait <= 5000ms | Memory Limit: 256MB | Time Limit: 2000ms',
+        publicTestCases: [
+          { input: 'debounce(fn, 300) -> Rapid trigger 5 times in 50ms', expected: 'Function called exactly 1 time at t=350ms' },
+          { input: 'debounce(fn, 100) -> Trigger at t=0, t=150', expected: 'Function called 2 times (at t=100ms and t=250ms)' }
+        ],
+        hiddenTestCasesCount: 3,
+        defaultCode: LANGUAGE_TEMPLATES.javascript,
         language: 'javascript',
-        sampleTestOutput: '✔ Test Case 1 (Single Call): PASSED\n✔ Test Case 2 (Burst Rapid Calls): PASSED (Execution delayed by 300ms)'
+        sampleTestOutput: '✔ Test Case 1 (Rapid burst trigger): PASSED (Execution delayed by 300ms)\n✔ Test Case 2 (Sequential spaced calls): PASSED\n🔒 3 Hidden Evaluation Test Cases will run on final submission.'
       }
     ]
   },
@@ -103,7 +141,7 @@ const SAMPLE_ASSESSMENTS = {
       {
         id: 'Q101',
         title: 'REST API & Idempotency',
-        category: 'Backend Core',
+        category: 'Backend Engineering',
         type: 'mcq',
         points: 30,
         prompt: 'Which HTTP method is naturally non-idempotent according to RFC specifications?',
@@ -112,21 +150,29 @@ const SAMPLE_ASSESSMENTS = {
       {
         id: 'Q102',
         title: 'Database Indexing Strategy',
-        category: 'Databases',
+        category: 'Databases & SQL',
         type: 'text',
         points: 30,
-        prompt: 'Describe B-Tree vs Hash indexes in relational databases and when to choose compound indexes.'
+        prompt: 'Describe B-Tree vs Hash indexes in relational databases and when to choose compound indexes for complex queries.'
       },
       {
         id: 'Q103',
         title: 'Coding Challenge: Two Sum Target Index',
-        category: 'Coding Challenge',
+        category: 'Algorithms & Data Structures',
         type: 'coding',
         points: 40,
-        prompt: 'Write an efficient function that returns the indices of two numbers such that they add up to a target.',
+        prompt: 'Write an efficient function that returns the indices of two numbers such that they add up to a target value.',
+        inputFormat: 'nums (Array of Integers), target (Integer)',
+        outputFormat: 'Array of two indices [i, j]',
+        constraints: '2 <= nums.length <= 10^5 | -10^9 <= nums[i] <= 10^9',
+        publicTestCases: [
+          { input: 'nums = [2, 7, 11, 15], target = 9', expected: '[0, 1]' },
+          { input: 'nums = [3, 2, 4], target = 6', expected: '[1, 2]' }
+        ],
+        hiddenTestCasesCount: 4,
         defaultCode: `function twoSum(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const diff = target - nums[i];\n    if (map.has(diff)) {\n      return [map.get(diff), i];\n    }\n    map.set(nums[i], i);\n  }\n  return [];\n}`,
         language: 'javascript',
-        sampleTestOutput: '✔ Test Case 1: nums=[2,7,11,15], target=9 -> Output: [0,1] PASSED'
+        sampleTestOutput: '✔ Test Case 1: nums=[2,7,11,15], target=9 -> Output: [0,1] PASSED\n✔ Test Case 2: nums=[3,2,4], target=6 -> Output: [1,2] PASSED\n🔒 4 Hidden Edge Test Cases queued for final grading.'
       }
     ]
   }
@@ -460,40 +506,92 @@ export default function TakeAssessmentPage() {
               </div>
             )}
 
-            {/* Interactive Coding Editor */}
+            {/* Interactive Coding Editor & Problem Specs */}
             {currentQuestion.type === 'coding' && (
-              <div className="cap-code-editor-box">
-                <div className="cap-code-toolbar">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9ca3af', fontSize: '13px' }}>
-                    <FileCode size={16} /> Solution Code Editor
+              <div className="cap-code-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Problem Specs & Constraints Box */}
+                <div style={{ background: 'rgba(15, 23, 42, 0.6)', border: '1px solid var(--cap-card-border)', borderRadius: '10px', padding: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#818cf8', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                    📋 Problem Specifications & Constraints
                   </div>
-                  <select className="cap-lang-select" defaultValue={currentQuestion.language || 'javascript'}>
-                    <option value="javascript">JavaScript (Node.js)</option>
-                    <option value="python">Python 3.10</option>
-                    <option value="typescript">TypeScript 5.0</option>
-                    <option value="cpp">C++ 20</option>
-                  </select>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', fontSize: '13px', color: '#cbd5e1' }}>
+                    <div><strong>Input Format:</strong> <code style={{ color: '#a5b4fc' }}>{currentQuestion.inputFormat || 'Standard Input'}</code></div>
+                    <div><strong>Output Format:</strong> <code style={{ color: '#a5b4fc' }}>{currentQuestion.outputFormat || 'Standard Output'}</code></div>
+                    <div style={{ gridColumn: '1 / -1' }}><strong>Constraints:</strong> <code style={{ color: '#fcd34d' }}>{currentQuestion.constraints || 'Time Limit: 2000ms | Memory Limit: 256MB'}</code></div>
+                  </div>
+
+                  {currentQuestion.publicTestCases && (
+                    <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#94a3b8', marginBottom: '6px' }}>Public Sample Test Cases:</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {currentQuestion.publicTestCases.map((tc, idx) => (
+                          <div key={idx} style={{ background: '#090d16', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', fontFamily: 'monospace' }}>
+                            <span style={{ color: '#38bdf8' }}>Sample #{idx + 1}:</span> <span style={{ color: '#e2e8f0' }}>Input:</span> {tc.input} <span style={{ color: '#e2e8f0' }}>➜ Expected:</span> <span style={{ color: '#4ade80' }}>{tc.expected}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <textarea
-                  className="cap-code-input"
-                  rows={10}
-                  value={userAnswers[currentQuestion.id] !== undefined ? userAnswers[currentQuestion.id] : currentQuestion.defaultCode}
-                  onChange={(e) => handleCodeAnswerChange(e.target.value)}
-                />
-
-                <div className="cap-code-actions">
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Input test cases are evaluated automatically.</span>
-                  <button className="cap-btn-run" onClick={handleRunCode} disabled={isRunningCode}>
-                    <Play size={14} /> {isRunningCode ? 'Running...' : 'Run Test Cases'}
-                  </button>
-                </div>
-
-                {codeConsoleOut && (
-                  <div className="cap-console-out">
-                    <pre style={{ margin: 0 }}>{codeConsoleOut}</pre>
+                {/* Code Editor Container */}
+                <div className="cap-code-editor-box">
+                  <div className="cap-code-toolbar">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9ca3af', fontSize: '13px' }}>
+                      <FileCode size={16} /> Solution Code Editor
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <button
+                        type="button"
+                        style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        onClick={() => {
+                          const lang = currentQuestion.language || 'javascript';
+                          const template = LANGUAGE_TEMPLATES[lang] || currentQuestion.defaultCode;
+                          handleCodeAnswerChange(template);
+                        }}
+                      >
+                        Reset Template
+                      </button>
+                      <select
+                        className="cap-lang-select"
+                        value={currentQuestion.language || 'javascript'}
+                        onChange={(e) => {
+                          const newLang = e.target.value;
+                          currentQuestion.language = newLang;
+                          const template = LANGUAGE_TEMPLATES[newLang] || currentQuestion.defaultCode;
+                          handleCodeAnswerChange(template);
+                        }}
+                      >
+                        <option value="javascript">JavaScript (Node.js v18)</option>
+                        <option value="python">Python (3.10)</option>
+                        <option value="java">Java (JDK 17)</option>
+                        <option value="cpp">C++ (GCC 11)</option>
+                      </select>
+                    </div>
                   </div>
-                )}
+
+                  <textarea
+                    className="cap-code-input"
+                    rows={11}
+                    value={userAnswers[currentQuestion.id] !== undefined ? userAnswers[currentQuestion.id] : (currentQuestion.defaultCode || LANGUAGE_TEMPLATES.javascript)}
+                    onChange={(e) => handleCodeAnswerChange(e.target.value)}
+                  />
+
+                  <div className="cap-code-actions">
+                    <span style={{ fontSize: '12px', color: '#a7f3d0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      🔒 {currentQuestion.hiddenTestCasesCount || 3} Hidden evaluation test cases queued for submission.
+                    </span>
+                    <button className="cap-btn-run" onClick={handleRunCode} disabled={isRunningCode}>
+                      <Play size={14} /> {isRunningCode ? 'Evaluating...' : 'Run Sample Tests'}
+                    </button>
+                  </div>
+
+                  {codeConsoleOut && (
+                    <div className="cap-console-out">
+                      <pre style={{ margin: 0 }}>{codeConsoleOut}</pre>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
