@@ -38,6 +38,8 @@ export const MOCK_CANDIDATES = [
     name: 'Alex Sterling',
     activeTime: 'ACTIVE 2H AGO',
     score: 94,
+    cvScore: 92,
+    assessmentScore: 97,
     skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
     expMatch: 'Matched',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&h=100&q=80',
@@ -55,6 +57,8 @@ export const MOCK_CANDIDATES = [
     name: 'Sarah Jenkins',
     activeTime: 'ACTIVE 5H AGO',
     score: 94,
+    cvScore: 96,
+    assessmentScore: 91,
     skills: ['React.js', 'TypeScript', 'Node.js', 'PostgreSQL', 'AWS Lambda', 'GraphQL', 'Docker', 'CI/CD'],
     expMatch: 'Matched',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80',
@@ -72,6 +76,8 @@ export const MOCK_CANDIDATES = [
     name: 'Michael Chen',
     activeTime: 'ACTIVE 1D AGO',
     score: 72,
+    cvScore: 70,
+    assessmentScore: 88,
     skills: ['Java', 'Spring Boot', 'MySQL'],
     expMatch: 'Underqualified',
     avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&h=100&q=80',
@@ -89,6 +95,8 @@ export const MOCK_CANDIDATES = [
     name: 'Elena Rodriguez',
     activeTime: 'ACTIVE 3H AGO',
     score: 65,
+    cvScore: 62,
+    assessmentScore: 94,
     skills: ['Vue.js', 'JavaScript', 'Firebase'],
     expMatch: 'Matched',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&h=100&q=80',
@@ -717,11 +725,23 @@ function RankedApplicants() {
     return c.expMatch === activeFilter;
   });
 
+  // Composite Score Weighting Configuration (CV Weight + Assessment Weight)
+  const [cvWeight, setCvWeight] = useState(40);
+  const [assessmentWeight, setAssessmentWeight] = useState(60);
+
+  const calculateCompositeScore = (candidate) => {
+    const cv = candidate.cvScore !== undefined ? candidate.cvScore : candidate.score;
+    const ass = candidate.assessmentScore !== undefined ? candidate.assessmentScore : candidate.score;
+    return Math.round((cv * cvWeight + ass * assessmentWeight) / 100);
+  };
+
   const sortedCandidates = [...filteredCandidates].sort((a, b) => {
+    const scoreA = calculateCompositeScore(a);
+    const scoreB = calculateCompositeScore(b);
     if (sortBy === 'Highest Match') {
-      return b.score - a.score;
+      return scoreB - scoreA;
     } else if (sortBy === 'Lowest Match') {
-      return a.score - b.score;
+      return scoreA - scoreB;
     } else if (sortBy === 'Alphabetical') {
       return a.name.localeCompare(b.name);
     }
@@ -960,6 +980,73 @@ function RankedApplicants() {
                   </div>
                 </div>
 
+                {/* Composite Scoring Weight Controller Bar */}
+                <div style={{
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  padding: '14px 20px',
+                  margin: '16px 20px 20px 20px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '16px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Sliders size={20} style={{ color: 'var(--accent)' }} />
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+                        Weighted Composite Formula: <span style={{ color: 'var(--accent)' }}>({cvWeight}% CV Match + {assessmentWeight}% Assessment Mark)</span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+                        Calculates final candidate suitability score by blending resume parsing match & assessment test performance.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#d1d5db' }}>
+                      <span>CV: <strong>{cvWeight}%</strong></span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="10"
+                        value={cvWeight}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setCvWeight(val);
+                          setAssessmentWeight(100 - val);
+                        }}
+                        style={{ width: '80px', accentColor: '#f0b90b', cursor: 'pointer' }}
+                      />
+                      <span>Test: <strong>{assessmentWeight}%</strong></span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)', background: cvWeight === 40 ? 'var(--accent)' : 'transparent', color: cvWeight === 40 ? '#000' : '#fff', cursor: 'pointer', fontWeight: 600 }}
+                        onClick={() => { setCvWeight(40); setAssessmentWeight(60); }}
+                      >
+                        Standard (40/60)
+                      </button>
+                      <button
+                        style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)', background: cvWeight === 70 ? 'var(--accent)' : 'transparent', color: cvWeight === 70 ? '#000' : '#fff', cursor: 'pointer', fontWeight: 600 }}
+                        onClick={() => { setCvWeight(70); setAssessmentWeight(30); }}
+                      >
+                        CV Heavy (70/30)
+                      </button>
+                      <button
+                        style={{ padding: '4px 10px', fontSize: '11px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)', background: cvWeight === 20 ? 'var(--accent)' : 'transparent', color: cvWeight === 20 ? '#000' : '#fff', cursor: 'pointer', fontWeight: 600 }}
+                        onClick={() => { setCvWeight(20); setAssessmentWeight(80); }}
+                      >
+                        Test Heavy (20/80)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Candidates Grid Table */}
                 <div className={`candidates-table ${activeTab !== 'Shortlisted' ? 'has-checkbox' : 'is-shortlisted'}`}>
                   <div className="table-header">
@@ -1035,11 +1122,19 @@ function RankedApplicants() {
                           </div>
 
                           <div className="cell-score">
-                            <span className="score-number">{candidate.score}%</span>
-                            <div className="score-bar-track">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span className="score-number" style={{ fontSize: '15px', fontWeight: 700, color: '#f0b90b' }}>
+                                {calculateCompositeScore(candidate)}% <small style={{ fontSize: '10px', color: '#9ca3af', fontWeight: 500 }}>COMPOSITE</small>
+                              </span>
+                              <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: '#9ca3af' }}>
+                                <span>📄 CV: {candidate.cvScore || candidate.score}%</span>
+                                <span>✍️ Test: {candidate.assessmentScore || candidate.score}%</span>
+                              </div>
+                            </div>
+                            <div className="score-bar-track" style={{ marginTop: '4px' }}>
                               <div
                                 className="score-bar-fill"
-                                style={{ width: `${candidate.score}%` }}
+                                style={{ width: `${calculateCompositeScore(candidate)}%` }}
                               />
                             </div>
                           </div>
