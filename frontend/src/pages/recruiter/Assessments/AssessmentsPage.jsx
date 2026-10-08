@@ -905,9 +905,9 @@ function CandidateResultsTab() {
                       type="button"
                       className="am-btn am-btn--print"
                       onClick={() => window.print()}
-                      title="Print or Save Official Candidate Dossier as PDF"
+                      title="Print or Save Official Candidate Report as PDF"
                     >
-                      <Printer size={15} /> Export PDF / Print Dossier
+                      <Printer size={15} /> Export PDF / Print Report
                     </button>
                   ) : (
                     <button
@@ -1016,21 +1016,9 @@ function CandidateResultsTab() {
 
               {/* Bottom Footer Actions */}
               <div className="am-grading-footer">
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <button className="am-btn am-btn--ghost" onClick={() => setGradingCandidate(null)}>
-                    {gradingCandidate.manualStatus === 'Graded' ? 'Close' : 'Cancel'}
-                  </button>
-                  {gradingCandidate.manualStatus === 'Graded' && (
-                    <button
-                      type="button"
-                      className="am-btn am-btn--print"
-                      onClick={() => window.print()}
-                      title="Print or Save Official Candidate Dossier as PDF"
-                    >
-                      <Printer size={15} /> Export PDF / Print
-                    </button>
-                  )}
-                </div>
+                <button className="am-btn am-btn--ghost" onClick={() => setGradingCandidate(null)}>
+                  {gradingCandidate.manualStatus === 'Graded' ? 'Close' : 'Cancel'}
+                </button>
 
                 <button className="am-btn am-btn--primary" onClick={saveGrades}>
                   <CheckCircle2 size={16} /> {gradingCandidate.manualStatus === 'Graded' ? 'Update Grades & Shortlist' : 'Save Grades & Shortlist for Interview'}
