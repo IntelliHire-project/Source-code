@@ -1391,3 +1391,141 @@
   .am-drawer { width: 100%; }
   .am-page__title { font-size: 1.45rem; }
 }
+
+/* ── Print / Dossier Export Styles ── */
+.am-btn--print {
+  border: 1px solid rgba(240, 185, 11, 0.45);
+  background: rgba(240, 185, 11, 0.12);
+  color: #F0B90B;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.am-btn--print:hover {
+  background: rgba(240, 185, 11, 0.22);
+  border-color: #F0B90B;
+  box-shadow: 0 0 12px rgba(240, 185, 11, 0.25);
+}
+
+.am-btn--print-locked {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9599A6;
+  background: rgba(255, 255, 255, 0.04);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.am-print-header { display: none; }
+.am-print-scorecard { display: none; }
+
+/* ── High Quality PDF Print Media Styles ── */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+  .recruiter-sidebar,
+  .topbar,
+  .am-page__header,
+  .am-tab-nav,
+  .am-analytics-grid,
+  .am-toolbar,
+  .am-table-wrap,
+  .am-table-footer,
+  .am-grading-left,
+  .am-grading-footer,
+  .am-icon-btn,
+  .am-btn--print,
+  .am-btn--print-locked,
+  .am-manual-grading,
+  .no-print {
+    display: none !important;
+  }
+
+  .am-overlay {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .am-grading-drawer {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .am-grading-right {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .am-grading-right__header {
+    display: none !important;
+  }
+
+  .am-print-header {
+    display: block !important;
+    margin-bottom: 20px !important;
+  }
+
+  .am-responses {
+    overflow: visible !important;
+    padding: 0 !important;
+    gap: 20px !important;
+  }
+
+  .am-response-card {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 16px !important;
+  }
+
+  .am-response-card__header {
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  .am-response-question {
+    background: #f9fafb !important;
+    color: #111827 !important;
+  }
+
+  .am-response-answer {
+    color: #111827 !important;
+  }
+
+  .am-answer-text {
+    color: #1f2937 !important;
+  }
+
+  .am-code-block {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .am-print-scorecard {
+    display: block !important;
+    border: 1px solid #9ca3af !important;
+    background: #f9fafb !important;
+    padding: 16px !important;
+    border-radius: 6px !important;
+    margin-top: 24px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

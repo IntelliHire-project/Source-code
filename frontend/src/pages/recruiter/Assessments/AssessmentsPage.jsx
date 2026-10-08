@@ -24,6 +24,7 @@ import {
   Lock,
   MessageSquare,
   Plus,
+  Printer,
   RefreshCw,
   Search,
   Send,
@@ -889,10 +890,54 @@ function CandidateResultsTab() {
 
             {/* Right Panel */}
             <main className="am-grading-right">
+              {/* Header with Title and Print/Export Dossier Action */}
               <div className="am-grading-right__header">
-                <h3>Response Review</h3>
-                <span className="am-badge am-badge--neutral">{gradingCandidate.responses.length} questions</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#FFFFFF' }}>Response Review</h3>
+                  <span className="am-badge am-badge--neutral" style={{ marginTop: '4px' }}>
+                    {gradingCandidate.responses.length} questions
+                  </span>
+                </div>
+
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {gradingCandidate.manualStatus === 'Graded' ? (
+                    <button
+                      type="button"
+                      className="am-btn am-btn--print"
+                      onClick={() => window.print()}
+                      title="Print or Save Official Candidate Dossier as PDF"
+                    >
+                      <Printer size={15} /> Export PDF / Print Dossier
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="am-btn am-btn--print-locked"
+                      disabled
+                      title="Complete manual grading of all questions below and click 'Save Grades' to unlock official dossier printing"
+                    >
+                      <Lock size={14} /> Report Locked (Grade First)
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Printable Dossier Header (Only renders on @media print) */}
+              <div className="am-print-header">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #222', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '20px', color: '#111827' }}>IntelliHire — Candidate Assessment Dossier</h2>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Confidential Technical Interviewer Dossier &amp; Submission Audit</span>
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: '#374151' }}>
+                    <div>Candidate: <strong>{gradingCandidate.name}</strong></div>
+                    <div>Applied Role: <strong>{gradingCandidate.role}</strong></div>
+                    <div>Final Score: <strong>{gradingCandidate.finalScore ?? gradingCandidate.autoScore}% ({gradingCandidate.manualStatus})</strong></div>
+                    <div>Completed: <strong>{gradingCandidate.completedDate}</strong></div>
+                  </div>
+                </div>
+              </div>
+
               <div className="am-responses">
                 {gradingCandidate.responses.map((r, idx) => (
                   <div key={r.id} className="am-response-card">
@@ -950,11 +995,45 @@ function CandidateResultsTab() {
                     )}
                   </div>
                 ))}
+
+                {/* Printable Interviewer Evaluation Scorecard */}
+                <div className="am-print-scorecard">
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#111827' }}>
+                    ✍️ Technical Interviewer Evaluation Scorecard
+                  </h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', color: '#374151' }}>
+                    <div>Code Cleanliness &amp; Style: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                    <div>Algorithmic Optimization: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                    <div>System Architecture Knowledge: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                    <div>Technical Communication: [ &nbsp;&nbsp;&nbsp;&nbsp; ] / 10</div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '10px', borderTop: '1px solid #d1d5db', fontSize: '12px', color: '#374151' }}>
+                    <div>Interviewer Signature: _______________________</div>
+                    <div>Decision: [ &nbsp;] Strong Hire &nbsp;&nbsp; [ &nbsp;] Hire &nbsp;&nbsp; [ &nbsp;] Hold &nbsp;&nbsp; [ &nbsp;] Reject</div>
+                  </div>
+                </div>
               </div>
+
+              {/* Bottom Footer Actions */}
               <div className="am-grading-footer">
-                <button className="am-btn am-btn--ghost" onClick={() => setGradingCandidate(null)}>Cancel</button>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button className="am-btn am-btn--ghost" onClick={() => setGradingCandidate(null)}>
+                    {gradingCandidate.manualStatus === 'Graded' ? 'Close' : 'Cancel'}
+                  </button>
+                  {gradingCandidate.manualStatus === 'Graded' && (
+                    <button
+                      type="button"
+                      className="am-btn am-btn--print"
+                      onClick={() => window.print()}
+                      title="Print or Save Official Candidate Dossier as PDF"
+                    >
+                      <Printer size={15} /> Export PDF / Print
+                    </button>
+                  )}
+                </div>
+
                 <button className="am-btn am-btn--primary" onClick={saveGrades}>
-                  <CheckCircle2 size={16} /> Save Grades &amp; Shortlist for Interview
+                  <CheckCircle2 size={16} /> {gradingCandidate.manualStatus === 'Graded' ? 'Update Grades & Shortlist' : 'Save Grades & Shortlist for Interview'}
                 </button>
               </div>
             </main>
