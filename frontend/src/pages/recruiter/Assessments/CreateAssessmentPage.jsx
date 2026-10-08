@@ -26,32 +26,37 @@ function CreateAssessmentPage() {
   const [questions, setQuestions] = useState(STARTER_QUESTIONS);
   const [expanded, setExpanded] = useState(1);
   const [saved, setSaved] = useState(false);
-  const [autoTitle, setAutoTitle] = useState(!isEditing);
+  const [customRole, setCustomRole] = useState('');
 
   const [config, setConfig] = useState({
-    title: 'Senior Software Engineer — React Assessment — Senior',
-    role: 'Senior Software Engineer — React',
+    title: isEditing ? 'Senior Software Engineer — React Assessment — Senior' : '',
+    role: isEditing ? 'Senior Software Engineer — React' : '',
     description: 'This assessment evaluates core competencies, architectural patterns, and hands-on coding problem-solving skills.',
     duration: 60,
     difficulty: 'Senior'
   });
 
   const handleRoleChange = (newRole) => {
-    const updatedTitle = autoTitle ? `${newRole} Assessment — ${config.difficulty}` : config.title;
     setConfig({
       ...config,
       role: newRole,
-      title: updatedTitle
     });
   };
 
   const handleDifficultyChange = (newDiff) => {
-    const updatedTitle = autoTitle ? `${config.role} Assessment — ${newDiff}` : config.title;
     setConfig({
       ...config,
       difficulty: newDiff,
-      title: updatedTitle
     });
+  };
+
+  const handleAutoGenerateTitle = () => {
+    const target = config.role === 'Other' ? customRole.trim() : config.role;
+    if (target) {
+      setConfig(prev => ({ ...prev, title: `${target} Assessment — ${prev.difficulty}` }));
+    } else {
+      setConfig(prev => ({ ...prev, title: `Technical Assessment — ${prev.difficulty}` }));
+    }
   };
 
   const updateQuestion = (id, key, value) => setQuestions(questions.map((q) => q.id === id ? { ...q, [key]: value } : q));
@@ -70,43 +75,38 @@ function CreateAssessmentPage() {
 
               <label>Target Job Vacancy / Role
                 <select value={config.role} onChange={(e) => handleRoleChange(e.target.value)}>
+                  <option value="">— Select a vacancy / role —</option>
                   {JOB_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  <option value="Other">Other (Custom vacancy / role...)</option>
                 </select>
               </label>
 
+              {config.role === 'Other' && (
+                <label>Custom Vacancy / Role Name *
+                  <input
+                    value={customRole}
+                    onChange={(e) => setCustomRole(e.target.value)}
+                    placeholder="Type custom role or vacancy..."
+                    autoFocus
+                  />
+                </label>
+              )}
+
               <label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <span>Assessment Title</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {autoTitle ? (
-                      <span style={{ fontSize: '11px', background: 'rgba(240,185,11,0.15)', color: '#F0B90B', padding: '2px 8px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                        <Sparkles size={11} /> Auto-generated
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>Custom</span>
-                    )}
-                    <button
-                      type="button"
-                      style={{ background: 'transparent', border: 'none', color: '#F0B90B', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
-                      onClick={() => {
-                        if (!autoTitle) {
-                          setAutoTitle(true);
-                          setConfig(c => ({ ...c, title: `${c.role} Assessment — ${c.difficulty}` }));
-                        } else {
-                          setAutoTitle(false);
-                        }
-                      }}
-                    >
-                      {autoTitle ? 'Customize' : 'Revert to Auto'}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="af-auto-gen-btn"
+                    onClick={handleAutoGenerateTitle}
+                    title="Auto-generate title based on selected vacancy and difficulty"
+                  >
+                    <Sparkles size={12} /> Auto-Generate Title
+                  </button>
                 </div>
                 <input
                   value={config.title}
-                  onChange={(e) => {
-                    setAutoTitle(false);
-                    setConfig({ ...config, title: e.target.value });
-                  }}
+                  onChange={(e) => setConfig({ ...config, title: e.target.value })}
                   placeholder="e.g., Senior Software Engineer Assessment"
                 />
               </label>

@@ -789,6 +789,28 @@
   color: #FFFFFF;
 }
 
+.am-auto-gen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(240, 185, 11, 0.12);
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.35);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+.am-auto-gen-btn:hover {
+  background: rgba(240, 185, 11, 0.25);
+  border-color: #F0B90B;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
 .am-form-input {
   width: 100%;
   box-sizing: border-box;
