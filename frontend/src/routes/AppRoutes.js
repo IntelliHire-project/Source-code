@@ -389,7 +389,7 @@ function AppRoutes() {
         <Route
           path="/admin/community-mod"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'recruiter']}>
               <ModerateContent />
             </ProtectedRoute>
           }
@@ -397,7 +397,7 @@ function AppRoutes() {
         <Route
           path="/admin/audit-log"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'recruiter']}>
               <ViewAuditLogs />
             </ProtectedRoute>
           }
