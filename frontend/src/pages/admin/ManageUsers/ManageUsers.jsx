@@ -511,12 +511,12 @@ function ManageUsers() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>NAME</th>
-                      <th>EMAIL ADDRESS</th>
-                      <th>ROLE</th>
-                      <th>STATUS</th>
-                      <th>CREATED DATE</th>
-                      <th className="text-right">ACTIONS</th>
+                      <th className="col-name">NAME</th>
+                      <th className="col-email">EMAIL ADDRESS</th>
+                      <th className="col-role">ROLE</th>
+                      <th className="col-status">STATUS</th>
+                      <th className="col-date">CREATED DATE</th>
+                      <th className="col-actions text-right">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -531,38 +531,40 @@ function ManageUsers() {
                           </div>
                         </td>
                         <td className="admin-table__email-text">{user.email}</td>
-                        <td><span className="admin-table__role-badge">{user.role}</span></td>
+                        <td><span className={`admin-table__role-badge ${getRoleBadgeClass(user.role)}`}>{user.role}</span></td>
                         <td>
                           <span className={`admin-table__status-badge admin-table__status-badge--pending`}>
                             Pending
                           </span>
                         </td>
                         <td className="admin-table__date-text">{user.createdDate}</td>
-                        <td className="admin-table__actions-cell text-right" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleViewRecruiter(user)}
-                            title="View Recruiter Info"
-                            style={{ color: '#6B8CFF' }}
-                          >
-                            <Eye size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenApproveConfirm(user)}
-                            title="Approve Recruiter"
-                            style={{ color: '#22C55E' }}
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenRejectConfirm(user)}
-                            title="Reject Recruiter"
-                            style={{ color: '#E63946' }}
-                          >
-                            <XCircle size={16} />
-                          </button>
+                        <td className="admin-table__actions-td">
+                          <div className="admin-table__actions-cell">
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleViewRecruiter(user)}
+                              title="View Recruiter Info"
+                              style={{ color: '#6B8CFF' }}
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleOpenApproveConfirm(user)}
+                              title="Approve Recruiter"
+                              style={{ color: '#22C55E' }}
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleOpenRejectConfirm(user)}
+                              title="Reject Recruiter"
+                              style={{ color: '#E63946' }}
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -640,37 +642,37 @@ function ManageUsers() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th onClick={() => handleSort('name')} className="sortable-header">
+                    <th onClick={() => handleSort('name')} className="sortable-header col-name">
                       <div className="table-header-content">
                         <span>NAME</span>
                         {renderSortIcon('name')}
                       </div>
                     </th>
-                    <th onClick={() => handleSort('email')} className="sortable-header">
+                    <th onClick={() => handleSort('email')} className="sortable-header col-email">
                       <div className="table-header-content">
                         <span>EMAIL ADDRESS</span>
                         {renderSortIcon('email')}
                       </div>
                     </th>
-                    <th onClick={() => handleSort('role')} className="sortable-header">
+                    <th onClick={() => handleSort('role')} className="sortable-header col-role">
                       <div className="table-header-content">
                         <span>ROLE</span>
                         {renderSortIcon('role')}
                       </div>
                     </th>
-                    <th onClick={() => handleSort('status')} className="sortable-header">
+                    <th onClick={() => handleSort('status')} className="sortable-header col-status">
                       <div className="table-header-content">
                         <span>STATUS</span>
                         {renderSortIcon('status')}
                       </div>
                     </th>
-                    <th onClick={() => handleSort('createdDate')} className="sortable-header">
+                    <th onClick={() => handleSort('createdDate')} className="sortable-header col-date">
                       <div className="table-header-content">
                         <span>CREATED DATE</span>
                         {renderSortIcon('createdDate')}
                       </div>
                     </th>
-                    <th className="text-right">ACTIONS</th>
+                    <th className="col-actions text-right">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -700,38 +702,42 @@ function ManageUsers() {
                           </span>
                         </td>
                         <td className="admin-table__date-text">{user.createdDate}</td>
-                        <td className="admin-table__actions-cell text-right" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          {user.role === 'Recruiter' && (
+                        <td className="admin-table__actions-td">
+                          <div className="admin-table__actions-cell">
+                            {user.role === 'Recruiter' ? (
+                              <button
+                                className="admin-table__action-btn"
+                                onClick={() => handleViewRecruiter(user)}
+                                title="View Recruiter Info"
+                                style={{ color: '#6B8CFF' }}
+                              >
+                                <Eye size={16} />
+                              </button>
+                            ) : (
+                              <span className="admin-table__action-btn-placeholder" aria-hidden="true" />
+                            )}
                             <button
                               className="admin-table__action-btn"
-                              onClick={() => handleViewRecruiter(user)}
-                              title="View Recruiter Info"
-                              style={{ color: '#6B8CFF' }}
+                              onClick={() => handleOpenEditModal(user)}
+                              title="Edit User"
                             >
-                              <Eye size={16} />
+                              <Edit2 size={16} />
                             </button>
-                          )}
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenEditModal(user)}
-                            title="Edit User"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenAssignModal(user)}
-                            title="Assign Role"
-                          >
-                            <UserPlus size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn admin-table__action-btn--danger"
-                            onClick={() => handleOpenDeleteConfirm(user)}
-                            title="Delete User"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleOpenAssignModal(user)}
+                              title="Assign Role"
+                            >
+                              <UserPlus size={16} />
+                            </button>
+                            <button
+                              className="admin-table__action-btn admin-table__action-btn--danger"
+                              onClick={() => handleOpenDeleteConfirm(user)}
+                              title="Delete User"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
