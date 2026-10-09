@@ -445,3 +445,298 @@
 @media (max-width:1050px) { .discussion-detail-layout { grid-template-columns:minmax(0,1fr) 290px; } }
 @media (max-width:850px) { .discussion-detail-meta { flex-wrap:wrap; } .discussion-header-actions { width:100%; margin-left:50px!important; } .discussion-detail-layout { grid-template-columns:1fr; } .detail-discussion-rail { grid-template-columns:1fr 1fr; position:static; } .expert-review-card, .moderation-note { align-self:stretch; } }
 @media (max-width:600px) { .discussion-detail-header > h1 { font-size:1.8rem; } .discussion-detail-meta > span { border-left:0; padding-left:0; } .discussion-header-actions { margin-left:0!important; } .discussion-header-actions button { flex:1; justify-content:center; } .discussion-article { padding:20px; } .discussion-figure > div { height:210px; } .figure-laptop { width:190px; height:125px; } .figure-laptop:after { width:225px; } .figure-team { display:none; } .detail-discussion-rail { grid-template-columns:1fr; } }
+
+/* ==========================================================================
+   Report Post Modal & Community Moderation Integration (SCRUM-749)
+   ========================================================================== */
+
+.report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 14, 19, 0.82);
+  backdrop-filter: blur(5px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: reportFadeIn 0.2s ease-out;
+}
+
+@keyframes reportFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.report-modal {
+  background: #16171F;
+  border: 1px solid #2A2C38;
+  border-radius: 14px;
+  max-width: 560px;
+  width: 100%;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: #1E222D;
+  border-bottom: 1px solid #2A2C38;
+}
+
+.report-modal__title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-modal__alert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(255, 90, 101, 0.15);
+  color: #FF5A65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.report-modal__title-box h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.report-modal__title-box p {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: #9599A6;
+}
+
+.report-modal__close-btn {
+  background: transparent;
+  border: none;
+  color: #9599A6;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s;
+}
+
+.report-modal__close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.report-modal__body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 78vh;
+  overflow-y: auto;
+}
+
+.report-modal__post-preview {
+  padding: 12px 14px;
+  background: #101118;
+  border: 1px solid #2A2C38;
+  border-radius: 8px;
+}
+
+.report-preview-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-weight: 700;
+  color: #F0B90B;
+  margin-bottom: 4px;
+}
+
+.report-modal__post-preview h4 {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  line-height: 1.35;
+}
+
+.report-preview-snippet {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  color: #9599A6;
+  line-height: 1.45;
+}
+
+.report-preview-author {
+  font-size: 0.72rem;
+  color: #6C7280;
+}
+
+.report-preview-author strong {
+  color: #D1D5DB;
+}
+
+.report-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.report-form-label {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: #E2E4E9;
+}
+
+.report-form-label .req {
+  color: #FF5A65;
+}
+
+.report-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.report-category-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #2A2C38;
+  background: #1B1D26;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.report-category-card:hover {
+  border-color: rgba(240, 185, 11, 0.4);
+  background: #20232E;
+}
+
+.report-category-card.is-selected {
+  border-color: #F0B90B;
+  background: rgba(240, 185, 11, 0.08);
+}
+
+.report-category-card input[type="radio"] {
+  accent-color: #F0B90B;
+  cursor: pointer;
+}
+
+.report-category-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.report-category-details strong {
+  font-size: 0.8rem;
+  color: #FFFFFF;
+}
+
+.report-category-details small {
+  font-size: 0.7rem;
+  color: #9599A6;
+  margin-top: 1px;
+}
+
+.report-category-check {
+  color: #F0B90B;
+  flex-shrink: 0;
+}
+
+.report-select,
+.report-textarea {
+  width: 100%;
+  background: #101118;
+  border: 1px solid #2A2C38;
+  border-radius: 8px;
+  color: #FFFFFF;
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+.report-select:focus,
+.report-textarea:focus {
+  border-color: #F0B90B;
+  box-shadow: 0 0 0 2px rgba(240, 185, 11, 0.18);
+}
+
+.report-textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.report-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #2A2C38;
+}
+
+/* Action button for Flag/Report */
+.post-action-flag {
+  color: #9599A6 !important;
+  transition: color 0.18s;
+}
+
+.post-action-flag:hover {
+  color: #FF5A65 !important;
+}
+
+.post-action-flag.is-reported {
+  color: #FF5A65 !important;
+  font-weight: 600;
+}
+
+/* Removed post banner */
+.removed-post-banner {
+  padding: 32px 24px;
+  text-align: center;
+  background: #1B1D26;
+  border: 1px solid #2A2C38;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.removed-post-banner svg {
+  color: #FF5A65;
+}
+
+.removed-post-banner h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #FFFFFF;
+}
+
+.removed-post-banner p {
+  margin: 0;
+  max-width: 500px;
+  color: #9599A6;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+

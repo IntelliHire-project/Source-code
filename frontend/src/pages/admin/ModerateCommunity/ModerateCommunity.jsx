@@ -15,7 +15,7 @@ import {
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
-import { getReports, saveReports, getComments, saveComments, appendAuditLog } from '../../../services/adminStorage';
+import { getReports, saveReports, getComments, saveComments, appendAuditLog, recordRemovedPost } from '../../../services/adminStorage';
 import './ModerateCommunity.css';
 
 // Initial Mock Reports matching mockup layout & fields
@@ -283,6 +283,12 @@ function ModerateContent() {
   };
 
   const handleDeleteSingle = (id) => {
+    const targetReport = reports.find((r) => r.id === id);
+    if (targetReport) {
+      recordRemovedPost(targetReport.targetPostId || id, targetReport.title);
+    } else {
+      recordRemovedPost(id);
+    }
     const updatedReports = reports.filter((r) => r.id !== id);
     setReports(updatedReports);
     saveReports(updatedReports);
@@ -317,15 +323,21 @@ function ModerateContent() {
   };
 
   const handleRemovePost = (id) => {
+    const targetReport = reports.find((r) => r.id === id);
+    if (targetReport) {
+      recordRemovedPost(targetReport.targetPostId || id, targetReport.title);
+    } else {
+      recordRemovedPost(id);
+    }
     handleDeleteSingle(id);
     setSelectedReport(null);
     setToast({ type: 'success', message: `Post #${id} has been removed from the platform.` });
-    appendAuditLog({ actionType: 'Post Removed', module: 'COMMUNITY_MOD', status: 'success' });
   };
 
   const handleBanUserAndPurge = (report) => {
     const author = report.reportedBy;
     const postsByAuthor = reports.filter((r) => r.reportedBy === author);
+    postsByAuthor.forEach((p) => recordRemovedPost(p.targetPostId || p.id, p.title));
     const count = postsByAuthor.length;
 
     const updatedReports = reports.filter((r) => r.reportedBy !== author);
