@@ -9,6 +9,7 @@ import RecruiterSignupPage from '../pages/recruiter/Signup/SignupPage';
 import RecruiterPendingApprovalPage from '../pages/recruiter/PendingApproval/PendingApprovalPage';
 import RecruiterInterviewTimeSlotManagement from '../pages/recruiter/InterviewTimeSlotManagement/InterviewTimeSlotManagement';
 import CandidateInterviewAllocation from '../pages/recruiter/InterviewAllocation/CandidateInterviewAllocation';
+import PanelInterviewSchedule from '../pages/panel/PanelInterviewSchedule';
 
 import CommunityPage, {
   CommunityProfilePage,
@@ -309,6 +310,26 @@ function AppRoutes() {
         <Route
           path="/recruiter/applicants/interviewed"
           element={<RecruiterProtected><InterviewedApplicants /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/interviews"
+          element={<RecruiterProtected><RecruiterInterviewTimeSlotManagement /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/interviews/slots"
+          element={<RecruiterProtected><RecruiterInterviewTimeSlotManagement /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/interviews/allocation"
+          element={<RecruiterProtected><CandidateInterviewAllocation /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/panel-schedule"
+          element={<RecruiterProtected><PanelInterviewSchedule /></RecruiterProtected>}
+        />
+        <Route
+          path="/panel/interviews"
+          element={<PanelInterviewSchedule />}
         />
         <Route
           path="/dashboard"

@@ -1,0 +1,752 @@
+/* ── PanelInterviewSchedule.css (Midnight Navy Dark Theme) ── */
+
+.panel-schedule-page {
+  min-height: 100vh;
+  background-color: var(--primary-dark, #0D0E13);
+  color: var(--text-on-dark, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-schedule-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 0 60px 0;
+  width: 100%;
+}
+
+/* ── Top Header Banner ── */
+.panel-hero-card {
+  background: linear-gradient(145deg, #191B24 0%, #12131A 100%);
+  border-radius: 16px;
+  padding: 26px 30px;
+  color: #FFFFFF;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(240, 185, 11, 0.25);
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.panel-hero-info h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+}
+
+.panel-hero-info p {
+  margin: 0;
+  color: #9599A6;
+  font-size: 14px;
+  max-width: 650px;
+  line-height: 1.5;
+}
+
+.panel-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #0D0E13;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid #2A2C38;
+}
+
+.panel-selector-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #F0B90B;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.panel-user-select {
+  background: #16171F;
+  color: #FFFFFF;
+  border: 1px solid #2A2C38;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.panel-user-select:focus {
+  border-color: #F0B90B;
+}
+
+/* ── Active Panelist Pill ── */
+.panelist-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panelist-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #F0B90B;
+}
+
+.panelist-meta h3 {
+  margin: 0 0 2px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.panelist-meta span {
+  font-size: 12px;
+  color: #9599A6;
+}
+
+/* ── Quick Stats Grid ── */
+.panel-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.panel-stat-card {
+  background: #1E222D;
+  border: 1px solid #2A2C38;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.panel-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(240, 185, 11, 0.4);
+}
+
+.panel-stat-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.panel-stat-icon.blue { background: rgba(107, 140, 255, 0.15); color: #6B8CFF; }
+.panel-stat-icon.gold { background: rgba(240, 185, 11, 0.15); color: #F0B90B; }
+.panel-stat-icon.green { background: rgba(34, 197, 94, 0.15); color: #22C55E; }
+.panel-stat-icon.purple { background: rgba(168, 85, 247, 0.15); color: #C084FC; }
+
+.panel-stat-info span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9599A6;
+}
+
+.panel-stat-info h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 2px 0 0 0;
+  color: #FFFFFF;
+}
+
+/* ── Filter Tabs ── */
+.panel-tabs-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.panel-tab-group {
+  display: flex;
+  background: #16171F;
+  border: 1px solid #2A2C38;
+  padding: 4px;
+  border-radius: 10px;
+  gap: 4px;
+}
+
+.panel-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9599A6;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-tab-btn.active {
+  background: #1E222D;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #2A2C38;
+}
+
+.tab-badge {
+  background: #2A2C38;
+  color: #9599A6;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.panel-tab-btn.active .tab-badge {
+  background: #F0B90B;
+  color: #000000;
+}
+
+/* ── Interview Cards Grid ── */
+.panel-interviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-interview-card {
+  background: #1E222D;
+  border: 1px solid #2A2C38;
+  border-radius: 14px;
+  padding: 22px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.panel-interview-card:hover {
+  border-color: #3A3D4C;
+  transform: translateY(-1px);
+}
+
+.panel-interview-card.pending-reschedule {
+  border-left: 4px solid #F0B90B;
+  background: linear-gradient(90deg, rgba(240, 185, 11, 0.06) 0%, #1E222D 25%);
+}
+
+.panel-interview-card.rescheduled-done {
+  border-left: 4px solid #6B8CFF;
+  background: linear-gradient(90deg, rgba(107, 140, 255, 0.06) 0%, #1E222D 25%);
+}
+
+.card-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+}
+
+.candidate-avatar-wrap {
+  position: relative;
+  width: 52px;
+  height: 52px;
+}
+
+.candidate-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid #2A2C38;
+}
+
+.match-badge {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  background: #F0B90B;
+  color: #000000;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+
+.candidate-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.role-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.role-badge {
+  background: #16171F;
+  color: #FFFFFF;
+  border: 1px solid #2A2C38;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.round-badge {
+  background: rgba(107, 140, 255, 0.15);
+  color: #6B8CFF;
+  border: 1px solid rgba(107, 140, 255, 0.3);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.candidate-notes {
+  font-size: 13px;
+  color: #9599A6;
+  margin: 0;
+  max-width: 500px;
+}
+
+/* ── Card Middle: Timing ── */
+.card-timing {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.timing-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.timing-item.date {
+  color: #6B8CFF;
+  font-weight: 700;
+}
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.status-tag.scheduled {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-tag.reschedule_requested {
+  background: rgba(240, 185, 11, 0.15);
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.3);
+}
+
+.status-tag.rescheduled {
+  background: rgba(107, 140, 255, 0.15);
+  color: #6B8CFF;
+  border: 1px solid rgba(107, 140, 255, 0.3);
+}
+
+/* ── Card Right: Actions ── */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-meet-join {
+  background: #16171F;
+  color: #FFFFFF;
+  border: 1px solid #2A2C38;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-meet-join:hover {
+  background: #0D0E13;
+  border-color: #6B8CFF;
+  color: #6B8CFF;
+}
+
+.btn-reschedule-trigger {
+  background: #16171F;
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.4);
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.btn-reschedule-trigger:hover {
+  background: #F0B90B;
+  color: #000000;
+}
+
+.btn-reschedule-trigger.pending {
+  background: rgba(240, 185, 11, 0.12);
+  border-color: #F0B90B;
+  color: #F0B90B;
+  cursor: default;
+}
+
+.btn-gcal {
+  background: #16171F;
+  color: #FFFFFF;
+  border: 1px solid #2A2C38;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-gcal:hover {
+  background: #1E222D;
+  border-color: #F0B90B;
+  color: #F0B90B;
+}
+
+/* ── Modal Overlay & Dialog ── */
+.reschedule-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 14, 19, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.reschedule-modal-box {
+  background: #16171F;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  border: 1px solid #2A2C38;
+  overflow: hidden;
+  animation: modalFadeUp 0.2s ease-out;
+}
+
+@keyframes modalFadeUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  background: #191B24;
+  padding: 20px 24px;
+  color: #FFFFFF;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #2A2C38;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #FFFFFF;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #9599A6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.modal-close-btn:hover {
+  color: #FFFFFF;
+}
+
+.modal-body {
+  padding: 24px;
+  max-height: 75vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #16171F;
+}
+
+/* Current interview summary bar in modal */
+.current-interview-summary {
+  background: #1E222D;
+  border: 1px solid #2A2C38;
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.summary-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #F0B90B;
+  margin-bottom: 8px;
+}
+
+.summary-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.summary-main strong {
+  font-size: 15px;
+  color: #FFFFFF;
+}
+
+.summary-main p {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  color: #9599A6;
+}
+
+.summary-time {
+  text-align: right;
+}
+
+.summary-time .date {
+  font-weight: 700;
+  color: #6B8CFF;
+  font-size: 13px;
+}
+
+.summary-time .time {
+  font-size: 12px;
+  color: #9599A6;
+}
+
+/* Form fields */
+.form-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-select, .form-input, .form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #2A2C38;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #FFFFFF;
+  background: #1E222D;
+  transition: border-color 0.15s ease;
+  outline: none;
+}
+
+.form-select:focus, .form-input:focus, .form-textarea:focus {
+  border-color: #F0B90B;
+  box-shadow: 0 0 0 2px rgba(240, 185, 11, 0.2);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Proposed Slots Builder */
+.proposed-slots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.proposed-slot-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  background: #1E222D;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #2A2C38;
+}
+
+.remove-slot-btn {
+  background: transparent;
+  border: none;
+  color: #E63946;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+.remove-slot-btn:hover {
+  background: rgba(230, 57, 70, 0.15);
+}
+
+.add-proposed-btn {
+  background: #1E222D;
+  border: 1px dashed #3A3D4C;
+  color: #FFFFFF;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.add-proposed-btn:hover {
+  background: #2A2C38;
+  border-color: #F0B90B;
+  color: #F0B90B;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  background: #191B24;
+  border-top: 1px solid #2A2C38;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-modal-cancel {
+  background: #1E222D;
+  border: 1px solid #2A2C38;
+  color: #FFFFFF;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-modal-cancel:hover {
+  background: #2A2C38;
+}
+
+.btn-modal-submit {
+  background: #F0B90B;
+  color: #000000;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+
+.btn-modal-submit:hover {
+  background: #D9A508;
+}
+
+/* Toast alert */
+.panel-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #16171F;
+  color: #FFFFFF;
+  padding: 14px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid #2A2C38;
+  border-left: 4px solid #22C55E;
+  z-index: 2000;
+  animation: slideToast 0.3s ease-out;
+}
+
+@keyframes slideToast {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}

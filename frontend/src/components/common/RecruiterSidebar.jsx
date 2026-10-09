@@ -40,8 +40,15 @@ const NAV_ITEMS = [
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
-  { label: 'Assessments', icon: ClipboardCheck, path: '/recruiter/assessments' },
-  { label: 'Interviews', icon: Calendar, path: '/recruiter/interviews' },
+  {
+    label: 'Interviews',
+    icon: Calendar,
+    subItems: [
+      { label: 'Time Slot Management', path: '/recruiter/interviews' },
+      { label: 'Candidate Allocation', path: '/recruiter/interviews/allocation' },
+      { label: 'Panel Schedule & Reschedules', path: '/panel/interviews' },
+    ],
+  },
   {
     label: 'Analytics',
     icon: BarChart2,
