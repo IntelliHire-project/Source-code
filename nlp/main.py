@@ -141,6 +141,16 @@ def extract_cv(cv: CVText):
         if linkedin_match:
             linkedin = linkedin_match.group(0).replace(" ", "").rstrip('/')
 
+    # Extract GitHub
+    github = None
+    github_match = re.search(r'(?:https?://)?(?:www\.)?github\.com/[a-zA-Z0-9_.-]+/?', text_lower)
+    if github_match:
+        github = github_match.group(0).rstrip('/')
+    else:
+        github_match = re.search(r'github\s*\.\s*com\s*/\s*[a-zA-Z0-9_.-]+/?', text_lower)
+        if github_match:
+            github = github_match.group(0).replace(" ", "").rstrip('/')
+
     # Extract Headline
     headline = None
     # Very basic heuristic: if experience exists, use first title, else guess from name line context
@@ -172,6 +182,7 @@ def extract_cv(cv: CVText):
         "phone": phone,
         "location": location,
         "linkedin": linkedin,
+        "github": github,
         "headline": headline,
         "bio": bio,
         "language": language,

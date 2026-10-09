@@ -65,7 +65,7 @@ const addCandidateCV = async (
  */
 const findCandidateByUserId = async (userId) => {
   const candidateResult = await db.query(
-    `SELECT c.id, c.user_id, c.phone, c.skills, c.education, c.experience, c.headline, c.location, c.language, c.bio, c.linkedin, c.created_at, c.updated_at,
+    `SELECT c.id, c.user_id, c.phone, c.skills, c.education, c.experience, c.headline, c.location, c.language, c.bio, c.linkedin, c.github, c.created_at, c.updated_at,
             u.full_name as name, u.email
      FROM candidates c
      JOIN users u ON c.user_id = u.id
@@ -234,18 +234,21 @@ const deleteCV = async (candidateId, cvId) => {
  * @returns {Promise<object|null>} Updated candidate record
  */
 const updateCandidateProfileData = async (candidateId, profileData) => {
-  const { skills, education, experience, headline, location, language, bio, phone, linkedin } = profileData;
+  const { skills, education, experience, headline, location, language, bio, phone, linkedin, github } = profileData;
   
   // Conditionally update phone if it's provided in the payload
   const phoneUpdate = phone !== undefined ? `phone = COALESCE($9, phone),` : ``;
   const linkedinUpdate = linkedin !== undefined ? `linkedin = COALESCE(${phone !== undefined ? '$10' : '$9'}, linkedin),` : ``;
   
+  let paramIndexOffset = 8 + (phone !== undefined ? 1 : 0) + (linkedin !== undefined ? 1 : 0);
+  const githubUpdate = github !== undefined ? `github = COALESCE($${paramIndexOffset + 1}, github),` : ``;
+  
   const result = await db.query(
     `UPDATE candidates
      SET skills = $1, education = $2, experience = $3, 
-         headline = $4, location = $5, language = $6, bio = $7, ${phoneUpdate} ${linkedinUpdate} updated_at = NOW()
+         headline = $4, location = $5, language = $6, bio = $7, ${phoneUpdate} ${linkedinUpdate} ${githubUpdate} updated_at = NOW()
      WHERE id = $8
-     RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, linkedin, created_at, updated_at`,
+     RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, linkedin, github, created_at, updated_at`,
     [
       JSON.stringify(skills || []),
       JSON.stringify(education || []),
@@ -256,7 +259,8 @@ const updateCandidateProfileData = async (candidateId, profileData) => {
       bio || null,
       candidateId,
       ...(phone !== undefined ? [phone || null] : []),
-      ...(linkedin !== undefined ? [linkedin || null] : [])
+      ...(linkedin !== undefined ? [linkedin || null] : []),
+      ...(github !== undefined ? [github || null] : [])
     ]
   );
   return result.rows[0] || null;
