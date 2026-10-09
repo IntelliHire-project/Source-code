@@ -1614,6 +1614,13 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
             >
               Candidate Allocation
             </button>
+            <button
+              className="subnav-tab-btn"
+              onClick={() => navigate('/panel/interviews')}
+              type="button"
+            >
+              Panel Schedule & Reschedules
+            </button>
           </div>
 
           {/* ── Page Heading Block + Auto Allocate Button ── */}

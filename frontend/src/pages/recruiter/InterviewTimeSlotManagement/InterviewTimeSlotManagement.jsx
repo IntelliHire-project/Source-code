@@ -20,6 +20,11 @@ import {
   Sparkles,
   CheckCircle2,
   ArrowRight,
+  RefreshCw,
+  AlertCircle,
+  ShieldCheck,
+  Send,
+  X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -27,6 +32,14 @@ import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
 import { VACANCIES } from '../../../data/vacancies';
 import { MOCK_CANDIDATES, enrichCandidateDetails, CandidateDetailView } from '../RankedApplicants/RankedApplicants';
+import {
+  getRescheduleRequests,
+  approveRescheduleRequest,
+  rejectRescheduleRequest,
+  customRescheduleSlot,
+  getInterviewSlots,
+  saveInterviewSlots,
+} from '../../../services/interviewService';
 
 // ── Google Calendar URL Helper ─────────────────────────────────────────────
 const generateGoogleCalendarUrl = ({ title, description, interviewDate, startTime, endTime, location }) => {
@@ -432,6 +445,65 @@ function RecruiterInterviewTimeSlotManagementPage() {
       slots: [],
     },
   ]);
+
+  // Reschedule Requests State
+  const [rescheduleRequests, setRescheduleRequests] = useState(() => getRescheduleRequests());
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [activeRequestTab, setActiveRequestTab] = useState('PENDING');
+  const [selectedReviewRequest, setSelectedReviewRequest] = useState(null);
+  const [customRescheduleDate, setCustomRescheduleDate] = useState('');
+  const [customRescheduleStart, setCustomRescheduleStart] = useState('');
+  const [customRescheduleEnd, setCustomRescheduleEnd] = useState('');
+  const [customNotes, setCustomNotes] = useState('');
+
+  const refreshRescheduleRequests = () => {
+    const reqs = getRescheduleRequests();
+    setRescheduleRequests(reqs);
+    setSlots(getInterviewSlots());
+  };
+
+  const pendingReschedulesCount = useMemo(() => {
+    return (rescheduleRequests || []).filter(r => r.status === 'PENDING').length;
+  }, [rescheduleRequests]);
+
+  const handleApproveProposed = (reqId, proposedSlot) => {
+    const res = approveRescheduleRequest(reqId, proposedSlot);
+    if (res.success) {
+      refreshRescheduleRequests();
+      setMessage(`Successfully approved reschedule to ${proposedSlot.displayDate} (${proposedSlot.startTime} - ${proposedSlot.endTime})!`);
+      setSelectedReviewRequest(null);
+    }
+  };
+
+  const handleDeclineRequest = (reqId, reason) => {
+    const res = rejectRescheduleRequest(reqId, reason);
+    if (res.success) {
+      refreshRescheduleRequests();
+      setMessage('Reschedule request declined. Original slot retained.');
+      setSelectedReviewRequest(null);
+    }
+  };
+
+  const handleApplyCustomSlot = (reqId) => {
+    if (!customRescheduleDate || !customRescheduleStart || !customRescheduleEnd) {
+      alert('Please fill in Date, Start Time, and End Time.');
+      return;
+    }
+    const dObj = new Date(customRescheduleDate);
+    const displayDate = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const customSlot = {
+      date: customRescheduleDate,
+      displayDate,
+      startTime: customRescheduleStart,
+      endTime: customRescheduleEnd,
+    };
+    const res = customRescheduleSlot(reqId, customSlot, customNotes);
+    if (res.success) {
+      refreshRescheduleRequests();
+      setMessage(`Custom slot allocated: ${displayDate} (${customRescheduleStart} - ${customRescheduleEnd})!`);
+      setSelectedReviewRequest(null);
+    }
+  };
 
   const handlePanelDateChange = (panelId, dateStr) => {
     setPanels(prev =>
@@ -885,29 +957,131 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
         {/* Content Container */}
         <div className="recruiter-content">
-          <button
-            type="button"
-            onClick={() => navigate('/recruiter/vacancies')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'none',
-              border: 'none',
-              padding: '0',
-              color: '#94A3B8',
-              fontSize: '0.98rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              marginBottom: '10px',
-              transition: 'color 0.2s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#60A5FA')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#94A3B8')}
-          >
-            <ArrowLeft size={16} />
-            <span>Back to Vacancies</span>
-          </button>
+          {/* ── Sub Navigation Pill Bar ── */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            marginBottom: '24px',
+            backgroundColor: '#16171F',
+            border: '1px solid #2A2C38',
+            borderRadius: '12px',
+            padding: '8px 14px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                type="button"
+                style={{
+                  backgroundColor: '#F0B90B',
+                  color: '#000000',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Calendar size={16} />
+                Time Slot Management
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/recruiter/interviews/allocation')}
+                style={{
+                  backgroundColor: '#1E222D',
+                  color: '#FFFFFF',
+                  border: '1px solid #2A2C38',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                <Users size={16} />
+                Candidate Allocation
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowRescheduleModal(true)}
+                style={{
+                  backgroundColor: pendingReschedulesCount > 0 ? 'rgba(240, 185, 11, 0.15)' : '#1E222D',
+                  color: pendingReschedulesCount > 0 ? '#F0B90B' : '#FFFFFF',
+                  border: pendingReschedulesCount > 0 ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: pendingReschedulesCount > 0 ? '0 0 12px rgba(240, 185, 11, 0.25)' : 'none',
+                }}
+              >
+                <RefreshCw size={16} />
+                <span>Reschedule Requests</span>
+                {pendingReschedulesCount > 0 && (
+                  <span style={{
+                    backgroundColor: '#F0B90B',
+                    color: '#000000',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: '10px',
+                    marginLeft: '4px',
+                  }}>
+                    {pendingReschedulesCount} Pending
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={() => navigate('/panel/interviews')}
+                style={{
+                  backgroundColor: '#1E222D',
+                  color: '#9599A6',
+                  border: '1px solid #2A2C38',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#F0B90B';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#9599A6';
+                  e.currentTarget.style.borderColor = '#2A2C38';
+                }}
+              >
+                <ShieldCheck size={15} style={{ color: '#F0B90B' }} />
+                <span>Open Panel Member Portal</span>
+              </button>
+            </div>
+          </div>
 
           {/* ── IntelliHire Interviews Hero Card (Rendered only when form is NOT active) ── */}
           {!showInlineForm && (
@@ -2458,6 +2632,378 @@ function RecruiterInterviewTimeSlotManagementPage() {
           </div>
         </div>
       )}
+      {/* ── Modal: Reschedule Requests Center ── */}
+      {showRescheduleModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(13, 14, 19, 0.85)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#16171F',
+              border: '1px solid #2A2C38',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '860px',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: '20px 24px',
+                backgroundColor: '#191B24',
+                borderBottom: '1px solid #2A2C38',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: '#F0B90B',
+                  }}
+                >
+                  <RefreshCw size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#FFFFFF' }}>
+                    Panel Member Reschedule Requests
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#9599A6' }}>
+                    Review, approve, or adjust reschedule requests submitted by interview panel members.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', backgroundColor: '#0D0E13', padding: '3px', borderRadius: '8px', gap: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRequestTab('PENDING')}
+                    style={{
+                      backgroundColor: activeRequestTab === 'PENDING' ? '#F0B90B' : 'transparent',
+                      color: activeRequestTab === 'PENDING' ? '#000' : '#9599A6',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '5px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Pending ({pendingReschedulesCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRequestTab('ALL')}
+                    style={{
+                      backgroundColor: activeRequestTab === 'ALL' ? '#F0B90B' : 'transparent',
+                      color: activeRequestTab === 'ALL' ? '#000' : '#9599A6',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '5px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    All History ({rescheduleRequests.length})
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRescheduleModal(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9599A6',
+                    cursor: 'pointer',
+                    padding: '6px',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Request List Body */}
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {rescheduleRequests.filter(r => activeRequestTab === 'ALL' || r.status === activeRequestTab).length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#9599A6' }}>
+                  <CheckCircle2 size={40} style={{ color: '#22C55E', margin: '0 auto 12px' }} />
+                  <h4 style={{ margin: '0 0 6px 0', color: '#FFFFFF', fontSize: '1rem' }}>No pending requests!</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem' }}>All panel interview schedules are currently confirmed and up-to-date.</p>
+                </div>
+              ) : (
+                rescheduleRequests
+                  .filter(r => activeRequestTab === 'ALL' || r.status === activeRequestTab)
+                  .map((req) => {
+                    const isPending = req.status === 'PENDING';
+                    const isApproved = req.status === 'APPROVED';
+                    const isRejected = req.status === 'REJECTED';
+
+                    return (
+                      <div
+                        key={req.id}
+                        style={{
+                          backgroundColor: '#1E222D',
+                          border: isPending ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '16px',
+                        }}
+                      >
+                        {/* Top: Panel Member & Candidate info */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <img
+                              src={req.panelMember?.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150'}
+                              alt={req.panelMember?.name}
+                              style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #F0B90B' }}
+                            />
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <h4 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.98rem', fontWeight: 700 }}>
+                                  {req.panelMember?.name}
+                                </h4>
+                                <span style={{ fontSize: '0.72rem', backgroundColor: '#2A2C38', color: '#F0B90B', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                  PANELIST
+                                </span>
+                              </div>
+                              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
+                                Candidate: <strong style={{ color: '#FFFFFF' }}>{req.candidateName}</strong> • {req.jobPosition} ({req.round})
+                              </p>
+                            </div>
+                          </div>
+
+                          <div>
+                            {isPending && (
+                              <span style={{ backgroundColor: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B', border: '1px solid #F0B90B', fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Clock size={12} /> Pending Review
+                              </span>
+                            )}
+                            {isApproved && (
+                              <span style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#22C55E', border: '1px solid #22C55E', fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <CheckCircle2 size={12} /> Rescheduled & Approved
+                              </span>
+                            )}
+                            {isRejected && (
+                              <span style={{ backgroundColor: 'rgba(230, 57, 70, 0.15)', color: '#E63946', border: '1px solid #E63946', fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px' }}>
+                                Request Declined
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Mid: Reason & Notes */}
+                        <div style={{ backgroundColor: '#16171F', padding: '12px 16px', borderRadius: '8px', border: '1px solid #2A2C38' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#F0B90B', textTransform: 'uppercase' }}>
+                              Reason: {req.reasonCategory}
+                            </span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: '#FFFFFF', lineHeight: 1.45 }}>
+                            "{req.detailedReason || 'Requesting a reschedule due to scheduling conflict.'}"
+                          </p>
+                        </div>
+
+                        {/* Timing Comparison: Current vs Proposed */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '14px' }}>
+                          <div style={{ backgroundColor: '#16171F', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(230, 57, 70, 0.3)' }}>
+                            <span style={{ display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', color: '#E63946', fontWeight: 700, marginBottom: '4px' }}>
+                              Current Assigned Time
+                            </span>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>{req.currentDisplayDate}</div>
+                            <div style={{ fontSize: '0.78rem', color: '#9599A6' }}>{req.currentTime}</div>
+                          </div>
+
+                          <div style={{ backgroundColor: '#16171F', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(240, 185, 11, 0.3)' }}>
+                            <span style={{ display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', color: '#F0B90B', fontWeight: 700, marginBottom: '6px' }}>
+                              Panelist's Proposed Available Slots ({req.proposedSlots?.length || 0})
+                            </span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {req.proposedSlots?.map((prop, idx) => (
+                                <div
+                                  key={idx}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    backgroundColor: '#1E222D',
+                                    padding: '6px 10px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #2A2C38',
+                                  }}
+                                >
+                                  <div>
+                                    <strong style={{ color: '#FFFFFF', fontSize: '0.82rem' }}>{prop.displayDate}</strong>
+                                    <span style={{ color: '#9599A6', fontSize: '0.78rem', marginLeft: '6px' }}>
+                                      {prop.startTime} - {prop.endTime}
+                                    </span>
+                                  </div>
+
+                                  {isPending && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveProposed(req.id, prop)}
+                                      style={{
+                                        backgroundColor: '#22C55E',
+                                        color: '#FFFFFF',
+                                        border: 'none',
+                                        padding: '5px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.74rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                      }}
+                                    >
+                                      <CheckCircle2 size={13} /> Approve This Slot
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions for Pending Requests */}
+                        {isPending && (
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #2A2C38', paddingTop: '14px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const reason = prompt('Enter decline reason for the panelist:');
+                                if (reason !== null) handleDeclineRequest(req.id, reason);
+                              }}
+                              style={{
+                                backgroundColor: 'transparent',
+                                border: '1px solid #E63946',
+                                color: '#E63946',
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Decline Request
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newDate = prompt('Enter custom date (YYYY-MM-DD):', req.currentDate);
+                                if (newDate) {
+                                  const start = prompt('Enter start time (e.g. 10:00 AM):', '10:00 AM');
+                                  const end = prompt('Enter end time (e.g. 11:00 AM):', '11:00 AM');
+                                  if (start && end) {
+                                    const dObj = new Date(newDate);
+                                    const displayDate = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                                    customRescheduleSlot(req.id, { date: newDate, displayDate, startTime: start, endTime: end }, 'Custom time scheduled by HR');
+                                    refreshRescheduleRequests();
+                                    setMessage(`Custom slot assigned for ${displayDate}!`);
+                                  }
+                                }
+                              }}
+                              style={{
+                                backgroundColor: '#16171F',
+                                border: '1px solid #F0B90B',
+                                color: '#F0B90B',
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Assign Custom Slot
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Resolution notes if resolved */}
+                        {!isPending && req.resolutionNotes && (
+                          <div style={{ fontSize: '0.78rem', color: '#9599A6', borderTop: '1px solid #2A2C38', paddingTop: '10px' }}>
+                            <strong>Resolution:</strong> {req.resolutionNotes}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '16px 24px', backgroundColor: '#191B24', borderTop: '1px solid #2A2C38', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/panel/interviews')}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#F0B90B',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <ShieldCheck size={16} /> Open Panelist Portal View
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowRescheduleModal(false)}
+                style={{
+                  backgroundColor: '#F0B90B',
+                  color: '#000',
+                  border: 'none',
+                  padding: '8px 20px',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Modal 2: Candidate Detail View ── */}
       {viewingCandidate && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-dark, #0D0E12)', zIndex: 9999, overflowY: 'auto', padding: '24px' }}>
