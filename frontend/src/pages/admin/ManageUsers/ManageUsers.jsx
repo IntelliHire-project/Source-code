@@ -16,7 +16,11 @@ import {
   AlertTriangle,
   Eye,
   CheckCircle,
-  XCircle
+  XCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -98,10 +102,11 @@ function ManageUsers() {
   // Search, Filter, Sort and Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [roleFilter, setRoleFilter] = useState('All Roles');
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Add/Edit Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -191,6 +196,7 @@ function ManageUsers() {
 
   // Status Filter options
   const statusOptions = ['All Status', 'Active', 'Inactive', 'Pending'];
+  const roleOptions = ['All Roles', 'Admin', 'Recruiter', 'Candidate', 'Moderator', 'Analyst'];
 
   // Handle Input Changes in Add/Edit Form
   const handleInputChange = (e) => {
@@ -340,14 +346,24 @@ function ManageUsers() {
 
   // Filtered & Sorted Users
   const filteredUsers = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
     return users
       .filter((user) => {
         const matchesSearch =
-          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchQuery.toLowerCase());
+          !query ||
+          (user.name && user.name.toLowerCase().includes(query)) ||
+          (user.email && user.email.toLowerCase().includes(query)) ||
+          (user.role && user.role.toLowerCase().includes(query));
+
         const matchesStatus =
           statusFilter === 'All Status' || user.status === statusFilter;
-        return matchesSearch && matchesStatus;
+
+        const matchesRole =
+          roleFilter === 'All Roles' ||
+          (user.role && user.role.toLowerCase() === roleFilter.toLowerCase()) ||
+          (roleFilter === 'Admin' && (user.role === 'Admin' || user.role === 'Super Admin'));
+
+        return matchesSearch && matchesStatus && matchesRole;
       })
       .sort((a, b) => {
         let valueA = a[sortField]?.toString().toLowerCase() || '';
@@ -356,13 +372,13 @@ function ManageUsers() {
         if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
-  }, [users, searchQuery, statusFilter, sortField, sortDirection]);
+  }, [users, searchQuery, statusFilter, roleFilter, sortField, sortDirection]);
 
   // Paginated Users
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage]);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
 
@@ -379,6 +395,28 @@ function ManageUsers() {
       .join('')
       .toUpperCase()
       .substring(0, 2);
+  };
+
+  // Sort indicator helper
+  const renderSortIcon = (field) => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={13} className="admin-sort-icon admin-sort-icon--neutral" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={13} className="admin-sort-icon admin-sort-icon--active" />
+    ) : (
+      <ArrowDown size={13} className="admin-sort-icon admin-sort-icon--active" />
+    );
+  };
+
+  // Role badge color helper
+  const getRoleBadgeClass = (role) => {
+    const r = (role || '').toLowerCase();
+    if (r.includes('admin')) return 'admin-table__role-badge--admin';
+    if (r.includes('recruiter')) return 'admin-table__role-badge--recruiter';
+    if (r.includes('candidate')) return 'admin-table__role-badge--candidate';
+    if (r.includes('moderator')) return 'admin-table__role-badge--moderator';
+    return 'admin-table__role-badge--default';
   };
 
   return (
@@ -558,7 +596,7 @@ function ManageUsers() {
                   />
                 </div>
 
-                {/* Dropdown Filter */}
+                {/* Status Dropdown Filter */}
                 <div className="admin-dropdown-filter">
                   <select
                     className="admin-dropdown-filter__select"
@@ -570,7 +608,26 @@ function ManageUsers() {
                   >
                     {statusOptions.map((opt) => (
                       <option key={opt} value={opt}>
-                        {opt === 'All Status' ? 'All Status' : opt}
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="admin-dropdown-filter__chevron" size={14} />
+                </div>
+
+                {/* Role Dropdown Filter */}
+                <div className="admin-dropdown-filter">
+                  <select
+                    className="admin-dropdown-filter__select"
+                    value={roleFilter}
+                    onChange={(e) => {
+                      setRoleFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {roleOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
                       </option>
                     ))}
                   </select>
@@ -584,19 +641,34 @@ function ManageUsers() {
                 <thead>
                   <tr>
                     <th onClick={() => handleSort('name')} className="sortable-header">
-                      NAME {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      <div className="table-header-content">
+                        <span>NAME</span>
+                        {renderSortIcon('name')}
+                      </div>
                     </th>
                     <th onClick={() => handleSort('email')} className="sortable-header">
-                      EMAIL ADDRESS {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      <div className="table-header-content">
+                        <span>EMAIL ADDRESS</span>
+                        {renderSortIcon('email')}
+                      </div>
                     </th>
                     <th onClick={() => handleSort('role')} className="sortable-header">
-                      ROLE {sortField === 'role' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      <div className="table-header-content">
+                        <span>ROLE</span>
+                        {renderSortIcon('role')}
+                      </div>
                     </th>
                     <th onClick={() => handleSort('status')} className="sortable-header">
-                      STATUS {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      <div className="table-header-content">
+                        <span>STATUS</span>
+                        {renderSortIcon('status')}
+                      </div>
                     </th>
                     <th onClick={() => handleSort('createdDate')} className="sortable-header">
-                      CREATED DATE {sortField === 'createdDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                      <div className="table-header-content">
+                        <span>CREATED DATE</span>
+                        {renderSortIcon('createdDate')}
+                      </div>
                     </th>
                     <th className="text-right">ACTIONS</th>
                   </tr>
@@ -618,7 +690,9 @@ function ManageUsers() {
                         </td>
                         <td className="admin-table__email-text">{user.email}</td>
                         <td>
-                          <span className="admin-table__role-badge">{user.role}</span>
+                          <span className={`admin-table__role-badge ${getRoleBadgeClass(user.role)}`}>
+                            {user.role}
+                          </span>
                         </td>
                         <td>
                           <span className={`admin-table__status-badge admin-table__status-badge--${user.status.toLowerCase()}`}>
@@ -664,9 +738,41 @@ function ManageUsers() {
                   ) : (
                     <tr>
                       <td colSpan="6" className="admin-table__empty-state">
-                        {usersLoading
-                          ? 'Loading users...'
-                          : usersError || 'No users match the search criteria.'}
+                        {usersLoading ? (
+                          <div className="admin-table-empty">
+                            <p className="admin-table-empty__title">Loading users...</p>
+                          </div>
+                        ) : usersError ? (
+                          <div className="admin-table-empty">
+                            <AlertTriangle size={32} style={{ color: 'var(--crisis)' }} />
+                            <p className="admin-table-empty__title">{usersError}</p>
+                          </div>
+                        ) : (
+                          <div className="admin-table-empty">
+                            <Users size={36} className="admin-table-empty__icon" />
+                            <p className="admin-table-empty__title">No users found</p>
+                            <p className="admin-table-empty__subtitle">
+                              {searchQuery || statusFilter !== 'All Status' || roleFilter !== 'All Roles'
+                                ? 'No users match your active search or filter criteria.'
+                                : 'There are currently no users in the registry.'}
+                            </p>
+                            {(searchQuery || statusFilter !== 'All Status' || roleFilter !== 'All Roles') && (
+                              <button
+                                type="button"
+                                className="admin-btn admin-btn--secondary admin-table-empty__btn"
+                                onClick={() => {
+                                  setSearchQuery('');
+                                  setStatusFilter('All Status');
+                                  setRoleFilter('All Roles');
+                                  setCurrentPage(1);
+                                }}
+                              >
+                                <RotateCcw size={14} />
+                                <span>Reset Filters</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )}
@@ -676,16 +782,38 @@ function ManageUsers() {
 
             {/* Table Footer / Pagination */}
             <div className="admin-registry-card__footer">
-              <div className="admin-registry-card__footer-info">
-                Showing{' '}
-                <span className="bold-count">
-                  {filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
-                </span>{' '}
-                to{' '}
-                <span className="bold-count">
-                  {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
-                </span>{' '}
-                of <span className="bold-count">{filteredUsers.length}</span> users
+              <div className="admin-registry-card__footer-left">
+                <div className="admin-registry-card__footer-info">
+                  Showing{' '}
+                  <span className="bold-count">
+                    {filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
+                  </span>{' '}
+                  to{' '}
+                  <span className="bold-count">
+                    {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+                  </span>{' '}
+                  of <span className="bold-count">{filteredUsers.length}</span> users
+                </div>
+
+                <div className="admin-rows-per-page">
+                  <label htmlFor="rows-per-page-select">Per page:</label>
+                  <div className="admin-rows-per-page__select-wrapper">
+                    <select
+                      id="rows-per-page-select"
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="admin-rows-per-page__select"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <ChevronDown size={12} className="admin-rows-per-page__chevron" />
+                  </div>
+                </div>
               </div>
 
               <div className="admin-pagination">
