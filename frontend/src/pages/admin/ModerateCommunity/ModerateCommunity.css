@@ -876,3 +876,265 @@
     gap: 8px;
   }
 }
+
+/* ============================================================
+   SCRUM-750: Moderation Actions (Remove, Restore, Warn)
+   ============================================================ */
+
+.mod-subnav-pills {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  background: #16171F;
+  border: 1px solid #2A2C38;
+  border-radius: 12px;
+  margin-bottom: 22px;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mod-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #9599A6;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.mod-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+}
+
+.mod-pill-btn.is-active {
+  background: #F0B90B;
+  color: #0D0E13;
+  box-shadow: 0 2px 8px rgba(240, 185, 11, 0.25);
+}
+
+.mod-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+.mod-pill-btn.is-active .mod-pill-badge {
+  background: #0D0E13;
+  color: #F0B90B;
+}
+
+/* Restore button styling [SCRUM-760] */
+.action-icon-btn.restore-btn {
+  color: #4EBE88;
+  border-color: rgba(78, 190, 136, 0.25);
+  background: rgba(78, 190, 136, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.action-icon-btn.restore-btn:hover {
+  background: rgba(78, 190, 136, 0.2);
+  border-color: #4EBE88;
+}
+
+/* Warn button styling [SCRUM-761] */
+.action-icon-btn.warn-btn {
+  color: #F0B90B;
+  border-color: rgba(240, 185, 11, 0.25);
+}
+
+.action-icon-btn.warn-btn:hover {
+  background: rgba(240, 185, 11, 0.12);
+  border-color: #F0B90B;
+}
+
+/* Warn User Modal [SCRUM-761] */
+.warn-modal {
+  background: #16171F;
+  border: 1px solid #2A2C38;
+  border-radius: 14px;
+  max-width: 580px;
+  width: 100%;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  animation: reportFadeIn 0.2s ease-out;
+}
+
+.warn-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: #1E222D;
+  border-bottom: 1px solid #2A2C38;
+}
+
+.warn-modal__title-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.warn-modal__alert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: rgba(240, 185, 11, 0.15);
+  color: #F0B90B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.warn-modal__title-box h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.warn-modal__title-box p {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: #9599A6;
+}
+
+.warn-modal__body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.warn-user-card {
+  padding: 12px 16px;
+  background: #101118;
+  border: 1px solid #2A2C38;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.warn-user-card strong {
+  color: #FFFFFF;
+  font-size: 0.9rem;
+}
+
+.warn-user-card small {
+  color: #9599A6;
+  font-size: 0.75rem;
+  display: block;
+  margin-top: 2px;
+}
+
+.warn-level-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.warn-level-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #2A2C38;
+  background: #1B1D26;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.warn-level-card:hover {
+  border-color: rgba(240, 185, 11, 0.4);
+  background: #20232E;
+}
+
+.warn-level-card.is-selected {
+  border-color: #F0B90B;
+  background: rgba(240, 185, 11, 0.08);
+}
+
+.warn-level-card input[type="radio"] {
+  accent-color: #F0B90B;
+  cursor: pointer;
+}
+
+.warn-level-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.warn-level-details strong {
+  font-size: 0.82rem;
+  color: #FFFFFF;
+}
+
+.warn-level-details small {
+  font-size: 0.72rem;
+  color: #9599A6;
+  margin-top: 1px;
+}
+
+.warn-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 24px;
+  background: #1E222D;
+  border-top: 1px solid #2A2C38;
+}
+
+.warn-level-badge {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.warn-level-badge.level-1 {
+  background: rgba(240, 185, 11, 0.15);
+  color: #F0B90B;
+}
+
+.warn-level-badge.level-2 {
+  background: rgba(255, 122, 0, 0.15);
+  color: #FF7A00;
+}
+
+.warn-level-badge.level-3 {
+  background: rgba(255, 90, 101, 0.15);
+  color: #FF5A65;
+}
+
