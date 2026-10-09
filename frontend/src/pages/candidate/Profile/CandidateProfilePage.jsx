@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   FileText,
   Globe,
+  Code2,
   Grid2X2,
   Link2,
   Mail,
@@ -37,7 +38,7 @@ const getInitialProfile = (user) => {
     phone: hasCV ? '+1 (555) 123-4567' : '',
     location: hasCV ? 'San Francisco, CA' : '',
     linkedIn: '',
-    portfolio: hasCV ? 'alexrivera.dev' : '',
+    github: hasCV ? 'github.com/alexrivera' : '',
     bioSummary: hasCV
       ? 'Innovative software engineer with 8+ years of experience in building scalable web applications. Passionate about AI-driven solutions and user-centric design.'
       : '',
@@ -170,6 +171,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
             headline: candidateData.headline || '',
             location: candidateData.location || '',
             linkedIn: candidateData.linkedin || '',
+            github: candidateData.github || '',
             language: candidateData.language || '',
             bioSummary: candidateData.bio || '',
             skills: candidateData.skills || [],
@@ -281,6 +283,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
         bio: draft.bioSummary,
         phone: draft.phone,
         linkedin: draft.linkedIn,
+        github: draft.github,
         fullName: draft.fullName,
         email: draft.email,
       });
@@ -325,6 +328,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
         headline: extracted.headline || prev.headline,
         location: extracted.location || prev.location,
         linkedIn: extracted.linkedin || prev.linkedIn,
+        github: extracted.github || prev.github,
         language: extracted.language || prev.language,
         bioSummary: extracted.bio || prev.bioSummary,
         skills: extracted.skills && extracted.skills.length > 0 ? extracted.skills : prev.skills,
@@ -459,10 +463,10 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                     </div>
                   </div>
                   <div className="candidate-link-row">
-                    <div className="candidate-link-row__icon"><Globe size={14} /></div>
+                    <div className="candidate-link-row__icon"><Code2 size={14} /></div>
                     <div>
-                      <div className="candidate-link-row__label">Portfolio</div>
-                      <div className="candidate-link-row__value">{current.portfolio}</div>
+                      <div className="candidate-link-row__label">GitHub</div>
+                      <div className="candidate-link-row__value">{current.github}</div>
                     </div>
                   </div>
                 </div>
@@ -663,7 +667,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                 </div>
                 <div className="candidate-form-stack">
                   <Field label="LinkedIn Profile" value={draft.linkedIn} onChange={setDraftValue('linkedIn')} placeholder="linkedin.com/in/yourname" />
-                  <Field label="Portfolio" value={draft.portfolio} onChange={setDraftValue('portfolio')} placeholder="yourdomain.com" />
+                  <Field label="GitHub Profile" value={draft.github} onChange={setDraftValue('github')} placeholder="github.com/yourusername" />
                 </div>
               </article>
 

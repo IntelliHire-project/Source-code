@@ -1,0 +1,28 @@
+﻿client-1  | 
+client-1  | > frontend@0.1.0 start
+client-1  | > react-scripts start
+client-1  | 
+client-1  | (node:25) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+client-1  | (Use `node --trace-deprecation ...` to show where the warning was created)
+client-1  | (node:25) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+client-1  | Starting the development server...
+client-1  | 
+client-1  | Compiled successfully!
+client-1  | 
+client-1  | You can now view frontend in the browser.
+client-1  | 
+client-1  |   Local:            http://localhost:3000
+client-1  |   On Your Network:  http://172.20.0.5:3000
+client-1  | 
+client-1  | Note that the development build is not optimized.
+client-1  | To create a production build, use npm run build.
+client-1  | 
+client-1  | webpack compiled successfully
+client-1  | Compiling...
+client-1  | Failed to compile.
+client-1  | 
+client-1  | Attempted import error: 'Github' is not exported from 'lucide-react' (imported as 'Github').
+client-1  | ERROR in ./src/pages/candidate/Profile/CandidateProfilePage.jsx 799:49-55
+client-1  | export 'Github' (imported as 'Github') was not found in 'lucide-react' (possible exports: Activity, ActivityIcon, AlertCircle, AlertCircleIcon, AlertTriangle, AlertTriangleIcon, ArrowDown,
+client-1  | 
+client-1  | webpack compiled with 1 error

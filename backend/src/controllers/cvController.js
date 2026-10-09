@@ -60,6 +60,7 @@ const uploadCV = async (req, res) => {
       location: extractedData.location || null,
       headline: extractedData.headline || null,
       linkedin: extractedData.linkedin || null,
+      github: extractedData.github || null,
       bio: extractedData.bio || null,
       language: extractedData.language || null,
       skills: extractedData.skills || [],
