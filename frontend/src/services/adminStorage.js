@@ -14,6 +14,8 @@ const KEYS = {
   AUDIT_LOGS:   'ih_admin_audit_logs',
   ADMIN_PROFILE:'ih_admin_profile',
   REMOVED_POSTS:'ih_admin_removed_posts',
+  REMOVED_POSTS_DATA:'ih_admin_removed_posts_data',
+  USER_WARNINGS:'ih_admin_user_warnings',
   COMMUNITY_POSTS:'ih_community_posts',
 };
 
@@ -146,30 +148,121 @@ export function submitCommunityReport({
   return newReport;
 }
 
-// ── Removed Posts / Moderation Enforcement ────────────────────────────
+// ── Removed Posts / Moderation Enforcement (SCRUM-759, SCRUM-760) ───
 
 export function getRemovedPostIds() {
   return safeGet(KEYS.REMOVED_POSTS) || [];
 }
 
-export function recordRemovedPost(postId, postTitle = '') {
+export function getRemovedPostsList() {
+  return safeGet(KEYS.REMOVED_POSTS_DATA) || [];
+}
+
+export function recordRemovedPost(postId, postTitle = '', postData = {}) {
   const removed = getRemovedPostIds();
   const stringId = String(postId);
   if (!removed.includes(stringId)) {
     const updated = [...removed, stringId];
     safeSet(KEYS.REMOVED_POSTS, updated);
   }
+
+  // Save detailed record in removed list for Restore capability
+  const removedList = getRemovedPostsList();
+  if (!removedList.some(p => String(p.id) === stringId)) {
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const newEntry = {
+      id: stringId,
+      title: postTitle || postData.title || `Post #${stringId}`,
+      snippet: postData.snippet || postData.content || '',
+      category: postData.category || 'Policy Violation',
+      author: postData.author || postData.reportedBy || 'Unknown Author',
+      removedAt: dateStr,
+      removedBy: 'Head Moderator (Arthur V. Gold)',
+      reason: postData.reason || postData.flagMessage || 'Moderator Policy Enforcement'
+    };
+    safeSet(KEYS.REMOVED_POSTS_DATA, [newEntry, ...removedList]);
+  }
+
   appendAuditLog({
-    actionType: `Post Removed by Mod: ${postTitle ? `"${postTitle.slice(0, 30)}..."` : stringId}`,
+    actionType: `Post Removed [SCRUM-759]: ${postTitle ? `"${postTitle.slice(0, 30)}..."` : stringId}`,
     module: 'COMMUNITY_MOD',
     status: 'success'
   });
+}
+
+export function restoreRemovedPost(postId) {
+  const stringId = String(postId);
+  const removed = getRemovedPostIds();
+  const updatedIds = removed.filter(id => id !== stringId);
+  safeSet(KEYS.REMOVED_POSTS, updatedIds);
+
+  const removedList = getRemovedPostsList();
+  const target = removedList.find(p => String(p.id) === stringId);
+  const updatedList = removedList.filter(p => String(p.id) !== stringId);
+  safeSet(KEYS.REMOVED_POSTS_DATA, updatedList);
+
+  appendAuditLog({
+    actionType: `Post Restored [SCRUM-760]: ${target?.title ? `"${target.title.slice(0, 30)}..."` : stringId}`,
+    module: 'COMMUNITY_MOD',
+    status: 'success'
+  });
+
+  return target;
 }
 
 export function isPostRemoved(postId) {
   if (!postId) return false;
   const removed = getRemovedPostIds();
   return removed.includes(String(postId));
+}
+
+// ── User Warnings Management (SCRUM-761) ──────────────────────────────
+
+export function getUserWarnings(author = '') {
+  const allWarnings = safeGet(KEYS.USER_WARNINGS) || [];
+  if (!author) return allWarnings;
+  return allWarnings.filter(w => w.author?.toLowerCase() === author.toLowerCase());
+}
+
+export function dispatchUserWarning({
+  author = 'Author',
+  postTitle = '',
+  category = 'Policy Violation',
+  warningLevel = 'Level 1: General Policy Notice',
+  message = '',
+  postId = null
+}) {
+  const existing = safeGet(KEYS.USER_WARNINGS) || [];
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const newWarning = {
+    id: `warn-${Date.now()}`,
+    author,
+    postTitle,
+    postId,
+    category,
+    warningLevel,
+    message: message || `Violation of ${category} guidelines in post "${postTitle}".`,
+    date: dateStr,
+    issuedBy: 'Admin Moderator (Arthur V. Gold)'
+  };
+
+  safeSet(KEYS.USER_WARNINGS, [newWarning, ...existing]);
+
+  appendAuditLog({
+    actionType: `User Warned [SCRUM-761]: ${author} (${warningLevel})`,
+    module: 'COMMUNITY_MOD',
+    status: 'warning',
+    user: {
+      name: author,
+      email: `${author.toLowerCase().replace(/\s+/g, '.')}@intellihire.com`,
+      color: '#F0B90B'
+    }
+  });
+
+  return newWarning;
 }
 
 // ── Dynamic Community Discussions Persistence ─────────────────────────
