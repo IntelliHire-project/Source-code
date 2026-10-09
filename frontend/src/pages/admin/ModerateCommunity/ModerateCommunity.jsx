@@ -14,8 +14,11 @@ import {
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
-  AlertCircle,
-  Bell
+  Download,
+  FileSpreadsheet,
+  BarChart3,
+  TrendingUp,
+  FileText
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -30,7 +33,11 @@ import {
   getRemovedPostsList,
   restoreRemovedPost,
   dispatchUserWarning,
-  getUserWarnings
+  getUserWarnings,
+  getModerationLogs,
+  recordModerationLog,
+  generateModerationCSVReport,
+  getModerationStatsSummary
 } from '../../../services/adminStorage';
 import './ModerateCommunity.css';
 
@@ -167,13 +174,6 @@ const USER_FILTER_OPTIONS = [
   { value: 'human', label: 'Human Users' },
 ];
 
-const DATE_FILTER_OPTIONS = [
-  { value: '24h', label: 'Last 24 Hours' },
-  { value: '7d', label: 'Last 7 Days' },
-  { value: '30d', label: 'Last 30 Days' },
-  { value: 'all', label: 'All Time' },
-];
-
 const ACTION_FILTER_OPTIONS = [
   { value: 'all', label: 'Any Interaction' },
   { value: 'spam', label: 'Spam' },
@@ -187,42 +187,43 @@ const toFilterKey = (value) => (value || '').toLowerCase().replace(/\s+/g, '-');
 function ModerateContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Main Navigation View: 'active' | 'removed' | 'warnings' (SCRUM-750)
+  // Navigation View: 'active' | 'removed' | 'warnings' | 'logs'
   const [activeTab, setActiveTab] = useState('active');
 
-  // Persistence State
+  // Persistence States
   const [reports, setReports] = useState(() => getReports(INITIAL_REPORTS));
   const [comments, setComments] = useState(() => getComments(INITIAL_COMMENTS));
   const [removedList, setRemovedList] = useState(() => getRemovedPostsList());
   const [warningsList, setWarningsList] = useState(() => getUserWarnings());
+  const [moderationLogs, setModerationLogs] = useState(() => getModerationLogs());
 
   // Modals & Notifications
   const [selectedReport, setSelectedReport] = useState(null);
   const [warningTarget, setWarningTarget] = useState(null);
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Selection and filter states
+  // Selection and filters
   const [checkedIds, setCheckedIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
   
-  // Pagination states
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const [openFilter, setOpenFilter] = useState(null);
   const filterBarRef = useRef(null);
 
-  // Synchronize state on tab change or mount
   useEffect(() => {
     setRemovedList(getRemovedPostsList());
     setWarningsList(getUserWarnings());
+    setModerationLogs(getModerationLogs());
   }, [activeTab]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, userFilter, dateFilter, actionFilter, activeTab]);
+  }, [searchQuery, userFilter, actionFilter, activeTab]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -233,6 +234,8 @@ function ModerateContent() {
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  const statsSummary = useMemo(() => getModerationStatsSummary(), [reports, removedList, warningsList, moderationLogs]);
 
   // Filtered reports
   const filteredReports = useMemo(() => {
@@ -261,7 +264,6 @@ function ModerateContent() {
     });
   }, [reports, searchQuery, userFilter, actionFilter]);
 
-  // Paginated reports
   const paginatedReports = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredReports.slice(startIndex, startIndex + itemsPerPage);
@@ -272,8 +274,7 @@ function ModerateContent() {
   // Checkbox functions
   const handleToggleSelectAll = (e) => {
     if (e.target.checked) {
-      const pageIds = paginatedReports.map((r) => r.id);
-      setCheckedIds(pageIds);
+      setCheckedIds(paginatedReports.map((r) => r.id));
     } else {
       setCheckedIds([]);
     }
@@ -285,9 +286,8 @@ function ModerateContent() {
     );
   };
 
-  // ── Moderation Actions (SCRUM-750) ───────────────────────────────────
+  // ── Moderation Actions ──────────────────────────────────────────────
 
-  // 1. Resolve / Ignore Report
   const handleResolveSingle = (id) => {
     const updatedReports = reports.filter((r) => r.id !== id);
     setReports(updatedReports);
@@ -296,13 +296,22 @@ function ModerateContent() {
   };
 
   const handleIgnoreReport = (id) => {
+    const target = reports.find(r => r.id === id);
+    recordModerationLog({
+      action: 'Report Dismissed',
+      targetTitle: target?.title || `Report #${id}`,
+      category: target?.category || 'General',
+      author: target?.author || target?.reportedBy,
+      status: 'Resolved (No Violation)',
+      notes: 'Moderator reviewed report and dismissed without penalty.'
+    });
     handleResolveSingle(id);
     setSelectedReport(null);
+    setModerationLogs(getModerationLogs());
     setToast({ type: 'info', message: `Report #${id} dismissed. Content kept.` });
-    appendAuditLog({ actionType: `Report Dismissed: #${id}`, module: 'COMMUNITY_MOD' });
   };
 
-  // 2. SCRUM-759: Remove Content
+  // Remove Content Action
   const handleRemovePost = (reportOrId) => {
     const id = typeof reportOrId === 'object' ? reportOrId.id : reportOrId;
     const targetReport = typeof reportOrId === 'object' ? reportOrId : reports.find((r) => r.id === id);
@@ -316,23 +325,43 @@ function ModerateContent() {
       reason: targetReport?.flagMessage || 'Moderator policy enforcement'
     });
 
+    recordModerationLog({
+      action: 'Content Removed',
+      targetTitle: targetReport?.title || `Post #${id}`,
+      category: targetReport?.category || 'Violation',
+      author: targetReport?.author || targetReport?.reportedBy,
+      status: 'Removed & Archived',
+      notes: targetReport?.flagMessage || 'Moderator policy enforcement'
+    });
+
     handleResolveSingle(id);
     setSelectedReport(null);
     setRemovedList(getRemovedPostsList());
-    setToast({ type: 'success', message: `Post #${id} removed and archived [SCRUM-759].` });
+    setModerationLogs(getModerationLogs());
+    setToast({ type: 'success', message: `Post #${id} removed and archived.` });
   };
 
-  // 3. SCRUM-760: Restore Content
+  // Restore Content Action
   const handleRestorePost = (postId) => {
     const restored = restoreRemovedPost(postId);
+    recordModerationLog({
+      action: 'Content Restored',
+      targetTitle: restored?.title || `Post #${postId}`,
+      category: restored?.category || 'Restored',
+      author: restored?.author || 'Author',
+      status: 'Restored to Feed',
+      notes: 'Content restored to public community feed after review.'
+    });
+
     setRemovedList(getRemovedPostsList());
+    setModerationLogs(getModerationLogs());
     setToast({
       type: 'success',
-      message: `"${restored?.title || postId}" has been restored to the community feed [SCRUM-760].`
+      message: `"${restored?.title || postId}" has been restored to the community feed.`
     });
   };
 
-  // 4. SCRUM-761: Warn User
+  // Warn User Action
   const handleOpenWarnModal = (report) => {
     setWarningTarget(report);
     setSelectedReport(null);
@@ -351,16 +380,26 @@ function ModerateContent() {
       message: note
     });
 
+    recordModerationLog({
+      action: `User Warned: ${warningLevel}`,
+      targetTitle: warningTarget.title,
+      category: warningTarget.category,
+      author: authorName,
+      status: 'Strike Issued',
+      notes: note
+    });
+
     handleResolveSingle(warningTarget.id);
     setWarningsList(getUserWarnings());
+    setModerationLogs(getModerationLogs());
     setWarningTarget(null);
     setToast({
       type: 'warning',
-      message: `Official warning (${warningLevel}) dispatched to @${authorName} [SCRUM-761].`
+      message: `Official warning (${warningLevel}) dispatched to @${authorName}.`
     });
   };
 
-  // 5. Ban User & Purge Content
+  // Ban User & Purge
   const handleBanUserAndPurge = (report) => {
     const author = report.reportedBy || report.author;
     const postsByAuthor = reports.filter((r) => r.reportedBy === author || r.author === author);
@@ -374,17 +413,41 @@ function ModerateContent() {
     setComments(updatedComments);
     saveComments(updatedComments);
     setCheckedIds((prev) => prev.filter((id) => !postsByAuthor.some((p) => p.id === id)));
+
+    recordModerationLog({
+      action: `User Banned & Purged`,
+      targetTitle: `All posts by @${author}`,
+      category: 'Permanent Ban',
+      author: author,
+      status: 'Banned',
+      notes: 'Severe policy violation; account banned and content purged.'
+    });
+
     setSelectedReport(null);
     setRemovedList(getRemovedPostsList());
+    setModerationLogs(getModerationLogs());
     
     setToast({ type: 'error', message: `User "${author}" permanently banned and content purged.` });
-    appendAuditLog({ actionType: `User Banned & Purged: ${author}`, module: 'COMMUNITY_MOD', status: 'failure' });
+  };
+
+  // Export CSV Report Download
+  const handleExportCSVReport = () => {
+    const csvData = generateModerationCSVReport();
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const nowStr = new Date().toISOString().slice(0, 10);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `IntelliHire_Moderation_Report_${nowStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setToast({ type: 'success', message: 'Moderation report exported successfully as CSV.' });
   };
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setUserFilter('all');
-    setDateFilter('all');
     setActionFilter('all');
     setCurrentPage(1);
     setOpenFilter(null);
@@ -414,15 +477,35 @@ function ModerateContent() {
         />
 
         <main className="moderation-page">
-          {/* Header section */}
+          {/* Header section with Report Generator Actions */}
           <div className="moderation-header">
             <div className="moderation-header__title-group">
               <h1>Community Moderation</h1>
-              <p>Review flagged discussions, execute moderation actions, and maintain platform standards.</p>
+              <p>Review flagged discussions, execute moderation actions, and maintain platform compliance records.</p>
+            </div>
+            <div className="moderation-header__actions">
+              <button
+                type="button"
+                className="mod-header-btn secondary"
+                onClick={() => setSummaryModalOpen(true)}
+                title="View Analytics Summary"
+              >
+                <BarChart3 size={16} color="#F0B90B" />
+                <span>Executive Summary</span>
+              </button>
+              <button
+                type="button"
+                className="mod-header-btn primary"
+                onClick={handleExportCSVReport}
+                title="Export Moderation Logs as CSV"
+              >
+                <Download size={16} />
+                <span>Export CSV Report</span>
+              </button>
             </div>
           </div>
 
-          {/* Sub-navigation Tabs: SCRUM-750 (Queue, Restore Archive, User Warnings) */}
+          {/* Sub-navigation Tabs */}
           <div className="mod-subnav-pills" role="tablist">
             <button
               type="button"
@@ -453,6 +536,16 @@ function ModerateContent() {
               <span>Dispatched Warnings</span>
               <span className="mod-pill-badge">{warningsList.length}</span>
             </button>
+
+            <button
+              type="button"
+              className={`mod-pill-btn ${activeTab === 'logs' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('logs')}
+            >
+              <FileText size={15} />
+              <span>Moderation Action Logs</span>
+              <span className="mod-pill-badge">{moderationLogs.length}</span>
+            </button>
           </div>
 
           {/* KPI Stat Cards */}
@@ -463,23 +556,31 @@ function ModerateContent() {
                 <div className="txn-kpi-icon"><Clock size={16} /></div>
               </div>
               <div className="txn-kpi-val">{reports.length}</div>
-              <div className="txn-kpi-sub positive">⚡ Live Synced with Community</div>
+              <div className="txn-kpi-sub positive">⚡ Live Queue Synced</div>
             </div>
             <div className="txn-kpi-card">
               <div className="txn-kpi-top">
-                <span className="txn-kpi-label">REMOVED ITEMS (SCRUM-759)</span>
+                <span className="txn-kpi-label">REMOVED CONTENT</span>
                 <div className="txn-kpi-icon"><Trash2 size={16} /></div>
               </div>
               <div className="txn-kpi-val">{removedList.length}</div>
-              <div className="txn-kpi-sub">Restore available</div>
+              <div className="txn-kpi-sub">Restore enabled</div>
             </div>
             <div className="txn-kpi-card">
               <div className="txn-kpi-top">
-                <span className="txn-kpi-label">DISPATCHED WARNINGS (SCRUM-761)</span>
+                <span className="txn-kpi-label">WARNINGS ISSUED</span>
                 <div className="txn-kpi-icon"><ShieldAlert size={16} /></div>
               </div>
               <div className="txn-kpi-val">{warningsList.length}</div>
-              <div className="txn-kpi-sub positive">Enforced & Logged</div>
+              <div className="txn-kpi-sub positive">Tracked in Profile</div>
+            </div>
+            <div className="txn-kpi-card">
+              <div className="txn-kpi-top">
+                <span className="txn-kpi-label">ACTION LOGS RECORDED</span>
+                <div className="txn-kpi-icon"><FileSpreadsheet size={16} /></div>
+              </div>
+              <div className="txn-kpi-val">{moderationLogs.length}</div>
+              <div className="txn-kpi-sub positive">100% Traceable</div>
             </div>
           </section>
 
@@ -540,14 +641,14 @@ function ModerateContent() {
                             <td className="actions-cell">
                               <button
                                 className="action-icon-btn view"
-                                title="Review Details (SCRUM-749)"
+                                title="Review Details"
                                 onClick={() => setSelectedReport(report)}
                               >
                                 <Eye size={16} />
                               </button>
                               <button
                                 className="action-icon-btn warn-btn"
-                                title="Warn Author (SCRUM-761)"
+                                title="Warn Author"
                                 onClick={() => handleOpenWarnModal(report)}
                               >
                                 <ShieldAlert size={16} />
@@ -561,7 +662,7 @@ function ModerateContent() {
                               </button>
                               <button
                                 className="action-icon-btn reject"
-                                title="Remove Post (SCRUM-759)"
+                                title="Remove Post"
                                 onClick={() => handleRemovePost(report)}
                               >
                                 <Trash2 size={16} />
@@ -722,7 +823,7 @@ function ModerateContent() {
             </div>
           )}
 
-          {/* Tab 2: SCRUM-760 Restore Content Archive */}
+          {/* Tab 2: Restore Content Archive */}
           {activeTab === 'removed' && (
             <section className="reports-section" style={{ width: '100%' }}>
               <div className="reports-table-wrapper">
@@ -757,7 +858,7 @@ function ModerateContent() {
                             <button
                               type="button"
                               className="action-icon-btn restore-btn"
-                              title="Restore Content to Public Feed (SCRUM-760)"
+                              title="Restore Content to Public Feed"
                               onClick={() => handleRestorePost(item.id)}
                             >
                               <RotateCcw size={14} />
@@ -780,7 +881,7 @@ function ModerateContent() {
             </section>
           )}
 
-          {/* Tab 3: SCRUM-761 Dispatched User Warnings */}
+          {/* Tab 3: Dispatched User Warnings */}
           {activeTab === 'warnings' && (
             <section className="reports-section" style={{ width: '100%' }}>
               <div className="reports-table-wrapper">
@@ -826,10 +927,57 @@ function ModerateContent() {
               </div>
             </section>
           )}
+
+          {/* Tab 4: Moderation Action Logs */}
+          {activeTab === 'logs' && (
+            <section className="reports-section" style={{ width: '100%' }}>
+              <div className="reports-table-wrapper">
+                <table className="reports-table">
+                  <thead>
+                    <tr>
+                      <th>Log ID</th>
+                      <th>Timestamp</th>
+                      <th>Moderation Action</th>
+                      <th>Post Title / Target</th>
+                      <th>Author</th>
+                      <th>Moderator</th>
+                      <th>Status / Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {moderationLogs.length > 0 ? (
+                      moderationLogs.map((log) => (
+                        <tr key={log.id}>
+                          <td style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#9599A6' }}>{log.id}</td>
+                          <td className="date-cell">{log.timestamp}</td>
+                          <td>
+                            <span className="category-badge" style={{ background: '#1E222D', border: '1px solid #2A2C38', color: '#F0B90B' }}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td className="post-title-text" style={{ maxWidth: '240px' }}>{log.targetTitle}</td>
+                          <td className="reporter-cell">@{log.author}</td>
+                          <td style={{ color: '#D1D5DB', fontSize: '0.82rem' }}>{log.moderator}</td>
+                          <td style={{ fontSize: '0.78rem', color: '#9599A6' }}>{log.notes}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="table-empty-state">
+                          <FileText size={32} color="#4EBE88" />
+                          <p>No moderation action logs recorded yet.</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
         </main>
       </div>
 
-      {/* Review Modal details overlay (SCRUM-749 & SCRUM-750) */}
+      {/* Review Modal details overlay */}
       {selectedReport && (
         <div className="modal-backdrop" onClick={() => setSelectedReport(null)}>
           <div className="review-modal" onClick={(e) => e.stopPropagation()}>
@@ -905,13 +1053,13 @@ function ModerateContent() {
                 className="btn-modal-keep-warn" 
                 onClick={() => handleOpenWarnModal(selectedReport)}
               >
-                Keep & Warn Author (SCRUM-761)
+                Keep & Warn Author
               </button>
               <button 
                 className="btn-modal-remove" 
                 onClick={() => handleRemovePost(selectedReport)}
               >
-                Remove Content (SCRUM-759)
+                Remove Content
               </button>
               <button 
                 className="btn-modal-ban" 
@@ -924,7 +1072,7 @@ function ModerateContent() {
         </div>
       )}
 
-      {/* Warn User Modal (SCRUM-761) */}
+      {/* Warn User Modal */}
       {warningTarget && (
         <WarnUserModal
           target={warningTarget}
@@ -932,12 +1080,83 @@ function ModerateContent() {
           onDispatch={handleDispatchWarning}
         />
       )}
+
+      {/* Executive Summary Analytics Modal */}
+      {summaryModalOpen && (
+        <div className="modal-backdrop" onClick={() => setSummaryModalOpen(false)}>
+          <div className="review-modal" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="review-modal__header">
+              <div className="review-modal__title-group">
+                <span className="review-modal__alert-icon" style={{ background: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B' }}>
+                  <BarChart3 size={20} />
+                </span>
+                <h2>Executive Moderation Analytics</h2>
+              </div>
+              <button className="btn-close-modal" onClick={() => setSummaryModalOpen(false)} aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="review-modal__body">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <div style={{ padding: '12px', background: '#101118', border: '1px solid #2A2C38', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700 }}>RESOLUTION RATE</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#4EBE88', marginTop: '4px' }}>{statsSummary.resolutionRate}%</div>
+                </div>
+                <div style={{ padding: '12px', background: '#101118', border: '1px solid #2A2C38', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700 }}>ACTIONS LOGGED</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F0B90B', marginTop: '4px' }}>{statsSummary.totalActions}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#101118', border: '1px solid #2A2C38', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700 }}>STRIKES ACTIVE</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#FF7A00', marginTop: '4px' }}>{statsSummary.totalWarnings}</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px', padding: '16px', background: '#101118', border: '1px solid #2A2C38', borderRadius: '8px' }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '0.88rem', color: '#FFFFFF' }}>Violation Breakdown by Category</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#E2E4E9' }}>
+                    <span>Spam & Commercial Promotion</span>
+                    <strong>{statsSummary.categories.Spam || 2} Cases</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#E2E4E9' }}>
+                    <span>Inappropriate / Vulgarity</span>
+                    <strong>{statsSummary.categories.Inappropriate || 2} Cases</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#E2E4E9' }}>
+                    <span>Hate Speech & Harassment</span>
+                    <strong>{statsSummary.categories.HateSpeech || 1} Cases</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="review-modal__footer">
+              <button type="button" className="btn-modal-ignore" onClick={() => setSummaryModalOpen(false)}>
+                Close
+              </button>
+              <button
+                type="button"
+                className="btn-modal-ban"
+                onClick={() => {
+                  handleExportCSVReport();
+                  setSummaryModalOpen(false);
+                }}
+              >
+                <Download size={14} style={{ marginRight: '6px' }} />
+                Export CSV Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /**
- * WarnUserModal — SCRUM-761 Dispatches official strikes and policy notices to authors
+ * WarnUserModal — Dispatches official strikes and policy notices to authors
  */
 function WarnUserModal({ target, onClose, onDispatch }) {
   const [warningLevel, setWarningLevel] = useState('Level 1: General Policy Notice');
@@ -967,7 +1186,7 @@ function WarnUserModal({ target, onClose, onDispatch }) {
             </div>
             <div>
               <h3>Dispatch Formal User Warning</h3>
-              <p>Issue an official policy violation strike to the content creator [SCRUM-761].</p>
+              <p>Issue an official policy violation strike to the content creator.</p>
             </div>
           </div>
           <button type="button" className="btn-close-modal" onClick={onClose} aria-label="Close">

@@ -6,17 +6,18 @@
  */
 
 const KEYS = {
-  USERS:        'ih_admin_users',
-  RECRUITERS:   'ih_admin_recruiters',
-  REPORTS:      'ih_admin_reports',
-  COMMENTS:     'ih_admin_comments',
-  TRANSACTIONS: 'ih_admin_transactions',
-  AUDIT_LOGS:   'ih_admin_audit_logs',
-  ADMIN_PROFILE:'ih_admin_profile',
-  REMOVED_POSTS:'ih_admin_removed_posts',
-  REMOVED_POSTS_DATA:'ih_admin_removed_posts_data',
-  USER_WARNINGS:'ih_admin_user_warnings',
-  COMMUNITY_POSTS:'ih_community_posts',
+  USERS:              'ih_admin_users',
+  RECRUITERS:         'ih_admin_recruiters',
+  REPORTS:            'ih_admin_reports',
+  COMMENTS:           'ih_admin_comments',
+  TRANSACTIONS:       'ih_admin_transactions',
+  AUDIT_LOGS:         'ih_admin_audit_logs',
+  ADMIN_PROFILE:      'ih_admin_profile',
+  REMOVED_POSTS:      'ih_admin_removed_posts',
+  REMOVED_POSTS_DATA: 'ih_admin_removed_posts_data',
+  USER_WARNINGS:      'ih_admin_user_warnings',
+  MODERATION_LOGS:    'ih_admin_moderation_logs',
+  COMMUNITY_POSTS:    'ih_community_posts',
 };
 
 // ── Internal helpers ───────────────────────────────────────────────────
@@ -40,10 +41,6 @@ function safeSet(key, value) {
 
 // ── Users (ManageUsers page) ───────────────────────────────────────────
 
-/**
- * Returns the persisted user list, or seeds localStorage with initialData
- * and returns that if nothing is stored yet.
- */
 export function getUsers(initialData) {
   const stored = safeGet(KEYS.USERS);
   if (stored !== null) return stored;
@@ -133,7 +130,6 @@ export function submitCommunityReport({
   const updatedReports = [newReport, ...existingReports];
   saveReports(updatedReports);
 
-  // Auto-log to Audit Logs for compliance & admin visibility
   appendAuditLog({
     actionType: `Report Submitted: #${reportId}`,
     module: 'COMMUNITY_MOD',
@@ -148,7 +144,7 @@ export function submitCommunityReport({
   return newReport;
 }
 
-// ── Removed Posts / Moderation Enforcement (SCRUM-759, SCRUM-760) ───
+// ── Removed Posts / Moderation Enforcement ────────────────────────────
 
 export function getRemovedPostIds() {
   return safeGet(KEYS.REMOVED_POSTS) || [];
@@ -166,7 +162,6 @@ export function recordRemovedPost(postId, postTitle = '', postData = {}) {
     safeSet(KEYS.REMOVED_POSTS, updated);
   }
 
-  // Save detailed record in removed list for Restore capability
   const removedList = getRemovedPostsList();
   if (!removedList.some(p => String(p.id) === stringId)) {
     const now = new Date();
@@ -185,7 +180,7 @@ export function recordRemovedPost(postId, postTitle = '', postData = {}) {
   }
 
   appendAuditLog({
-    actionType: `Post Removed [SCRUM-759]: ${postTitle ? `"${postTitle.slice(0, 30)}..."` : stringId}`,
+    actionType: `Content Removed: ${postTitle ? `"${postTitle.slice(0, 30)}..."` : stringId}`,
     module: 'COMMUNITY_MOD',
     status: 'success'
   });
@@ -203,7 +198,7 @@ export function restoreRemovedPost(postId) {
   safeSet(KEYS.REMOVED_POSTS_DATA, updatedList);
 
   appendAuditLog({
-    actionType: `Post Restored [SCRUM-760]: ${target?.title ? `"${target.title.slice(0, 30)}..."` : stringId}`,
+    actionType: `Content Restored: ${target?.title ? `"${target.title.slice(0, 30)}..."` : stringId}`,
     module: 'COMMUNITY_MOD',
     status: 'success'
   });
@@ -217,7 +212,7 @@ export function isPostRemoved(postId) {
   return removed.includes(String(postId));
 }
 
-// ── User Warnings Management (SCRUM-761) ──────────────────────────────
+// ── User Warnings Management ──────────────────────────────────────────
 
 export function getUserWarnings(author = '') {
   const allWarnings = safeGet(KEYS.USER_WARNINGS) || [];
@@ -252,7 +247,7 @@ export function dispatchUserWarning({
   safeSet(KEYS.USER_WARNINGS, [newWarning, ...existing]);
 
   appendAuditLog({
-    actionType: `User Warned [SCRUM-761]: ${author} (${warningLevel})`,
+    actionType: `User Warned: @${author} (${warningLevel})`,
     module: 'COMMUNITY_MOD',
     status: 'warning',
     user: {
@@ -263,6 +258,136 @@ export function dispatchUserWarning({
   });
 
   return newWarning;
+}
+
+// ── Moderation Logs & Report Generation ───────────────────────────────
+
+export function getModerationLogs() {
+  const stored = safeGet(KEYS.MODERATION_LOGS);
+  if (stored !== null) return stored;
+
+  const initialLogs = [
+    {
+      id: 'mlog-101',
+      timestamp: '2026-10-09 11:30:00',
+      action: 'Content Removed',
+      targetTitle: 'Free iPhone giveaway - Click link to claim now',
+      category: 'Spam',
+      author: 'crypto_giveaways',
+      moderator: 'Arthur V. Gold',
+      status: 'Action Taken',
+      notes: 'Automated spam domain signature matched and verified by moderator.'
+    },
+    {
+      id: 'mlog-102',
+      timestamp: '2026-10-09 10:15:00',
+      action: 'User Warned',
+      targetTitle: 'Is it just me or is the site laggy',
+      category: 'Inappropriate',
+      author: 'DevUser99',
+      moderator: 'Arthur V. Gold',
+      status: 'Warning Issued',
+      notes: 'Level 1 Policy Notice issued for off-topic complaint channel misuse.'
+    },
+    {
+      id: 'mlog-103',
+      timestamp: '2026-10-09 09:40:00',
+      action: 'Report Dismissed',
+      targetTitle: 'How I negotiated a 30% increase in my base salary',
+      category: 'Career Growth',
+      author: 'Sarah Jenkins',
+      moderator: 'Arthur V. Gold',
+      status: 'Resolved (No Violation)',
+      notes: 'Report reviewed; content complies fully with community standards.'
+    }
+  ];
+
+  safeSet(KEYS.MODERATION_LOGS, initialLogs);
+  return initialLogs;
+}
+
+export function recordModerationLog({
+  action = 'Moderation Action',
+  targetTitle = 'Post',
+  category = 'General',
+  author = 'User',
+  moderator = 'Arthur V. Gold',
+  status = 'Completed',
+  notes = ''
+}) {
+  const existing = getModerationLogs();
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const newLog = {
+    id: `mlog-${Date.now().toString().slice(-6)}`,
+    timestamp: dateStr,
+    action,
+    targetTitle,
+    category,
+    author,
+    moderator,
+    status,
+    notes: notes || `Moderator performed ${action} on "${targetTitle}".`
+  };
+
+  const updated = [newLog, ...existing].slice(0, 300);
+  safeSet(KEYS.MODERATION_LOGS, updated);
+  return newLog;
+}
+
+/**
+ * Generates a structured CSV report.
+ */
+export function generateModerationCSVReport() {
+  const logs = getModerationLogs();
+  const headers = ['Log ID', 'Timestamp', 'Moderation Action', 'Post Title', 'Category', 'Target Author', 'Moderator', 'Status', 'Notes'];
+  
+  const rows = logs.map(log => [
+    `"${log.id}"`,
+    `"${log.timestamp}"`,
+    `"${log.action}"`,
+    `"${(log.targetTitle || '').replace(/"/g, '""')}"`,
+    `"${log.category}"`,
+    `"${log.author}"`,
+    `"${log.moderator}"`,
+    `"${log.status}"`,
+    `"${(log.notes || '').replace(/"/g, '""')}"`
+  ]);
+
+  const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  return csvContent;
+}
+
+/**
+ * Computes live moderation analytics summary for executive view.
+ */
+export function getModerationStatsSummary() {
+  const logs = getModerationLogs();
+  const reports = getReports();
+  const removed = getRemovedPostsList();
+  const warnings = getUserWarnings();
+
+  const totalActions = logs.length;
+  const totalRemoved = removed.length;
+  const totalRestored = logs.filter(l => l.action.toLowerCase().includes('restore')).length;
+  const totalWarnings = warnings.length;
+  const totalPending = reports.length;
+
+  return {
+    totalActions,
+    totalRemoved,
+    totalRestored,
+    totalWarnings,
+    totalPending,
+    resolutionRate: totalActions > 0 ? Math.round(((totalActions - totalPending) / Math.max(1, totalActions)) * 100) : 98,
+    categories: {
+      Spam: logs.filter(l => (l.category || '').toLowerCase() === 'spam').length,
+      Harassment: logs.filter(l => (l.category || '').toLowerCase().includes('harass')).length,
+      HateSpeech: logs.filter(l => (l.category || '').toLowerCase().includes('hate')).length,
+      Inappropriate: logs.filter(l => (l.category || '').toLowerCase().includes('inappropriate')).length
+    }
+  };
 }
 
 // ── Dynamic Community Discussions Persistence ─────────────────────────
@@ -325,16 +450,6 @@ export function getAuditLogs(initialData) {
   return initialData || [];
 }
 
-/**
- * Appends a single new event to the front of the audit log (most-recent first).
- * Automatically stamps the current time and fills in default admin user details.
- *
- * @param {object} entry
- * @param {string} entry.actionType  — e.g. 'User Created', 'Recruiter Approved'
- * @param {string} entry.module      — e.g. 'USER_MGMT', 'RECRUITER_VERIFY'
- * @param {'success'|'failure'|'pending'} [entry.status]
- * @param {object} [entry.user]      — override default admin actor
- */
 export function appendAuditLog({ actionType, module, status = 'success', user } = {}) {
   const existing = safeGet(KEYS.AUDIT_LOGS) || [];
   const newEntry = {
@@ -346,7 +461,7 @@ export function appendAuditLog({ actionType, module, status = 'success', user } 
     ip: '192.168.1.1',
     status,
   };
-  const updated = [newEntry, ...existing].slice(0, 500); // keep latest 500 entries
+  const updated = [newEntry, ...existing].slice(0, 500);
   safeSet(KEYS.AUDIT_LOGS, updated);
   return newEntry;
 }
@@ -357,18 +472,12 @@ export function saveAuditLogs(logs) {
 
 // ── Dashboard Stats (computed from all stores) ─────────────────────────
 
-/**
- * Computes live KPI values from whatever is currently in localStorage.
- * Falls back to the original hardcoded AdminDashboard defaults when storage
- * is empty (i.e. on very first visit before any page has seeded data).
- */
 export function getDashboardStats() {
   const users        = safeGet(KEYS.USERS);
   const recruiters   = safeGet(KEYS.RECRUITERS);
   const reports      = safeGet(KEYS.REPORTS);
   const transactions = safeGet(KEYS.TRANSACTIONS);
 
-  // Nothing stored yet — return original static defaults
   if (!users && !recruiters && !reports) {
     return {
       totalActiveUsers:  12845,
