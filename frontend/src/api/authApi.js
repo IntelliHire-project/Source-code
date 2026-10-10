@@ -194,3 +194,30 @@ export const deleteCandidateCV = async (cvId) => {
   const response = await apiInstance.delete(`/auth/candidate/cvs/${cvId}`);
   return response.data;
 };
+
+/**
+ * Fetches AI insights for a specific candidate CV.
+ * @param {number} cvId 
+ * @param {boolean} [refresh=false]
+ */
+export const getCVInsightsApi = async (cvId, refresh = false) => {
+  const response = await apiInstance.get(`/auth/candidate/cvs/${cvId}/insights`, {
+    params: { refresh },
+  });
+  return response.data;
+};
+
+/**
+ * Chats with the CV Assistant for a specific candidate CV.
+ * @param {number} cvId 
+ * @param {string} message 
+ * @param {Array} [history=[]]
+ */
+export const chatWithCVApi = async (cvId, message, history = []) => {
+  const response = await apiInstance.post(`/auth/candidate/cvs/${cvId}/chat`, {
+    message,
+    history,
+  });
+  return response.data;
+};
+

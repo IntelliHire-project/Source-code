@@ -18,6 +18,8 @@ import {
   getCandidateCVs,
   uploadCandidateCV,
   setActiveCandidateCV,
+  getCVInsightsApi,
+  chatWithCVApi,
 } from '../../../api/authApi';
 import './cv-insights.css';
 
@@ -119,6 +121,7 @@ function formatCvItem(item) {
       : item.uploadDate || 'Uploaded recently',
     size: item.file_size || item.size || 'PDF Document',
     isActive: Boolean(item.is_active),
+    isRealCv: true,
   };
 }
 
@@ -466,14 +469,31 @@ function CVInsights() {
     cvList[0] ||
     null;
 
-  function runAnalysis(cv, onComplete) {
+  async function runAnalysis(cv, onComplete) {
+    if (!cv) return;
     setIsAnalyzing(true);
     setActiveTab('strengths');
+
+    if (cv.isRealCv) {
+      try {
+        const res = await getCVInsightsApi(cv.id);
+        const liveInsights = res?.insights || res?.data?.insights;
+        if (liveInsights && Array.isArray(liveInsights.strengths)) {
+          setAnalysis(liveInsights);
+          setIsAnalyzing(false);
+          onComplete?.();
+          return;
+        }
+      } catch (err) {
+        console.warn('Backend insights request error, falling back:', err);
+      }
+    }
+
     setTimeout(() => {
       setAnalysis(buildAnalysisForCv(cv));
       setIsAnalyzing(false);
       onComplete?.();
-    }, 1200);
+    }, 1000);
   }
 
   async function handleCvSelect(cv) {
@@ -495,7 +515,7 @@ function CVInsights() {
     ]);
 
     // Update active CV in backend if it's a persisted CV
-    if (typeof cv.id === 'number' && cv.id > 0) {
+    if (cv.isRealCv) {
       try {
         await setActiveCandidateCV(cv.id);
         setCvList((prev) =>
@@ -608,15 +628,30 @@ function CVInsights() {
     }
   }
 
-  function handleSend(text) {
-    setChatMessages((prev) => [...prev, { role: 'user', text }]);
+  async function handleSend(text) {
+    const updatedMessages = [...chatMessages, { role: 'user', text }];
+    setChatMessages(updatedMessages);
     setIsChatTyping(true);
+
+    if (selectedCv && selectedCv.isRealCv) {
+      try {
+        const res = await chatWithCVApi(selectedCv.id, text, chatMessages);
+        const reply = res?.reply || res?.data?.reply;
+        if (reply) {
+          setChatMessages((prev) => [...prev, { role: 'ai', text: reply }]);
+          setIsChatTyping(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('Live CV Assistant chat request failed, falling back:', err);
+      }
+    }
 
     setTimeout(() => {
       const reply = getMockAiResponse(text);
       setChatMessages((prev) => [...prev, { role: 'ai', text: reply }]);
       setIsChatTyping(false);
-    }, 1500);
+    }, 1000);
   }
 
   return (
