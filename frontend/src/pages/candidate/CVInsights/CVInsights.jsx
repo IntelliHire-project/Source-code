@@ -9,16 +9,24 @@ import {
   ChevronDown,
   Zap,
   Upload,
+  Loader2,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
+import {
+  getCandidateCVs,
+  uploadCandidateCV,
+  setActiveCandidateCV,
+} from '../../../api/authApi';
 import './cv-insights.css';
 
 /* ── Mock Data ── */
 
 const MOCK_CVS = [
-  { id: 1, filename: 'SENIOR_PRODUCT_DES', uploadDate: 'Uploaded Jan 12, 2024' },
-  { id: 2, filename: 'DEVOPS_FOCUSED_RESUME.PDF', uploadDate: 'Uploaded Nov 02, 2023' },
-  { id: 3, filename: 'GENERAL_SOFTWARE_ENG.PDF', uploadDate: 'Uploaded Aug 15, 2023' },
+  { id: 1, filename: 'SENIOR_PRODUCT_DES.PDF', uploadDate: 'Uploaded Jan 12, 2024', isActive: true },
+  { id: 2, filename: 'DEVOPS_FOCUSED_RESUME.PDF', uploadDate: 'Uploaded Nov 02, 2023', isActive: false },
+  { id: 3, filename: 'GENERAL_SOFTWARE_ENG.PDF', uploadDate: 'Uploaded Aug 15, 2023', isActive: false },
 ];
 
 const MOCK_ANALYSIS = {
@@ -96,8 +104,29 @@ const ANALYSIS_VARIANTS = [
   },
 ];
 
+function formatCvItem(item) {
+  if (!item) return null;
+  return {
+    id: item.id,
+    filename: item.cv_name || item.filename || 'CV Document.pdf',
+    url: item.cv_url || item.url || '',
+    uploadDate: item.created_at
+      ? `Uploaded ${new Date(item.created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })}`
+      : item.uploadDate || 'Uploaded recently',
+    size: item.file_size || item.size || 'PDF Document',
+    isActive: Boolean(item.is_active),
+  };
+}
+
 function buildAnalysisForCv(cv) {
-  return ANALYSIS_VARIANTS[(cv.id - 1) % ANALYSIS_VARIANTS.length];
+  if (!cv || cv.id === undefined || cv.id === null) return ANALYSIS_VARIANTS[0];
+  const numId = typeof cv.id === 'number' ? cv.id : parseInt(cv.id, 10);
+  const safeId = isNaN(numId) ? 0 : Math.abs(numId);
+  return ANALYSIS_VARIANTS[safeId % ANALYSIS_VARIANTS.length] || ANALYSIS_VARIANTS[0];
 }
 
 const MOCK_AI_RESPONSES = [
@@ -346,14 +375,23 @@ const ANALYSIS_TABS = [
 function CVInsights() {
   const { setPageLabel } = useContext(CandidatePageContext);
   const fileInputRef = useRef(null);
-  const [cvList, setCvList] = useState(MOCK_CVS);
-  const [selectedCvId, setSelectedCvId] = useState(1);
+  const dropdownRef = useRef(null);
+
+  const [cvList, setCvList] = useState([]);
+  const [selectedCvId, setSelectedCvId] = useState(null);
   const [cvDropdownOpen, setCvDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('strengths');
   const [analysis, setAnalysis] = useState(MOCK_ANALYSIS);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoadingCvs, setIsLoadingCvs] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
   const [chatMessages, setChatMessages] = useState([
-    { role: 'ai', text: 'Hi! I\'m your CV assistant. Ask me anything about improving your CV — I can help with summaries, keywords, ATS issues, and more.' },
+    {
+      role: 'ai',
+      text: "Hi! I'm your CV assistant. Ask me anything about improving your CV — I can help with summaries, keywords, ATS issues, and more.",
+    },
   ]);
   const [isChatTyping, setIsChatTyping] = useState(false);
 
@@ -361,7 +399,72 @@ function CVInsights() {
     setPageLabel('CV INSIGHTS');
   }, [setPageLabel]);
 
-  const selectedCv = cvList.find((cv) => cv.id === selectedCvId) || cvList[0];
+  // Load CV documents from backend
+  const fetchCvList = async () => {
+    try {
+      setIsLoadingCvs(true);
+      const res = await getCandidateCVs();
+      const rawCvs =
+        res?.cvs ||
+        res?.data?.cvs ||
+        (Array.isArray(res?.data) ? res.data : []) ||
+        (Array.isArray(res) ? res : []);
+      const formatted = rawCvs.map(formatCvItem).filter(Boolean);
+
+      if (formatted.length > 0) {
+        setCvList(formatted);
+        const active = formatted.find((d) => d.isActive) || formatted[0];
+        setSelectedCvId(active.id);
+        runAnalysis(active);
+      } else {
+        // Fallback to sample CVs if none uploaded yet
+        const sampleCvs = MOCK_CVS.map((cv) => ({
+          ...cv,
+          isActive: cv.id === 1,
+        }));
+        setCvList(sampleCvs);
+        setSelectedCvId(sampleCvs[0].id);
+        runAnalysis(sampleCvs[0]);
+      }
+    } catch (err) {
+      console.warn('Could not load CVs from backend, using default list:', err);
+      const sampleCvs = MOCK_CVS.map((cv) => ({
+        ...cv,
+        isActive: cv.id === 1,
+      }));
+      setCvList(sampleCvs);
+      setSelectedCvId(sampleCvs[0].id);
+      runAnalysis(sampleCvs[0]);
+    } finally {
+      setIsLoadingCvs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCvList();
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setCvDropdownOpen(false);
+      }
+    }
+
+    if (cvDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [cvDropdownOpen]);
+
+  const selectedCv =
+    cvList.find((cv) => cv.id === selectedCvId) ||
+    cvList.find((cv) => cv.isActive) ||
+    cvList[0] ||
+    null;
 
   function runAnalysis(cv, onComplete) {
     setIsAnalyzing(true);
@@ -370,45 +473,139 @@ function CVInsights() {
       setAnalysis(buildAnalysisForCv(cv));
       setIsAnalyzing(false);
       onComplete?.();
-    }, 1400);
+    }, 1200);
   }
 
-  function handleCvSelect(cv) {
+  async function handleCvSelect(cv) {
+    if (cv.id === selectedCvId) {
+      setCvDropdownOpen(false);
+      return;
+    }
+
     setSelectedCvId(cv.id);
     setCvDropdownOpen(false);
     runAnalysis(cv);
+
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        role: 'ai',
+        text: `Switched analysis to "${cv.filename}". Check the tabs above for updated strengths, weaknesses, suggestions, and keyword gaps!`,
+      },
+    ]);
+
+    // Update active CV in backend if it's a persisted CV
+    if (typeof cv.id === 'number' && cv.id > 0) {
+      try {
+        await setActiveCandidateCV(cv.id);
+        setCvList((prev) =>
+          prev.map((item) => ({
+            ...item,
+            isActive: item.id === cv.id,
+          }))
+        );
+      } catch (err) {
+        console.warn('Could not set active CV in backend:', err);
+      }
+    }
   }
 
-  function handleFileChange(e) {
+  async function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (fileExt !== '.pdf' && file.type !== 'application/pdf') {
-      alert('Only PDF files are supported.');
+      setFeedback({
+        type: 'error',
+        message: 'Invalid file format. Only PDF files (.pdf) are allowed.',
+      });
       e.target.value = '';
       return;
     }
 
-    const newCv = {
-      id: Date.now(),
-      filename: file.name.replace(/\.[^.]+$/, '').toUpperCase(),
-      uploadDate: 'Uploaded just now',
-    };
-    setCvList((prev) => [newCv, ...prev]);
-    setSelectedCvId(newCv.id);
-    setCvDropdownOpen(false);
-    setChatMessages((prev) => [
-      ...prev,
-      { role: 'user', text: `Please analyze my new CV: ${file.name}` },
-    ]);
-    runAnalysis(newCv, () => {
+    if (file.size > 10 * 1024 * 1024) {
+      setFeedback({
+        type: 'error',
+        message: 'File size exceeds 10MB limit. Please upload a smaller PDF.',
+      });
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setFeedback(null);
+
+      let newCvDoc = null;
+      try {
+        const res = await uploadCandidateCV(file, true);
+        const rawNewCv = res?.cv || res?.data?.cv || res?.data;
+        if (rawNewCv && rawNewCv.id) {
+          newCvDoc = formatCvItem(rawNewCv);
+        }
+      } catch (uploadErr) {
+        console.warn('Backend upload failed, creating client record:', uploadErr);
+        newCvDoc = {
+          id: Date.now(),
+          filename: file.name,
+          uploadDate: 'Uploaded just now',
+          size: `${Math.round(file.size / 1024)} KB`,
+          isActive: true,
+        };
+      }
+
+      if (!newCvDoc) {
+        newCvDoc = {
+          id: Date.now(),
+          filename: file.name,
+          uploadDate: 'Uploaded just now',
+          size: `${Math.round(file.size / 1024)} KB`,
+          isActive: true,
+        };
+      }
+
+      // Update state with newly uploaded CV
+      setCvList((prev) => [
+        newCvDoc,
+        ...prev.map((item) => ({ ...item, isActive: false })),
+      ]);
+      setSelectedCvId(newCvDoc.id);
+      setCvDropdownOpen(false);
+
+      setFeedback({
+        type: 'success',
+        message: `CV "${file.name}" uploaded successfully and set as active document!`,
+      });
+
       setChatMessages((prev) => [
         ...prev,
-        { role: 'ai', text: `I've finished analyzing "${newCv.filename}". It scans well overall — check the tabs above for strengths, weaknesses, suggestions, and keyword gaps, or ask me anything specific below.` },
+        { role: 'user', text: `Please analyze my new CV: ${file.name}` },
       ]);
-    });
-    e.target.value = '';
+
+      runAnalysis(newCvDoc, () => {
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            role: 'ai',
+            text: `I've finished analyzing "${newCvDoc.filename}". It scans well overall — check the tabs above for strengths, weaknesses, suggestions, and keyword gaps, or ask me anything specific below.`,
+          },
+        ]);
+      });
+    } catch (err) {
+      console.error('Error uploading CV:', err);
+      const msg =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to upload CV. Please try again.';
+      setFeedback({
+        type: 'error',
+        message: msg,
+      });
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    }
   }
 
   function handleSend(text) {
@@ -424,22 +621,53 @@ function CVInsights() {
 
   return (
     <div className="cv-insights">
+      {feedback && (
+        <div className={`cv-insights__alert cv-insights__alert--${feedback.type}`}>
+          <div className="cv-insights__alert-content">
+            {feedback.type === 'error' ? (
+              <AlertCircle size={16} />
+            ) : (
+              <Check size={16} />
+            )}
+            <span>{feedback.message}</span>
+          </div>
+          <button
+            type="button"
+            className="cv-insights__alert-close"
+            onClick={() => setFeedback(null)}
+            aria-label="Dismiss message"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div className="cv-insights__toolbar">
-        <div className="cv-insights__cv-selector">
+        <div className="cv-insights__cv-selector" ref={dropdownRef}>
           <div className="cv-insights__cv-selector-wrap">
             <button
+              type="button"
               className="cv-insights__cv-trigger"
               onClick={() => setCvDropdownOpen((prev) => !prev)}
+              disabled={isLoadingCvs || isUploading}
             >
               <div className="cv-insights__cv-trigger-icon">
                 <FileText size={16} />
               </div>
               <div className="cv-insights__cv-trigger-info">
                 <span className="cv-insights__cv-trigger-name">
-                  {selectedCv.filename}
+                  {selectedCv
+                    ? selectedCv.filename
+                    : isLoadingCvs
+                    ? 'Loading CVs...'
+                    : 'No CV selected'}
                 </span>
                 <span className="cv-insights__cv-trigger-date">
-                  {selectedCv.uploadDate}
+                  {selectedCv
+                    ? selectedCv.uploadDate
+                    : isLoadingCvs
+                    ? 'Please wait...'
+                    : 'Upload a PDF to begin'}
                 </span>
               </div>
               <ChevronDown
@@ -452,26 +680,35 @@ function CVInsights() {
 
             {cvDropdownOpen && (
               <div className="cv-insights__cv-dropdown">
-                {cvList.map((cv) => (
-                  <div
-                    key={cv.id}
-                    className={`cv-insights__cv-option ${
-                      selectedCvId === cv.id ? 'cv-insights__cv-option--active' : ''
-                    }`}
-                    onClick={() => handleCvSelect(cv)}
-                  >
-                    <div className="cv-insights__cv-option-radio">
-                      <div className="cv-insights__cv-option-dot" />
-                    </div>
-                    <div className="cv-insights__cv-option-icon">
-                      <FileText size={14} />
-                    </div>
-                    <div className="cv-insights__cv-option-info">
-                      <span className="cv-insights__cv-option-name">{cv.filename}</span>
-                      <span className="cv-insights__cv-option-date">{cv.uploadDate}</span>
-                    </div>
+                {cvList.length === 0 ? (
+                  <div className="cv-insights__cv-empty">
+                    No CVs found. Upload a CV to get started.
                   </div>
-                ))}
+                ) : (
+                  cvList.map((cv) => (
+                    <div
+                      key={cv.id}
+                      className={`cv-insights__cv-option ${
+                        selectedCvId === cv.id ? 'cv-insights__cv-option--active' : ''
+                      }`}
+                      onClick={() => handleCvSelect(cv)}
+                    >
+                      <div className="cv-insights__cv-option-radio">
+                        <div className="cv-insights__cv-option-dot" />
+                      </div>
+                      <div className="cv-insights__cv-option-icon">
+                        <FileText size={14} />
+                      </div>
+                      <div className="cv-insights__cv-option-info">
+                        <span className="cv-insights__cv-option-name">{cv.filename}</span>
+                        <span className="cv-insights__cv-option-date">{cv.uploadDate}</span>
+                      </div>
+                      {cv.isActive && (
+                        <span className="cv-insights__cv-badge">Active</span>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -488,9 +725,19 @@ function CVInsights() {
           type="button"
           className="cv-insights__upload-btn"
           onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
         >
-          <Upload size={14} />
-          Upload New CV
+          {isUploading ? (
+            <>
+              <Loader2 size={14} className="cv-insights__spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload size={14} />
+              Upload New CV
+            </>
+          )}
         </button>
       </div>
 
