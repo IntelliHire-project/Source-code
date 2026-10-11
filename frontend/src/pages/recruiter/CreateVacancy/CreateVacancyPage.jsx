@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Briefcase,
   FileText,
@@ -210,27 +210,41 @@ function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const incoming = location.state?.editVacancy || location.state || {};
 
   /* ── Form state ── */
-  const [jobTitle, setJobTitle] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
-  const [skills, setSkills] = useState(INITIAL_SKILLS);
-  const [qualifications, setQualifications] = useState('');
-  const [experienceLevel, setExperienceLevel] = useState('senior');
-  const [requireAssessmentTest, setRequireAssessmentTest] = useState('no');
-  const [openings, setOpenings] = useState('3');
-  const [salaryMin, setSalaryMin] = useState('');
-  const [salaryMax, setSalaryMax] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [shortlistCount, setShortlistCount] = useState('');
-  const [milestones, setMilestones] = useState([
-    { id: Date.now(), date: '', shortlistCount: '' },
-  ]);
-  const [category, setCategory] = useState('');
-  const [workMode, setWorkMode] = useState('remote');
-  const [jobType, setJobType] = useState('full-time');
-  const [selectedLocation, setSelectedLocation] = useState('');
-  const [responsibilities, setResponsibilities] = useState(['']);
+  const [jobTitle, setJobTitle] = useState(incoming.jobTitle || incoming.title || '');
+  const [jobDescription, setJobDescription] = useState(incoming.jobDescription || incoming.description || '');
+  const [skills, setSkills] = useState(incoming.skills || INITIAL_SKILLS);
+  const [qualifications, setQualifications] = useState(
+    Array.isArray(incoming.qualifications)
+      ? incoming.qualifications.join('\n')
+      : incoming.qualifications || ''
+  );
+  const [experienceLevel, setExperienceLevel] = useState(incoming.experienceLevel || 'senior');
+  const [requireAssessmentTest, setRequireAssessmentTest] = useState(
+    incoming.requireAssessmentTest === true || incoming.requireAssessmentTest === 'yes' ? 'yes' : 'no'
+  );
+  const [openings, setOpenings] = useState(incoming.openings ? String(incoming.openings) : '3');
+  const [salaryMin, setSalaryMin] = useState(incoming.salaryMin ? String(incoming.salaryMin) : '');
+  const [salaryMax, setSalaryMax] = useState(incoming.salaryMax ? String(incoming.salaryMax) : '');
+  const [deadline, setDeadline] = useState(incoming.deadline || '');
+  const [shortlistCount, setShortlistCount] = useState(incoming.shortlistCount ? String(incoming.shortlistCount) : '');
+  const [milestones, setMilestones] = useState(
+    incoming.milestones && incoming.milestones.length > 0
+      ? incoming.milestones
+      : [{ id: Date.now(), date: '', shortlistCount: '' }]
+  );
+  const [category, setCategory] = useState(incoming.category || incoming.department || '');
+  const [workMode, setWorkMode] = useState(incoming.workMode || 'remote');
+  const [jobType, setJobType] = useState(incoming.jobType || incoming.employmentType || 'full-time');
+  const [selectedLocation, setSelectedLocation] = useState(incoming.selectedLocation || incoming.location || '');
+  const [responsibilities, setResponsibilities] = useState(
+    incoming.responsibilities && incoming.responsibilities.length > 0
+      ? incoming.responsibilities
+      : ['']
+  );
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -318,9 +332,17 @@ function CreateVacancyPage() {
         status: 'draft',
       };
       const response = await createVacancy(payload);
-      const newVacancy = response.vacancy || response;
-      const targetId = newVacancy.id || newVacancy.vacancyCode || newVacancy.numericId;
-      navigate(`/recruiter/vacancies/${targetId}`);
+      const savedVacancy = response.vacancy || response;
+
+      navigate('/recruiter/vacancy-preview', {
+        state: {
+          ...payload,
+          id: savedVacancy.id || savedVacancy.vacancyCode || savedVacancy.numericId,
+          vacancyCode: savedVacancy.vacancyCode,
+          isDraftSaved: true,
+          savedAt: new Date().toISOString(),
+        },
+      });
     } catch (err) {
       console.error('Failed to save draft:', err);
       alert(err.response?.data?.message || 'Failed to save draft. Please check your network and try again.');

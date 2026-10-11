@@ -253,11 +253,32 @@ function PreviewVacancyPage() {
           <button
             type="button"
             className="pv-back-link"
-            onClick={() => navigate('/recruiter/create-vacancy')}
+            onClick={() => navigate('/recruiter/create-vacancy', { state: formState })}
           >
             <ArrowLeft size={16} />
             Back to Editor
           </button>
+
+          {/* ── Draft Saved Confirmation ── */}
+          {formState?.isDraftSaved && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 18px',
+                borderRadius: '8px',
+                background: 'rgba(34, 197, 94, 0.12)',
+                border: '1px solid rgba(34, 197, 94, 0.35)',
+                color: '#4ADE80',
+                fontSize: '0.88rem',
+                fontWeight: 500,
+              }}
+            >
+              <CheckCircle2 size={18} />
+              <span>Draft saved to database successfully! Here is your preview.</span>
+            </div>
+          )}
 
           {/* ── Header ── */}
           <div className="pv-header">

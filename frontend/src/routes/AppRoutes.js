@@ -230,6 +230,10 @@ function AppRoutes() {
           element={<RecruiterProtected><VacancyDetailPage /></RecruiterProtected>}
         />
         <Route
+          path="/recruiter/vacancies/:id"
+          element={<RecruiterProtected><VacancyDetailPage /></RecruiterProtected>}
+        />
+        <Route
           path="/recruiter/create-vacancy"
           element={<RecruiterProtected><CreateVacancyPage /></RecruiterProtected>}
         />
