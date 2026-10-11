@@ -15,6 +15,9 @@ import {
   Plus,
   X,
   CalendarRange,
+  RotateCcw,
+  Save,
+  Eye,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -326,6 +329,30 @@ function CreateVacancyPage() {
     }
   };
 
+  const handlePreviewVacancy = () => {
+    navigate('/recruiter/vacancy-preview', {
+      state: {
+        jobTitle,
+        jobDescription,
+        skills,
+        qualifications,
+        experienceLevel,
+        requireAssessmentTest,
+        openings,
+        salaryMin,
+        salaryMax,
+        deadline,
+        shortlistCount,
+        milestones: completedMilestones,
+        category,
+        workMode,
+        jobType,
+        selectedLocation,
+        responsibilities: responsibilities.filter(Boolean),
+      },
+    });
+  };
+
   return (
     <div className="create-vacancy cv-shell">
       <RecruiterSidebar
@@ -359,37 +386,34 @@ function CreateVacancyPage() {
               </p>
             </div>
             <div className="cv-header__actions">
-              <button type="button" className="comm-btn comm-btn--outline">
-                View More Details
+              <button
+                type="button"
+                className="cv-btn cv-btn--discard"
+                onClick={handleDiscardChanges}
+                disabled={isSaving}
+                title="Discard all changes and return to vacancies"
+              >
+                <RotateCcw size={15} />
+                <span>Discard Changes</span>
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={() =>
-                  navigate('/recruiter/vacancy-preview', {
-                    state: {
-                      jobTitle,
-                      jobDescription,
-                      skills,
-                      qualifications,
-                      experienceLevel,
-                      requireAssessmentTest,
-                      openings,
-                      salaryMin,
-                      salaryMax,
-                      deadline,
-                      shortlistCount,
-                      milestones: completedMilestones,
-                      category,
-                      workMode,
-                      jobType,
-                      selectedLocation,
-                      responsibilities: responsibilities.filter(Boolean),
-                    },
-                  })
-                }
+                className="cv-btn cv-btn--draft"
+                onClick={handleSaveDraft}
+                disabled={isSaving}
+                title="Save current progress as a draft"
               >
-                Preview Vacancy
+                <Save size={15} />
+                <span>{isSaving ? 'Saving Draft…' : 'Save Draft'}</span>
+              </button>
+              <button
+                type="button"
+                className="cv-btn cv-btn--preview"
+                onClick={handlePreviewVacancy}
+                disabled={isSaving}
+              >
+                <Eye size={15} />
+                <span>Preview Vacancy</span>
               </button>
             </div>
           </div>
@@ -743,48 +767,30 @@ function CreateVacancyPage() {
             <div className="cv-footer__right">
               <button
                 type="button"
-                className="cv-link-btn"
+                className="cv-btn cv-btn--discard"
                 onClick={handleDiscardChanges}
                 disabled={isSaving}
               >
-                Discard Changes
+                <RotateCcw size={15} />
+                <span>Discard Changes</span>
               </button>
               <button
                 type="button"
-                className="comm-btn comm-btn--outline"
+                className="cv-btn cv-btn--draft"
                 onClick={handleSaveDraft}
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving…' : 'Save Draft'}
+                <Save size={15} />
+                <span>{isSaving ? 'Saving Draft…' : 'Save Draft'}</span>
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={() =>
-                  navigate('/recruiter/vacancy-preview', {
-                    state: {
-                      jobTitle,
-                      jobDescription,
-                      skills,
-                      qualifications,
-                      experienceLevel,
-                      requireAssessmentTest,
-                      openings,
-                      salaryMin,
-                      salaryMax,
-                      deadline,
-                      shortlistCount,
-                      milestones: completedMilestones,
-                      category,
-                      workMode,
-                      jobType,
-                      selectedLocation,
-                      responsibilities: responsibilities.filter(Boolean),
-                    },
-                  })
-                }
+                className="cv-btn cv-btn--preview"
+                onClick={handlePreviewVacancy}
+                disabled={isSaving}
               >
-                Preview Vacancy
+                <Eye size={15} />
+                <span>Preview Vacancy</span>
               </button>
             </div>
           </footer>

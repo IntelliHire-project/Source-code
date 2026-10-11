@@ -20,6 +20,7 @@ import {
   CalendarDays,
   Layers,
   Sparkles,
+  Save,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -28,6 +29,7 @@ import ProgressBar from '../../../components/common/ProgressBar';
 import PaymentRequiredModal from '../../../components/PaymentRequiredModal';
 import { createVacancy } from '../../../api/vacancyApi';
 import '../../../style.css';
+import '../CreateVacancy/CreateVacancyPage.css';
 import './PreviewVacancyPage.css';
 
 const SAMPLE_VACANCY = {
@@ -149,6 +151,22 @@ function PreviewVacancyPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const formState = location.state;
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveDraftFromPreview = async () => {
+    setIsSaving(true);
+    try {
+      const payload = formState ? { ...formState, status: 'draft' } : { ...v, status: 'draft' };
+      const response = await createVacancy(payload);
+      const created = response.vacancy || response;
+      navigate(`/recruiter/vacancies/${created.id || created.vacancyCode}`);
+    } catch (err) {
+      console.error('Error saving draft from preview:', err);
+      alert(err.response?.data?.message || 'Failed to save draft. Please check your network and try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const v = formState
     ? {
@@ -255,19 +273,33 @@ function PreviewVacancyPage() {
             <div className="pv-header__actions">
               <button
                 type="button"
-                className="comm-btn comm-btn--ghost"
-                onClick={() => navigate('/recruiter/create-vacancy')}
+                className="cv-btn cv-btn--discard"
+                style={{
+                  color: '#CBD5E1',
+                  borderColor: 'rgba(255, 255, 255, 0.18)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                }}
+                onClick={() => navigate('/recruiter/create-vacancy', { state: formState })}
               >
-                <Edit3 size={16} />
-                Edit Details
+                <Edit3 size={15} />
+                <span>Edit Details</span>
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="cv-btn cv-btn--draft"
+                onClick={handleSaveDraftFromPreview}
+                disabled={isSaving}
+              >
+                <Save size={15} />
+                <span>{isSaving ? 'Saving Draft…' : 'Save Draft'}</span>
+              </button>
+              <button
+                type="button"
+                className="cv-btn cv-btn--preview"
                 onClick={() => setShowPaymentModal(true)}
               >
-                <Send size={16} />
-                Go to Payment
+                <Send size={15} />
+                <span>Go to Payment</span>
               </button>
             </div>
           </div>
