@@ -388,26 +388,6 @@ function CreateVacancyPage() {
             <div className="cv-header__actions">
               <button
                 type="button"
-                className="cv-btn cv-btn--discard"
-                onClick={handleDiscardChanges}
-                disabled={isSaving}
-                title="Discard all changes and return to vacancies"
-              >
-                <RotateCcw size={15} />
-                <span>Discard Changes</span>
-              </button>
-              <button
-                type="button"
-                className="cv-btn cv-btn--draft"
-                onClick={handleSaveDraft}
-                disabled={isSaving}
-                title="Save current progress as a draft"
-              >
-                <Save size={15} />
-                <span>{isSaving ? 'Saving Draft…' : 'Save Draft'}</span>
-              </button>
-              <button
-                type="button"
                 className="cv-btn cv-btn--preview"
                 onClick={handlePreviewVacancy}
                 disabled={isSaving}
