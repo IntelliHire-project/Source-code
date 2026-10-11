@@ -209,11 +209,52 @@ const initializeDatabase = async () => {
       END $$;
     `);
 
+    // Create vacancies table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS vacancies (
+        id SERIAL PRIMARY KEY,
+        vacancy_code TEXT UNIQUE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        recruiter_id INTEGER REFERENCES recruiters(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        department TEXT,
+        location TEXT,
+        work_mode TEXT DEFAULT 'remote',
+        job_type TEXT DEFAULT 'full-time',
+        experience_level TEXT DEFAULT 'senior',
+        openings INTEGER DEFAULT 1,
+        salary_min NUMERIC,
+        salary_max NUMERIC,
+        salary_range TEXT,
+        deadline TIMESTAMPTZ,
+        shortlist_count INTEGER,
+        require_assessment_test BOOLEAN DEFAULT false,
+        skills JSONB DEFAULT '[]'::jsonb,
+        responsibilities JSONB DEFAULT '[]'::jsonb,
+        qualifications JSONB DEFAULT '[]'::jsonb,
+        milestones JSONB DEFAULT '[]'::jsonb,
+        attendees JSONB DEFAULT '[]'::jsonb,
+        panels JSONB DEFAULT '[]'::jsonb,
+        admin_reviews JSONB DEFAULT '[]'::jsonb,
+        approval_history JSONB DEFAULT '[]'::jsonb,
+        activity_log JSONB DEFAULT '[]'::jsonb,
+        status TEXT NOT NULL DEFAULT 'draft',
+        time_to_fill INTEGER,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // Create indices for fast lookups
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_candidates_user_id ON candidates(user_id);
       CREATE INDEX IF NOT EXISTS idx_candidate_cvs_candidate_id ON candidate_cvs(candidate_id);
       CREATE INDEX IF NOT EXISTS idx_recruiters_user_id ON recruiters(user_id);
+      CREATE INDEX IF NOT EXISTS idx_vacancies_vacancy_code ON vacancies(vacancy_code);
+      CREATE INDEX IF NOT EXISTS idx_vacancies_user_id ON vacancies(user_id);
+      CREATE INDEX IF NOT EXISTS idx_vacancies_recruiter_id ON vacancies(recruiter_id);
+      CREATE INDEX IF NOT EXISTS idx_vacancies_status ON vacancies(status);
     `);
   } finally {
     client.release();

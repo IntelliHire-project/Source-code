@@ -26,6 +26,7 @@ import TopBar from '../../../components/TopBar/TopBar';
 import InsightPanel from '../../../components/common/InsightPanel';
 import ProgressBar from '../../../components/common/ProgressBar';
 import PaymentRequiredModal from '../../../components/PaymentRequiredModal';
+import { createVacancy } from '../../../api/vacancyApi';
 import '../../../style.css';
 import './PreviewVacancyPage.css';
 
@@ -458,10 +459,17 @@ function PreviewVacancyPage() {
         onClose={() => setShowPaymentModal(false)}
         onProceed={() => {
           setShowPaymentModal(false);
-          navigate('/recruiter/select-payment');
+          navigate('/recruiter/select-payment', { state: { vacancy: v, formState } });
         }}
-        onSaveDraft={() => {
+        onSaveDraft={async () => {
           setShowPaymentModal(false);
+          try {
+            const payload = formState ? { ...formState, status: 'draft' } : { ...v, status: 'draft' };
+            await createVacancy(payload);
+          } catch (err) {
+            console.error('Error saving draft from modal:', err);
+          }
+          navigate('/recruiter/vacancies');
         }}
         jobTitle={v.jobTitle}
       />

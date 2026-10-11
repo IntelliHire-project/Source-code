@@ -23,6 +23,7 @@ import CalendarPicker from '../../../components/common/CalendarPicker';
 import PillToggleGroup from '../../../components/common/PillToggleGroup';
 import ProgressBar from '../../../components/common/ProgressBar';
 import InsightPanel from '../../../components/common/InsightPanel';
+import { createVacancy } from '../../../api/vacancyApi';
 import '../../../style.css';
 import './CreateVacancyPage.css';
 
@@ -272,10 +273,57 @@ function CreateVacancyPage() {
   const updateMilestone = (id, field, value) =>
     setMilestones(milestones.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
     if (mins === 1) return '1 minute ago';
     return `${mins} minutes ago`;
+  };
+
+  const handleDiscardChanges = () => {
+    if (window.confirm('Are you sure you want to discard your changes?')) {
+      navigate('/recruiter/vacancies');
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!jobTitle.trim()) {
+      alert('Please enter a job title before saving as draft.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const payload = {
+        jobTitle,
+        jobDescription,
+        skills,
+        qualifications,
+        experienceLevel,
+        requireAssessmentTest,
+        openings,
+        salaryMin,
+        salaryMax,
+        deadline,
+        shortlistCount,
+        milestones: completedMilestones,
+        category,
+        workMode,
+        jobType,
+        selectedLocation,
+        responsibilities: responsibilities.filter(Boolean),
+        status: 'draft',
+      };
+      const response = await createVacancy(payload);
+      const newVacancy = response.vacancy || response;
+      const targetId = newVacancy.id || newVacancy.vacancyCode || newVacancy.numericId;
+      navigate(`/recruiter/vacancies/${targetId}`);
+    } catch (err) {
+      console.error('Failed to save draft:', err);
+      alert(err.response?.data?.message || 'Failed to save draft. Please check your network and try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -693,11 +741,21 @@ function CreateVacancyPage() {
               </span>
             </div>
             <div className="cv-footer__right">
-              <button type="button" className="cv-link-btn">
+              <button
+                type="button"
+                className="cv-link-btn"
+                onClick={handleDiscardChanges}
+                disabled={isSaving}
+              >
                 Discard Changes
               </button>
-              <button type="button" className="comm-btn comm-btn--outline">
-                Save Draft
+              <button
+                type="button"
+                className="comm-btn comm-btn--outline"
+                onClick={handleSaveDraft}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving…' : 'Save Draft'}
               </button>
               <button
                 type="button"
