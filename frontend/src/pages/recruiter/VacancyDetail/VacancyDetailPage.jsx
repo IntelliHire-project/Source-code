@@ -1010,7 +1010,12 @@ export default function VacancyDetailPage() {
                   <button
                     type="button"
                     className="vd-primary-btn"
-                    onClick={() => navigate('/recruiter/create-vacancy')}
+                    onClick={() =>
+                      navigate(
+                        `/recruiter/create-vacancy?id=${vacancy.id || vacancy.vacancyCode || ''}`,
+                        { state: { editVacancy: vacancy } }
+                      )
+                    }
                   >
                     Edit Vacancy
                   </button>
@@ -1027,7 +1032,10 @@ export default function VacancyDetailPage() {
                         label: 'Edit Vacancy',
                         icon: Pencil,
                         onClick: () =>
-                          navigate('/recruiter/create-vacancy', { state: { editVacancy: vacancy } }),
+                          navigate(
+                            `/recruiter/create-vacancy?id=${vacancy.id || vacancy.vacancyCode || ''}`,
+                            { state: { editVacancy: vacancy } }
+                          ),
                       },
                       { label: 'Duplicate', icon: Copy },
                       {

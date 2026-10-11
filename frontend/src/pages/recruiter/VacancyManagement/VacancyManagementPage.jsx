@@ -465,7 +465,11 @@ function VacancyManagementPage() {
                             {
                               label: 'Edit Vacancy',
                               icon: Pencil,
-                              onClick: () => navigate('/recruiter/create-vacancy'),
+                              onClick: () =>
+                                navigate(
+                                  `/recruiter/create-vacancy?id=${v.id || v.vacancyCode || ''}`,
+                                  { state: { editVacancy: v } }
+                                ),
                             },
                             { label: 'Duplicate', icon: Copy },
                             {
@@ -473,15 +477,15 @@ function VacancyManagementPage() {
                               icon: X,
                               danger: true,
                               onClick: async () => {
-                                if (window.confirm(`Are you sure you want to close "${vacancy.title}"?`)) {
+                                if (window.confirm(`Are you sure you want to close "${v.title}"?`)) {
                                   try {
-                                    await closeVacancy(vacancy.id);
+                                    await closeVacancy(v.id);
                                   } catch (e) {
                                     console.error(e);
                                   }
                                   setAllVacancies((prev) =>
                                     prev.map((item) =>
-                                      item.id === vacancy.id ? { ...item, status: 'closed' } : item
+                                      item.id === v.id ? { ...item, status: 'closed' } : item
                                     )
                                   );
                                 }
