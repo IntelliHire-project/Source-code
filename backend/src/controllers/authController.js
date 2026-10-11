@@ -224,6 +224,10 @@ const login = async (req, res, next) => {
       return errorResponse(res, "Invalid email or password.", 401);
     }
 
+    if (user.status === "inactive") {
+      return errorResponse(res, "Your account has been deactivated. Please contact an administrator.", 403);
+    }
+
     let candidateProfile = null;
     let recruiterProfile = null;
 

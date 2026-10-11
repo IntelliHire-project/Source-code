@@ -44,4 +44,60 @@ router.put("/users/:id/recruiter-status", authMiddleware, requireRole("admin"), 
   }
 });
 
+/**
+ * Admin-only: updates user details (full name, email, role, status).
+ */
+router.put("/users/:id", authMiddleware, requireRole("admin"), async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { name, email, role, status } = req.body;
+
+    if (!name && !email && !role && !status) {
+      return errorResponse(res, "At least one field (name, email, role, or status) must be provided.", 400);
+    }
+
+    const updatedUser = await userModel.updateUser(
+      userId,
+      name ? name.trim() : null,
+      email ? email.trim().toLowerCase() : null,
+      role ? role.toLowerCase() : null,
+      status ? status.toLowerCase() : null
+    );
+
+    if (!updatedUser) {
+      return errorResponse(res, "User not found.", 404);
+    }
+
+    return successResponse(res, "User updated successfully.", { user: updatedUser });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Admin-only: updates user account status (active, inactive, pending).
+ */
+const handleUpdateUserStatus = async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { status } = req.body;
+
+    if (!status || !['active', 'inactive', 'pending'].includes(status.toLowerCase())) {
+      return errorResponse(res, "Invalid status. Must be 'active', 'inactive', or 'pending'.", 400);
+    }
+
+    const updatedUser = await userModel.updateUserStatus(userId, status.toLowerCase());
+    if (!updatedUser) {
+      return errorResponse(res, "User not found.", 404);
+    }
+
+    return successResponse(res, `User status updated to ${status}.`, { user: updatedUser });
+  } catch (error) {
+    next(error);
+  }
+};
+
+router.put("/users/:id/status", authMiddleware, requireRole("admin"), handleUpdateUserStatus);
+router.patch("/users/:id/status", authMiddleware, requireRole("admin"), handleUpdateUserStatus);
+
 module.exports = router;
