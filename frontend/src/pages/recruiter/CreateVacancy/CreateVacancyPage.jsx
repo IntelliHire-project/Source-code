@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Briefcase,
   FileText,
@@ -15,6 +15,9 @@ import {
   Plus,
   X,
   CalendarRange,
+  RotateCcw,
+  Save,
+  Eye,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -23,6 +26,7 @@ import CalendarPicker from '../../../components/common/CalendarPicker';
 import PillToggleGroup from '../../../components/common/PillToggleGroup';
 import ProgressBar from '../../../components/common/ProgressBar';
 import InsightPanel from '../../../components/common/InsightPanel';
+import { createVacancy } from '../../../api/vacancyApi';
 import '../../../style.css';
 import './CreateVacancyPage.css';
 
@@ -206,27 +210,41 @@ function CreateVacancyPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const incoming = location.state?.editVacancy || location.state || {};
 
   /* ── Form state ── */
-  const [jobTitle, setJobTitle] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
-  const [skills, setSkills] = useState(INITIAL_SKILLS);
-  const [qualifications, setQualifications] = useState('');
-  const [experienceLevel, setExperienceLevel] = useState('senior');
-  const [requireAssessmentTest, setRequireAssessmentTest] = useState('no');
-  const [openings, setOpenings] = useState('3');
-  const [salaryMin, setSalaryMin] = useState('');
-  const [salaryMax, setSalaryMax] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [shortlistCount, setShortlistCount] = useState('');
-  const [milestones, setMilestones] = useState([
-    { id: Date.now(), date: '', shortlistCount: '' },
-  ]);
-  const [category, setCategory] = useState('');
-  const [workMode, setWorkMode] = useState('remote');
-  const [jobType, setJobType] = useState('full-time');
-  const [selectedLocation, setSelectedLocation] = useState('');
-  const [responsibilities, setResponsibilities] = useState(['']);
+  const [jobTitle, setJobTitle] = useState(incoming.jobTitle || incoming.title || '');
+  const [jobDescription, setJobDescription] = useState(incoming.jobDescription || incoming.description || '');
+  const [skills, setSkills] = useState(incoming.skills || INITIAL_SKILLS);
+  const [qualifications, setQualifications] = useState(
+    Array.isArray(incoming.qualifications)
+      ? incoming.qualifications.join('\n')
+      : incoming.qualifications || ''
+  );
+  const [experienceLevel, setExperienceLevel] = useState(incoming.experienceLevel || 'senior');
+  const [requireAssessmentTest, setRequireAssessmentTest] = useState(
+    incoming.requireAssessmentTest === true || incoming.requireAssessmentTest === 'yes' ? 'yes' : 'no'
+  );
+  const [openings, setOpenings] = useState(incoming.openings ? String(incoming.openings) : '3');
+  const [salaryMin, setSalaryMin] = useState(incoming.salaryMin ? String(incoming.salaryMin) : '');
+  const [salaryMax, setSalaryMax] = useState(incoming.salaryMax ? String(incoming.salaryMax) : '');
+  const [deadline, setDeadline] = useState(incoming.deadline || '');
+  const [shortlistCount, setShortlistCount] = useState(incoming.shortlistCount ? String(incoming.shortlistCount) : '');
+  const [milestones, setMilestones] = useState(
+    incoming.milestones && incoming.milestones.length > 0
+      ? incoming.milestones
+      : [{ id: Date.now(), date: '', shortlistCount: '' }]
+  );
+  const [category, setCategory] = useState(incoming.category || incoming.department || '');
+  const [workMode, setWorkMode] = useState(incoming.workMode || 'remote');
+  const [jobType, setJobType] = useState(incoming.jobType || incoming.employmentType || 'full-time');
+  const [selectedLocation, setSelectedLocation] = useState(incoming.selectedLocation || incoming.location || '');
+  const [responsibilities, setResponsibilities] = useState(
+    incoming.responsibilities && incoming.responsibilities.length > 0
+      ? incoming.responsibilities
+      : ['']
+  );
 
   /* ── Autosave timer ── */
   const [lastEdited, setLastEdited] = useState(0);
@@ -272,10 +290,89 @@ function CreateVacancyPage() {
   const updateMilestone = (id, field, value) =>
     setMilestones(milestones.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const formatTime = (mins) => {
     if (mins === 0) return 'Just now';
     if (mins === 1) return '1 minute ago';
     return `${mins} minutes ago`;
+  };
+
+  const handleDiscardChanges = () => {
+    if (window.confirm('Are you sure you want to discard your changes?')) {
+      navigate('/recruiter/vacancies');
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!jobTitle.trim()) {
+      alert('Please enter a job title before saving as draft.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const payload = {
+        jobTitle,
+        jobDescription,
+        skills,
+        qualifications,
+        experienceLevel,
+        requireAssessmentTest,
+        openings,
+        salaryMin,
+        salaryMax,
+        deadline,
+        shortlistCount,
+        milestones: completedMilestones,
+        category,
+        workMode,
+        jobType,
+        selectedLocation,
+        responsibilities: responsibilities.filter(Boolean),
+        status: 'draft',
+      };
+      const response = await createVacancy(payload);
+      const savedVacancy = response.vacancy || response;
+
+      navigate('/recruiter/vacancy-preview', {
+        state: {
+          ...payload,
+          id: savedVacancy.id || savedVacancy.vacancyCode || savedVacancy.numericId,
+          vacancyCode: savedVacancy.vacancyCode,
+          isDraftSaved: true,
+          savedAt: new Date().toISOString(),
+        },
+      });
+    } catch (err) {
+      console.error('Failed to save draft:', err);
+      alert(err.response?.data?.message || 'Failed to save draft. Please check your network and try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePreviewVacancy = () => {
+    navigate('/recruiter/vacancy-preview', {
+      state: {
+        jobTitle,
+        jobDescription,
+        skills,
+        qualifications,
+        experienceLevel,
+        requireAssessmentTest,
+        openings,
+        salaryMin,
+        salaryMax,
+        deadline,
+        shortlistCount,
+        milestones: completedMilestones,
+        category,
+        workMode,
+        jobType,
+        selectedLocation,
+        responsibilities: responsibilities.filter(Boolean),
+      },
+    });
   };
 
   return (
@@ -311,37 +408,14 @@ function CreateVacancyPage() {
               </p>
             </div>
             <div className="cv-header__actions">
-              <button type="button" className="comm-btn comm-btn--outline">
-                View More Details
-              </button>
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={() =>
-                  navigate('/recruiter/vacancy-preview', {
-                    state: {
-                      jobTitle,
-                      jobDescription,
-                      skills,
-                      qualifications,
-                      experienceLevel,
-                      requireAssessmentTest,
-                      openings,
-                      salaryMin,
-                      salaryMax,
-                      deadline,
-                      shortlistCount,
-                      milestones: completedMilestones,
-                      category,
-                      workMode,
-                      jobType,
-                      selectedLocation,
-                      responsibilities: responsibilities.filter(Boolean),
-                    },
-                  })
-                }
+                className="cv-btn cv-btn--preview"
+                onClick={handlePreviewVacancy}
+                disabled={isSaving}
               >
-                Preview Vacancy
+                <Eye size={15} />
+                <span>Preview Vacancy</span>
               </button>
             </div>
           </div>
@@ -693,40 +767,32 @@ function CreateVacancyPage() {
               </span>
             </div>
             <div className="cv-footer__right">
-              <button type="button" className="cv-link-btn">
-                Discard Changes
-              </button>
-              <button type="button" className="comm-btn comm-btn--outline">
-                Save Draft
+              <button
+                type="button"
+                className="cv-btn cv-btn--discard"
+                onClick={handleDiscardChanges}
+                disabled={isSaving}
+              >
+                <RotateCcw size={15} />
+                <span>Discard Changes</span>
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={() =>
-                  navigate('/recruiter/vacancy-preview', {
-                    state: {
-                      jobTitle,
-                      jobDescription,
-                      skills,
-                      qualifications,
-                      experienceLevel,
-                      requireAssessmentTest,
-                      openings,
-                      salaryMin,
-                      salaryMax,
-                      deadline,
-                      shortlistCount,
-                      milestones: completedMilestones,
-                      category,
-                      workMode,
-                      jobType,
-                      selectedLocation,
-                      responsibilities: responsibilities.filter(Boolean),
-                    },
-                  })
-                }
+                className="cv-btn cv-btn--draft"
+                onClick={handleSaveDraft}
+                disabled={isSaving}
               >
-                Preview Vacancy
+                <Save size={15} />
+                <span>{isSaving ? 'Saving Draft…' : 'Save Draft'}</span>
+              </button>
+              <button
+                type="button"
+                className="cv-btn cv-btn--preview"
+                onClick={handlePreviewVacancy}
+                disabled={isSaving}
+              >
+                <Eye size={15} />
+                <span>Preview Vacancy</span>
               </button>
             </div>
           </footer>

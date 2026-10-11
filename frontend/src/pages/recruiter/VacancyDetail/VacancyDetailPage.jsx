@@ -40,6 +40,7 @@ import StatusBadge from '../../../components/common/StatusBadge';
 import DropdownMenu from '../../../components/common/DropdownMenu';
 import CandidateInterviewAllocationPage from '../InterviewAllocation/CandidateInterviewAllocation';
 import { VACANCIES } from '../../../data/vacancies';
+import { getVacancyById, closeVacancy } from '../../../api/vacancyApi';
 import {
   getApplicants,
   getStageCounts,
@@ -162,7 +163,7 @@ function VacancyDetailsTab({ vacancy }) {
             <h3 className="vd-card__title">What we are looking for</h3>
           </div>
           <ul className="vd-requirements">
-            {vacancy.requirements.map((requirement) => (
+            {(vacancy.requirements || []).map((requirement) => (
               <li key={requirement}>
                 <span className="vd-requirements__check">
                   <Check size={12} />
@@ -589,7 +590,7 @@ function AttendeesTab({ vacancy }) {
             <div className="vd-attendee__group">
               <span className="vd-attendee__label">Assigned interviews</span>
               <div className="vd-attendee__chips">
-                {attendee.interviews.map((item) => (
+                {(attendee.interviews || []).map((item) => (
                   <span className="vd-pill" key={item}>
                     {item}
                   </span>
@@ -829,12 +830,42 @@ export default function VacancyDetailPage() {
   });
   const tabRefs = useRef([]);
 
-  const vacancy = VACANCIES.find((item) => item.id === id);
+  const [vacancy, setVacancy] = useState(() => {
+    return VACANCIES.find((item) => item.id === id) || null;
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setActiveTab('details');
     setScheduledIds(new Set());
     setExtraInterviews([]);
+
+    let isMounted = true;
+    const fetchVacancyDetails = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getVacancyById(id);
+        if (isMounted && response?.vacancy) {
+          setVacancy(response.vacancy);
+          return;
+        }
+      } catch (err) {
+        // Fallback to local mock dataset if backend doesn't have it
+        const local = VACANCIES.find((item) => item.id === id);
+        if (isMounted && local) {
+          setVacancy(local);
+          return;
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchVacancyDetails();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   const funnel = vacancy ? getFunnel(vacancy) : null;
@@ -925,7 +956,17 @@ export default function VacancyDetailPage() {
         />
 
         <main className="vd-content">
-          {!vacancy || !funnel || !outcome ? (
+          {isLoading && !vacancy ? (
+            <div className="vd-card vd-not-found">
+              <div className="vd-empty">
+                <div className="vd-empty__icon">
+                  <Clock size={20} />
+                </div>
+                <p className="vd-empty__title">Loading vacancy details…</p>
+                <p className="vd-empty__hint">Retrieving vacancy data from server.</p>
+              </div>
+            </div>
+          ) : !vacancy || !funnel || !outcome ? (
             <div className="vd-card vd-not-found">
               <div className="vd-empty">
                 <div className="vd-empty__icon">
@@ -985,10 +1026,25 @@ export default function VacancyDetailPage() {
                       {
                         label: 'Edit Vacancy',
                         icon: Pencil,
-                        onClick: () => navigate('/recruiter/create-vacancy'),
+                        onClick: () =>
+                          navigate('/recruiter/create-vacancy', { state: { editVacancy: vacancy } }),
                       },
                       { label: 'Duplicate', icon: Copy },
-                      { label: 'Close Vacancy', icon: X, danger: true },
+                      {
+                        label: 'Close Vacancy',
+                        icon: X,
+                        danger: true,
+                        onClick: async () => {
+                          if (window.confirm(`Are you sure you want to close "${vacancy.title}"?`)) {
+                            try {
+                              await closeVacancy(vacancy.id);
+                            } catch (e) {
+                              console.error(e);
+                            }
+                            setVacancy((prev) => ({ ...prev, status: 'closed' }));
+                          }
+                        },
+                      },
                     ]}
                   />
                 </div>
