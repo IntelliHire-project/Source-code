@@ -253,7 +253,14 @@ function PreviewVacancyPage() {
           <button
             type="button"
             className="pv-back-link"
-            onClick={() => navigate('/recruiter/create-vacancy', { state: formState })}
+            onClick={() =>
+              navigate(
+                formState?.id || formState?.vacancyCode
+                  ? `/recruiter/create-vacancy?id=${formState.id || formState.vacancyCode}`
+                  : '/recruiter/create-vacancy',
+                { state: formState }
+              )
+            }
           >
             <ArrowLeft size={16} />
             Back to Editor
@@ -300,7 +307,14 @@ function PreviewVacancyPage() {
                   borderColor: 'rgba(255, 255, 255, 0.18)',
                   background: 'rgba(255, 255, 255, 0.05)',
                 }}
-                onClick={() => navigate('/recruiter/create-vacancy', { state: formState })}
+                onClick={() =>
+                  navigate(
+                    formState?.id || formState?.vacancyCode
+                      ? `/recruiter/create-vacancy?id=${formState.id || formState.vacancyCode}`
+                      : '/recruiter/create-vacancy',
+                    { state: formState }
+                  )
+                }
               >
                 <Edit3 size={15} />
                 <span>Edit Details</span>
