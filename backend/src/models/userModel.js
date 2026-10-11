@@ -90,14 +90,15 @@ const updatePassword = async (userId, newPasswordHash) => {
   );
 };
 
-const updateUser = async (userId, fullName, email) => {
+const updateUser = async (userId, fullName, email, role = null) => {
   const result = await db.query(
     `UPDATE users
      SET full_name = COALESCE($1, full_name),
-         email = COALESCE($2, email)
-     WHERE id = $3
+         email = COALESCE($2, email),
+         role = COALESCE($3, role)
+     WHERE id = $4
      RETURNING id, full_name, email, role, created_at`,
-    [fullName, email, userId]
+    [fullName, email, role, userId]
   );
   return result.rows[0] || null;
 };

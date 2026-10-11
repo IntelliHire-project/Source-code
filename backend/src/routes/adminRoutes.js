@@ -44,4 +44,33 @@ router.put("/users/:id/recruiter-status", authMiddleware, requireRole("admin"), 
   }
 });
 
+/**
+ * Admin-only: updates user details (full name, email, role).
+ */
+router.put("/users/:id", authMiddleware, requireRole("admin"), async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { name, email, role } = req.body;
+
+    if (!name && !email && !role) {
+      return errorResponse(res, "At least one field (name, email, or role) must be provided.", 400);
+    }
+
+    const updatedUser = await userModel.updateUser(
+      userId,
+      name ? name.trim() : null,
+      email ? email.trim().toLowerCase() : null,
+      role ? role.toLowerCase() : null
+    );
+
+    if (!updatedUser) {
+      return errorResponse(res, "User not found.", 404);
+    }
+
+    return successResponse(res, "User updated successfully.", { user: updatedUser });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

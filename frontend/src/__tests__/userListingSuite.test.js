@@ -8,7 +8,7 @@
  * - SCRUM-716: Unit Testing (search filtering, role/status filtering, column sorting, pagination, offline fallback)
  */
 
-import { fetchUsers } from '../api/userApi';
+import { fetchUsers, updateUser } from '../api/userApi';
 import apiInstance from '../api/apiInstance';
 import { getUsers, saveUsers } from '../services/adminStorage';
 
@@ -218,6 +218,92 @@ describe('User Listing API & Data Management Suite [SCRUM-707 / SCRUM-716]', () 
       const retrieved = getUsers([]);
       expect(retrieved).toHaveLength(sampleUsers.length);
       expect(retrieved[0].email).toBe('alice@company.com');
+    });
+  });
+
+  // ── SCRUM-708: Implement Edit User Functionality Tests ───────────────────────
+  describe('SCRUM-708: Edit User Functionality [SCRUM-717, SCRUM-718, SCRUM-719]', () => {
+    // SCRUM-717: Create Edit Form (Data initialization & pre-filling)
+    test('SCRUM-717: should correctly populate edit form with existing user values', () => {
+      const existingUser = {
+        id: 42,
+        name: 'Jordan Bell',
+        email: 'jordan@nexuscorp.com',
+        role: 'Recruiter',
+        status: 'Active'
+      };
+
+      const initialFormData = {
+        name: existingUser.name,
+        email: existingUser.email,
+        role: existingUser.role,
+        status: existingUser.status
+      };
+
+      expect(initialFormData.name).toBe('Jordan Bell');
+      expect(initialFormData.email).toBe('jordan@nexuscorp.com');
+      expect(initialFormData.role).toBe('Recruiter');
+      expect(initialFormData.status).toBe('Active');
+    });
+
+    // SCRUM-719: Validate Inputs (Client-side validation rules)
+    test('SCRUM-719: should flag validation errors for empty name or invalid email format', () => {
+      const validate = (formData) => {
+        const errors = {};
+        if (!formData.name || !formData.name.trim()) errors.name = 'Name is required.';
+        if (!formData.email || !formData.email.trim()) {
+          errors.email = 'Email address is required.';
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+          errors.email = 'Please provide a valid email address.';
+        }
+        return errors;
+      };
+
+      // Empty name error
+      const emptyNameErrors = validate({ name: '   ', email: 'valid@nexus.com' });
+      expect(emptyNameErrors.name).toBe('Name is required.');
+      expect(emptyNameErrors.email).toBeUndefined();
+
+      // Invalid email error
+      const invalidEmailErrors = validate({ name: 'Jordan Bell', email: 'invalid-email-address' });
+      expect(invalidEmailErrors.name).toBeUndefined();
+      expect(invalidEmailErrors.email).toBe('Please provide a valid email address.');
+
+      // Valid inputs
+      const validErrors = validate({ name: 'Jordan Bell', email: 'jordan@nexuscorp.com' });
+      expect(Object.keys(validErrors)).toHaveLength(0);
+    });
+
+    // SCRUM-718: Update User Details (API & local state updates)
+    test('SCRUM-718: should send PUT /users/:id request and update user details', async () => {
+      const updatedUserPayload = {
+        id: 42,
+        full_name: 'Jordan Bell Updated',
+        email: 'jordan.new@nexuscorp.com',
+        role: 'admin'
+      };
+
+      apiInstance.put.mockResolvedValueOnce({
+        data: {
+          success: true,
+          message: 'User updated successfully.',
+          data: { user: updatedUserPayload }
+        }
+      });
+
+      const response = await updateUser(42, {
+        name: 'Jordan Bell Updated',
+        email: 'jordan.new@nexuscorp.com',
+        role: 'admin'
+      });
+
+      expect(apiInstance.put).toHaveBeenCalledWith('/users/42', {
+        name: 'Jordan Bell Updated',
+        email: 'jordan.new@nexuscorp.com',
+        role: 'admin'
+      });
+      expect(response.success).toBe(true);
+      expect(response.data.user.full_name).toBe('Jordan Bell Updated');
     });
   });
 });

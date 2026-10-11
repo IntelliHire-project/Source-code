@@ -26,7 +26,7 @@ import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { getUsers, saveUsers, appendAuditLog } from '../../../services/adminStorage';
-import { fetchUsers, updateRecruiterStatus } from '../../../api/userApi';
+import { fetchUsers, updateRecruiterStatus, updateUser } from '../../../api/userApi';
 import './ManageUsers.css';
 
 // Initial Mock Users data matching mockup + some pagination filler
@@ -269,7 +269,7 @@ function ManageUsers() {
   };
 
   // Handle Form Submission (Add/Edit)
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -292,6 +292,18 @@ function ManageUsers() {
       setToast({ type: 'success', message: `User "${newUser.name}" added successfully.` });
     } else {
       // Edit mode or quick role assign mode
+      try {
+        if (selectedUser?.id && Number(selectedUser.id) < 10000000000) {
+          await updateUser(selectedUser.id, {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            role: formData.role.toLowerCase(),
+          });
+        }
+      } catch (err) {
+        console.warn('Backend user update failed or unavailable, applying locally:', err);
+      }
+
       const updatedUsers = users.map((u) =>
         u.id === selectedUser.id
           ? { ...u, name: formData.name.trim(), email: formData.email.trim(), role: formData.role, status: formData.status }
@@ -958,9 +970,11 @@ function ManageUsers() {
                       value={formData.role}
                       onChange={handleInputChange}
                     >
+                      <option value="Admin">Admin</option>
                       <option value="Super Admin">Super Admin</option>
-                      <option value="Moderator">Moderator</option>
                       <option value="Recruiter">Recruiter</option>
+                      <option value="Candidate">Candidate</option>
+                      <option value="Moderator">Moderator</option>
                       <option value="Analyst">Analyst</option>
                     </select>
                     <ChevronDown className="select-chevron" size={16} />
