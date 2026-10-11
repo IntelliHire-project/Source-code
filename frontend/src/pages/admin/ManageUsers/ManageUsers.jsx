@@ -20,13 +20,15 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  RotateCcw
+  RotateCcw,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { getUsers, saveUsers, appendAuditLog } from '../../../services/adminStorage';
-import { fetchUsers, updateRecruiterStatus, updateUser } from '../../../api/userApi';
+import { fetchUsers, updateRecruiterStatus, updateUser, updateUserStatus } from '../../../api/userApi';
 import './ManageUsers.css';
 
 // Initial Mock Users data matching mockup + some pagination filler
@@ -65,9 +67,11 @@ function ManageUsers() {
             name: u.full_name,
             email: u.email,
             role: u.role.charAt(0).toUpperCase() + u.role.slice(1),
-            status: u.role === 'recruiter' && u.recruiter_status 
-              ? (u.recruiter_status === 'approved' ? 'Active' : u.recruiter_status === 'rejected' ? 'Inactive' : 'Pending')
-              : 'Active',
+            status: u.status 
+              ? (u.status.charAt(0).toUpperCase() + u.status.slice(1).toLowerCase())
+              : (u.role === 'recruiter' && u.recruiter_status 
+                ? (u.recruiter_status === 'approved' ? 'Active' : u.recruiter_status === 'rejected' ? 'Inactive' : 'Pending')
+                : 'Active'),
             createdDate: u.created_at ? String(u.created_at).slice(0, 10) : '',
             avatarColor: colors[i % colors.length],
             companyName: u.company_name || 'N/A',
@@ -133,6 +137,50 @@ function ManageUsers() {
   const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
   const [actionUser, setActionUser] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Status Modal States (Activate / Deactivate)
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusTargetUser, setStatusTargetUser] = useState(null);
+  const [nextStatusAction, setNextStatusAction] = useState('active'); // 'active' | 'inactive'
+
+  // Handlers for User Status Management (Activate / Deactivate)
+  const handleOpenStatusModal = (user, targetAction) => {
+    setStatusTargetUser(user);
+    setNextStatusAction(targetAction);
+    setStatusModalOpen(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusTargetUser) return;
+    const newStatus = nextStatusAction === 'active' ? 'Active' : 'Inactive';
+    const statusParam = nextStatusAction.toLowerCase();
+
+    try {
+      if (statusTargetUser.id && Number(statusTargetUser.id) < 10000000000) {
+        await updateUserStatus(statusTargetUser.id, statusParam);
+      }
+    } catch (err) {
+      console.warn('Backend user status update failed, applying locally:', err);
+    }
+
+    const updatedUsers = users.map((u) =>
+      u.id === statusTargetUser.id ? { ...u, status: newStatus } : u
+    );
+    setUsers(updatedUsers);
+    saveUsers(updatedUsers);
+    appendAuditLog({
+      actionType: nextStatusAction === 'active' ? 'User Activated' : 'User Deactivated',
+      module: 'USER_MGMT',
+      details: `Account for ${statusTargetUser.name} set to ${newStatus}.`,
+      status: 'success'
+    });
+    setToast({
+      type: nextStatusAction === 'active' ? 'success' : 'warning',
+      message: `User "${statusTargetUser.name}" has been ${nextStatusAction === 'active' ? 'activated' : 'deactivated'} successfully.`
+    });
+    setStatusModalOpen(false);
+    setStatusTargetUser(null);
+  };
 
   // Handlers for Recruiter Verification
   const handleViewRecruiter = (user) => {
@@ -298,7 +346,11 @@ function ManageUsers() {
             name: formData.name.trim(),
             email: formData.email.trim(),
             role: formData.role.toLowerCase(),
+            status: formData.status.toLowerCase(),
           });
+          if (formData.status && selectedUser.status !== formData.status) {
+            await updateUserStatus(selectedUser.id, formData.status.toLowerCase());
+          }
         }
       } catch (err) {
         console.warn('Backend user update failed or unavailable, applying locally:', err);
@@ -708,7 +760,11 @@ function ManageUsers() {
                             {user.role}
                           </span>
                         </td>
-                        <td>
+                        <td 
+                          style={{ cursor: 'pointer' }}
+                          title={`Click to ${user.status === 'Active' ? 'deactivate' : 'activate'} user account`}
+                          onClick={() => handleOpenStatusModal(user, user.status === 'Active' ? 'inactive' : 'active')}
+                        >
                           <span className={`admin-table__status-badge admin-table__status-badge--${user.status.toLowerCase()}`}>
                             {user.status}
                           </span>
@@ -727,6 +783,26 @@ function ManageUsers() {
                               </button>
                             ) : (
                               <span className="admin-table__action-btn-placeholder" aria-hidden="true" />
+                            )}
+                            {/* SCRUM-720 Activate & SCRUM-721 Deactivate Action Button */}
+                            {user.status === 'Active' ? (
+                              <button
+                                className="admin-table__action-btn admin-table__action-btn--status-deactivate"
+                                onClick={() => handleOpenStatusModal(user, 'inactive')}
+                                title="Deactivate User Account"
+                                style={{ color: '#F59E0B' }}
+                              >
+                                <UserX size={16} />
+                              </button>
+                            ) : (
+                              <button
+                                className="admin-table__action-btn admin-table__action-btn--status-activate"
+                                onClick={() => handleOpenStatusModal(user, 'active')}
+                                title="Activate User Account"
+                                style={{ color: '#22C55E' }}
+                              >
+                                <UserCheck size={16} />
+                              </button>
                             )}
                             <button
                               className="admin-table__action-btn"
@@ -1273,6 +1349,68 @@ function ManageUsers() {
                 style={{ backgroundColor: '#E63946', color: '#fff', border: 'none' }}
               >
                 Confirm Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Status Confirmation Modal (Activate / Deactivate) */}
+      {statusModalOpen && (
+        <div className="admin-modal-overlay" onClick={() => setStatusModalOpen(false)}>
+          <div
+            className="admin-modal-container admin-modal-container--alert"
+            onClick={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <div className="alert-title-row">
+                {nextStatusAction === 'active' ? (
+                  <CheckCircle className="alert-icon" size={20} style={{ color: '#22C55E' }} />
+                ) : (
+                  <AlertTriangle className="alert-icon" size={20} style={{ color: '#F59E0B' }} />
+                )}
+                <h3 className="admin-modal-title">
+                  {nextStatusAction === 'active' ? 'Activate User Account' : 'Deactivate User Account'}
+                </h3>
+              </div>
+              <button className="admin-modal-close" onClick={() => setStatusModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="admin-modal-body alert-body">
+              <p>
+                Are you sure you want to {nextStatusAction === 'active' ? 'activate' : 'deactivate'} the account for{' '}
+                <strong className="alert-strong">{statusTargetUser?.name}</strong>?
+              </p>
+              <p className="alert-warning-sub">
+                {nextStatusAction === 'active'
+                  ? 'This will restore their access and allow them to sign in to the platform.'
+                  : 'This will suspend their access and prevent them from signing in until reactivated.'}
+              </p>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn admin-btn--secondary"
+                onClick={() => setStatusModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={handleConfirmStatusChange}
+                style={{
+                  backgroundColor: nextStatusAction === 'active' ? '#22C55E' : '#F59E0B',
+                  color: '#fff',
+                  border: 'none',
+                }}
+              >
+                {nextStatusAction === 'active' ? 'Confirm Activation' : 'Confirm Deactivation'}
               </button>
             </div>
           </div>

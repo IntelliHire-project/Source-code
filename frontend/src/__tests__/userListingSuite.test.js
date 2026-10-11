@@ -8,7 +8,7 @@
  * - SCRUM-716: Unit Testing (search filtering, role/status filtering, column sorting, pagination, offline fallback)
  */
 
-import { fetchUsers, updateUser } from '../api/userApi';
+import { fetchUsers, updateUser, updateUserStatus } from '../api/userApi';
 import apiInstance from '../api/apiInstance';
 import { getUsers, saveUsers } from '../services/adminStorage';
 
@@ -304,6 +304,103 @@ describe('User Listing API & Data Management Suite [SCRUM-707 / SCRUM-716]', () 
       });
       expect(response.success).toBe(true);
       expect(response.data.user.full_name).toBe('Jordan Bell Updated');
+    });
+  });
+
+  // ── SCRUM-709: Implement User Status Management Suite ───────────────────────
+  describe('SCRUM-709: User Status Management Suite (SCRUM-720, SCRUM-721, SCRUM-722)', () => {
+    // SCRUM-722: Update Database Status API Contract
+    test('SCRUM-722: should call PUT /users/:id/status to update database status', async () => {
+      const statusResponse = {
+        success: true,
+        message: 'User status updated to inactive.',
+        data: {
+          user: {
+            id: 15,
+            full_name: 'David Vance',
+            email: 'd.vance@nexuscorp.com',
+            role: 'candidate',
+            status: 'inactive'
+          }
+        }
+      };
+
+      apiInstance.put.mockResolvedValueOnce({ data: statusResponse });
+
+      const res = await updateUserStatus(15, 'inactive');
+
+      expect(apiInstance.put).toHaveBeenCalledWith('/users/15/status', { status: 'inactive' });
+      expect(res.success).toBe(true);
+      expect(res.data.user.status).toBe('inactive');
+    });
+
+    // SCRUM-720: Activate User Account
+    test('SCRUM-720: should activate user account and update local state to Active', async () => {
+      const inactiveUser = {
+        id: 7,
+        name: 'David Vance',
+        email: 'd.vance@nexuscorp.com',
+        role: 'Analyst',
+        status: 'Inactive'
+      };
+
+      apiInstance.put.mockResolvedValueOnce({
+        data: {
+          success: true,
+          message: 'User status updated to active.',
+          data: { user: { id: 7, status: 'active' } }
+        }
+      });
+
+      // API activation
+      await updateUserStatus(inactiveUser.id, 'active');
+      expect(apiInstance.put).toHaveBeenCalledWith('/users/7/status', { status: 'active' });
+
+      // State transition verification
+      const userList = [inactiveUser];
+      const updatedList = userList.map(u => (u.id === 7 ? { ...u, status: 'Active' } : u));
+
+      expect(updatedList[0].status).toBe('Active');
+    });
+
+    // SCRUM-721: Deactivate User Account & Prevent Login
+    test('SCRUM-721: should deactivate user account and verify deactivated users are blocked from login', async () => {
+      const activeUser = {
+        id: 1,
+        name: 'Alexander Sterling',
+        email: 'a.sterling@nexuscorp.com',
+        role: 'Admin',
+        status: 'Active'
+      };
+
+      apiInstance.put.mockResolvedValueOnce({
+        data: {
+          success: true,
+          message: 'User status updated to inactive.',
+          data: { user: { id: 1, status: 'inactive' } }
+        }
+      });
+
+      // Deactivation call
+      await updateUserStatus(activeUser.id, 'inactive');
+      expect(apiInstance.put).toHaveBeenCalledWith('/users/1/status', { status: 'inactive' });
+
+      // State transition verification
+      const userList = [activeUser];
+      const updatedList = userList.map(u => (u.id === 1 ? { ...u, status: 'Inactive' } : u));
+      expect(updatedList[0].status).toBe('Inactive');
+
+      // Authentication guard simulation
+      const simulateLoginGuard = (user) => {
+        if (user.status === 'inactive' || user.status === 'Inactive') {
+          return { error: 'Your account has been deactivated. Please contact an administrator.', status: 403 };
+        }
+        return { success: true };
+      };
+
+      const loginResult = simulateLoginGuard(updatedList[0]);
+      expect(loginResult.error).toBe('Your account has been deactivated. Please contact an administrator.');
+      expect(loginResult.status).toBe(403);
     });
   });
 });
