@@ -262,6 +262,24 @@ const initializeDatabase = async () => {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS payment_transactions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        vacancy_id INTEGER REFERENCES vacancies(id) ON DELETE SET NULL,
+        payment_reference TEXT NOT NULL UNIQUE,
+        payment_method TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        amount NUMERIC(10, 2) NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'LKR',
+        proof_url TEXT NOT NULL,
+        proof_public_id TEXT NOT NULL,
+        proof_filename TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // Create indices for fast lookups
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_candidates_user_id ON candidates(user_id);
@@ -271,6 +289,8 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_vacancies_user_id ON vacancies(user_id);
       CREATE INDEX IF NOT EXISTS idx_vacancies_recruiter_id ON vacancies(recruiter_id);
       CREATE INDEX IF NOT EXISTS idx_vacancies_status ON vacancies(status);
+      CREATE INDEX IF NOT EXISTS idx_payment_transactions_user_id ON payment_transactions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_payment_transactions_status ON payment_transactions(status);
     `);
   } finally {
     client.release();

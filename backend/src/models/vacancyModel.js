@@ -98,8 +98,8 @@ const generateNextVacancyCode = async (client = null) => {
 /**
  * Creates a new vacancy record.
  */
-const createVacancy = async (data, userId = null, recruiterId = null) => {
-  const code = data.vacancyCode || (await generateNextVacancyCode());
+const createVacancy = async (data, userId = null, recruiterId = null, executor = db) => {
+  const code = data.vacancyCode || (await generateNextVacancyCode(executor));
 
   const formattedDate = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -228,7 +228,7 @@ const createVacancy = async (data, userId = null, recruiterId = null) => {
     status,
   ];
 
-  const result = await db.query(query, values);
+  const result = await executor.query(query, values);
   return formatVacancyRow(result.rows[0]);
 };
 
