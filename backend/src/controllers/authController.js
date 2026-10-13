@@ -147,15 +147,34 @@ const createAccount = async (req, res, next) => {
     // Extract CV Data in the background/foreground to populate candidate profile
     if (requestedRole === "candidate" && req.file && candidateProfile) {
       try {
-        const pdf = require('pdf-parse');
-        const { extractCVData } = require('../services/nlpService');
-        const pdfData = await pdf(req.file.buffer);
-        if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
-          const extractedData = await extractCVData(pdfData.text);
+        const { convertPdfToXml, extractCVDataFromXml, extractCVData } = require('../services/nlpService');
+        let extractedData = null;
+
+        try {
+          console.log("[Auth Candidate Signup] Converting CV PDF into XML...");
+          const cvXml = await convertPdfToXml(req.file.buffer);
+          if (cvXml && cvXml.trim().length > 0) {
+            console.log("[Auth Candidate Signup] Extracting candidate details from converted XML...");
+            extractedData = await extractCVDataFromXml(cvXml);
+          }
+        } catch (xmlErr) {
+          console.warn("[Auth Candidate Signup] XML conversion failed, falling back to pdf-parse:", xmlErr.message);
+        }
+
+        if (!extractedData) {
+          const pdf = require('pdf-parse');
+          const pdfData = await pdf(req.file.buffer);
+          if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
+            extractedData = await extractCVData(pdfData.text);
+          }
+        }
+
+        if (extractedData) {
           const profileData = {
             headline: extractedData.headline || null,
             location: extractedData.location || null,
             linkedin: extractedData.linkedin || null,
+            github: extractedData.github || null,
             language: extractedData.language || null,
             bio: extractedData.bio || null,
             skills: extractedData.skills || [],
