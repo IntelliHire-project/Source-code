@@ -30,6 +30,8 @@ services:
       context: ./nlp
     ports:
       - "5001:5001"
+    volumes:
+      - ./nlp:/app
   api:
     build:
       context: ./backend

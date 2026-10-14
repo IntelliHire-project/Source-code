@@ -1,4 +1,4 @@
-const { findCandidateByUserId, updateCandidateProfileData } = require('../models/candidateModel');
+const { findCandidateByUserId, updateCandidateProfileData, createCandidate } = require('../models/candidateModel');
 const { updateUser, findUserById } = require('../models/userModel');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -7,9 +7,10 @@ const updateProfile = async (req, res) => {
     const userId = req.user.id;
     const profileData = req.body;
 
-    const candidate = await findCandidateByUserId(userId);
+    let candidate = await findCandidateByUserId(userId);
     if (!candidate) {
-      return errorResponse(res, "Candidate profile not found.", 404);
+      await createCandidate(userId);
+      candidate = await findCandidateByUserId(userId);
     }
 
     const updatedProfile = await updateCandidateProfileData(candidate.id, profileData);
@@ -39,10 +40,11 @@ const updateProfile = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const candidate = await findCandidateByUserId(userId);
+    let candidate = await findCandidateByUserId(userId);
     
     if (!candidate) {
-      return errorResponse(res, "Candidate profile not found.", 404);
+      await createCandidate(userId);
+      candidate = await findCandidateByUserId(userId);
     }
 
     return successResponse(res, "Profile fetched successfully.", candidate);
