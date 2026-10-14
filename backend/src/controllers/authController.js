@@ -5,6 +5,8 @@ const userModel = require("../models/userModel");
 const candidateModel = require("../models/candidateModel");
 const recruiterModel = require("../models/recruiterModel");
 const cloudinaryService = require("../services/cloudinaryService");
+const { extractTextFromBuffer, extractTextFromUrl } = require("../services/cvTextService");
+const { generateCVInsights, chatWithCVAssistant } = require("../services/geminiService");
 const { hashPassword, verifyPassword } = require("../utils/password");
 const { successResponse, errorResponse } = require("../utils/response");
 const { signToken } = require("../services/tokenService");
@@ -72,17 +74,23 @@ const createAccount = async (req, res, next) => {
       return errorResponse(res, "An account with that email already exists.", 409);
     }
 
-    // If candidate uploaded a CV file, upload to Cloudinary
+    // If candidate uploaded a CV file, upload to Cloudinary and extract raw text
     if (requestedRole === "candidate" && req.file) {
       try {
         const uploadResult = await cloudinaryService.uploadBuffer(
           req.file.buffer,
           req.file.originalname
         );
+        const rawText = await extractTextFromBuffer(req.file.buffer);
+        const fileSizeFormatted = req.file.size
+          ? `${Math.round(req.file.size / 1024)} KB`
+          : null;
         uploadedCv = {
           name: req.file.originalname,
           url: uploadResult.secure_url,
           publicId: uploadResult.public_id,
+          fileSize: fileSizeFormatted,
+          rawText,
         };
       } catch (uploadError) {
         console.error("Cloudinary CV upload error:", uploadError);
@@ -115,7 +123,10 @@ const createAccount = async (req, res, next) => {
           uploadedCv.url,
           uploadedCv.publicId,
           true,
-          client
+          client,
+          uploadedCv.fileSize,
+          uploadedCv.rawText,
+          null
         );
         candidateProfile.cvs = [cvRecord];
         candidateProfile.activeCv = cvRecord;
@@ -494,6 +505,8 @@ const uploadCandidateCV = async (req, res, next) => {
       req.file.originalname
     );
 
+    const rawText = await extractTextFromBuffer(req.file.buffer);
+
     const fileSizeFormatted = req.file.size
       ? `${Math.round(req.file.size / 1024)} KB`
       : null;
@@ -505,13 +518,14 @@ const uploadCandidateCV = async (req, res, next) => {
       uploadResult.public_id,
       makeActive,
       null,
-      fileSizeFormatted
+      fileSizeFormatted,
+      rawText,
+      null
     );
 
     if (makeActive) {
       await syncCandidateProfileFromCV(candidate.id, req.user.id, req.file.buffer, req.file.originalname);
     }
-
     return successResponse(res, "CV uploaded successfully.", { cv }, 201);
   } catch (error) {
     next(error);
@@ -547,6 +561,8 @@ const replaceCandidateCV = async (req, res, next) => {
       req.file.originalname
     );
 
+    const rawText = await extractTextFromBuffer(req.file.buffer);
+
     const fileSizeFormatted = req.file.size
       ? `${Math.round(req.file.size / 1024)} KB`
       : null;
@@ -559,6 +575,9 @@ const replaceCandidateCV = async (req, res, next) => {
       uploadResult.public_id,
       fileSizeFormatted
     );
+
+    await candidateModel.updateCVRawText(cvId, candidate.id, rawText);
+    await candidateModel.updateCVInsights(cvId, candidate.id, null);
 
     if (oldCv.is_active) {
       await syncCandidateProfileFromCV(candidate.id, req.user.id, req.file.buffer, req.file.originalname);
@@ -689,6 +708,107 @@ const deleteCandidateCV = async (req, res, next) => {
   }
 };
 
+/**
+ * Retrieves or generates AI insights for a candidate's CV.
+ */
+const getCVInsights = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    let cv = await candidateModel.findCVById(cvId, candidate.id);
+    if (!cv) {
+      return errorResponse(res, "CV not found.", 404);
+    }
+
+    // Return cached insights if already generated and force re-analysis not requested
+    const forceRefresh = req.query.refresh === 'true';
+    if (cv.insights && !forceRefresh) {
+      return successResponse(res, "CV insights retrieved successfully.", {
+        insights: cv.insights,
+        cvId: cv.id,
+        cached: true,
+      });
+    }
+
+    // If raw_text is missing, extract it from the Cloudinary URL
+    let cvText = cv.raw_text;
+    if (!cvText && cv.cv_url) {
+      cvText = await extractTextFromUrl(cv.cv_url);
+      if (cvText) {
+        await candidateModel.updateCVRawText(cv.id, candidate.id, cvText);
+      }
+    }
+
+    // Generate insights with Gemini
+    const insights = await generateCVInsights(cvText, cv.cv_name);
+
+    // Cache insights in DB
+    await candidateModel.updateCVInsights(cv.id, candidate.id, insights);
+
+    return successResponse(res, "CV insights generated successfully.", {
+      insights,
+      cvId: cv.id,
+      cached: false,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Chat with CV Assistant grounded in the candidate's CV content.
+ */
+const chatWithCV = async (req, res, next) => {
+  try {
+    const cvId = parseInt(req.params.id, 10);
+    const { message, history } = req.body;
+
+    if (!cvId) {
+      return errorResponse(res, "Valid CV ID is required.", 400);
+    }
+
+    if (!message || !message.trim()) {
+      return errorResponse(res, "Message is required.", 400);
+    }
+
+    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    if (!candidate) {
+      return errorResponse(res, "Candidate profile not found.", 404);
+    }
+
+    let cv = await candidateModel.findCVById(cvId, candidate.id);
+    if (!cv) {
+      return errorResponse(res, "CV not found.", 404);
+    }
+
+    // Ensure raw text is available
+    let cvText = cv.raw_text;
+    if (!cvText && cv.cv_url) {
+      cvText = await extractTextFromUrl(cv.cv_url);
+      if (cvText) {
+        await candidateModel.updateCVRawText(cv.id, candidate.id, cvText);
+      }
+    }
+
+    const reply = await chatWithCVAssistant(cvText, message.trim(), history || []);
+
+    return successResponse(res, "Chat response generated successfully.", {
+      reply,
+      cvId: cv.id,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAccount,
   login,
@@ -704,4 +824,6 @@ module.exports = {
   setActiveCandidateCV,
   downloadCandidateCV,
   deleteCandidateCV,
+  getCVInsights,
+  chatWithCV,
 };
