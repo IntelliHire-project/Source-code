@@ -147,26 +147,30 @@ const createAccount = async (req, res, next) => {
     // Extract CV Data in the background/foreground to populate candidate profile
     if (requestedRole === "candidate" && req.file && candidateProfile) {
       try {
-        const { convertPdfToXml, extractCVDataFromXml, extractCVData } = require('../services/nlpService');
+        const { extractCVDataFromPdf, extractCVData, localExtractFallback } = require('../services/nlpService');
         let extractedData = null;
 
         try {
-          console.log("[Auth Candidate Signup] Converting CV PDF into XML...");
-          const cvXml = await convertPdfToXml(req.file.buffer);
-          if (cvXml && cvXml.trim().length > 0) {
-            console.log("[Auth Candidate Signup] Extracting candidate details from converted XML...");
-            extractedData = await extractCVDataFromXml(cvXml);
-          }
-        } catch (xmlErr) {
-          console.warn("[Auth Candidate Signup] XML conversion failed, falling back to pdf-parse:", xmlErr.message);
+          console.log("[Auth Candidate Signup] Extracting candidate details from CV PDF...");
+          extractedData = await extractCVDataFromPdf(req.file.buffer, req.file.originalname);
+        } catch (pdfErr) {
+          console.warn("[Auth Candidate Signup] Direct PDF extraction failed, trying fallback:", pdfErr.message);
         }
 
         if (!extractedData) {
-          const pdf = require('pdf-parse');
-          const pdfData = await pdf(req.file.buffer);
-          if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
-            extractedData = await extractCVData(pdfData.text);
+          try {
+            const pdf = require('pdf-parse');
+            const pdfData = await pdf(req.file.buffer);
+            if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
+              extractedData = await extractCVData(pdfData.text, req.file.originalname);
+            }
+          } catch (textErr) {
+            console.warn("[Auth Candidate Signup] pdf-parse fallback failed:", textErr.message);
           }
+        }
+
+        if (!extractedData) {
+          extractedData = localExtractFallback("", req.file.originalname);
         }
 
         if (extractedData) {
@@ -409,6 +413,66 @@ const getCandidateCVs = async (req, res, next) => {
   }
 };
 
+const syncCandidateProfileFromCV = async (candidateId, userId, pdfBuffer, originalname) => {
+  try {
+    const { extractCVDataFromPdf, extractCVData, localExtractFallback } = require('../services/nlpService');
+    let extractedData = null;
+
+    try {
+      extractedData = await extractCVDataFromPdf(pdfBuffer, originalname);
+    } catch (pdfErr) {
+      console.warn("[CV Sync] Direct PDF extraction failed:", pdfErr.message);
+    }
+
+    if (!extractedData) {
+      try {
+        const pdf = require('pdf-parse');
+        const pdfData = await pdf(pdfBuffer);
+        if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
+          extractedData = await extractCVData(pdfData.text, originalname);
+        }
+      } catch (textErr) {
+        console.warn("[CV Sync] pdf-parse fallback failed:", textErr.message);
+      }
+    }
+
+    if (!extractedData) {
+      extractedData = localExtractFallback("", originalname);
+    }
+
+    if (extractedData) {
+      const profileData = {
+        headline: extractedData.headline || null,
+        location: extractedData.location || null,
+        linkedin: extractedData.linkedin || null,
+        github: extractedData.github || null,
+        language: extractedData.language || "English",
+        bio: extractedData.bio || null,
+        phone: extractedData.phone || null,
+        skills: extractedData.skills || [],
+        experience: (extractedData.experience || []).map((exp, index) => ({
+          ...exp,
+          id: `exp-${Date.now()}-${index}`
+        })),
+        education: (extractedData.education || []).map((edu, index) => ({
+          ...edu,
+          id: `edu-${Date.now()}-${index}`
+        }))
+      };
+      await candidateModel.updateCandidateProfileData(candidateId, profileData);
+      if (extractedData.name && userId) {
+        try {
+          await userModel.updateUser(userId, extractedData.name);
+        } catch (uErr) {
+          // Ignore name update conflict
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[CV Sync] Warning updating candidate profile from CV:", err.message);
+  }
+};
+
 /**
  * Uploads a new CV for the authenticated candidate.
  */
@@ -420,7 +484,6 @@ const uploadCandidateCV = async (req, res, next) => {
 
     let candidate = await candidateModel.findCandidateByUserId(req.user.id);
     if (!candidate) {
-      // Create candidate record if not yet created
       candidate = await candidateModel.createCandidate(req.user.id);
     }
 
@@ -445,7 +508,9 @@ const uploadCandidateCV = async (req, res, next) => {
       fileSizeFormatted
     );
 
-    // Removed local file caching
+    if (makeActive) {
+      await syncCandidateProfileFromCV(candidate.id, req.user.id, req.file.buffer, req.file.originalname);
+    }
 
     return successResponse(res, "CV uploaded successfully.", { cv }, 201);
   } catch (error) {
@@ -467,9 +532,9 @@ const replaceCandidateCV = async (req, res, next) => {
       return errorResponse(res, "Please select a replacement CV file to upload.", 400);
     }
 
-    const candidate = await candidateModel.findCandidateByUserId(req.user.id);
+    let candidate = await candidateModel.findCandidateByUserId(req.user.id);
     if (!candidate) {
-      return errorResponse(res, "Candidate profile not found.", 404);
+      candidate = await candidateModel.createCandidate(req.user.id);
     }
 
     const oldCv = await candidateModel.findCVById(cvId, candidate.id);
@@ -495,7 +560,9 @@ const replaceCandidateCV = async (req, res, next) => {
       fileSizeFormatted
     );
 
-    // Removed local copy saving
+    if (oldCv.is_active) {
+      await syncCandidateProfileFromCV(candidate.id, req.user.id, req.file.buffer, req.file.originalname);
+    }
 
     // Clean up old Cloudinary asset
     if (oldCv.cv_public_id) {
@@ -530,6 +597,19 @@ const setActiveCandidateCV = async (req, res, next) => {
     const activatedCV = await candidateModel.setActiveCV(candidate.id, cvId);
     if (!activatedCV) {
       return errorResponse(res, "CV not found or access denied.", 404);
+    }
+
+    if (activatedCV.cv_url) {
+      try {
+        const fetchResp = await fetch(activatedCV.cv_url);
+        if (fetchResp.ok) {
+          const arrayBuf = await fetchResp.arrayBuffer();
+          const pdfBuffer = Buffer.from(arrayBuf);
+          await syncCandidateProfileFromCV(candidate.id, req.user.id, pdfBuffer, activatedCV.cv_name);
+        }
+      } catch (syncErr) {
+        console.warn("[setActiveCandidateCV] Warning syncing profile:", syncErr.message);
+      }
     }
 
     return successResponse(res, "Active CV updated successfully.", { cv: activatedCV });
