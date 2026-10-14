@@ -273,10 +273,44 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  table-layout: fixed;
+}
+
+/* Explicit balanced column width distribution */
+.admin-table th.col-name,
+.admin-table td:nth-child(1) {
+  width: 22%;
+}
+
+.admin-table th.col-email,
+.admin-table td:nth-child(2) {
+  width: 24%;
+}
+
+.admin-table th.col-role,
+.admin-table td:nth-child(3) {
+  width: 13%;
+}
+
+.admin-table th.col-status,
+.admin-table td:nth-child(4) {
+  width: 12%;
+}
+
+.admin-table th.col-date,
+.admin-table td:nth-child(5) {
+  width: 13%;
+}
+
+.admin-table th.col-actions,
+.admin-table td:nth-child(6) {
+  width: 16%;
+  min-width: 160px;
+  text-align: right;
 }
 
 .admin-table th {
-  padding: 14px 24px;
+  padding: 14px 20px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -292,6 +326,31 @@
 
 .admin-table th.sortable-header:hover {
   color: var(--text-primary);
+}
+
+.table-header-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-sort-icon {
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.admin-sort-icon--neutral {
+  opacity: 0.35;
+}
+
+.admin-table th.sortable-header:hover .admin-sort-icon--neutral {
+  opacity: 0.8;
+  color: var(--accent);
+}
+
+.admin-sort-icon--active {
+  color: var(--accent);
+  opacity: 1;
 }
 
 .admin-table td {
@@ -310,6 +369,42 @@
   text-align: center;
   color: var(--text-secondary);
   padding: 48px !important;
+}
+
+/* Enhanced Empty State Card */
+.admin-table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  gap: 10px;
+}
+
+.admin-table-empty__icon {
+  color: var(--text-secondary);
+  opacity: 0.4;
+  margin-bottom: 4px;
+}
+
+.admin-table-empty__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.admin-table-empty__subtitle {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 380px;
+}
+
+.admin-table-empty__btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
 }
 
 .text-right {
@@ -352,13 +447,41 @@
 /* Role category badge */
 .admin-table__role-badge {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.08);
-  color: #FFFFFF;
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 0.78rem;
-  font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.admin-table__role-badge--admin {
+  background: rgba(168, 85, 247, 0.12);
+  color: #D8B4FE;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.admin-table__role-badge--recruiter {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93C5FD;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.admin-table__role-badge--candidate {
+  background: rgba(20, 184, 166, 0.12);
+  color: #5EEAD4;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+
+.admin-table__role-badge--moderator {
+  background: rgba(245, 158, 11, 0.12);
+  color: #FCD34D;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.admin-table__role-badge--default {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Custom Status Badges */
@@ -391,11 +514,24 @@
 }
 
 /* Action button items */
+.admin-table__actions-td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 10px 20px;
+}
+
 .admin-table__actions-cell {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
+}
+
+.admin-table__action-btn-placeholder {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .admin-table__action-btn {
@@ -421,6 +557,26 @@
   background: rgba(230, 57, 70, 0.1);
 }
 
+.admin-table__action-btn--status-activate:hover {
+  color: #22C55E !important;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.admin-table__action-btn--status-deactivate:hover {
+  color: #F59E0B !important;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.admin-table__status-badge {
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.admin-table__status-badge:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
 /* ── Registry Card Footer / Pagination ── */
 .admin-registry-card__footer {
   padding: 16px 24px;
@@ -432,9 +588,62 @@
   flex-wrap: wrap;
 }
 
+.admin-registry-card__footer-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
 .admin-registry-card__footer-info {
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.bold-count {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Rows Per Page Selector */
+.admin-rows-per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.admin-rows-per-page__select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.admin-rows-per-page__select {
+  appearance: none;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 4px 24px 4px 8px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-rows-per-page__select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.admin-rows-per-page__chevron {
+  position: absolute;
+  right: 6px;
+  color: var(--text-secondary);
+  pointer-events: none;
 }
 
 .bold-count {

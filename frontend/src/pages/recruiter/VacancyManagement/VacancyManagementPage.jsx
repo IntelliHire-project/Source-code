@@ -26,6 +26,7 @@ import StatusBadge from '../../../components/common/StatusBadge';
 import DropdownMenu from '../../../components/common/DropdownMenu';
 import { VACANCIES } from '../../../data/vacancies';
 import { getApplicants } from '../../../data/applicants';
+import { fetchVacancies, closeVacancy } from '../../../api/vacancyApi';
 import '../../../style.css';
 import './VacancyManagementPage.css';
 
@@ -99,32 +100,55 @@ function VacancyManagementPage() {
   const toolbarRef = useRef(null);
   const navigate = useNavigate();
 
+  const [allVacancies, setAllVacancies] = useState(VACANCIES);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadVacancies = async () => {
+      try {
+        const response = await fetchVacancies();
+        if (isMounted && response?.vacancies) {
+          const dbVacancies = response.vacancies;
+          const dbIds = new Set(dbVacancies.map((v) => v.id));
+          const remainingMocks = VACANCIES.filter((m) => !dbIds.has(m.id));
+          setAllVacancies([...dbVacancies, ...remainingMocks]);
+        }
+      } catch (err) {
+        console.warn('Backend vacancies fetch failed, showing local mocks:', err);
+      }
+    };
+    loadVacancies();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const statCards = useMemo(() => {
-    const totalApplicants = VACANCIES.reduce(
+    const totalApplicants = allVacancies.reduce(
       (sum, vacancy) => sum + getApplicants(vacancy.id).length,
       0,
     );
     return [
-      { icon: Briefcase, label: 'TOTAL VACANCIES', value: VACANCIES.length, variant: 'gold' },
+      { icon: Briefcase, label: 'TOTAL VACANCIES', value: allVacancies.length, variant: 'gold' },
       {
         icon: BarChart3,
         label: 'ACTIVE LISTINGS',
-        value: VACANCIES.filter((v) => v.status === 'published').length,
+        value: allVacancies.filter((v) => v.status === 'published').length,
         variant: 'info',
       },
       { icon: Users, label: 'TOTAL APPLICANTS', value: totalApplicants, variant: 'success' },
       {
         icon: FileText,
         label: 'PENDING DRAFTS',
-        value: VACANCIES.filter((v) => v.status === 'draft').length,
+        value: allVacancies.filter((v) => v.status === 'draft').length,
         variant: 'muted',
       },
     ];
-  }, []);
+  }, [allVacancies]);
 
   const departments = useMemo(
-    () => [...new Set(VACANCIES.map((v) => v.department))].sort(),
-    [],
+    () => [...new Set(allVacancies.map((v) => v.department).filter(Boolean))].sort(),
+    [allVacancies],
   );
 
   const hasActiveFilters = statusFilter !== 'all' || departmentFilter !== 'all';
@@ -145,7 +169,7 @@ function VacancyManagementPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    const list = VACANCIES.filter(
+    const list = [...allVacancies].filter(
       (v) =>
         (statusFilter === 'all' || v.status === statusFilter) &&
         (departmentFilter === 'all' || v.department === departmentFilter),
@@ -153,18 +177,18 @@ function VacancyManagementPage() {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
-        v.title.toLowerCase().includes(q) ||
-        v.department.toLowerCase().includes(q) ||
-        v.id.toLowerCase().includes(q)
+        (v.title && v.title.toLowerCase().includes(q)) ||
+        (v.department && v.department.toLowerCase().includes(q)) ||
+        (v.id && String(v.id).toLowerCase().includes(q))
       );
     });
 
     switch (sortBy) {
       case 'titleAsc':
-        list.sort((a, b) => a.title.localeCompare(b.title));
+        list.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
         break;
       case 'titleDesc':
-        list.sort((a, b) => b.title.localeCompare(a.title));
+        list.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
         break;
       case 'applicantsDesc':
         list.sort((a, b) => getApplicants(b.id).length - getApplicants(a.id).length);
@@ -180,7 +204,7 @@ function VacancyManagementPage() {
         break;
     }
     return list;
-  }, [search, statusFilter, departmentFilter, sortBy]);
+  }, [allVacancies, search, statusFilter, departmentFilter, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -441,10 +465,32 @@ function VacancyManagementPage() {
                             {
                               label: 'Edit Vacancy',
                               icon: Pencil,
-                              onClick: () => navigate('/recruiter/create-vacancy'),
+                              onClick: () =>
+                                navigate(
+                                  `/recruiter/create-vacancy?id=${v.id || v.vacancyCode || ''}`,
+                                  { state: { editVacancy: v } }
+                                ),
                             },
                             { label: 'Duplicate', icon: Copy },
-                            { label: 'Close Vacancy', icon: X, danger: true },
+                            {
+                              label: 'Close Vacancy',
+                              icon: X,
+                              danger: true,
+                              onClick: async () => {
+                                if (window.confirm(`Are you sure you want to close "${v.title}"?`)) {
+                                  try {
+                                    await closeVacancy(v.id);
+                                  } catch (e) {
+                                    console.error(e);
+                                  }
+                                  setAllVacancies((prev) =>
+                                    prev.map((item) =>
+                                      item.id === v.id ? { ...item, status: 'closed' } : item
+                                    )
+                                  );
+                                }
+                              },
+                            },
                           ]}
                         />
                       </td>

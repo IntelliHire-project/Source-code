@@ -27,7 +27,7 @@ const createUser = async (fullName, email, passwordHash, role = "candidate", cli
  */
 const findUserByEmail = async (email) => {
   const result = await db.query(
-    `SELECT id, full_name, email, password_hash, role, email_verified, created_at
+    `SELECT id, full_name, email, password_hash, role, COALESCE(status, 'active') AS status, email_verified, created_at
      FROM users
      WHERE email = $1`,
     [email]
@@ -55,7 +55,7 @@ const markEmailVerified = async (userId) => {
  */
 const findUserById = async (id) => {
   const result = await db.query(
-    `SELECT id, full_name, email, role, created_at
+    `SELECT id, full_name, email, role, COALESCE(status, 'active') AS status, created_at
      FROM users
      WHERE id = $1`,
     [id]
@@ -69,7 +69,7 @@ const findUserById = async (id) => {
  */
 const findAllUsers = async () => {
   const result = await db.query(
-    `SELECT u.id, u.full_name, u.email, u.role, u.created_at, 
+    `SELECT u.id, u.full_name, u.email, u.role, COALESCE(u.status, 'active') AS status, u.created_at, 
             r.approval_status AS recruiter_status, r.company_name, r.industry,
             r.company_website, r.company_reg_number, r.company_location, 
             r.company_linkedin, r.job_title, r.phone_number, r.linkedin_url,
@@ -90,14 +90,33 @@ const updatePassword = async (userId, newPasswordHash) => {
   );
 };
 
-const updateUser = async (userId, fullName, email) => {
+const updateUser = async (userId, fullName, email, role = null, status = null) => {
   const result = await db.query(
     `UPDATE users
      SET full_name = COALESCE($1, full_name),
-         email = COALESCE($2, email)
-     WHERE id = $3
-     RETURNING id, full_name, email, role, created_at`,
-    [fullName, email, userId]
+         email = COALESCE($2, email),
+         role = COALESCE($3, role),
+         status = COALESCE($4, status)
+     WHERE id = $5
+     RETURNING id, full_name, email, role, status, created_at`,
+    [fullName, email, role, status, userId]
+  );
+  return result.rows[0] || null;
+};
+
+/**
+ * Updates a user's active/inactive status in the database.
+ * @param {number} userId 
+ * @param {string} status 'active' | 'inactive' | 'pending'
+ * @returns {Promise<object|null>} Updated user record
+ */
+const updateUserStatus = async (userId, status) => {
+  const result = await db.query(
+    `UPDATE users
+     SET status = $1
+     WHERE id = $2
+     RETURNING id, full_name, email, role, status, created_at`,
+    [status, userId]
   );
   return result.rows[0] || null;
 };
@@ -110,4 +129,5 @@ module.exports = {
   markEmailVerified,
   updatePassword,
   updateUser,
+  updateUserStatus,
 };

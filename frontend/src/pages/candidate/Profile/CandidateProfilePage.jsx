@@ -172,11 +172,24 @@ function CandidateProfilePage({ initialMode = 'view' }) {
             location: candidateData.location || '',
             linkedIn: candidateData.linkedin || '',
             github: candidateData.github || '',
-            language: candidateData.language || '',
+            language: candidateData.language || 'English',
             bioSummary: candidateData.bio || '',
-            skills: candidateData.skills || [],
-            education: candidateData.education || [],
-            workExperience: candidateData.experience || [],
+            skills: Array.isArray(candidateData.skills) ? candidateData.skills : [],
+            education: Array.isArray(candidateData.education) ? candidateData.education : [],
+            workExperience: Array.isArray(candidateData.experience) ? candidateData.experience : [],
+            cv: candidateData.activeCv
+              ? {
+                  name: candidateData.activeCv.cv_name,
+                  meta: `Uploaded on ${new Date(candidateData.activeCv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                  note: candidateData.activeCv.file_size || 'PDF up to 10MB',
+                }
+              : (candidateData.cvs && candidateData.cvs.length > 0)
+              ? {
+                  name: candidateData.cvs[0].cv_name,
+                  meta: `Uploaded on ${new Date(candidateData.cvs[0].created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                  note: candidateData.cvs[0].file_size || 'PDF up to 10MB',
+                }
+              : getInitialProfile(user).cv,
           };
           setProfile(mergedProfile);
           setDraft(mergedProfile);
@@ -320,25 +333,34 @@ function CandidateProfilePage({ initialMode = 'view' }) {
       const res = await uploadCV(file);
       const extracted = res;
       
-      setDraft((prev) => ({
-        ...prev,
-        fullName: extracted.name || prev.fullName,
-        email: extracted.email || prev.email,
-        phone: extracted.phone || prev.phone,
-        headline: extracted.headline || prev.headline,
-        location: extracted.location || prev.location,
-        linkedIn: extracted.linkedin || prev.linkedIn,
-        github: extracted.github || prev.github,
-        language: extracted.language || prev.language,
-        bioSummary: extracted.bio || prev.bioSummary,
-        skills: extracted.skills && extracted.skills.length > 0 ? extracted.skills : prev.skills,
-        workExperience: extracted.experience && extracted.experience.length > 0 ? extracted.experience : prev.workExperience,
-        education: extracted.education && extracted.education.length > 0 ? extracted.education : prev.education,
+      const updatedFields = {
+        fullName: extracted.name || draft.fullName,
+        email: extracted.email || draft.email,
+        phone: extracted.phone || draft.phone,
+        headline: extracted.headline || draft.headline,
+        location: extracted.location || draft.location,
+        linkedIn: extracted.linkedin !== undefined && extracted.linkedin !== null ? extracted.linkedin : draft.linkedIn,
+        github: extracted.github !== undefined && extracted.github !== null ? extracted.github : draft.github,
+        language: extracted.language || draft.language,
+        bioSummary: extracted.bio || draft.bioSummary,
+        skills: Array.isArray(extracted.skills) && extracted.skills.length > 0 ? extracted.skills : draft.skills,
+        workExperience: Array.isArray(extracted.experience) && extracted.experience.length > 0 ? extracted.experience : draft.workExperience,
+        education: Array.isArray(extracted.education) && extracted.education.length > 0 ? extracted.education : draft.education,
         cv: {
           name: file.name,
           meta: `Uploaded on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-          note: `Size: ${Math.round(file.size / 1024)} KB`
+          note: `${Math.round(file.size / 1024)} KB`
         }
+      };
+
+      setDraft((prev) => ({
+        ...prev,
+        ...updatedFields
+      }));
+
+      setProfile((prev) => ({
+        ...prev,
+        ...updatedFields
       }));
 
       // Also upload and save this CV to the candidate's account permanently as active CV

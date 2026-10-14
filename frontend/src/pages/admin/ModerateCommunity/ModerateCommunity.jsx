@@ -603,11 +603,11 @@ function ModerateContent() {
                             }
                           />
                         </th>
-                        <th>Post Title</th>
-                        <th>Category</th>
-                        <th>Reported By</th>
-                        <th>Date</th>
-                        <th>Actions</th>
+                        <th className="col-post-title">Post Title</th>
+                        <th className="col-category">Category</th>
+                        <th className="col-reporter">Reported By</th>
+                        <th className="col-date">Date</th>
+                        <th className="col-actions text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -638,35 +638,37 @@ function ModerateContent() {
                               {report.reportedBy}
                             </td>
                             <td className="date-cell">{report.date}</td>
-                            <td className="actions-cell">
-                              <button
-                                className="action-icon-btn view"
-                                title="Review Details"
-                                onClick={() => setSelectedReport(report)}
-                              >
-                                <Eye size={16} />
-                              </button>
-                              <button
-                                className="action-icon-btn warn-btn"
-                                title="Warn Author"
-                                onClick={() => handleOpenWarnModal(report)}
-                              >
-                                <ShieldAlert size={16} />
-                              </button>
-                              <button
-                                className="action-icon-btn approve"
-                                title="Dismiss / Keep"
-                                onClick={() => handleResolveSingle(report.id)}
-                              >
-                                <Check size={16} />
-                              </button>
-                              <button
-                                className="action-icon-btn reject"
-                                title="Remove Post"
-                                onClick={() => handleRemovePost(report)}
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                            <td className="actions-td">
+                              <div className="actions-cell">
+                                <button
+                                  className="action-icon-btn view"
+                                  title="Review Details"
+                                  onClick={() => setSelectedReport(report)}
+                                >
+                                  <Eye size={16} />
+                                </button>
+                                <button
+                                  className="action-icon-btn warn-btn"
+                                  title="Warn Author"
+                                  onClick={() => handleOpenWarnModal(report)}
+                                >
+                                  <ShieldAlert size={16} />
+                                </button>
+                                <button
+                                  className="action-icon-btn approve"
+                                  title="Dismiss / Keep"
+                                  onClick={() => handleResolveSingle(report.id)}
+                                >
+                                  <Check size={16} />
+                                </button>
+                                <button
+                                  className="action-icon-btn reject"
+                                  title="Remove Post"
+                                  onClick={() => handleRemovePost(report)}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))

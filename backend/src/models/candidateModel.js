@@ -236,33 +236,46 @@ const deleteCV = async (candidateId, cvId) => {
  * @returns {Promise<object|null>} Updated candidate record
  */
 const updateCandidateProfileData = async (candidateId, profileData) => {
-  const { skills, education, experience, headline, location, language, bio, phone, linkedin, github } = profileData;
-  
-  // Conditionally update phone if it's provided in the payload
-  const phoneUpdate = phone !== undefined ? `phone = COALESCE($9, phone),` : ``;
-  const linkedinUpdate = linkedin !== undefined ? `linkedin = COALESCE(${phone !== undefined ? '$10' : '$9'}, linkedin),` : ``;
-  
-  let paramIndexOffset = 8 + (phone !== undefined ? 1 : 0) + (linkedin !== undefined ? 1 : 0);
-  const githubUpdate = github !== undefined ? `github = COALESCE($${paramIndexOffset + 1}, github),` : ``;
-  
+  const {
+    skills,
+    education,
+    experience,
+    headline,
+    location,
+    language,
+    bio,
+    phone,
+    linkedin,
+    github
+  } = profileData;
+
   const result = await db.query(
     `UPDATE candidates
-     SET skills = $1, education = $2, experience = $3, 
-         headline = $4, location = $5, language = $6, bio = $7, ${phoneUpdate} ${linkedinUpdate} ${githubUpdate} updated_at = NOW()
-     WHERE id = $8
+     SET skills = $1,
+         education = $2,
+         experience = $3, 
+         headline = $4,
+         location = $5,
+         language = $6,
+         bio = $7,
+         phone = $8,
+         linkedin = $9,
+         github = $10,
+         updated_at = NOW()
+     WHERE id = $11
      RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, linkedin, github, created_at, updated_at`,
     [
       JSON.stringify(skills || []),
       JSON.stringify(education || []),
       JSON.stringify(experience || []),
-      headline || null,
-      location || null,
-      language || null,
-      bio || null,
+      headline !== undefined ? (headline || null) : null,
+      location !== undefined ? (location || null) : null,
+      language !== undefined ? (language || null) : null,
+      bio !== undefined ? (bio || null) : null,
+      phone !== undefined ? (phone || null) : null,
+      linkedin !== undefined ? (linkedin || null) : null,
+      github !== undefined ? (github || null) : null,
       candidateId,
-      ...(phone !== undefined ? [phone || null] : []),
-      ...(linkedin !== undefined ? [linkedin || null] : []),
-      ...(github !== undefined ? [github || null] : [])
     ]
   );
   return result.rows[0] || null;

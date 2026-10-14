@@ -7,6 +7,8 @@ const adminRoutes = require("./routes/adminRoutes");
 const valuesRoutes = require("./routes/valuesRoutes");
 const cvRoutes = require("./routes/cvRoutes");
 const candidateRoutes = require("./routes/candidateRoutes");
+const vacancyRoutes = require("./routes/vacancyRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
@@ -23,9 +25,10 @@ app.use("/auth", authRoutes);
 app.use("/", adminRoutes);
 app.use("/cv", cvRoutes);
 app.use("/candidate", candidateRoutes);
+app.use("/vacancies", vacancyRoutes);
+app.use("/payments", paymentRoutes);
 
 // Global Error Handler Middleware (must be registered last)
 app.use(errorHandler);
 
 module.exports = app;
-

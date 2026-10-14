@@ -9,4 +9,4 @@ RUN pip install https://github.com/explosion/spacy-models/releases/download/en_c
 
 COPY . .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5001"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5001", "--reload"]

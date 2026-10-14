@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -18,6 +18,7 @@ import {
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import PillToggleGroup from '../../../components/common/PillToggleGroup';
+import { getBankTransferStatus } from '../../../api/paymentApi';
 import '../../../style.css';
 import './PaymentStatusPage.css';
 
@@ -50,11 +51,54 @@ function PaymentStatusPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const initialStatus = location.state?.paymentStatus || 'success';
+  const paymentReference = new URLSearchParams(location.search).get('reference');
+  const initialStatus = location.state?.paymentStatus || (paymentReference ? 'pending' : 'success');
   const [previewStatus, setPreviewStatus] = useState(initialStatus);
+  const [storedPayment, setStoredPayment] = useState(location.state?.payment || null);
+  const [paymentLoadError, setPaymentLoadError] = useState('');
 
+  useEffect(() => {
+    if (!paymentReference) return;
+
+    let active = true;
+    getBankTransferStatus(paymentReference)
+      .then(({ payment }) => {
+        if (!active) return;
+        setStoredPayment(payment);
+        setPreviewStatus(
+          payment.status === 'pending'
+            ? 'pending'
+            : payment.status === 'paid' ? 'success' : 'failure'
+        );
+        setPaymentLoadError('');
+      })
+      .catch((error) => {
+        if (!active) return;
+        setPaymentLoadError(
+          error.response?.data?.message || 'Unable to load this payment status.'
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [paymentReference]);
+
+  const isPending = previewStatus === 'pending';
   const isSuccess = previewStatus === 'success';
-  const txn = isSuccess ? SUCCESS_TXN : FAILURE_TXN;
+  const txn = storedPayment
+    ? {
+        id: storedPayment.payment_reference || `PAY-${storedPayment.id}`,
+        amount: `LKR ${Number(storedPayment.amount).toLocaleString('en-LK', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+        datetime: new Date(storedPayment.created_at).toLocaleString(),
+        method: 'Bank Transfer',
+      }
+    : isSuccess ? SUCCESS_TXN : FAILURE_TXN;
+  const vacancyTitle =
+    location.state?.vacancyTitle || storedPayment?.vacancy_title || VACANCY_TITLE;
 
   return (
     <div className="create-vacancy ps-shell">
@@ -89,7 +133,7 @@ function PaymentStatusPage() {
               <span className="ps-breadcrumb__item ps-breadcrumb__item--active">STATUS</span>
             </div>
 
-            <div className="ps-qa-toggle">
+            {!isPending && <div className="ps-qa-toggle">
               <span className="ps-qa-label">QA Preview</span>
               <PillToggleGroup
                 options={PREVIEW_OPTIONS}
@@ -97,23 +141,25 @@ function PaymentStatusPage() {
                 onChange={setPreviewStatus}
                 name="payment-status-preview"
               />
-            </div>
+            </div>}
           </div>
 
           {/* ── Centered Card ── */}
           <div className="ps-card-wrap">
             <div className="ps-card">
               {/* Accent bar — color varies by state */}
-              <div className={`ps-card__accent ${isSuccess ? 'ps-card__accent--success' : 'ps-card__accent--failure'}`} />
+              <div className={`ps-card__accent ${isPending ? 'ps-card__accent--pending' : isSuccess ? 'ps-card__accent--success' : 'ps-card__accent--failure'}`} />
 
               {/* Icon block */}
-              <div className={`ps-card__icon ${isSuccess ? 'ps-card__icon--success' : 'ps-card__icon--failure'}`}>
-                {isSuccess ? <CheckCircle2 size={26} /> : <XCircle size={26} />}
+              <div className={`ps-card__icon ${isPending ? 'ps-card__icon--pending' : isSuccess ? 'ps-card__icon--success' : 'ps-card__icon--failure'}`}>
+                {isPending ? <Clock size={26} /> : isSuccess ? <CheckCircle2 size={26} /> : <XCircle size={26} />}
               </div>
 
               {/* Status badge */}
-              <span className={`ps-badge ${isSuccess ? 'ps-badge--success' : 'ps-badge--failure'}`}>
-                {isSuccess ? (
+              <span className={`ps-badge ${isPending ? 'ps-badge--pending' : isSuccess ? 'ps-badge--success' : 'ps-badge--failure'}`}>
+                {isPending ? (
+                  <><Clock size={11} /> PENDING VERIFICATION</>
+                ) : isSuccess ? (
                   <><CheckCircle2 size={11} /> TRANSACTION COMPLETE</>
                 ) : (
                   <><XCircle size={11} /> TRANSACTION FAILED</>
@@ -122,65 +168,90 @@ function PaymentStatusPage() {
 
               {/* Title */}
               <h1 className="ps-title">
-                {isSuccess ? 'Payment Successful!' : 'Payment Failed'}
+                {isPending ? 'Payment Submitted' : isSuccess ? 'Payment Successful!' : 'Payment Failed'}
               </h1>
 
               {/* Subtitle */}
               <p className="ps-subtitle">
-                {isSuccess ? (
+                {paymentLoadError ? (
+                  <>We couldn’t retrieve the status for this payment reference. Please try reloading this page.</>
+                ) : isPending ? (
                   <>
-                    Your payment for the <strong>{VACANCY_TITLE}</strong> vacancy listing
+                    We received your bank-transfer slip for the <strong>{vacancyTitle}</strong> listing.
+                    The payment is pending verification, and the vacancy will remain a draft until
+                    the transfer is confirmed.
+                  </>
+                ) : isSuccess ? (
+                  <>
+                    Your payment for the <strong>{vacancyTitle}</strong> vacancy listing
                     has been processed successfully. The listing is now live on the public job board.
                   </>
                 ) : (
                   <>
                     We were unable to process your payment of <strong>{TOTAL_PAYABLE}</strong> for
-                    the <strong>{VACANCY_TITLE}</strong> vacancy listing. No charge was made.
+                    the <strong>{vacancyTitle}</strong> vacancy listing. No charge was made.
                     Please try again or contact support.
                   </>
                 )}
               </p>
 
+              {paymentLoadError && (
+                <p className="ps-load-error" role="alert">{paymentLoadError}</p>
+              )}
+
               <div className="ps-divider" />
 
               {/* Transaction Detail Panel */}
-              <div className="ps-txn">
-                <span className="ps-txn__header">
-                  {isSuccess ? 'TRANSACTION DETAILS' : 'ATTEMPTED TRANSACTION'}
-                </span>
-                <div className="ps-txn__rows">
-                  <div className="ps-txn__row">
-                    <span className="ps-txn__label">Transaction ID</span>
-                    <span className="ps-txn__value">{txn.id}</span>
-                  </div>
-                  <div className="ps-txn__row">
-                    <span className="ps-txn__label">{isSuccess ? 'Amount Paid' : 'Amount Attempted'}</span>
-                    <span className={`ps-txn__value ${isSuccess ? 'ps-txn__value--accent' : ''}`}>
-                      {txn.amount}
-                    </span>
-                  </div>
-                  <div className="ps-txn__row">
-                    <span className="ps-txn__label">Date &amp; Time</span>
-                    <span className="ps-txn__value">
-                      <Clock size={13} className="ps-txn__icon" />
-                      {txn.datetime}
-                    </span>
-                  </div>
-                  <div className="ps-txn__row">
-                    <span className="ps-txn__label">Payment Method</span>
-                    <span className="ps-txn__value">
-                      <CreditCard size={13} className="ps-txn__icon" />
-                      {txn.method}
-                    </span>
+              {(!paymentReference || storedPayment) && (
+                <div className="ps-txn">
+                  <span className="ps-txn__header">
+                    {isPending ? 'TRANSFER DETAILS' : isSuccess ? 'TRANSACTION DETAILS' : 'ATTEMPTED TRANSACTION'}
+                  </span>
+                  <div className="ps-txn__rows">
+                    <div className="ps-txn__row">
+                      <span className="ps-txn__label">{isPending ? 'Payment Reference' : 'Transaction ID'}</span>
+                      <span className="ps-txn__value">{txn.id}</span>
+                    </div>
+                    <div className="ps-txn__row">
+                      <span className="ps-txn__label">{isPending ? 'Amount Submitted' : isSuccess ? 'Amount Paid' : 'Amount Attempted'}</span>
+                      <span className={`ps-txn__value ${isSuccess ? 'ps-txn__value--accent' : ''}`}>
+                        {txn.amount}
+                      </span>
+                    </div>
+                    <div className="ps-txn__row">
+                      <span className="ps-txn__label">Date &amp; Time</span>
+                      <span className="ps-txn__value">
+                        <Clock size={13} className="ps-txn__icon" />
+                        {txn.datetime}
+                      </span>
+                    </div>
+                    <div className="ps-txn__row">
+                      <span className="ps-txn__label">Payment Method</span>
+                      <span className="ps-txn__value">
+                        <CreditCard size={13} className="ps-txn__icon" />
+                        {txn.method}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="ps-divider" />
 
               {/* Actions */}
               <div className="ps-actions">
-                {isSuccess ? (
+                {isPending ? (
+                  <div className="ps-actions__row">
+                    <button
+                      type="button"
+                      className="btn btn-primary ps-btn"
+                      onClick={() => navigate('/recruiter/vacancies')}
+                    >
+                      <LayoutDashboard size={16} />
+                      View My Vacancies
+                    </button>
+                  </div>
+                ) : isSuccess ? (
                   <>
                     <div className="ps-actions__row">
                       <button
@@ -257,7 +328,9 @@ function PaymentStatusPage() {
               <div className="ps-security">
                 <Lock size={13} />
                 <span>
-                  {isSuccess ? (
+                  {isPending ? (
+                    'Your payment slip has been submitted securely. The transfer has not yet been verified, so the vacancy remains a draft.'
+                  ) : isSuccess ? (
                     'This is a secure confirmation page. Your financial data was encrypted during the transaction and is not stored on our servers. A receipt has been sent to your registered email.'
                   ) : (
                     'No payment was processed and no financial data was stored. Your connection was encrypted with 256-bit SSL throughout the session. You may safely retry the payment.'

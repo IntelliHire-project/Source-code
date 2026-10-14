@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   CreditCard,
@@ -41,7 +41,7 @@ const PAYMENT_OPTIONS = [
 ];
 
 const COST_ROWS = [
-  { label: 'Premium Vacancy Listing', sub: 'Senior Frontend Engineer', value: 'LKR 2,250.00' },
+  { label: 'Premium Vacancy Listing', value: 'LKR 2,250.00' },
   { label: 'Processing Fee', value: 'LKR 0.00' },
   { label: 'VAT (11%)', value: 'LKR 247.50' },
 ];
@@ -52,6 +52,21 @@ function SelectPaymentMethodPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('card');
   const navigate = useNavigate();
+  const location = useLocation();
+  const vacancyTitle =
+    location.state?.formState?.jobTitle
+    || location.state?.vacancy?.jobTitle
+    || 'Job vacancy';
+
+  const continueToPayment = () => {
+    if (selectedMethod === 'bank') {
+      navigate('/recruiter/bank-transfer', { state: location.state });
+      return;
+    }
+    navigate('/recruiter/complete-purchase', {
+      state: { ...location.state, paymentMethod: selectedMethod },
+    });
+  };
 
   return (
     <div className="create-vacancy spm-shell">
@@ -80,7 +95,7 @@ function SelectPaymentMethodPage() {
           <button
             type="button"
             className="spm-back-link"
-            onClick={() => navigate('/recruiter/vacancy-preview')}
+            onClick={() => navigate('/recruiter/vacancy-preview', { state: location.state?.formState })}
           >
             <ArrowLeft size={16} />
             Return to Vacancy Preview
@@ -188,7 +203,9 @@ function SelectPaymentMethodPage() {
                     >
                       <div className="spm-cost-row__left">
                         <span className="spm-cost-row__label">{row.label}</span>
-                        {row.sub && <span className="spm-cost-row__sub">{row.sub}</span>}
+                        {row.label === 'Premium Vacancy Listing' && (
+                          <span className="spm-cost-row__sub">{vacancyTitle}</span>
+                        )}
                       </div>
                       <span className="spm-cost-row__value">{row.value}</span>
                     </div>
@@ -217,7 +234,7 @@ function SelectPaymentMethodPage() {
                 <button
                   type="button"
                   className="btn btn-primary spm-cta"
-                  onClick={() => navigate('/recruiter/complete-purchase')}
+                  onClick={continueToPayment}
                 >
                   Continue to Payment
                   <ChevronRight size={16} />

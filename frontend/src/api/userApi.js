@@ -37,3 +37,23 @@ export const updateRecruiterStatus = async (id, status) => {
   const response = await apiInstance.put(`/users/${id}/recruiter-status`, { status });
   return response.data;
 };
+
+/**
+ * Updates user details (admin only).
+ * @param {number|string} id 
+ * @param {object} userData { name, email, role }
+ */
+export const updateUser = async (id, userData) => {
+  const response = await apiInstance.put(`/users/${id}`, userData);
+  return response.data;
+};
+
+/**
+ * Updates a user's account status (active, inactive, pending) (admin only).
+ * @param {number|string} id 
+ * @param {'active'|'inactive'|'pending'} status 
+ */
+export const updateUserStatus = async (id, status) => {
+  const response = await apiInstance.put(`/users/${id}/status`, { status });
+  return response.data;
+};

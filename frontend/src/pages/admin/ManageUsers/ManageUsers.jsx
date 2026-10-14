@@ -16,13 +16,19 @@ import {
   AlertTriangle,
   Eye,
   CheckCircle,
-  XCircle
+  XCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { getUsers, saveUsers, appendAuditLog } from '../../../services/adminStorage';
-import { fetchUsers, updateRecruiterStatus } from '../../../api/userApi';
+import { fetchUsers, updateRecruiterStatus, updateUser, updateUserStatus } from '../../../api/userApi';
 import './ManageUsers.css';
 
 // Initial Mock Users data matching mockup + some pagination filler
@@ -61,9 +67,11 @@ function ManageUsers() {
             name: u.full_name,
             email: u.email,
             role: u.role.charAt(0).toUpperCase() + u.role.slice(1),
-            status: u.role === 'recruiter' && u.recruiter_status 
-              ? (u.recruiter_status === 'approved' ? 'Active' : u.recruiter_status === 'rejected' ? 'Inactive' : 'Pending')
-              : 'Active',
+            status: u.status 
+              ? (u.status.charAt(0).toUpperCase() + u.status.slice(1).toLowerCase())
+              : (u.role === 'recruiter' && u.recruiter_status 
+                ? (u.recruiter_status === 'approved' ? 'Active' : u.recruiter_status === 'rejected' ? 'Inactive' : 'Pending')
+                : 'Active'),
             createdDate: u.created_at ? String(u.created_at).slice(0, 10) : '',
             avatarColor: colors[i % colors.length],
             companyName: u.company_name || 'N/A',
@@ -98,10 +106,11 @@ function ManageUsers() {
   // Search, Filter, Sort and Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [roleFilter, setRoleFilter] = useState('All Roles');
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   // Add/Edit Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -128,6 +137,50 @@ function ManageUsers() {
   const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
   const [actionUser, setActionUser] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+
+  // Status Modal States (Activate / Deactivate)
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusTargetUser, setStatusTargetUser] = useState(null);
+  const [nextStatusAction, setNextStatusAction] = useState('active'); // 'active' | 'inactive'
+
+  // Handlers for User Status Management (Activate / Deactivate)
+  const handleOpenStatusModal = (user, targetAction) => {
+    setStatusTargetUser(user);
+    setNextStatusAction(targetAction);
+    setStatusModalOpen(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusTargetUser) return;
+    const newStatus = nextStatusAction === 'active' ? 'Active' : 'Inactive';
+    const statusParam = nextStatusAction.toLowerCase();
+
+    try {
+      if (statusTargetUser.id && Number(statusTargetUser.id) < 10000000000) {
+        await updateUserStatus(statusTargetUser.id, statusParam);
+      }
+    } catch (err) {
+      console.warn('Backend user status update failed, applying locally:', err);
+    }
+
+    const updatedUsers = users.map((u) =>
+      u.id === statusTargetUser.id ? { ...u, status: newStatus } : u
+    );
+    setUsers(updatedUsers);
+    saveUsers(updatedUsers);
+    appendAuditLog({
+      actionType: nextStatusAction === 'active' ? 'User Activated' : 'User Deactivated',
+      module: 'USER_MGMT',
+      details: `Account for ${statusTargetUser.name} set to ${newStatus}.`,
+      status: 'success'
+    });
+    setToast({
+      type: nextStatusAction === 'active' ? 'success' : 'warning',
+      message: `User "${statusTargetUser.name}" has been ${nextStatusAction === 'active' ? 'activated' : 'deactivated'} successfully.`
+    });
+    setStatusModalOpen(false);
+    setStatusTargetUser(null);
+  };
 
   // Handlers for Recruiter Verification
   const handleViewRecruiter = (user) => {
@@ -191,6 +244,7 @@ function ManageUsers() {
 
   // Status Filter options
   const statusOptions = ['All Status', 'Active', 'Inactive', 'Pending'];
+  const roleOptions = ['All Roles', 'Admin', 'Recruiter', 'Candidate', 'Moderator', 'Analyst'];
 
   // Handle Input Changes in Add/Edit Form
   const handleInputChange = (e) => {
@@ -263,7 +317,7 @@ function ManageUsers() {
   };
 
   // Handle Form Submission (Add/Edit)
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -286,6 +340,22 @@ function ManageUsers() {
       setToast({ type: 'success', message: `User "${newUser.name}" added successfully.` });
     } else {
       // Edit mode or quick role assign mode
+      try {
+        if (selectedUser?.id && Number(selectedUser.id) < 10000000000) {
+          await updateUser(selectedUser.id, {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            role: formData.role.toLowerCase(),
+            status: formData.status.toLowerCase(),
+          });
+          if (formData.status && selectedUser.status !== formData.status) {
+            await updateUserStatus(selectedUser.id, formData.status.toLowerCase());
+          }
+        }
+      } catch (err) {
+        console.warn('Backend user update failed or unavailable, applying locally:', err);
+      }
+
       const updatedUsers = users.map((u) =>
         u.id === selectedUser.id
           ? { ...u, name: formData.name.trim(), email: formData.email.trim(), role: formData.role, status: formData.status }
@@ -340,14 +410,24 @@ function ManageUsers() {
 
   // Filtered & Sorted Users
   const filteredUsers = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
     return users
       .filter((user) => {
         const matchesSearch =
-          user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchQuery.toLowerCase());
+          !query ||
+          (user.name && user.name.toLowerCase().includes(query)) ||
+          (user.email && user.email.toLowerCase().includes(query)) ||
+          (user.role && user.role.toLowerCase().includes(query));
+
         const matchesStatus =
           statusFilter === 'All Status' || user.status === statusFilter;
-        return matchesSearch && matchesStatus;
+
+        const matchesRole =
+          roleFilter === 'All Roles' ||
+          (user.role && user.role.toLowerCase() === roleFilter.toLowerCase()) ||
+          (roleFilter === 'Admin' && (user.role === 'Admin' || user.role === 'Super Admin'));
+
+        return matchesSearch && matchesStatus && matchesRole;
       })
       .sort((a, b) => {
         let valueA = a[sortField]?.toString().toLowerCase() || '';
@@ -356,13 +436,13 @@ function ManageUsers() {
         if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
-  }, [users, searchQuery, statusFilter, sortField, sortDirection]);
+  }, [users, searchQuery, statusFilter, roleFilter, sortField, sortDirection]);
 
   // Paginated Users
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredUsers.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUsers, currentPage]);
+  }, [filteredUsers, currentPage, itemsPerPage]);
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
 
@@ -379,6 +459,28 @@ function ManageUsers() {
       .join('')
       .toUpperCase()
       .substring(0, 2);
+  };
+
+  // Sort indicator helper
+  const renderSortIcon = (field) => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={13} className="admin-sort-icon admin-sort-icon--neutral" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={13} className="admin-sort-icon admin-sort-icon--active" />
+    ) : (
+      <ArrowDown size={13} className="admin-sort-icon admin-sort-icon--active" />
+    );
+  };
+
+  // Role badge color helper
+  const getRoleBadgeClass = (role) => {
+    const r = (role || '').toLowerCase();
+    if (r.includes('admin')) return 'admin-table__role-badge--admin';
+    if (r.includes('recruiter')) return 'admin-table__role-badge--recruiter';
+    if (r.includes('candidate')) return 'admin-table__role-badge--candidate';
+    if (r.includes('moderator')) return 'admin-table__role-badge--moderator';
+    return 'admin-table__role-badge--default';
   };
 
   return (
@@ -473,12 +575,12 @@ function ManageUsers() {
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>NAME</th>
-                      <th>EMAIL ADDRESS</th>
-                      <th>ROLE</th>
-                      <th>STATUS</th>
-                      <th>CREATED DATE</th>
-                      <th className="text-right">ACTIONS</th>
+                      <th className="col-name">NAME</th>
+                      <th className="col-email">EMAIL ADDRESS</th>
+                      <th className="col-role">ROLE</th>
+                      <th className="col-status">STATUS</th>
+                      <th className="col-date">CREATED DATE</th>
+                      <th className="col-actions text-right">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -493,38 +595,40 @@ function ManageUsers() {
                           </div>
                         </td>
                         <td className="admin-table__email-text">{user.email}</td>
-                        <td><span className="admin-table__role-badge">{user.role}</span></td>
+                        <td><span className={`admin-table__role-badge ${getRoleBadgeClass(user.role)}`}>{user.role}</span></td>
                         <td>
                           <span className={`admin-table__status-badge admin-table__status-badge--pending`}>
                             Pending
                           </span>
                         </td>
                         <td className="admin-table__date-text">{user.createdDate}</td>
-                        <td className="admin-table__actions-cell text-right" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleViewRecruiter(user)}
-                            title="View Recruiter Info"
-                            style={{ color: '#6B8CFF' }}
-                          >
-                            <Eye size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenApproveConfirm(user)}
-                            title="Approve Recruiter"
-                            style={{ color: '#22C55E' }}
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenRejectConfirm(user)}
-                            title="Reject Recruiter"
-                            style={{ color: '#E63946' }}
-                          >
-                            <XCircle size={16} />
-                          </button>
+                        <td className="admin-table__actions-td">
+                          <div className="admin-table__actions-cell">
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleViewRecruiter(user)}
+                              title="View Recruiter Info"
+                              style={{ color: '#6B8CFF' }}
+                            >
+                              <Eye size={16} />
+                            </button>
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleOpenApproveConfirm(user)}
+                              title="Approve Recruiter"
+                              style={{ color: '#22C55E' }}
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleOpenRejectConfirm(user)}
+                              title="Reject Recruiter"
+                              style={{ color: '#E63946' }}
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -558,7 +662,7 @@ function ManageUsers() {
                   />
                 </div>
 
-                {/* Dropdown Filter */}
+                {/* Status Dropdown Filter */}
                 <div className="admin-dropdown-filter">
                   <select
                     className="admin-dropdown-filter__select"
@@ -570,7 +674,26 @@ function ManageUsers() {
                   >
                     {statusOptions.map((opt) => (
                       <option key={opt} value={opt}>
-                        {opt === 'All Status' ? 'All Status' : opt}
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="admin-dropdown-filter__chevron" size={14} />
+                </div>
+
+                {/* Role Dropdown Filter */}
+                <div className="admin-dropdown-filter">
+                  <select
+                    className="admin-dropdown-filter__select"
+                    value={roleFilter}
+                    onChange={(e) => {
+                      setRoleFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {roleOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
                       </option>
                     ))}
                   </select>
@@ -583,22 +706,37 @@ function ManageUsers() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th onClick={() => handleSort('name')} className="sortable-header">
-                      NAME {sortField === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    <th onClick={() => handleSort('name')} className="sortable-header col-name">
+                      <div className="table-header-content">
+                        <span>NAME</span>
+                        {renderSortIcon('name')}
+                      </div>
                     </th>
-                    <th onClick={() => handleSort('email')} className="sortable-header">
-                      EMAIL ADDRESS {sortField === 'email' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    <th onClick={() => handleSort('email')} className="sortable-header col-email">
+                      <div className="table-header-content">
+                        <span>EMAIL ADDRESS</span>
+                        {renderSortIcon('email')}
+                      </div>
                     </th>
-                    <th onClick={() => handleSort('role')} className="sortable-header">
-                      ROLE {sortField === 'role' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    <th onClick={() => handleSort('role')} className="sortable-header col-role">
+                      <div className="table-header-content">
+                        <span>ROLE</span>
+                        {renderSortIcon('role')}
+                      </div>
                     </th>
-                    <th onClick={() => handleSort('status')} className="sortable-header">
-                      STATUS {sortField === 'status' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    <th onClick={() => handleSort('status')} className="sortable-header col-status">
+                      <div className="table-header-content">
+                        <span>STATUS</span>
+                        {renderSortIcon('status')}
+                      </div>
                     </th>
-                    <th onClick={() => handleSort('createdDate')} className="sortable-header">
-                      CREATED DATE {sortField === 'createdDate' && (sortDirection === 'asc' ? '↑' : '↓')}
+                    <th onClick={() => handleSort('createdDate')} className="sortable-header col-date">
+                      <div className="table-header-content">
+                        <span>CREATED DATE</span>
+                        {renderSortIcon('createdDate')}
+                      </div>
                     </th>
-                    <th className="text-right">ACTIONS</th>
+                    <th className="col-actions text-right">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -618,55 +756,117 @@ function ManageUsers() {
                         </td>
                         <td className="admin-table__email-text">{user.email}</td>
                         <td>
-                          <span className="admin-table__role-badge">{user.role}</span>
+                          <span className={`admin-table__role-badge ${getRoleBadgeClass(user.role)}`}>
+                            {user.role}
+                          </span>
                         </td>
-                        <td>
+                        <td 
+                          style={{ cursor: 'pointer' }}
+                          title={`Click to ${user.status === 'Active' ? 'deactivate' : 'activate'} user account`}
+                          onClick={() => handleOpenStatusModal(user, user.status === 'Active' ? 'inactive' : 'active')}
+                        >
                           <span className={`admin-table__status-badge admin-table__status-badge--${user.status.toLowerCase()}`}>
                             {user.status}
                           </span>
                         </td>
                         <td className="admin-table__date-text">{user.createdDate}</td>
-                        <td className="admin-table__actions-cell text-right" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          {user.role === 'Recruiter' && (
+                        <td className="admin-table__actions-td">
+                          <div className="admin-table__actions-cell">
+                            {user.role === 'Recruiter' ? (
+                              <button
+                                className="admin-table__action-btn"
+                                onClick={() => handleViewRecruiter(user)}
+                                title="View Recruiter Info"
+                                style={{ color: '#6B8CFF' }}
+                              >
+                                <Eye size={16} />
+                              </button>
+                            ) : (
+                              <span className="admin-table__action-btn-placeholder" aria-hidden="true" />
+                            )}
+                            {/* SCRUM-720 Activate & SCRUM-721 Deactivate Action Button */}
+                            {user.status === 'Active' ? (
+                              <button
+                                className="admin-table__action-btn admin-table__action-btn--status-deactivate"
+                                onClick={() => handleOpenStatusModal(user, 'inactive')}
+                                title="Deactivate User Account"
+                                style={{ color: '#F59E0B' }}
+                              >
+                                <UserX size={16} />
+                              </button>
+                            ) : (
+                              <button
+                                className="admin-table__action-btn admin-table__action-btn--status-activate"
+                                onClick={() => handleOpenStatusModal(user, 'active')}
+                                title="Activate User Account"
+                                style={{ color: '#22C55E' }}
+                              >
+                                <UserCheck size={16} />
+                              </button>
+                            )}
                             <button
                               className="admin-table__action-btn"
-                              onClick={() => handleViewRecruiter(user)}
-                              title="View Recruiter Info"
-                              style={{ color: '#6B8CFF' }}
+                              onClick={() => handleOpenEditModal(user)}
+                              title="Edit User"
                             >
-                              <Eye size={16} />
+                              <Edit2 size={16} />
                             </button>
-                          )}
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenEditModal(user)}
-                            title="Edit User"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn"
-                            onClick={() => handleOpenAssignModal(user)}
-                            title="Assign Role"
-                          >
-                            <UserPlus size={16} />
-                          </button>
-                          <button
-                            className="admin-table__action-btn admin-table__action-btn--danger"
-                            onClick={() => handleOpenDeleteConfirm(user)}
-                            title="Delete User"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                            <button
+                              className="admin-table__action-btn"
+                              onClick={() => handleOpenAssignModal(user)}
+                              title="Assign Role"
+                            >
+                              <UserPlus size={16} />
+                            </button>
+                            <button
+                              className="admin-table__action-btn admin-table__action-btn--danger"
+                              onClick={() => handleOpenDeleteConfirm(user)}
+                              title="Delete User"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td colSpan="6" className="admin-table__empty-state">
-                        {usersLoading
-                          ? 'Loading users...'
-                          : usersError || 'No users match the search criteria.'}
+                        {usersLoading ? (
+                          <div className="admin-table-empty">
+                            <p className="admin-table-empty__title">Loading users...</p>
+                          </div>
+                        ) : usersError ? (
+                          <div className="admin-table-empty">
+                            <AlertTriangle size={32} style={{ color: 'var(--crisis)' }} />
+                            <p className="admin-table-empty__title">{usersError}</p>
+                          </div>
+                        ) : (
+                          <div className="admin-table-empty">
+                            <Users size={36} className="admin-table-empty__icon" />
+                            <p className="admin-table-empty__title">No users found</p>
+                            <p className="admin-table-empty__subtitle">
+                              {searchQuery || statusFilter !== 'All Status' || roleFilter !== 'All Roles'
+                                ? 'No users match your active search or filter criteria.'
+                                : 'There are currently no users in the registry.'}
+                            </p>
+                            {(searchQuery || statusFilter !== 'All Status' || roleFilter !== 'All Roles') && (
+                              <button
+                                type="button"
+                                className="admin-btn admin-btn--secondary admin-table-empty__btn"
+                                onClick={() => {
+                                  setSearchQuery('');
+                                  setStatusFilter('All Status');
+                                  setRoleFilter('All Roles');
+                                  setCurrentPage(1);
+                                }}
+                              >
+                                <RotateCcw size={14} />
+                                <span>Reset Filters</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )}
@@ -676,16 +876,38 @@ function ManageUsers() {
 
             {/* Table Footer / Pagination */}
             <div className="admin-registry-card__footer">
-              <div className="admin-registry-card__footer-info">
-                Showing{' '}
-                <span className="bold-count">
-                  {filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
-                </span>{' '}
-                to{' '}
-                <span className="bold-count">
-                  {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
-                </span>{' '}
-                of <span className="bold-count">{filteredUsers.length}</span> users
+              <div className="admin-registry-card__footer-left">
+                <div className="admin-registry-card__footer-info">
+                  Showing{' '}
+                  <span className="bold-count">
+                    {filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
+                  </span>{' '}
+                  to{' '}
+                  <span className="bold-count">
+                    {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+                  </span>{' '}
+                  of <span className="bold-count">{filteredUsers.length}</span> users
+                </div>
+
+                <div className="admin-rows-per-page">
+                  <label htmlFor="rows-per-page-select">Per page:</label>
+                  <div className="admin-rows-per-page__select-wrapper">
+                    <select
+                      id="rows-per-page-select"
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="admin-rows-per-page__select"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                    </select>
+                    <ChevronDown size={12} className="admin-rows-per-page__chevron" />
+                  </div>
+                </div>
               </div>
 
               <div className="admin-pagination">
@@ -824,9 +1046,11 @@ function ManageUsers() {
                       value={formData.role}
                       onChange={handleInputChange}
                     >
+                      <option value="Admin">Admin</option>
                       <option value="Super Admin">Super Admin</option>
-                      <option value="Moderator">Moderator</option>
                       <option value="Recruiter">Recruiter</option>
+                      <option value="Candidate">Candidate</option>
+                      <option value="Moderator">Moderator</option>
                       <option value="Analyst">Analyst</option>
                     </select>
                     <ChevronDown className="select-chevron" size={16} />
@@ -1125,6 +1349,68 @@ function ManageUsers() {
                 style={{ backgroundColor: '#E63946', color: '#fff', border: 'none' }}
               >
                 Confirm Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Status Confirmation Modal (Activate / Deactivate) */}
+      {statusModalOpen && (
+        <div className="admin-modal-overlay" onClick={() => setStatusModalOpen(false)}>
+          <div
+            className="admin-modal-container admin-modal-container--alert"
+            onClick={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+          >
+            <div className="admin-modal-header">
+              <div className="alert-title-row">
+                {nextStatusAction === 'active' ? (
+                  <CheckCircle className="alert-icon" size={20} style={{ color: '#22C55E' }} />
+                ) : (
+                  <AlertTriangle className="alert-icon" size={20} style={{ color: '#F59E0B' }} />
+                )}
+                <h3 className="admin-modal-title">
+                  {nextStatusAction === 'active' ? 'Activate User Account' : 'Deactivate User Account'}
+                </h3>
+              </div>
+              <button className="admin-modal-close" onClick={() => setStatusModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="admin-modal-body alert-body">
+              <p>
+                Are you sure you want to {nextStatusAction === 'active' ? 'activate' : 'deactivate'} the account for{' '}
+                <strong className="alert-strong">{statusTargetUser?.name}</strong>?
+              </p>
+              <p className="alert-warning-sub">
+                {nextStatusAction === 'active'
+                  ? 'This will restore their access and allow them to sign in to the platform.'
+                  : 'This will suspend their access and prevent them from signing in until reactivated.'}
+              </p>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="admin-btn admin-btn--secondary"
+                onClick={() => setStatusModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={handleConfirmStatusChange}
+                style={{
+                  backgroundColor: nextStatusAction === 'active' ? '#22C55E' : '#F59E0B',
+                  color: '#fff',
+                  border: 'none',
+                }}
+              >
+                {nextStatusAction === 'active' ? 'Confirm Activation' : 'Confirm Deactivation'}
               </button>
             </div>
           </div>

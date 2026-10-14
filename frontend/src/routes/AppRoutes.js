@@ -40,6 +40,7 @@ import VacancyManagementPage from '../pages/recruiter/VacancyManagement/VacancyM
 import VacancyDetailPage from '../pages/recruiter/VacancyDetail/VacancyDetailPage';
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
 import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
+import BankTransferPage from '../pages/recruiter/BankTransfer/BankTransferPage';
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
 import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
 import PaymentStatusPage from '../pages/recruiter/PaymentStatus/PaymentStatusPage';
@@ -230,7 +231,19 @@ function AppRoutes() {
           element={<RecruiterProtected><VacancyDetailPage /></RecruiterProtected>}
         />
         <Route
+          path="/recruiter/vacancies/:id"
+          element={<RecruiterProtected><VacancyDetailPage /></RecruiterProtected>}
+        />
+        <Route
           path="/recruiter/create-vacancy"
+          element={<RecruiterProtected><CreateVacancyPage /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/create-vacancy/:id"
+          element={<RecruiterProtected><CreateVacancyPage /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/edit-vacancy/:id"
           element={<RecruiterProtected><CreateVacancyPage /></RecruiterProtected>}
         />
         <Route
@@ -240,6 +253,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/select-payment"
           element={<RecruiterProtected><SelectPaymentMethodPage /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/bank-transfer"
+          element={<RecruiterProtected><BankTransferPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/complete-purchase"
