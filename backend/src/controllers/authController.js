@@ -159,10 +159,10 @@ const createAccount = async (req, res, next) => {
 
         if (!extractedData) {
           try {
-            const pdf = require('pdf-parse');
-            const pdfData = await pdf(req.file.buffer);
-            if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
-              extractedData = await extractCVData(pdfData.text, req.file.originalname);
+            const { parsePdfText } = require('../utils/pdfParser');
+            const pdfText = await parsePdfText(req.file.buffer);
+            if (pdfText && pdfText.trim().length > 0) {
+              extractedData = await extractCVData(pdfText, req.file.originalname);
             }
           } catch (textErr) {
             console.warn("[Auth Candidate Signup] pdf-parse fallback failed:", textErr.message);
@@ -426,10 +426,10 @@ const syncCandidateProfileFromCV = async (candidateId, userId, pdfBuffer, origin
 
     if (!extractedData) {
       try {
-        const pdf = require('pdf-parse');
-        const pdfData = await pdf(pdfBuffer);
-        if (pdfData && pdfData.text && pdfData.text.trim().length > 0) {
-          extractedData = await extractCVData(pdfData.text, originalname);
+        const { parsePdfText } = require('../utils/pdfParser');
+        const pdfText = await parsePdfText(pdfBuffer);
+        if (pdfText && pdfText.trim().length > 0) {
+          extractedData = await extractCVData(pdfText, originalname);
         }
       } catch (textErr) {
         console.warn("[CV Sync] pdf-parse fallback failed:", textErr.message);

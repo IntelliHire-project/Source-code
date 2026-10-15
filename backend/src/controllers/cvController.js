@@ -1,5 +1,5 @@
 const fs = require('fs');
-const pdf = require('pdf-parse');
+const { parsePdfText } = require('../utils/pdfParser');
 const {
   extractCVDataFromPdf,
   convertPdfToJson,
@@ -72,8 +72,7 @@ const uploadCV = async (req, res) => {
       console.log("[CV Extraction Pipeline] Step 3: Falling back to text-based extraction via pdf-parse...");
       let cvText = "";
       try {
-        const pdfData = await pdf(dataBuffer);
-        cvText = pdfData && pdfData.text ? pdfData.text.trim() : "";
+        cvText = await parsePdfText(dataBuffer);
       } catch (pdfParseErr) {
         console.warn("[CV Extraction Pipeline] pdf-parse warning:", pdfParseErr.message);
       }
