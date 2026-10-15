@@ -14,7 +14,9 @@ import {
   LogOut,
   X,
 } from 'lucide-react';
-import logo from '../../logo.png';
+import { CLOUDINARY_ASSETS } from '../../constants/assets';
+
+const logo = CLOUDINARY_ASSETS.logoPrimary;
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/candidate/dashboard', exact: true },

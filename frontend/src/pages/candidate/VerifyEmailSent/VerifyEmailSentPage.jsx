@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { resendVerification } from '../../../api/authApi';
 import Layout from '../../../components/common/Layout';
+import { CLOUDINARY_ASSETS } from '../../../constants/assets';
 import '../../../App.css';
 
 function VerifyEmailSentPage() {
@@ -41,10 +42,11 @@ function VerifyEmailSentPage() {
         <section className="auth-form-side auth-form-side-centered">
           <div className="auth-wrapper">
             <Link to="/" className="auth-brand auth-mobile-brand" aria-label="IntelliHire Home">
-              <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="m9 11 2 2 4-4" />
-              </svg>
+              <img
+                src={CLOUDINARY_ASSETS.logoPrimary}
+                alt="IntelliHire Logo"
+                className="auth-brand-logo"
+              />
               <span className="auth-brand-text">IntelliHire</span>
             </Link>
 
