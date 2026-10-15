@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import '../../style.css';
 import { useAuth } from '../../hooks/useAuth';
+import { CLOUDINARY_ASSETS } from '../../constants/assets';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/recruiter/dashboard' },
@@ -156,7 +157,11 @@ function RecruiterSidebar({ isOpen = false, onClose, activeItem }) {
         </button>
         <div className="sidebar-logo">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="sidebar-logo__box">IH</span>
+            <img
+              src={CLOUDINARY_ASSETS.logoPrimary}
+              alt="IntelliHire"
+              style={{ height: '32px', width: '32px', objectFit: 'contain', display: 'block' }}
+            />
             <span className="sidebar-logo__wordmark">IntelliHire</span>
           </div>
           <button

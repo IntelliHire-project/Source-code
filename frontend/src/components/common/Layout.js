@@ -1,6 +1,8 @@
 import React from 'react';
-import logo from '../../logo.png';
+import { CLOUDINARY_ASSETS } from '../../constants/assets';
 import '../../App.css';
+
+const logo = CLOUDINARY_ASSETS.logoPrimary;
 
 /**
  * Common application layout container (includes Header and Footer).
