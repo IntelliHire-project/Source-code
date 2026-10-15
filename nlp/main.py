@@ -1,20 +1,35 @@
+import os
 import io
 import re
+import json
 import base64
 import html
 import xml.etree.ElementTree as ET
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import spacy
-from pdfminer.high_level import extract_text_to_fp, extract_text
-from pdfminer.layout import LAParams
+from pdfminer.high_level import extract_text_to_fp, extract_text, extract_pages
+from pdfminer.layout import LAParams, LTTextBox, LTTextLine, LTChar
 
 app = FastAPI(title="IntelliHire NLP & CV Extraction Service")
-nlp = spacy.load("en_core_web_sm")
+
+# Load Custom Trained Resume NER model or fallback to base model
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "models", "resume_ner_model")
+if os.path.exists(MODEL_DIR) and os.path.exists(os.path.join(MODEL_DIR, "config.cfg")):
+    try:
+        nlp = spacy.load(MODEL_DIR)
+        print(f"[IntelliHire NLP] Successfully loaded custom trained Resume NER model from '{MODEL_DIR}'")
+    except Exception as e:
+        print(f"[IntelliHire NLP] Warning loading custom NER model: {e}. Falling back to en_core_web_sm.")
+        nlp = spacy.load("en_core_web_sm")
+else:
+    print("[IntelliHire NLP] Custom Resume NER model not found. Using en_core_web_sm.")
+    nlp = spacy.load("en_core_web_sm")
 
 class CVText(BaseModel):
     text: Optional[str] = None
+    json_data: Optional[Any] = None
     xml: Optional[str] = None
     pdf_base64: Optional[str] = None
     filename: Optional[str] = None
@@ -23,65 +38,166 @@ class PDFPayload(BaseModel):
     pdf_base64: str
     filename: Optional[str] = None
 
+class JSONPayload(BaseModel):
+    json_data: Optional[Any] = Field(default=None, alias="json")
+    data: Optional[Any] = None
+    filename: Optional[str] = None
+    model_config = {"populate_by_name": True}
+
 class XMLPayload(BaseModel):
     xml: str
     filename: Optional[str] = None
 
 COMMON_SKILLS = [
-    # Languages
+    # Programming Languages
     "python", "java", "javascript", "typescript", "c++", "c#", "c/c++", "ruby", "php",
-    "swift", "kotlin", "dart", "golang", "go", "rust", "scala", "bash", "shell", "html", "css",
-    # Frontend
-    "react", "react.js", "reactjs", "next.js", "nextjs", "vue", "vue.js", "nuxt.js", "angular",
-    "svelte", "redux", "redux toolkit", "mobx", "sass", "scss", "tailwind", "tailwind css",
-    "tailwindcss", "bootstrap", "material ui", "chakra ui", "webpack", "vite", "html5", "css3",
-    # Backend & Frameworks
-    "node.js", "nodejs", "express", "express.js", "nestjs", "django", "flask",
-    "fastapi", "spring", "spring boot", "ruby on rails", "rails", "asp.net",
-    ".net", "laravel", "graphql", "rest api", "restful api", "microservices",
-    # Databases & Storage
-    "sql", "mysql", "postgresql", "postgres", "mongodb", "redis", "sqlite",
-    "oracle", "cassandra", "dynamodb", "firebase", "supabase", "prisma", "typeorm",
-    # Cloud & DevOps
-    "aws", "amazon web services", "azure", "gcp", "google cloud", "docker",
-    "kubernetes", "k8s", "terraform", "ansible", "ci/cd", "jenkins", "github actions",
-    "git", "github", "gitlab", "bitbucket", "linux", "nginx", "apache",
-    "prometheus", "grafana", "elk stack", "cloudformation",
-    # Data Science & AI
+    "swift", "kotlin", "dart", "golang", "go", "rust", "scala", "bash", "shell", "powershell",
+    "r", "matlab", "perl", "solidity", "elixir", "lua", "haskell", "assembly", "html", "css",
+    "html5", "css3",
+
+    # Frontend Technologies & Frameworks
+    "react", "react.js", "reactjs", "next.js", "nextjs", "vue", "vue.js", "vuejs", "nuxt.js", "nuxtjs",
+    "angular", "angularjs", "svelte", "sveltekit", "redux", "redux toolkit", "mobx", "zustand", "recoil",
+    "sass", "scss", "less", "tailwind", "tailwind css", "tailwindcss", "bootstrap", "material ui", "mui",
+    "chakra ui", "ant design", "shadcn", "shadcn ui", "webpack", "vite", "rollup", "turbopack", "babel",
+    "jquery", "three.js", "d3.js", "webflow",
+
+    # Mobile Development
+    "flutter", "react native", "android", "ios", "swiftui", "ionic", "expo",
+
+    # Backend & Web Frameworks
+    "node.js", "nodejs", "express", "express.js", "nestjs", "fastify", "koa", "django", "flask",
+    "fastapi", "spring", "spring boot", "ruby on rails", "rails", "asp.net", "asp.net core",
+    ".net", ".net core", "laravel", "symfony", "codeigniter", "gin", "fiber", "echo",
+    "graphql", "rest api", "restful api", "microservices", "serverless", "grpc", "websockets", "socket.io",
+    "kafka", "apache kafka", "rabbitmq", "celery",
+
+    # Databases, Caching & ORMs
+    "sql", "mysql", "postgresql", "postgres", "mongodb", "redis", "sqlite", "mssql", "ms sql",
+    "microsoft sql server", "mariadb", "oracle", "cassandra", "dynamodb", "couchdb", "neo4j",
+    "firebase", "firestore", "supabase", "elasticsearch", "opensearch", "prisma", "typeorm",
+    "sequelize", "mongoose", "hibernate", "sqlalchemy", "drizzle", "snowflake", "databricks", "bigquery",
+
+    # Cloud, DevOps & Infrastructure
+    "aws", "amazon web services", "azure", "microsoft azure", "gcp", "google cloud", "google cloud platform",
+    "docker", "kubernetes", "k8s", "helm", "terraform", "ansible", "pulumi", "cloudformation",
+    "ci/cd", "jenkins", "github actions", "gitlab ci", "gitlab ci/cd", "circleci", "argocd",
+    "git", "github", "gitlab", "bitbucket", "linux", "ubuntu", "debian", "centos", "rhel",
+    "nginx", "apache", "caddy", "cloudflare", "vercel", "netlify", "heroku",
+    "prometheus", "grafana", "elk stack", "datadog", "new relic", "splunk",
+
+    # Data Science, AI & Machine Learning
     "machine learning", "deep learning", "data science", "nlp", "computer vision",
-    "artificial intelligence", "pandas", "numpy", "scikit-learn", "tensorflow",
-    "pytorch", "keras", "opencv", "power bi", "tableau", "hugging face", "transformers", "llm", "llms", "cuda",
-    # Tools, Testing & Methodologies
-    "jira", "confluence", "figma", "postman", "agile", "scrum", "jest", "cypress"
+    "artificial intelligence", "ai", "generative ai", "genai", "llm", "llms", "rag",
+    "langchain", "llamaindex", "openai", "openai api", "hugging face", "transformers",
+    "pandas", "numpy", "scipy", "scikit-learn", "tensorflow", "pytorch", "keras",
+    "opencv", "power bi", "tableau", "cuda", "pyspark", "spark", "apache spark", "hadoop",
+    "airflow", "apache airflow",
+
+    # Testing & QA
+    "jest", "cypress", "playwright", "selenium", "puppeteer", "vitest", "mocha", "chai",
+    "junit", "pytest", "postman", "jmeter",
+
+    # Methodologies, Architecture & Tools
+    "jira", "confluence", "trello", "asana", "notion", "figma", "adobe xd",
+    "agile", "scrum", "kanban", "tdd", "oop", "system design"
 ]
 
 CANONICAL_MAP = {
-    "javascript": "JavaScript", "typescript": "TypeScript", "node.js": "Node.js",
-    "nodejs": "Node.js", "react": "React", "react.js": "React", "reactjs": "React", "next.js": "Next.js",
-    "nextjs": "Next.js", "vue": "Vue.js", "vue.js": "Vue.js", "nuxt.js": "Nuxt.js",
-    "angular": "Angular", "html": "HTML5", "html5": "HTML5", "css": "CSS3",
-    "css3": "CSS3", "tailwind": "Tailwind CSS", "tailwindcss": "Tailwind CSS",
-    "tailwind css": "Tailwind CSS", "aws": "AWS", "amazon web services": "AWS",
-    "gcp": "GCP", "google cloud": "GCP", "azure": "Azure", "docker": "Docker",
-    "kubernetes": "Kubernetes", "k8s": "Kubernetes", "ci/cd": "CI/CD", "sql": "SQL",
-    "mysql": "MySQL", "postgresql": "PostgreSQL", "postgres": "PostgreSQL",
-    "mongodb": "MongoDB", "graphql": "GraphQL", "rest api": "REST API", "restful api": "REST API",
-    "golang": "Go", "go": "Go", "c++": "C++", "c#": "C#", "c/c++": "C/C++", "python": "Python",
-    "java": "Java", "php": "PHP", "ruby": "Ruby", "swift": "Swift", "kotlin": "Kotlin",
-    "dart": "Dart", "flutter": "Flutter", "redux": "Redux", "redux toolkit": "Redux Toolkit",
-    "git": "Git", "github": "GitHub", "gitlab": "GitLab", "jira": "Jira",
-    "figma": "Figma", "nlp": "NLP", "machine learning": "Machine Learning",
-    "deep learning": "Deep Learning", "pandas": "Pandas", "numpy": "NumPy",
-    "tensorflow": "TensorFlow", "pytorch": "PyTorch", "scikit-learn": "Scikit-Learn",
-    "linux": "Linux", "fastapi": "FastAPI", "django": "Django", "flask": "Flask",
-    "spring": "Spring", "spring boot": "Spring Boot", "express": "Express.js",
-    "express.js": "Express.js", "ansible": "Ansible", "terraform": "Terraform",
+    # Languages
+    "python": "Python", "java": "Java", "javascript": "JavaScript", "typescript": "TypeScript",
+    "c++": "C++", "c#": "C#", "c/c++": "C/C++", "ruby": "Ruby", "php": "PHP",
+    "swift": "Swift", "kotlin": "Kotlin", "dart": "Dart", "golang": "Go", "go": "Go",
+    "rust": "Rust", "scala": "Scala", "bash": "Bash", "shell": "Shell", "powershell": "PowerShell",
+    "r": "R", "matlab": "MATLAB", "perl": "Perl", "solidity": "Solidity", "elixir": "Elixir",
+    "lua": "Lua", "haskell": "Haskell", "assembly": "Assembly",
+    "html": "HTML5", "html5": "HTML5", "css": "CSS3", "css3": "CSS3",
+
+    # Frontend
+    "react": "React", "react.js": "React", "reactjs": "React",
+    "next.js": "Next.js", "nextjs": "Next.js", "next": "Next.js",
+    "vue": "Vue.js", "vue.js": "Vue.js", "vuejs": "Vue.js",
+    "nuxt.js": "Nuxt.js", "nuxtjs": "Nuxt.js", "nuxt": "Nuxt.js",
+    "angular": "Angular", "angularjs": "AngularJS",
+    "svelte": "Svelte", "sveltekit": "SvelteKit",
+    "redux": "Redux", "redux toolkit": "Redux Toolkit", "mobx": "MobX",
+    "zustand": "Zustand", "recoil": "Recoil",
+    "sass": "Sass", "scss": "SCSS", "less": "LESS",
+    "tailwind": "Tailwind CSS", "tailwindcss": "Tailwind CSS", "tailwind css": "Tailwind CSS",
+    "bootstrap": "Bootstrap", "material ui": "Material-UI", "mui": "Material-UI",
+    "chakra ui": "Chakra UI", "ant design": "Ant Design", "shadcn": "Shadcn UI", "shadcn ui": "Shadcn UI",
+    "webpack": "Webpack", "vite": "Vite", "rollup": "Rollup", "turbopack": "Turbopack", "babel": "Babel",
+    "jquery": "jQuery", "three.js": "Three.js", "d3.js": "D3.js", "webflow": "Webflow",
+
+    # Mobile
+    "flutter": "Flutter", "react native": "React Native", "android": "Android",
+    "ios": "iOS", "swiftui": "SwiftUI", "ionic": "Ionic", "expo": "Expo",
+
+    # Backend & Web Frameworks
+    "node.js": "Node.js", "nodejs": "Node.js", "node": "Node.js",
+    "express": "Express.js", "express.js": "Express.js", "expressjs": "Express.js",
+    "nestjs": "NestJS", "nest.js": "NestJS", "fastify": "Fastify", "koa": "Koa",
+    "django": "Django", "flask": "Flask", "fastapi": "FastAPI",
+    "spring": "Spring", "spring boot": "Spring Boot", "springboot": "Spring Boot",
+    "ruby on rails": "Ruby on Rails", "rails": "Ruby on Rails",
+    "asp.net": "ASP.NET", ".net": ".NET", "asp.net core": "ASP.NET Core", ".net core": ".NET Core",
+    "laravel": "Laravel", "symfony": "Symfony", "codeigniter": "CodeIgniter",
+    "gin": "Gin", "fiber": "Fiber", "echo": "Echo",
+    "graphql": "GraphQL", "rest api": "REST API", "restful api": "REST API", "rest apis": "REST API",
+    "microservices": "Microservices", "serverless": "Serverless",
+    "grpc": "gRPC", "websockets": "WebSockets", "socket.io": "Socket.io",
+    "kafka": "Apache Kafka", "apache kafka": "Apache Kafka", "rabbitmq": "RabbitMQ", "celery": "Celery",
+
+    # Databases, Storage & ORMs
+    "sql": "SQL", "mysql": "MySQL", "postgresql": "PostgreSQL", "postgres": "PostgreSQL",
+    "sqlite": "SQLite", "mssql": "MS SQL", "ms sql": "MS SQL", "microsoft sql server": "MS SQL Server",
+    "mariadb": "MariaDB", "oracle": "Oracle", "mongodb": "MongoDB", "mongo": "MongoDB", "redis": "Redis",
+    "cassandra": "Cassandra", "dynamodb": "DynamoDB", "couchdb": "CouchDB", "neo4j": "Neo4j",
+    "firebase": "Firebase", "firestore": "Firestore", "supabase": "Supabase",
+    "elasticsearch": "Elasticsearch", "opensearch": "OpenSearch",
+    "prisma": "Prisma", "typeorm": "TypeORM", "sequelize": "Sequelize",
+    "mongoose": "Mongoose", "hibernate": "Hibernate", "sqlalchemy": "SQLAlchemy", "drizzle": "Drizzle",
+    "snowflake": "Snowflake", "databricks": "Databricks", "bigquery": "BigQuery",
+
+    # Cloud, DevOps & CI/CD
+    "aws": "AWS", "amazon web services": "AWS",
+    "azure": "Azure", "microsoft azure": "Azure",
+    "gcp": "GCP", "google cloud": "GCP", "google cloud platform": "GCP",
+    "docker": "Docker", "kubernetes": "Kubernetes", "k8s": "Kubernetes", "helm": "Helm",
+    "terraform": "Terraform", "ansible": "Ansible", "pulumi": "Pulumi",
+    "cloudformation": "CloudFormation",
+    "ci/cd": "CI/CD", "jenkins": "Jenkins", "github actions": "GitHub Actions",
+    "gitlab ci": "GitLab CI", "gitlab ci/cd": "GitLab CI/CD", "circleci": "CircleCI", "argocd": "ArgoCD",
+    "git": "Git", "github": "GitHub", "gitlab": "GitLab", "bitbucket": "Bitbucket",
+    "linux": "Linux", "ubuntu": "Ubuntu", "debian": "Debian", "centos": "CentOS", "rhel": "RHEL",
+    "nginx": "Nginx", "apache": "Apache", "caddy": "Caddy", "cloudflare": "Cloudflare",
+    "vercel": "Vercel", "netlify": "Netlify", "heroku": "Heroku",
     "prometheus": "Prometheus", "grafana": "Grafana", "elk stack": "ELK Stack",
-    "cloudformation": "CloudFormation", "bash": "Bash", "redis": "Redis",
-    "postman": "Postman", "nginx": "Nginx", "apache": "Apache", "hugging face": "Hugging Face",
-    "transformers": "Transformers", "llm": "LLMs", "llms": "LLMs", "cuda": "CUDA",
-    "jest": "Jest", "cypress": "Cypress", "vite": "Vite", "webpack": "Webpack",
-    "agile": "Agile", "scrum": "Scrum", "microservices": "Microservices"
+    "datadog": "Datadog", "new relic": "New Relic", "splunk": "Splunk",
+
+    # AI, Data Science & ML
+    "machine learning": "Machine Learning", "deep learning": "Deep Learning",
+    "data science": "Data Science", "nlp": "NLP", "natural language processing": "NLP",
+    "computer vision": "Computer Vision", "artificial intelligence": "AI", "ai": "AI",
+    "generative ai": "Generative AI", "genai": "Generative AI",
+    "llm": "LLMs", "llms": "LLMs", "large language models": "LLMs",
+    "rag": "RAG", "langchain": "LangChain", "llamaindex": "LlamaIndex",
+    "openai": "OpenAI API", "openai api": "OpenAI API",
+    "pandas": "Pandas", "numpy": "NumPy", "scipy": "SciPy", "scikit-learn": "Scikit-Learn",
+    "tensorflow": "TensorFlow", "pytorch": "PyTorch", "keras": "Keras",
+    "opencv": "OpenCV", "power bi": "Power BI", "tableau": "Tableau",
+    "hugging face": "Hugging Face", "transformers": "Transformers", "cuda": "CUDA",
+    "pyspark": "PySpark", "spark": "Apache Spark", "apache spark": "Apache Spark",
+    "hadoop": "Hadoop", "airflow": "Apache Airflow", "apache airflow": "Apache Airflow",
+
+    # Testing & Methodologies
+    "jest": "Jest", "cypress": "Cypress", "playwright": "Playwright", "selenium": "Selenium",
+    "puppeteer": "Puppeteer", "vitest": "Vitest", "mocha": "Mocha", "chai": "Chai",
+    "junit": "JUnit", "pytest": "PyTest", "postman": "Postman", "jmeter": "JMeter",
+    "jira": "Jira", "confluence": "Confluence", "trello": "Trello", "asana": "Asana", "notion": "Notion",
+    "figma": "Figma", "adobe xd": "Adobe XD",
+    "agile": "Agile", "scrum": "Scrum", "kanban": "Kanban", "tdd": "TDD",
+    "oop": "OOP", "object-oriented programming": "OOP", "system design": "System Design"
 }
 
 SKILL_BLACKLIST = {
@@ -141,6 +257,194 @@ def extract_pdf_annotations(pdf_bytes: bytes) -> List[str]:
     except Exception:
         pass
     return list(set(uris))
+
+def pdf_to_json(pdf_bytes: bytes) -> Dict[str, Any]:
+    """
+    Converts a PDF binary into a structured JSON representation preserving
+    pages, text blocks, lines, character layout, bounding boxes, font sizes,
+    and hyperlinked annotations.
+    Employs multi-tier fallbacks so conversion never fails.
+    """
+    if not pdf_bytes or len(pdf_bytes) < 10:
+        return {"pages": [], "annotations": [], "metadata": {"total_pages": 0}}
+
+    annots = extract_pdf_annotations(pdf_bytes)
+
+    def extract_from_layout(laparams_obj):
+        pages_list = []
+        for page_idx, page_layout in enumerate(extract_pages(io.BytesIO(pdf_bytes), laparams=laparams_obj)):
+            blocks = []
+            for element in page_layout:
+                if isinstance(element, LTTextBox):
+                    lines = []
+                    for text_line in element:
+                        if isinstance(text_line, LTTextLine):
+                            line_text = text_line.get_text().strip()
+                            sizes = [c.size for c in text_line if isinstance(c, LTChar)]
+                            max_size = max(sizes) if sizes else 0.0
+                            if line_text:
+                                lines.append({
+                                    "text": line_text,
+                                    "bbox": [round(float(x), 2) for x in text_line.bbox],
+                                    "x0": round(float(text_line.bbox[0]), 2),
+                                    "y0": round(float(text_line.bbox[1]), 2),
+                                    "x1": round(float(text_line.bbox[2]), 2),
+                                    "y1": round(float(text_line.bbox[3]), 2),
+                                    "max_font_size": round(float(max_size), 2)
+                                })
+                    box_text = element.get_text().strip()
+                    if box_text:
+                        blocks.append({
+                            "bbox": [round(float(x), 2) for x in element.bbox],
+                            "x0": round(float(element.bbox[0]), 2),
+                            "y0": round(float(element.bbox[1]), 2),
+                            "x1": round(float(element.bbox[2]), 2),
+                            "y1": round(float(element.bbox[3]), 2),
+                            "lines": lines,
+                            "text": box_text
+                        })
+            pages_list.append({
+                "page_number": getattr(page_layout, "pageid", page_idx + 1),
+                "bbox": [round(float(x), 2) for x in page_layout.bbox],
+                "width": round(float(page_layout.width), 2),
+                "height": round(float(page_layout.height), 2),
+                "text_blocks": blocks
+            })
+        return pages_list
+
+    # Tier 1: Custom layout analysis parameters
+    try:
+        laparams = LAParams(
+            line_overlap=0.5,
+            char_margin=2.0,
+            line_margin=0.5,
+            word_margin=0.1,
+            boxes_flow=0.5,
+            detect_vertical=False
+        )
+        pages = extract_from_layout(laparams)
+        if pages and any(p.get("text_blocks") for p in pages):
+            return {
+                "pages": pages,
+                "annotations": annots,
+                "metadata": {"total_pages": len(pages)}
+            }
+    except Exception:
+        pass
+
+    # Tier 2: Default LAParams
+    try:
+        pages = extract_from_layout(LAParams())
+        if pages and any(p.get("text_blocks") for p in pages):
+            return {
+                "pages": pages,
+                "annotations": annots,
+                "metadata": {"total_pages": len(pages)}
+            }
+    except Exception:
+        pass
+
+    # Tier 3: No LAParams
+    try:
+        pages = extract_from_layout(None)
+        if pages and any(p.get("text_blocks") for p in pages):
+            return {
+                "pages": pages,
+                "annotations": annots,
+                "metadata": {"total_pages": len(pages)}
+            }
+    except Exception:
+        pass
+
+    # Tier 4: Fallback from raw text extraction to build well-formed JSON
+    try:
+        raw_text = extract_text(io.BytesIO(pdf_bytes))
+    except Exception:
+        raw_text = ""
+
+    clean_text = raw_text.strip() if raw_text else ""
+    raw_lines = [l.strip() for l in clean_text.splitlines() if l.strip()]
+    fallback_lines = [{
+        "text": l,
+        "bbox": [0.0, 0.0, 612.0, 792.0],
+        "x0": 0.0, "y0": 0.0, "x1": 612.0, "y1": 792.0,
+        "max_font_size": 12.0
+    } for l in raw_lines]
+
+    fallback_blocks = [{
+        "bbox": [0.0, 0.0, 612.0, 792.0],
+        "x0": 0.0, "y0": 0.0, "x1": 612.0, "y1": 792.0,
+        "lines": fallback_lines,
+        "text": clean_text
+    }] if clean_text else []
+
+    return {
+        "pages": [{
+            "page_number": 1,
+            "bbox": [0.0, 0.0, 612.0, 792.0],
+            "width": 612.0,
+            "height": 792.0,
+            "text_blocks": fallback_blocks
+        }],
+        "annotations": annots,
+        "metadata": {"total_pages": 1}
+    }
+
+def extract_text_from_json(json_data: Any) -> str:
+    """
+    Extracts text from PDF-JSON structure with layout and column awareness.
+    Groups text blocks into columns to prevent column interleaving.
+    """
+    if not json_data:
+        return ""
+
+    if isinstance(json_data, str):
+        try:
+            json_data = json.loads(json_data)
+        except Exception:
+            return json_data.strip()
+
+    if not isinstance(json_data, dict):
+        return ""
+
+    pages = json_data.get("pages", [])
+    if not pages:
+        return ""
+
+    page_chunks = []
+    for page in pages:
+        parsed_boxes = page.get("text_blocks", [])
+        if not parsed_boxes:
+            continue
+
+        page_width = float(page.get("width", 612.0))
+        mid_x = page_width / 2.0
+
+        left_boxes = [b for b in parsed_boxes if b.get("x1", b.get("bbox", [0, 0, 0, 0])[2]) <= mid_x + 35]
+        right_boxes = [b for b in parsed_boxes if b.get("x0", b.get("bbox", [0, 0, 0, 0])[0]) >= mid_x - 35]
+
+        # Multi-column layout detection
+        if len(left_boxes) >= 2 and len(right_boxes) >= 2 and (len(left_boxes) + len(right_boxes) >= len(parsed_boxes) * 0.7):
+            left_boxes.sort(key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+            right_boxes.sort(key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+            spanning_boxes = [b for b in parsed_boxes if b not in left_boxes and b not in right_boxes]
+            spanning_boxes.sort(key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+
+            header_boxes = [b for b in spanning_boxes if b.get("y0", b.get("bbox", [0, 0, 0, 0])[1]) > 620]
+            footer_boxes = [b for b in spanning_boxes if b.get("y0", b.get("bbox", [0, 0, 0, 0])[1]) <= 620]
+
+            ordered_texts = (
+                [b.get("text", "") for b in header_boxes] +
+                [b.get("text", "") for b in left_boxes] +
+                [b.get("text", "") for b in right_boxes] +
+                [b.get("text", "") for b in footer_boxes]
+            )
+            page_chunks.append("\n\n".join([t for t in ordered_texts if t.strip()]))
+        else:
+            sorted_boxes = sorted(parsed_boxes, key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+            page_chunks.append("\n\n".join([b.get("text", "") for b in sorted_boxes if b.get("text", "").strip()]))
+
+    return "\n\n".join(page_chunks).strip()
 
 def pdf_to_xml(pdf_bytes: bytes) -> str:
     """
@@ -379,49 +683,110 @@ def extract_name_from_xml(xml_content: str) -> Optional[str]:
     best_candidate = re.sub(r',?\s*(?:ph\.?d\.?|m\.?d\.?|msc|bsc|mba|pmp)$', '', best_candidate, flags=re.IGNORECASE).strip()
     return best_candidate.title()
 
+def extract_name_from_json(json_data: Any) -> Optional[str]:
+    """Finds the candidate's name on Page 1 by locating the largest heading font in the JSON layout."""
+    if not json_data:
+        return None
+    if isinstance(json_data, str):
+        try:
+            json_data = json.loads(json_data)
+        except Exception:
+            return None
+
+    if not isinstance(json_data, dict):
+        return None
+
+    pages = json_data.get("pages", [])
+    if not pages:
+        return None
+
+    first_page = pages[0]
+    candidates = []
+    for tb in first_page.get("text_blocks", []):
+        for tl in tb.get("lines", []):
+            line_str = tl.get("text", "").strip()
+            line_str = re.sub(r'\s+', ' ', line_str)
+            if not is_valid_name(line_str):
+                continue
+
+            max_size = float(tl.get("max_font_size", 0.0))
+            y_pos = float(tl.get("y0", tl.get("bbox", [0, 0, 0, 0])[1]))
+
+            candidates.append((max_size, y_pos, line_str))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    best_candidate = candidates[0][2].strip()
+    best_candidate = re.sub(r',?\s*(?:ph\.?d\.?|m\.?d\.?|msc|bsc|mba|pmp)$', '', best_candidate, flags=re.IGNORECASE).strip()
+    return best_candidate.title()
+
 def identify_section(line: str) -> Optional[str]:
     """Identifies if a line represents a resume section header."""
     if not line:
         return None
     cleaned = line.strip().lower()
-    cleaned = re.sub(r'^[\d\.\-\*•–\s]+', '', cleaned)
-    cleaned = re.sub(r'[:|\-–\s]+$', '', cleaned).strip()
+    # Strip markdown headers, numbering, bullets, roman numerals, brackets
+    cleaned = re.sub(r'^[#*_\-•–—~|\[\]\(\)\s]+', '', cleaned)
+    cleaned = re.sub(r'^(?:section\s*\d+|part\s*\d+|[ivx]+\b|\d+)[\.\):\s-]*', '', cleaned, flags=re.IGNORECASE)
 
-    if not cleaned or len(cleaned) > 50:
+    # Check prefix before colon if line begins with a section label (e.g. "Skills: Python, Docker")
+    prefix = cleaned.split(':')[0].strip() if ':' in cleaned else cleaned
+    prefix = re.sub(r'[:|\-–—~#*_\s]+$', '', prefix).strip()
+    target = prefix if len(prefix) <= 45 else cleaned
+    target = re.sub(r'[:|\-–—~#*_\s]+$', '', target).strip()
+
+    if not target or (len(target) > 60 and len(prefix) > 45):
         return None
 
     # Education
-    if re.search(r'^(education|educational\s*qualifications?|educational\s*background|academic\s*qualifications?|academic\s*background|academics|qualifications?|degrees?|schooling)\b', cleaned):
+    if re.search(r'^(education|educational\s*qualifications?|educational\s*background|academic\s*qualifications?|academic\s*background|academics|qualifications?|degrees?|schooling)\b', target):
         return "education"
-    # Experience
-    if re.search(r'^(work\s*experience|professional\s*experience|employment\s*history|work\s*history|working\s*experience|experience|career\s*history|professional\s*background|internships?|practical\s*experience|employment|relevant\s*(?:work\s*)?experience|industry\s*experience|work\s*summary)\b', cleaned):
+    # Experience (Expanded with international and regional industry headings)
+    if re.search(
+        r'^(?:'
+        r'work\s*experience|professional\s*experience|employment\s*history|'
+        r'employment\s*record|employment\s*background|work\s*history|'
+        r'working\s*experience|experience|career\s*history|career\s*experience|'
+        r'career\s*background|professional\s*background|internships?|'
+        r'internship\s*experience|practical\s*experience|industry\s*experience|'
+        r'relevant\s*(?:work\s*|professional\s*)?experience|employment|'
+        r'previous\s*employment|past\s*experience|technical\s*experience|'
+        r'engineering\s*experience|job\s*history|work\s*summary|'
+        r'career\s*summary|positions?\s*held|professional\s*appointments?|'
+        r'work\s*record|freelance\s*experience|consulting\s*experience|'
+        r'experience\s*(?:and|&)\s*projects'
+        r')\b',
+        target
+    ):
         return "experience"
     # Skills
-    if re.search(r'^(technical\s*skills|core\s*skills|key\s*skills|skills|technologies|competencies|core\s*competencies|tools\s*&\s*technologies|expertise|technical\s*proficiencies|areas\s*of\s*expertise|programming\s*skills|tech\s*stack|skill\s*set)\b', cleaned):
+    if re.search(r'^(technical\s*skills|core\s*skills|key\s*skills|skills|technologies|competencies|core\s*competencies|tools\s*&\s*technologies|expertise|technical\s*proficiencies|areas\s*of\s*expertise|programming\s*skills|tech\s*stack|skill\s*set)\b', target):
         return "skills"
     # Summary / Bio
-    if re.search(r'^(professional\s*summary|profile|about\s*me|summary|career\s*objective|executive\s*summary|objective|about|bio|overview|personal\s*statement)\b', cleaned):
+    if re.search(r'^(professional\s*summary|profile|about\s*me|summary|career\s*objective|executive\s*summary|objective|about|bio|overview|personal\s*statement)\b', target):
         return "bio"
     # Languages
-    if re.search(r'^(languages?|language\s*proficiency|spoken\s*languages?|language\s*skills?)\b', cleaned):
+    if re.search(r'^(languages?|language\s*proficiency|spoken\s*languages?|language\s*skills?)\b', target):
         return "language"
     # Certifications / Courses
-    if re.search(r'^(certifications?|certificates?|licenses?\s*&\s*certifications?|licenses?|credentials|courses|trainings?)\b', cleaned):
+    if re.search(r'^(certifications?|certificates?|licenses?\s*&\s*certifications?|licenses?|credentials|courses|trainings?)\b', target):
         return "certifications"
     # Projects
-    if re.search(r'^(projects?|personal\s*projects?|academic\s*projects?|key\s*projects?|portfolio)\b', cleaned):
+    if re.search(r'^(projects?|personal\s*projects?|academic\s*projects?|key\s*projects?|portfolio)\b', target):
         return "projects"
     # Publications / Research
-    if re.search(r'^(publications?|research|papers?)\b', cleaned):
+    if re.search(r'^(publications?|research|papers?)\b', target):
         return "publications"
     # Achievements / Awards
-    if re.search(r'^(achievements?|awards?|honors?|key\s*achievements?)\b', cleaned):
+    if re.search(r'^(achievements?|awards?|honors?|key\s*achievements?)\b', target):
         return "awards"
     # Volunteering / Activities
-    if re.search(r'^(volunteering|volunteer\s*experience|leadership|extracurricular(?:\s*activities)?|co-curriculars?)\b', cleaned):
+    if re.search(r'^(volunteering|volunteer\s*experience|leadership|extracurricular(?:\s*activities)?|co-curriculars?)\b', target):
         return "volunteering"
     # References
-    if re.search(r'^(references?|referees?)\b', cleaned):
+    if re.search(r'^(references?|referees?)\b', target):
         return "references"
 
     return None
@@ -432,72 +797,184 @@ def identify_section(line: str) -> Optional[str]:
 
 ROLE_KEYWORDS_PATTERN = re.compile(
     r'\b('
-    r'engineer|developer|designer|manager|architect|analyst|lead|intern|specialist|'
-    r'consultant|administrator|officer|director|associate|scientist|instructor|'
-    r'programmer|technician|trainee|fellow|researcher|coordinator|head|founder|'
-    r'co-founder|cto|ceo|cfo|cio|vp|vice\s+president|president|scrum\s+master|'
-    r'product\s+owner|writer|auditor|strategist|executive|undergraduate|apprentice|'
-    r'supervisor|instructor|advisor|member\s+of\s+technical\s+staff'
+    # Engineering & Development
+    r'software\s+engineer(?:ing)?|software\s+developer|web\s+developer|mobile\s+developer|'
+    r'full\s*stack\s*(?:developer|engineer)?|frontend\s*(?:developer|engineer)?|front-end\s*(?:developer|engineer)?|'
+    r'backend\s*(?:developer|engineer)?|back-end\s*(?:developer|engineer)?|'
+    r'devops\s*(?:engineer|specialist)?|devsecops|sre|site\s+reliability\s+engineer|'
+    r'cloud\s*(?:engineer|architect|specialist|consultant)?|platform\s*engineer|infrastructure\s*engineer|'
+    r'systems?\s*(?:engineer|administrator|analyst|architect)?|network\s*(?:engineer|administrator|specialist)?|'
+    r'database\s*(?:administrator|engineer|developer|architect)?|dba|'
+    r'embedded\s*(?:systems?\s*)?(?:engineer|developer)?|firmware\s*engineer|hardware\s*engineer|'
+    r'qa\s*(?:engineer|lead|analyst|tester|specialist)?|quality\s+assurance\s*(?:engineer|analyst|tester|specialist)?|'
+    r'test\s*(?:engineer|analyst|lead|automation\s*engineer)?|automation\s*engineer|sdet|'
+    r'security\s*(?:engineer|analyst|consultant|specialist|officer)?|cyber\s*security\s*(?:specialist|engineer|analyst)?|'
+    r'infosec\s*(?:engineer|analyst)?|penetration\s*tester|ethical\s*hacker|'
+    r'blockchain\s*(?:developer|engineer)?|smart\s*contract\s*developer|solutions?\s*architect|'
+    r'enterprise\s*architect|software\s*architect|technical\s*architect|'
+    r'engineer|developer|architect|programmer|technician|coder|webmaster|'
+    # Data & AI / ML
+    r'data\s*scientist|data\s*engineer|data\s*analyst|data\s*architect|'
+    r'machine\s*learning\s*(?:engineer|scientist|specialist)?|ml\s*(?:engineer|scientist)?|'
+    r'deep\s*learning\s*(?:engineer|specialist)?|ai\s*(?:engineer|scientist|researcher|specialist)?|'
+    r'artificial\s+intelligence\s*(?:engineer|specialist)?|nlp\s*(?:engineer|specialist)?|'
+    r'computer\s+vision\s*engineer|prompt\s*engineer|bi\s*(?:developer|analyst|consultant)?|'
+    r'business\s*intelligence\s*(?:developer|analyst)?|quantitative\s*analyst|statistician|'
+    # Design & Creative
+    r'ui\s*/?\s*ux\s*(?:designer|engineer|developer|lead)?|ux\s*(?:designer|researcher|lead)?|'
+    r'ui\s*(?:designer|lead)?|user\s*experience\s*designer|user\s*interface\s*designer|'
+    r'product\s*designer|interaction\s*designer|visual\s*designer|graphic\s*designer|'
+    r'creative\s*director|art\s*director|design\s*system\s*lead|motion\s*designer|'
+    r'designer|illustrator|animator|3d\s*artist|'
+    # Management, Leadership & Agile
+    r'technical\s*lead|tech\s*lead|team\s*lead|engineering\s*manager|'
+    r'director\s*of\s*engineering|vp\s*of\s*engineering|head\s*of\s*engineering|'
+    r'head\s*of\s*technology|head\s*of\s*product|product\s*manager|'
+    r'technical\s*product\s*manager|product\s*owner|project\s*manager|'
+    r'project\s*coordinator|program\s*manager|scrum\s*master|agile\s*coach|'
+    r'delivery\s*manager|operations\s*manager|general\s*manager|managing\s*director|'
+    r'chief\s*technology\s*officer|cto|chief\s*executive\s*officer|ceo|'
+    r'chief\s*operating\s*officer|coo|chief\s*information\s*officer|cio|'
+    r'chief\s*financial\s*officer|cfo|chief\s*product\s*officer|cpo|'
+    r'chief\s*information\s*security\s*officer|ciso|'
+    r'founder|co-founder|partner|president|vice\s+president|vp|director|manager|supervisor|'
+    # Analysis & Strategy
+    r'business\s*analyst|systems?\s*analyst|operations\s*analyst|financial\s*analyst|'
+    r'research\s*analyst|strategist|auditor|consultant|specialist|advisor|administrator|'
+    # IT Support, Operations & Services
+    r'it\s*support\s*(?:engineer|specialist|officer)?|technical\s*support\s*(?:engineer|specialist)?|'
+    r'helpdesk\s*(?:specialist|technician|engineer)?|system\s*administrator|sysadmin|'
+    r'service\s*desk\s*analyst|it\s*officer|network\s*administrator|'
+    # Academic & Research
+    r'research\s*assistant|research\s*fellow|researcher|scientist|'
+    r'postdoctoral\s*(?:researcher|fellow)?|fellow|lecturer|assistant\s*lecturer|'
+    r'senior\s*lecturer|instructor|teaching\s*assistant|tutor|professor|'
+    # Trainees & Interns
+    r'intern|internship|trainee|apprentice|fellowship|undergraduate\s*trainee|graduate\s*trainee|'
+    r'associate|member\s*of\s*technical\s*staff|'
+    # Tech Relations, Marketing & Writing
+    r'developer\s*advocate|developer\s*relations|devrel|solutions?\s*engineer|'
+    r'sales\s*engineer|technical\s*writer|writer|account\s*manager|'
+    r'customer\s*success\s*manager|growth\s*specialist|marketing\s*specialist|seo\s*specialist|'
+    r'executive|coordinator|officer'
     r')\b',
     re.IGNORECASE
 )
 
 ROLE_QUALIFIERS_PATTERN = re.compile(
-    r'\b(senior|junior|lead|principal|staff|chief|associate|assistant|graduate|trainee|intern|internship|head\s+of|director\s+of|vp\s+of)\b',
+    r'\b('
+    r'senior|sr\.?|junior|jr\.?|lead|team\s+lead|tech\s+lead|principal|staff|distinguished|'
+    r'chief|associate|assistant|deputy|graduate|trainee|intern|internship|entry\s+level|'
+    r'mid\s+level|intermediate|experienced|head\s+of|director\s+of|vp\s+of|vice\s+president\s+of|'
+    r'acting|interim|co-?founder\s*(?:&|and)?|founder\s*(?:&|and)?|freelance|consultant|contract|'
+    r'part-?time|full-?time'
+    r')\b',
     re.IGNORECASE
 )
 
 COMPANY_KEYWORDS_PATTERN = re.compile(
     r'\b('
     r'inc\.?|incorporated|llc|ltd\.?|limited|\(pvt\)\s*ltd\.?|pvt\.?\s*ltd\.?|private\s+limited|'
-    r'technologies|technology|solutions|systems|labs?|laboratories|software|corp\.?|corporation|'
-    r'bank|group|consulting|digital|ventures|services|enterprises|studios?|agency|holdings?|'
-    r'telecom|communications?|media|works'
+    r'pvt|plc|gmbh|corp\.?|corporation|co\.?|company|'
+    r'technologies|technology|tech|solutions|systems|system|labs?|laboratories|software|'
+    r'innovations?|studios?|agency|digital|ventures?|consultancy|consulting|analytics|'
+    r'networks?|media|partners?|capital|holdings?|services?|group|enterprises?|'
+    r'international|global|interactive|security|cloud|data|platform|industries|'
+    r'fintech|healthtech|edtech|logistics|telecom|communications?|infotech|works|'
+    r'bank|banking|financial|insurance'
     r')\b',
     re.IGNORECASE
 )
 
 KNOWN_COMPANIES = {
-    "google", "microsoft", "apple", "amazon", "meta", "facebook", "netflix",
-    "uber", "airbnb", "twitter", "linkedin", "stripe", "spotify", "salesforce",
-    "oracle", "ibm", "cisco", "intel", "adobe", "nvidia", "samsung", "virtusa",
-    "wso2", "sysco labs", "sysco", "ifs", "axiata", "dialog", "millenniumit",
-    "creative software", "codegen", "99x", "pearson", "zone24x7", "mitra",
-    "octave", "lseg", "london stock exchange group", "accenture", "cognizant",
-    "infosys", "tcs", "deloitte", "pwc", "ey", "kpmg", "mckinsey", "boston consulting"
+    # Tech Giants & Cloud
+    "google", "microsoft", "apple", "amazon", "aws", "amazon web services", "meta", "facebook",
+    "netflix", "uber", "airbnb", "twitter", "x corp", "linkedin", "stripe", "spotify", "salesforce",
+    "oracle", "ibm", "cisco", "intel", "amd", "nvidia", "samsung", "qualcomm", "vmware", "sap",
+    "sony", "paypal", "intuit", "atlassian", "cloudflare", "datadog", "mongodb", "hashicorp",
+    "snowflake", "twilio", "palantir", "square", "block", "shopify", "snap", "snapchat", "dropbox",
+    "box", "zoom", "slack", "pinterest", "github", "gitlab", "docker", "red hat", "redhat",
+    "canonical", "openai", "anthropic", "bytedance", "tiktok", "tesla", "spacex", "epic games",
+    "unity", "unity technologies", "crowdstrike", "palo alto networks", "target", "walmart",
+    "siemens", "philips", "bosch", "ebay",
+    # Global IT & Consulting
+    "accenture", "cognizant", "infosys", "tcs", "tata consultancy services", "wipro", "capgemini",
+    "dxc", "dxc technology", "deloitte", "pwc", "pricewaterhousecoopers", "ey", "ernst & young",
+    "kpmg", "mckinsey", "boston consulting", "bcg", "bain", "bain & company", "epam", "thoughtworks",
+    "nagarro", "hcl", "hcl technologies", "tech mahindra", "mindtree", "lti", "cgi", "ntt data",
+    # Sri Lankan & Regional Tech Powerhouses
+    "virtusa", "wso2", "sysco labs", "sysco", "ifs", "axiata", "dialog", "dialog axiata",
+    "millenniumit", "millennium it esp", "creative software", "codegen", "99x", "pearson",
+    "zone24x7", "mitra", "mitra innovation", "octave", "lseg", "london stock exchange group",
+    "calcey", "calcey technologies", "rootcode", "rootcode labs", "surge global", "enadoc",
+    "geveo", "geveo australasia", "fortude", "tiqri", "ascentic", "simcentric", "directfn",
+    "gapstars", "bhasha", "pickme", "daraz", "roar global", "omobio", "arimac", "cambio software",
+    "wiley", "ironone technologies", "boardpac", "aeturnum", "ideahub", "hsenid", "hsenid mobile",
+    "hsenid software", "brandix", "mas holdings", "mas", "john keells", "john keells holdings", "jkh",
+    "commercial bank", "hatton national bank", "hnb", "sampath bank", "nations trust bank", "ntb",
+    "lolc", "softlogic", "hemas", "hayleys"
 }
 
 EXP_DATE_PATTERN = re.compile(
     r'('
-    r'(?:(?:from|dates?)\s*[:|\-–]?\s*)?'
+    # Optional prefix like "from", "dates:", "duration:", "period:", "since"
+    r'(?:(?:from|dates?|duration|period|since)\s*[:|\-–—]?\s*)?'
+    # Start date: Month/Year or Month Year or MM/YYYY or YYYY-MM or YYYY
+    r'(?:'
     r'(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?,?\s*)?'
-    r'(?:20\d{2}|19\d{2}|\d{1,2}/\d{4}|\d{1,2}/\d{2})'
-    r'(?:\s*(?:[-–—to/]+\s*)'
+    r'(?:20\d{2}|19\d{2}|\d{1,2}[\./\-]\d{2,4})'
+    r'(?:[\./\-]\d{1,2})?'
+    r')'
+    # Separator
+    r'(?:\s*(?:[-–—~]|to|till|until|/)\s*'
+    # End date: Month/Year or Year or Present / Current / Ongoing / Till date
+    r'(?:'
     r'(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?,?\s*)?'
-    r'(?:20\d{2}|19\d{2}|\d{1,2}/\d{4}|\d{1,2}/\d{2}|present|current|now))?'
+    r'(?:20\d{2}|19\d{2}|\d{1,2}[\./\-]\d{2,4}|present|current|now|till\s*date|to\s*date|ongoing|current\s*date)'
+    r'(?:[\./\-]\d{1,2})?'
+    r')'
+    r')?'
+    # Optional duration trailer like (1 yr 6 mos) or (2 years)
+    r'(?:\s*\(\s*\d+\s*(?:yrs?|years?|mos?|months?)[^)]*\))?'
     r')',
     re.IGNORECASE
 )
 
 ACTION_VERB_PATTERN = re.compile(
-    r'^(?:developed|engineered|implemented|built|designed|led|architected|created|'
+    r'^(?:'
+    r'developed|engineered|implemented|built|designed|led|architected|created|'
     r'maintained|collaborated|managed|automated|optimized|resolved|contributed|'
     r'responsible\s+for|assisted|conducted|facilitated|spearheaded|delivered|'
     r'configured|deployed|integrated|researched|analyzed|tested|documented|'
     r'reported|mentored|supervised|trained|performed|monitored|established|'
     r'improved|executed|prepared|provided|participated|supported|coordinated|'
     r'handled|worked|guided|oversaw|ensured|drove|partnered|authored|formulated|'
-    r'reviewed|streamlined|achieved|utilized|used)\b',
+    r'reviewed|streamlined|achieved|utilized|used|accelerated|administered|'
+    r'advised|allocated|championed|coached|compiled|constructed|consulted|'
+    r'debugged|devised|diagnosed|directed|drafted|enabled|enhanced|evaluated|'
+    r'expanded|expedited|fostered|founded|generated|headed|identified|increased|'
+    r'initiated|inspected|installed|instituted|interviewed|introduced|investigated|'
+    r'launched|maximized|migrated|minimized|modeled|motivated|negotiated|operated|'
+    r'orchestrated|organized|overhauled|pioneered|planned|presented|prioritized|'
+    r'processed|produced|programmed|promoted|proposed|published|re-architected|'
+    r'rebuilt|recruited|redesigned|reduced|refactored|reformed|reorganized|repaired|'
+    r'replaced|restructured|revamped|revised|revitalized|scaled|scheduled|secured|'
+    r'simplified|standardized|strengthened|structured|synthesized|targeted|tracked|'
+    r'transformed|translated|troubleshot|unified|updated|upgraded|validated|verified|'
+    r'wrote'
+    r')\b',
     re.IGNORECASE
 )
 
-BULLET_PREFIX_PATTERN = re.compile(r'^(?:[•\-\*–—\>·◦]+|\d{1,2}[\.\)]\s+)\s*')
+BULLET_PREFIX_PATTERN = re.compile(r'^(?:[•\-\*–—\>·◦\u2022\u25cf\u25cb\u25aa\u25ab]+|\d{1,2}[\.\)]\s+)\s*')
 
 def is_role_line(text: str) -> bool:
     if not text:
         return False
     t = text.strip()
-    if len(t) > 75 or len(t.split()) > 8:
+    if len(t) > 85 or len(t.split()) > 9:
+        return False
+    if '@' in t or re.search(r'https?://|www\.|linkedin|github|\.com\b|\.net\b|\.org\b', t, re.IGNORECASE):
         return False
     if t.endswith('.') and not re.search(r'\b(sr|jr)\.$', t, re.IGNORECASE):
         return False
@@ -511,7 +988,9 @@ def is_company_line(text: str) -> bool:
     if not text:
         return False
     t = text.strip()
-    if len(t) < 2 or len(t) > 75 or len(t.split()) > 8:
+    if len(t) < 2 or len(t) > 85 or len(t.split()) > 9:
+        return False
+    if '@' in t or re.search(r'https?://|www\.|linkedin|github|\.com\b|\.net\b|\.org\b', t, re.IGNORECASE):
         return False
     if t.endswith('.') and not re.search(r'\b(inc|ltd|corp|co)\.$', t, re.IGNORECASE):
         return False
@@ -532,47 +1011,66 @@ def is_company_line(text: str) -> bool:
 def clean_period(period_str: str) -> str:
     if not period_str:
         return "Unknown"
-    p = re.sub(r'^(?:from|dates?)\s*[:|\-–]\s*', '', period_str.strip(), flags=re.IGNORECASE).strip()
+    p = re.sub(r'^(?:from|dates?|duration|period|since)\s*[:|\-–—]?\s*', '', period_str.strip(), flags=re.IGNORECASE).strip()
     p = p.strip('()[]{}., \t')
     return p if p else "Unknown"
 
 def clean_title(title_str: str) -> str:
     if not title_str:
         return "Professional Role"
-    t = title_str.strip(' ,|-–\t:;')
-    t = re.sub(r'^(?:role|position|title)\s*[:|\-–]\s*', '', t, flags=re.IGNORECASE).strip()
+    t = title_str.strip(' ,|-–—\t:;')
+    t = re.sub(r'^(?:role|position|title)\s*[:|\-–—]?\s*', '', t, flags=re.IGNORECASE).strip()
     return t if t else "Professional Role"
 
 def clean_company(comp_str: str) -> str:
     if not comp_str:
         return "Company"
-    c = comp_str.strip(' ,|-–\t:;')
-    c = re.sub(r'^(?:at|@|company|organization|employer)\s*[:|\-–]?\s*', '', c, flags=re.IGNORECASE).strip()
+    c = comp_str.strip(' ,|-–—\t:;')
+    c = re.sub(r'^(?:at|@|company|organization|employer)\s*[:|\-–—]?\s*', '', c, flags=re.IGNORECASE).strip()
+    if '|' in c:
+        parts = [p.strip() for p in c.split('|') if p.strip()]
+        if len(parts) >= 2 and (is_company_line(parts[0]) or not is_company_line(parts[1])):
+            c = parts[0]
     return c if c else "Company"
 
 def extract_dates(line: str):
     matches = list(EXP_DATE_PATTERN.finditer(line))
     best_date = None
+    best_match = None
     for m in matches:
         cand = m.group(1).strip()
-        if re.search(r'\d{4}', cand):
+        if re.search(r'\d{2,4}', cand):
             if not best_date or len(cand) > len(best_date):
                 best_date = cand
+                best_match = m
 
     line_no_date = line
-    if best_date:
-        line_no_date = line.replace(best_date, ' ')
-        line_no_date = re.sub(r'\s+', ' ', line_no_date).strip(' ()[]|-–,\t')
+    if best_match:
+        start = best_match.start(1)
+        end = best_match.end(1)
+        if start > 0 and line[start-1] == '(' and end < len(line) and line[end] == ')':
+            line_no_date = line[:start-1] + ' ' + line[end+1:]
+        else:
+            line_no_date = line[:start] + ' ' + line[end:]
+        line_no_date = re.sub(r'\s+', ' ', line_no_date).strip(' ()[]|-–—,\t')
 
     return line_no_date, best_date
 
 def parse_single_line_job(line: str):
     line_clean = line.strip()
-    if ACTION_VERB_PATTERN.search(line_clean) or len(line_clean) > 120:
+    if ACTION_VERB_PATTERN.search(line_clean) or len(line_clean) > 130:
+        return None
+    if '@' in line_clean and re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', line_clean):
         return None
 
     line_no_date, date_found = extract_dates(line_clean)
-    parts = [p.strip() for p in re.split(r'\s*(?:[-–|•]|(?:\bat\b)|@)\s*', line_no_date, flags=re.IGNORECASE) if p.strip()]
+    parts = [p.strip() for p in re.split(r'\s*(?:[-–—|•·]|(?:\bat\b)|@)\s*', line_no_date, flags=re.IGNORECASE) if p.strip()]
+
+    # If not split yet, check if separated by comma
+    if len(parts) < 2 and ',' in line_no_date:
+        comma_parts = [p.strip() for p in line_no_date.split(',', 1) if p.strip()]
+        if len(comma_parts) == 2 and (is_role_line(comma_parts[0]) or is_company_line(comma_parts[1]) or is_role_line(comma_parts[1]) or is_company_line(comma_parts[0])):
+            parts = comma_parts
 
     if len(parts) >= 2:
         r0 = is_role_line(parts[0])
@@ -595,6 +1093,12 @@ def parse_single_line_job(line: str):
         elif c0 and r1:
             title = parts[1]
             company = parts[0]
+        elif r0:
+            title = parts[0]
+            company = parts[1]
+        elif r1:
+            title = parts[1]
+            company = parts[0]
 
         if title and company:
             return {
@@ -610,7 +1114,7 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
     """
     Extracts structured job entries (title, company, period, description).
     Handles Company-first, Role-first, inline dates, single-line entries,
-    and bullet/bulletless job descriptions with 100% accuracy.
+    and bullet/bulletless job descriptions with high accuracy.
     """
     if not exp_lines:
         return []
@@ -665,11 +1169,12 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 pending_date = extracted_date
             continue
 
-        has_role = is_role_line(line_no_date if line_no_date else line_clean)
-        has_comp = is_company_line(line_no_date if line_no_date else line_clean)
+        target_content = line_no_date if line_no_date else line_clean
+        has_role = is_role_line(target_content)
+        has_comp = is_company_line(target_content)
 
         # 4. Long descriptive lines or action-verb lines belong to description
-        if current_job and (is_action_verb or len(line_clean) > 80 or (line_clean.endswith('.') and not has_role and not has_comp)):
+        if current_job and (is_action_verb or len(line_clean) > 85 or (line_clean.endswith('.') and not has_role and not has_comp)):
             if current_job["description"]:
                 current_job["description"] += "\n" + clean_text
             else:
@@ -704,26 +1209,23 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
         if extracted_date and current_job["period"] == "Unknown":
             current_job["period"] = clean_period(extracted_date)
 
-        target_content = line_no_date if line_no_date else line_clean
-
         # Assign role vs company
         if has_role and not has_comp:
             if current_job["title"] == "Professional Role":
                 current_job["title"] = clean_title(target_content)
             elif current_job["company"] == "Company" and not current_job["description"]:
-                if is_company_line(current_job["title"]):
-                    current_job["company"] = current_job["title"]
-                    current_job["title"] = clean_title(target_content)
-                else:
-                    current_job["title"] = clean_title(target_content)
+                current_job["company"] = clean_company(current_job["title"])
+                current_job["title"] = clean_title(target_content)
+            else:
+                current_job["title"] = clean_title(target_content)
         elif has_comp and not has_role:
             if current_job["company"] == "Company":
                 current_job["company"] = clean_company(target_content)
             elif current_job["title"] == "Professional Role":
                 current_job["company"] = clean_company(target_content)
-        elif current_job["title"] == "Professional Role" and len(line_clean) < 60 and not extracted_date:
+        elif current_job["title"] == "Professional Role" and len(line_clean) < 65 and not extracted_date:
             current_job["title"] = clean_title(target_content)
-        elif current_job["company"] == "Company" and current_job["title"] != "Professional Role" and not current_job["description"] and len(line_clean) < 60:
+        elif current_job["company"] == "Company" and current_job["title"] != "Professional Role" and not current_job["description"] and len(line_clean) < 65:
             current_job["company"] = clean_company(target_content)
         else:
             # Descriptive text
@@ -755,7 +1257,13 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 t = sub[0]
                 c = sub[1]
 
-        if t != "Professional Role" or c != "Company" or d:
+        has_real_title = t != "Professional Role"
+        has_real_comp = c != "Company"
+        has_real_period = p != "Unknown"
+        has_real_desc = bool(d)
+
+        # Require meaningful job: (title + company) OR (title/company + period/description)
+        if (has_real_title and has_real_comp) or ((has_real_title or has_real_comp) and (has_real_period or has_real_desc)):
             clean_jobs.append({
                 "title": t,
                 "company": c,
@@ -763,7 +1271,7 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 "description": d
             })
 
-    return clean_jobs[:6]
+    return clean_jobs[:10]
 
 # ==============================================================================
 # Enhanced Education Extraction Engine
@@ -808,7 +1316,12 @@ EDU_KNOWN_INSTITUTES = {
     "mit", "stanford", "harvard", "oxford", "cambridge", "caltech", "berkeley",
     "ucla", "cmu", "columbia", "cornell", "princeton", "yale", "sliit", "nsbm",
     "nibm", "iit", "icbt", "esoft", "pearson btec", "pearson", "btec", "edexcel",
-    "bits pilani", "iisc", "carnegie mellon", "monash", "melbourne", "toronto"
+    "bits pilani", "iisc", "carnegie mellon", "monash", "melbourne", "toronto",
+    "university of colombo", "university of moratuwa", "university of peradeniya",
+    "university of kelaniya", "university of sri jayewardenepura", "university of ruhuna",
+    "university of jaffna", "open university of sri lanka", "cinec", "horizon campus",
+    "iit campus", "informatics institute of technology", "national institute of business management",
+    "singapore national university", "nus", "ntu", "imperial college", "ucl", "kcl"
 }
 
 EDU_MAJOR_PATTERN = re.compile(
@@ -914,8 +1427,8 @@ def parse_single_line_edu(line: str):
 
     line_no_date, date_found = extract_edu_dates_from_line(line_clean)
 
-    # Only split on explicit delimiters: | or  -  or at or @
-    parts = [p.strip() for p in re.split(r'\s*(?:[|•]|\s[-–]\s|(?:\bat\b)|@)\s*', line_no_date, flags=re.IGNORECASE) if p.strip()]
+    # Only split on explicit delimiters: | or  -  or at or from or @
+    parts = [p.strip() for p in re.split(r'\s*(?:[|•]|\s[-–]\s|(?:\bat\b)|(?:\bfrom\b)|@)\s*', line_no_date, flags=re.IGNORECASE) if p.strip()]
 
     # If comma is present, only consider it if one side has degree and the other has institution
     if len(parts) < 2 and ',' in line_no_date:
@@ -1075,7 +1588,7 @@ def parse_education_section(edu_lines: List[str]) -> List[Dict[str, str]]:
 
     return clean_entries[:6]
 
-def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Optional[str] = None, pdf_bytes: Optional[bytes] = None) -> Dict[str, Any]:
+def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = None, xml_content: Optional[str] = None, filename: Optional[str] = None, pdf_bytes: Optional[bytes] = None) -> Dict[str, Any]:
     """
     Extracts all candidate profile fields from structured text using SpaCy NER and layout heuristics.
     Guaranteed to return complete dictionary and never raise.
@@ -1123,8 +1636,10 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
     # 2. Extract Name
     name = None
 
-    # Tier 1: XML font-size hierarchy
-    if xml_content:
+    # Tier 1: Font-size hierarchy from structured JSON (or legacy XML)
+    if json_data:
+        name = extract_name_from_json(json_data)
+    elif xml_content:
         name = extract_name_from_xml(xml_content)
 
     # Tier 2: Email username cross-verification
@@ -1143,13 +1658,13 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
                         name = cleaned_n.title()
                         break
 
-    # Tier 3: SpaCy PERSON entity in the top document header
+    # Tier 3: SpaCy NAME / PERSON entity in the top document header
     if not name and doc:
         header_text = text[:600]
         try:
             header_doc = nlp(header_text)
             for ent in header_doc.ents:
-                if ent.label_ == "PERSON" and is_valid_name(ent.text):
+                if ent.label_ in ("NAME", "PERSON") and is_valid_name(ent.text):
                     cleaned_n = re.sub(r',?\s*(?:ph\.?d\.?|m\.?d\.?|msc|bsc|mba|pmp)$', '', ent.text, flags=re.IGNORECASE).strip()
                     name = cleaned_n.title()
                     break
@@ -1193,6 +1708,10 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
         detected_sec = identify_section(line_clean)
         if detected_sec:
             current_section = detected_sec
+            if ':' in line_clean:
+                after_colon = line_clean.split(':', 1)[1].strip()
+                if after_colon and current_section in section_lines:
+                    section_lines[current_section].append(after_colon)
             continue
 
         if current_section and current_section in section_lines:
@@ -1241,6 +1760,15 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
                 formatted = " ".join([w.capitalize() if w.lower() not in ["and", "or", "of", "in"] else w.lower() for w in clean_p.split()])
                 skills_set.add(formatted)
 
+    # ML / Trained spaCy NER Skill Extraction
+    if doc:
+        for ent in doc.ents:
+            if ent.label_ == "SKILLS":
+                clean_ent = ent.text.strip().strip('.').strip()
+                if clean_ent and len(clean_ent) >= 2 and clean_ent.lower() not in SKILL_BLACKLIST:
+                    display_name = canonical_skills.get(clean_ent.lower(), clean_ent)
+                    skills_set.add(display_name)
+
     skills = sorted(list(skills_set))
 
     # 5. Parse Work Experience and Education
@@ -1249,6 +1777,37 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
         proj_exp = parse_experience_section(section_lines["projects"])
         if proj_exp:
             experience = proj_exp
+
+    # Global document fallback for experience if headers weren't identified
+    if not experience:
+        fallback_candidates = []
+        in_excluded_sec = False
+        for line in lines:
+            line_str = line.strip()
+            if not line_str:
+                continue
+            sec = identify_section(line_str)
+            if sec:
+                if sec in ["education", "skills", "language", "bio", "references", "awards", "publications", "volunteering"]:
+                    in_excluded_sec = True
+                    continue
+                else:
+                    in_excluded_sec = False
+            if in_excluded_sec:
+                continue
+            # Skip contact/header info lines: email, phone, links, candidate name
+            if '@' in line_str or re.search(r'https?://|www\.|linkedin|github|\.com\b|\.net\b', line_str, re.IGNORECASE):
+                continue
+            if name and (name.lower() == line_str.lower() or name.lower() in line_str.lower()):
+                continue
+            if EDU_DEGREE_PATTERN.search(line_str) or EDU_SCHOOL_KEYWORD_PATTERN.search(line_str):
+                continue
+            fallback_candidates.append(line_str)
+        if any(is_role_line(l) or parse_single_line_job(l) for l in fallback_candidates):
+            fb_jobs = parse_experience_section(fallback_candidates)
+            if fb_jobs:
+                experience = fb_jobs
+
     education = parse_education_section(section_lines["education"])
 
     # 6. Bio Summary
@@ -1323,18 +1882,29 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
     annot_uris = []
     if pdf_bytes:
         annot_uris.extend(extract_pdf_annotations(pdf_bytes))
+    if json_data:
+        if isinstance(json_data, str):
+            try:
+                json_data_obj = json.loads(json_data)
+            except Exception:
+                json_data_obj = {}
+        else:
+            json_data_obj = json_data
+        if isinstance(json_data_obj, dict):
+            annot_uris.extend(json_data_obj.get("annotations", []))
     if xml_content:
         xml_uris = re.findall(r'href=[\'"]([^\'"]+)[\'"]', xml_content, re.IGNORECASE)
         annot_uris.extend(xml_uris)
 
     combined_annot_text = " \n ".join(annot_uris)
+    json_str_search = json.dumps(json_data) if isinstance(json_data, (dict, list)) else (str(json_data) if json_data else "")
 
     # Normalize spaced domains e.g. 'linkedin . com / in / dinukasam'
     normalized_text = text or ""
     normalized_text = re.sub(r'linkedin\s*\.\s*com\s*(?:/\s*(?:in|profile|pub))?\s*/\s*', 'linkedin.com/in/', normalized_text, flags=re.IGNORECASE)
     normalized_text = re.sub(r'github\s*\.\s*com\s*/\s*', 'github.com/', normalized_text, flags=re.IGNORECASE)
 
-    search_space = combined_annot_text + " \n " + (xml_content or '') + " \n " + normalized_text
+    search_space = combined_annot_text + " \n " + json_str_search + " \n " + (xml_content or '') + " \n " + normalized_text
 
     # Extract LinkedIn
     linkedin = None
@@ -1391,6 +1961,15 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
                     headline = line.strip()
                     break
 
+    # ML / Trained NER Designation fallback for headline
+    if not headline and doc:
+        for ent in doc.ents:
+            if ent.label_ == "DESIGNATION":
+                desig_val = ent.text.strip()
+                if 3 <= len(desig_val) <= 60 and not re.search(r'[@:]|github|linkedin', desig_val, re.IGNORECASE):
+                    headline = desig_val
+                    break
+
     return {
         "name": name,
         "email": email,
@@ -1411,10 +1990,47 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
 def health_check():
     return {"status": "ok", "service": "IntelliHire NLP"}
 
+@app.post("/convert-to-json")
+def convert_to_json_endpoint(payload: PDFPayload):
+    """
+    Converts an uploaded CV PDF into structured JSON representation.
+    Accepts JSON { "pdf_base64": "..." }.
+    Always returns HTTP 200 with JSON content.
+    """
+    try:
+        pdf_bytes = base64.b64decode(payload.pdf_base64)
+    except Exception:
+        pdf_bytes = b""
+
+    json_data = pdf_to_json(pdf_bytes)
+    return {
+        "json": json_data,
+        "page_count": len(json_data.get("pages", []))
+    }
+
+@app.post("/extract-from-json")
+def extract_from_json_endpoint(payload: JSONPayload):
+    """
+    Extracts candidate details directly from a structured JSON document.
+    Always returns HTTP 200 with extracted candidate details.
+    """
+    raw_json = payload.json_data if payload.json_data is not None else payload.data
+    try:
+        structured_text = extract_text_from_json(raw_json)
+        data = parse_cv_text(structured_text, json_data=raw_json, filename=payload.filename)
+        return data
+    except Exception:
+        # Emergency fallback
+        return {
+            "name": None, "email": None, "phone": None, "location": None,
+            "linkedin": None, "github": None, "headline": None, "bio": None,
+            "language": "English", "skills": [], "education": [], "experience": []
+        }
+
 @app.post("/convert-to-xml")
 def convert_to_xml_endpoint(payload: PDFPayload):
     """
-    Converts an uploaded CV PDF into structured XML representation.
+    Converts an uploaded CV PDF into structured XML representation (Legacy).
     Accepts JSON { "pdf_base64": "..." }.
     Always returns HTTP 200 with XML content.
     """
@@ -1432,7 +2048,7 @@ def convert_to_xml_endpoint(payload: PDFPayload):
 @app.post("/extract-from-xml")
 def extract_from_xml_endpoint(payload: XMLPayload):
     """
-    Extracts candidate details directly from an XML document.
+    Extracts candidate details directly from an XML document (Legacy).
     Always returns HTTP 200 with extracted candidate details.
     """
     xml_str = payload.xml or ""
@@ -1452,9 +2068,9 @@ def extract_from_xml_endpoint(payload: XMLPayload):
 def extract_pdf_endpoint(payload: PDFPayload):
     """
     Complete single-call pipeline:
-    1. Converts CV PDF to structured XML.
-    2. Extracts candidate data from layout and text.
-    Returns both the generated XML and extracted candidate fields.
+    1. Converts CV PDF to structured JSON layout.
+    2. Extracts candidate data from JSON layout and structured text.
+    Returns both the generated JSON and extracted candidate fields.
     Always returns HTTP 200.
     """
     try:
@@ -1462,12 +2078,12 @@ def extract_pdf_endpoint(payload: PDFPayload):
     except Exception:
         pdf_bytes = b""
 
-    xml_content = pdf_to_xml(pdf_bytes)
-    structured_text = extract_text_from_xml(xml_content)
-    data = parse_cv_text(structured_text, xml_content=xml_content, filename=payload.filename, pdf_bytes=pdf_bytes)
+    json_data = pdf_to_json(pdf_bytes)
+    structured_text = extract_text_from_json(json_data)
+    data = parse_cv_text(structured_text, json_data=json_data, filename=payload.filename, pdf_bytes=pdf_bytes)
 
     return {
-        "xml": xml_content,
+        "json": json_data,
         "data": data
     }
 
@@ -1475,30 +2091,43 @@ def extract_pdf_endpoint(payload: PDFPayload):
 def extract_cv(cv: CVText):
     """
     Universal extraction endpoint.
-    Accepts 'pdf_base64', 'xml', or 'text'.
+    Accepts 'pdf_base64', 'json_data', 'xml', or 'text'.
     Always returns HTTP 200 with candidate details.
     """
-    # 1. PDF Base64
+    # 1. PDF Base64 -> Convert to JSON & Extract
     if cv.pdf_base64:
         try:
             pdf_bytes = base64.b64decode(cv.pdf_base64)
         except Exception:
             pdf_bytes = b""
-        xml_content = pdf_to_xml(pdf_bytes)
-        structured_text = extract_text_from_xml(xml_content)
-        data = parse_cv_text(structured_text, xml_content=xml_content, filename=cv.filename, pdf_bytes=pdf_bytes)
-        data["xml"] = xml_content
+        json_data = pdf_to_json(pdf_bytes)
+        structured_text = extract_text_from_json(json_data)
+        data = parse_cv_text(structured_text, json_data=json_data, filename=cv.filename, pdf_bytes=pdf_bytes)
+        data["json"] = json_data
         return data
 
-    # 2. XML
+    # 2. JSON Data
+    if cv.json_data:
+        structured_text = extract_text_from_json(cv.json_data)
+        data = parse_cv_text(structured_text, json_data=cv.json_data, filename=cv.filename)
+        return data
+
+    # 3. XML (Legacy support)
     if cv.xml:
         structured_text = extract_text_from_xml(cv.xml)
         data = parse_cv_text(structured_text, xml_content=cv.xml, filename=cv.filename)
         return data
 
-    # 3. Text
+    # 4. Text (or serialized JSON)
     if cv.text:
         trimmed = cv.text.strip()
+        if trimmed.startswith("{") and ("pages" in trimmed or "text_blocks" in trimmed):
+            try:
+                parsed_json = json.loads(trimmed)
+                structured_text = extract_text_from_json(parsed_json)
+                return parse_cv_text(structured_text, json_data=parsed_json, filename=cv.filename)
+            except Exception:
+                pass
         if trimmed.startswith("<") and ("<pages>" in trimmed or "<?xml" in trimmed or "<document>" in trimmed):
             structured_text = extract_text_from_xml(trimmed)
             return parse_cv_text(structured_text, xml_content=trimmed, filename=cv.filename)
@@ -1510,3 +2139,63 @@ def extract_cv(cv: CVText):
         "linkedin": None, "github": None, "headline": None, "bio": None,
         "language": "English", "skills": [], "education": [], "experience": []
     }
+
+
+class NERPredictRequest(BaseModel):
+    text: str
+
+class NERTrainRequest(BaseModel):
+    epochs: Optional[int] = 35
+
+@app.get("/ner/status")
+def ner_status():
+    """Returns the loaded spaCy model status, labels, and pipeline."""
+    is_custom = "DESIGNATION" in nlp.pipe_labels.get("ner", []) or "NAME" in nlp.pipe_labels.get("ner", [])
+    return {
+        "status": "ready",
+        "model_type": "custom_trained_resume_ner" if is_custom else "en_core_web_sm_base",
+        "custom_labels_loaded": is_custom,
+        "labels": nlp.pipe_labels.get("ner", []),
+        "pipeline": nlp.pipe_names
+    }
+
+@app.post("/ner/predict")
+def ner_predict(payload: NERPredictRequest):
+    """
+    Extracts entities directly using the trained spaCy Resume NER model.
+    """
+    if not payload.text:
+        return {"entities": []}
+    
+    doc = nlp(payload.text[:20000])
+    entities = []
+    for ent in doc.ents:
+        entities.append({
+            "text": ent.text.strip(),
+            "label": ent.label_,
+            "start": ent.start_char,
+            "end": ent.end_char
+        })
+    return {
+        "text_length": len(payload.text),
+        "entities_count": len(entities),
+        "entities": entities
+    }
+
+@app.post("/ner/train")
+def ner_train_endpoint(payload: Optional[NERTrainRequest] = None):
+    """
+    Triggers training of the custom Resume NER model using training_data.py.
+    """
+    epochs = payload.epochs if payload and payload.epochs else 35
+    try:
+        from train_ner import train_model
+        global nlp
+        nlp = train_model(epochs=epochs)
+        return {
+            "status": "success",
+            "message": f"Successfully trained Resume NER model for {epochs} epochs.",
+            "labels": nlp.pipe_labels.get("ner", [])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Training error: {str(e)}")
