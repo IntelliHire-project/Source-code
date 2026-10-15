@@ -1,20 +1,22 @@
 import io
 import re
+import json
 import base64
 import html
 import xml.etree.ElementTree as ET
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import spacy
-from pdfminer.high_level import extract_text_to_fp, extract_text
-from pdfminer.layout import LAParams
+from pdfminer.high_level import extract_text_to_fp, extract_text, extract_pages
+from pdfminer.layout import LAParams, LTTextBox, LTTextLine, LTChar
 
 app = FastAPI(title="IntelliHire NLP & CV Extraction Service")
 nlp = spacy.load("en_core_web_sm")
 
 class CVText(BaseModel):
     text: Optional[str] = None
+    json_data: Optional[Any] = None
     xml: Optional[str] = None
     pdf_base64: Optional[str] = None
     filename: Optional[str] = None
@@ -22,6 +24,12 @@ class CVText(BaseModel):
 class PDFPayload(BaseModel):
     pdf_base64: str
     filename: Optional[str] = None
+
+class JSONPayload(BaseModel):
+    json_data: Optional[Any] = Field(default=None, alias="json")
+    data: Optional[Any] = None
+    filename: Optional[str] = None
+    model_config = {"populate_by_name": True}
 
 class XMLPayload(BaseModel):
     xml: str
@@ -141,6 +149,194 @@ def extract_pdf_annotations(pdf_bytes: bytes) -> List[str]:
     except Exception:
         pass
     return list(set(uris))
+
+def pdf_to_json(pdf_bytes: bytes) -> Dict[str, Any]:
+    """
+    Converts a PDF binary into a structured JSON representation preserving
+    pages, text blocks, lines, character layout, bounding boxes, font sizes,
+    and hyperlinked annotations.
+    Employs multi-tier fallbacks so conversion never fails.
+    """
+    if not pdf_bytes or len(pdf_bytes) < 10:
+        return {"pages": [], "annotations": [], "metadata": {"total_pages": 0}}
+
+    annots = extract_pdf_annotations(pdf_bytes)
+
+    def extract_from_layout(laparams_obj):
+        pages_list = []
+        for page_idx, page_layout in enumerate(extract_pages(io.BytesIO(pdf_bytes), laparams=laparams_obj)):
+            blocks = []
+            for element in page_layout:
+                if isinstance(element, LTTextBox):
+                    lines = []
+                    for text_line in element:
+                        if isinstance(text_line, LTTextLine):
+                            line_text = text_line.get_text().strip()
+                            sizes = [c.size for c in text_line if isinstance(c, LTChar)]
+                            max_size = max(sizes) if sizes else 0.0
+                            if line_text:
+                                lines.append({
+                                    "text": line_text,
+                                    "bbox": [round(float(x), 2) for x in text_line.bbox],
+                                    "x0": round(float(text_line.bbox[0]), 2),
+                                    "y0": round(float(text_line.bbox[1]), 2),
+                                    "x1": round(float(text_line.bbox[2]), 2),
+                                    "y1": round(float(text_line.bbox[3]), 2),
+                                    "max_font_size": round(float(max_size), 2)
+                                })
+                    box_text = element.get_text().strip()
+                    if box_text:
+                        blocks.append({
+                            "bbox": [round(float(x), 2) for x in element.bbox],
+                            "x0": round(float(element.bbox[0]), 2),
+                            "y0": round(float(element.bbox[1]), 2),
+                            "x1": round(float(element.bbox[2]), 2),
+                            "y1": round(float(element.bbox[3]), 2),
+                            "lines": lines,
+                            "text": box_text
+                        })
+            pages_list.append({
+                "page_number": getattr(page_layout, "pageid", page_idx + 1),
+                "bbox": [round(float(x), 2) for x in page_layout.bbox],
+                "width": round(float(page_layout.width), 2),
+                "height": round(float(page_layout.height), 2),
+                "text_blocks": blocks
+            })
+        return pages_list
+
+    # Tier 1: Custom layout analysis parameters
+    try:
+        laparams = LAParams(
+            line_overlap=0.5,
+            char_margin=2.0,
+            line_margin=0.5,
+            word_margin=0.1,
+            boxes_flow=0.5,
+            detect_vertical=False
+        )
+        pages = extract_from_layout(laparams)
+        if pages and any(p.get("text_blocks") for p in pages):
+            return {
+                "pages": pages,
+                "annotations": annots,
+                "metadata": {"total_pages": len(pages)}
+            }
+    except Exception:
+        pass
+
+    # Tier 2: Default LAParams
+    try:
+        pages = extract_from_layout(LAParams())
+        if pages and any(p.get("text_blocks") for p in pages):
+            return {
+                "pages": pages,
+                "annotations": annots,
+                "metadata": {"total_pages": len(pages)}
+            }
+    except Exception:
+        pass
+
+    # Tier 3: No LAParams
+    try:
+        pages = extract_from_layout(None)
+        if pages and any(p.get("text_blocks") for p in pages):
+            return {
+                "pages": pages,
+                "annotations": annots,
+                "metadata": {"total_pages": len(pages)}
+            }
+    except Exception:
+        pass
+
+    # Tier 4: Fallback from raw text extraction to build well-formed JSON
+    try:
+        raw_text = extract_text(io.BytesIO(pdf_bytes))
+    except Exception:
+        raw_text = ""
+
+    clean_text = raw_text.strip() if raw_text else ""
+    raw_lines = [l.strip() for l in clean_text.splitlines() if l.strip()]
+    fallback_lines = [{
+        "text": l,
+        "bbox": [0.0, 0.0, 612.0, 792.0],
+        "x0": 0.0, "y0": 0.0, "x1": 612.0, "y1": 792.0,
+        "max_font_size": 12.0
+    } for l in raw_lines]
+
+    fallback_blocks = [{
+        "bbox": [0.0, 0.0, 612.0, 792.0],
+        "x0": 0.0, "y0": 0.0, "x1": 612.0, "y1": 792.0,
+        "lines": fallback_lines,
+        "text": clean_text
+    }] if clean_text else []
+
+    return {
+        "pages": [{
+            "page_number": 1,
+            "bbox": [0.0, 0.0, 612.0, 792.0],
+            "width": 612.0,
+            "height": 792.0,
+            "text_blocks": fallback_blocks
+        }],
+        "annotations": annots,
+        "metadata": {"total_pages": 1}
+    }
+
+def extract_text_from_json(json_data: Any) -> str:
+    """
+    Extracts text from PDF-JSON structure with layout and column awareness.
+    Groups text blocks into columns to prevent column interleaving.
+    """
+    if not json_data:
+        return ""
+
+    if isinstance(json_data, str):
+        try:
+            json_data = json.loads(json_data)
+        except Exception:
+            return json_data.strip()
+
+    if not isinstance(json_data, dict):
+        return ""
+
+    pages = json_data.get("pages", [])
+    if not pages:
+        return ""
+
+    page_chunks = []
+    for page in pages:
+        parsed_boxes = page.get("text_blocks", [])
+        if not parsed_boxes:
+            continue
+
+        page_width = float(page.get("width", 612.0))
+        mid_x = page_width / 2.0
+
+        left_boxes = [b for b in parsed_boxes if b.get("x1", b.get("bbox", [0, 0, 0, 0])[2]) <= mid_x + 35]
+        right_boxes = [b for b in parsed_boxes if b.get("x0", b.get("bbox", [0, 0, 0, 0])[0]) >= mid_x - 35]
+
+        # Multi-column layout detection
+        if len(left_boxes) >= 2 and len(right_boxes) >= 2 and (len(left_boxes) + len(right_boxes) >= len(parsed_boxes) * 0.7):
+            left_boxes.sort(key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+            right_boxes.sort(key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+            spanning_boxes = [b for b in parsed_boxes if b not in left_boxes and b not in right_boxes]
+            spanning_boxes.sort(key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+
+            header_boxes = [b for b in spanning_boxes if b.get("y0", b.get("bbox", [0, 0, 0, 0])[1]) > 620]
+            footer_boxes = [b for b in spanning_boxes if b.get("y0", b.get("bbox", [0, 0, 0, 0])[1]) <= 620]
+
+            ordered_texts = (
+                [b.get("text", "") for b in header_boxes] +
+                [b.get("text", "") for b in left_boxes] +
+                [b.get("text", "") for b in right_boxes] +
+                [b.get("text", "") for b in footer_boxes]
+            )
+            page_chunks.append("\n\n".join([t for t in ordered_texts if t.strip()]))
+        else:
+            sorted_boxes = sorted(parsed_boxes, key=lambda b: b.get("y1", b.get("bbox", [0, 0, 0, 0])[3]), reverse=True)
+            page_chunks.append("\n\n".join([b.get("text", "") for b in sorted_boxes if b.get("text", "").strip()]))
+
+    return "\n\n".join(page_chunks).strip()
 
 def pdf_to_xml(pdf_bytes: bytes) -> str:
     """
@@ -368,6 +564,45 @@ def extract_name_from_xml(xml_content: str) -> Optional[str]:
                         y_pos = float(parts[1])
                     except ValueError:
                         pass
+
+            candidates.append((max_size, y_pos, line_str))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    best_candidate = candidates[0][2].strip()
+    best_candidate = re.sub(r',?\s*(?:ph\.?d\.?|m\.?d\.?|msc|bsc|mba|pmp)$', '', best_candidate, flags=re.IGNORECASE).strip()
+    return best_candidate.title()
+
+def extract_name_from_json(json_data: Any) -> Optional[str]:
+    """Finds the candidate's name on Page 1 by locating the largest heading font in the JSON layout."""
+    if not json_data:
+        return None
+    if isinstance(json_data, str):
+        try:
+            json_data = json.loads(json_data)
+        except Exception:
+            return None
+
+    if not isinstance(json_data, dict):
+        return None
+
+    pages = json_data.get("pages", [])
+    if not pages:
+        return None
+
+    first_page = pages[0]
+    candidates = []
+    for tb in first_page.get("text_blocks", []):
+        for tl in tb.get("lines", []):
+            line_str = tl.get("text", "").strip()
+            line_str = re.sub(r'\s+', ' ', line_str)
+            if not is_valid_name(line_str):
+                continue
+
+            max_size = float(tl.get("max_font_size", 0.0))
+            y_pos = float(tl.get("y0", tl.get("bbox", [0, 0, 0, 0])[1]))
 
             candidates.append((max_size, y_pos, line_str))
 
@@ -1075,7 +1310,7 @@ def parse_education_section(edu_lines: List[str]) -> List[Dict[str, str]]:
 
     return clean_entries[:6]
 
-def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Optional[str] = None, pdf_bytes: Optional[bytes] = None) -> Dict[str, Any]:
+def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = None, xml_content: Optional[str] = None, filename: Optional[str] = None, pdf_bytes: Optional[bytes] = None) -> Dict[str, Any]:
     """
     Extracts all candidate profile fields from structured text using SpaCy NER and layout heuristics.
     Guaranteed to return complete dictionary and never raise.
@@ -1123,8 +1358,10 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
     # 2. Extract Name
     name = None
 
-    # Tier 1: XML font-size hierarchy
-    if xml_content:
+    # Tier 1: Font-size hierarchy from structured JSON (or legacy XML)
+    if json_data:
+        name = extract_name_from_json(json_data)
+    elif xml_content:
         name = extract_name_from_xml(xml_content)
 
     # Tier 2: Email username cross-verification
@@ -1323,18 +1560,29 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
     annot_uris = []
     if pdf_bytes:
         annot_uris.extend(extract_pdf_annotations(pdf_bytes))
+    if json_data:
+        if isinstance(json_data, str):
+            try:
+                json_data_obj = json.loads(json_data)
+            except Exception:
+                json_data_obj = {}
+        else:
+            json_data_obj = json_data
+        if isinstance(json_data_obj, dict):
+            annot_uris.extend(json_data_obj.get("annotations", []))
     if xml_content:
         xml_uris = re.findall(r'href=[\'"]([^\'"]+)[\'"]', xml_content, re.IGNORECASE)
         annot_uris.extend(xml_uris)
 
     combined_annot_text = " \n ".join(annot_uris)
+    json_str_search = json.dumps(json_data) if isinstance(json_data, (dict, list)) else (str(json_data) if json_data else "")
 
     # Normalize spaced domains e.g. 'linkedin . com / in / dinukasam'
     normalized_text = text or ""
     normalized_text = re.sub(r'linkedin\s*\.\s*com\s*(?:/\s*(?:in|profile|pub))?\s*/\s*', 'linkedin.com/in/', normalized_text, flags=re.IGNORECASE)
     normalized_text = re.sub(r'github\s*\.\s*com\s*/\s*', 'github.com/', normalized_text, flags=re.IGNORECASE)
 
-    search_space = combined_annot_text + " \n " + (xml_content or '') + " \n " + normalized_text
+    search_space = combined_annot_text + " \n " + json_str_search + " \n " + (xml_content or '') + " \n " + normalized_text
 
     # Extract LinkedIn
     linkedin = None
@@ -1411,10 +1659,47 @@ def parse_cv_text(text: str, xml_content: Optional[str] = None, filename: Option
 def health_check():
     return {"status": "ok", "service": "IntelliHire NLP"}
 
+@app.post("/convert-to-json")
+def convert_to_json_endpoint(payload: PDFPayload):
+    """
+    Converts an uploaded CV PDF into structured JSON representation.
+    Accepts JSON { "pdf_base64": "..." }.
+    Always returns HTTP 200 with JSON content.
+    """
+    try:
+        pdf_bytes = base64.b64decode(payload.pdf_base64)
+    except Exception:
+        pdf_bytes = b""
+
+    json_data = pdf_to_json(pdf_bytes)
+    return {
+        "json": json_data,
+        "page_count": len(json_data.get("pages", []))
+    }
+
+@app.post("/extract-from-json")
+def extract_from_json_endpoint(payload: JSONPayload):
+    """
+    Extracts candidate details directly from a structured JSON document.
+    Always returns HTTP 200 with extracted candidate details.
+    """
+    raw_json = payload.json_data if payload.json_data is not None else payload.data
+    try:
+        structured_text = extract_text_from_json(raw_json)
+        data = parse_cv_text(structured_text, json_data=raw_json, filename=payload.filename)
+        return data
+    except Exception:
+        # Emergency fallback
+        return {
+            "name": None, "email": None, "phone": None, "location": None,
+            "linkedin": None, "github": None, "headline": None, "bio": None,
+            "language": "English", "skills": [], "education": [], "experience": []
+        }
+
 @app.post("/convert-to-xml")
 def convert_to_xml_endpoint(payload: PDFPayload):
     """
-    Converts an uploaded CV PDF into structured XML representation.
+    Converts an uploaded CV PDF into structured XML representation (Legacy).
     Accepts JSON { "pdf_base64": "..." }.
     Always returns HTTP 200 with XML content.
     """
@@ -1432,7 +1717,7 @@ def convert_to_xml_endpoint(payload: PDFPayload):
 @app.post("/extract-from-xml")
 def extract_from_xml_endpoint(payload: XMLPayload):
     """
-    Extracts candidate details directly from an XML document.
+    Extracts candidate details directly from an XML document (Legacy).
     Always returns HTTP 200 with extracted candidate details.
     """
     xml_str = payload.xml or ""
@@ -1452,9 +1737,9 @@ def extract_from_xml_endpoint(payload: XMLPayload):
 def extract_pdf_endpoint(payload: PDFPayload):
     """
     Complete single-call pipeline:
-    1. Converts CV PDF to structured XML.
-    2. Extracts candidate data from layout and text.
-    Returns both the generated XML and extracted candidate fields.
+    1. Converts CV PDF to structured JSON layout.
+    2. Extracts candidate data from JSON layout and structured text.
+    Returns both the generated JSON and extracted candidate fields.
     Always returns HTTP 200.
     """
     try:
@@ -1462,12 +1747,12 @@ def extract_pdf_endpoint(payload: PDFPayload):
     except Exception:
         pdf_bytes = b""
 
-    xml_content = pdf_to_xml(pdf_bytes)
-    structured_text = extract_text_from_xml(xml_content)
-    data = parse_cv_text(structured_text, xml_content=xml_content, filename=payload.filename, pdf_bytes=pdf_bytes)
+    json_data = pdf_to_json(pdf_bytes)
+    structured_text = extract_text_from_json(json_data)
+    data = parse_cv_text(structured_text, json_data=json_data, filename=payload.filename, pdf_bytes=pdf_bytes)
 
     return {
-        "xml": xml_content,
+        "json": json_data,
         "data": data
     }
 
@@ -1475,30 +1760,43 @@ def extract_pdf_endpoint(payload: PDFPayload):
 def extract_cv(cv: CVText):
     """
     Universal extraction endpoint.
-    Accepts 'pdf_base64', 'xml', or 'text'.
+    Accepts 'pdf_base64', 'json_data', 'xml', or 'text'.
     Always returns HTTP 200 with candidate details.
     """
-    # 1. PDF Base64
+    # 1. PDF Base64 -> Convert to JSON & Extract
     if cv.pdf_base64:
         try:
             pdf_bytes = base64.b64decode(cv.pdf_base64)
         except Exception:
             pdf_bytes = b""
-        xml_content = pdf_to_xml(pdf_bytes)
-        structured_text = extract_text_from_xml(xml_content)
-        data = parse_cv_text(structured_text, xml_content=xml_content, filename=cv.filename, pdf_bytes=pdf_bytes)
-        data["xml"] = xml_content
+        json_data = pdf_to_json(pdf_bytes)
+        structured_text = extract_text_from_json(json_data)
+        data = parse_cv_text(structured_text, json_data=json_data, filename=cv.filename, pdf_bytes=pdf_bytes)
+        data["json"] = json_data
         return data
 
-    # 2. XML
+    # 2. JSON Data
+    if cv.json_data:
+        structured_text = extract_text_from_json(cv.json_data)
+        data = parse_cv_text(structured_text, json_data=cv.json_data, filename=cv.filename)
+        return data
+
+    # 3. XML (Legacy support)
     if cv.xml:
         structured_text = extract_text_from_xml(cv.xml)
         data = parse_cv_text(structured_text, xml_content=cv.xml, filename=cv.filename)
         return data
 
-    # 3. Text
+    # 4. Text (or serialized JSON)
     if cv.text:
         trimmed = cv.text.strip()
+        if trimmed.startswith("{") and ("pages" in trimmed or "text_blocks" in trimmed):
+            try:
+                parsed_json = json.loads(trimmed)
+                structured_text = extract_text_from_json(parsed_json)
+                return parse_cv_text(structured_text, json_data=parsed_json, filename=cv.filename)
+            except Exception:
+                pass
         if trimmed.startswith("<") and ("<pages>" in trimmed or "<?xml" in trimmed or "<document>" in trimmed):
             structured_text = extract_text_from_xml(trimmed)
             return parse_cv_text(structured_text, xml_content=trimmed, filename=cv.filename)

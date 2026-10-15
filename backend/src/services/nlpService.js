@@ -257,14 +257,14 @@ const localExtractFallback = (text, filename = "") => {
 };
 
 /**
- * Converts a PDF buffer into structured XML via the NLP microservice.
+ * Converts a PDF buffer into structured JSON via the NLP microservice.
  * @param {Buffer} pdfBuffer
- * @returns {Promise<string>} XML string representation of the PDF
+ * @returns {Promise<Object>} JSON layout representation of the PDF
  */
-const convertPdfToXml = async (pdfBuffer) => {
+const convertPdfToJson = async (pdfBuffer) => {
   try {
     const base64Data = pdfBuffer.toString('base64');
-    const response = await fetch(`${NLP_SERVICE_URL}/convert-to-xml`, {
+    const response = await fetch(`${NLP_SERVICE_URL}/convert-to-json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -274,54 +274,55 @@ const convertPdfToXml = async (pdfBuffer) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.warn(`NLP convert-to-xml responded with status ${response.status}: ${errText}`);
-      return '<?xml version="1.0" encoding="utf-8"?><pages></pages>';
+      console.warn(`NLP convert-to-json responded with status ${response.status}: ${errText}`);
+      return { pages: [], annotations: [], metadata: { total_pages: 0 } };
     }
 
     const result = await response.json();
-    return result.xml || '<?xml version="1.0" encoding="utf-8"?><pages></pages>';
+    return result.json || { pages: [], annotations: [], metadata: { total_pages: 0 } };
   } catch (error) {
-    console.warn("Warning converting PDF to XML with NLP Service:", error.message);
-    return '<?xml version="1.0" encoding="utf-8"?><pages></pages>';
+    console.warn("Warning converting PDF to JSON with NLP Service:", error.message);
+    return { pages: [], annotations: [], metadata: { total_pages: 0 } };
   }
 };
 
 /**
- * Extracts CV candidate data from a pre-converted XML string.
- * @param {string} xmlString
+ * Extracts CV candidate data from a pre-converted JSON document.
+ * @param {Object|string} jsonData
  * @param {string} [filename]
  * @returns {Promise<Object>}
  */
-const extractCVDataFromXml = async (xmlString, filename = "") => {
+const extractCVDataFromJson = async (jsonData, filename = "") => {
   try {
-    const response = await fetch(`${NLP_SERVICE_URL}/extract-from-xml`, {
+    const payloadJson = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+    const response = await fetch(`${NLP_SERVICE_URL}/extract-from-json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ xml: xmlString, filename }),
+      body: JSON.stringify({ json: payloadJson, filename }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.warn(`NLP extract-from-xml responded with status ${response.status}: ${errText}`);
-      return localExtractFallback(xmlString, filename);
+      console.warn(`NLP extract-from-json responded with status ${response.status}: ${errText}`);
+      return localExtractFallback(typeof jsonData === 'string' ? jsonData : JSON.stringify(jsonData), filename);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    console.warn("Warning extracting CV data from XML with NLP Service:", error.message);
-    return localExtractFallback(xmlString, filename);
+    console.warn("Warning extracting CV data from JSON with NLP Service:", error.message);
+    return localExtractFallback(typeof jsonData === 'string' ? jsonData : JSON.stringify(jsonData), filename);
   }
 };
 
 /**
  * End-to-end CV extraction directly from PDF buffer.
- * Performs conversion and candidate extraction in a single optimized call.
+ * Performs conversion from PDF to JSON and candidate extraction in a single optimized call.
  * @param {Buffer} pdfBuffer
  * @param {string} [filename]
- * @returns {Promise<Object>} Extracted candidate fields plus the generated XML
+ * @returns {Promise<Object>} Extracted candidate fields plus the generated JSON
  */
 const extractCVDataFromPdf = async (pdfBuffer, filename = "") => {
   try {
@@ -338,38 +339,49 @@ const extractCVDataFromPdf = async (pdfBuffer, filename = "") => {
       const result = await response.json();
       return {
         ...(result.data || {}),
-        xml: result.xml || null
+        json: result.json || null
       };
     }
   } catch (err) {
-    console.warn("[nlpService] /extract-pdf endpoint failed, falling back to multi-step:", err.message);
+    console.warn("[nlpService] /extract-pdf endpoint failed, falling back to multi-step JSON:", err.message);
   }
 
-  // Fallback: convert to XML then extract
-  const xml = await convertPdfToXml(pdfBuffer);
-  const data = await extractCVDataFromXml(xml, filename);
-  return { ...data, xml };
+  // Fallback: convert to JSON then extract
+  const json = await convertPdfToJson(pdfBuffer);
+  const data = await extractCVDataFromJson(json, filename);
+  return { ...data, json };
 };
 
 /**
  * Universal extraction method for backward compatibility.
- * Accepts a PDF Buffer, XML string, or raw text string.
- * @param {Buffer|string} input
+ * Accepts a PDF Buffer, JSON object, JSON string, or raw text string.
+ * @param {Buffer|Object|string} input
  * @param {string} [filename]
  * @returns {Promise<Object>}
  */
 const extractCVData = async (input, filename = "") => {
   try {
-    // If input is a Buffer, convert PDF to XML first and extract
+    // If input is a Buffer, convert PDF to JSON first and extract
     if (Buffer.isBuffer(input)) {
       return await extractCVDataFromPdf(input, filename);
     }
 
-    // If input is an XML string
+    // If input is already an object (JSON)
+    if (typeof input === 'object' && input !== null) {
+      return await extractCVDataFromJson(input, filename);
+    }
+
+    // If input is a string
     if (typeof input === 'string') {
       const trimmed = input.trim();
-      if (trimmed.startsWith('<') && (trimmed.includes('<pages>') || trimmed.includes('<?xml') || trimmed.includes('<document>'))) {
-        return await extractCVDataFromXml(trimmed, filename);
+      // If it looks like a JSON string representation
+      if (trimmed.startsWith('{') && (trimmed.includes('"pages"') || trimmed.includes('"text_blocks"'))) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return await extractCVDataFromJson(parsed, filename);
+        } catch (e) {
+          // fall through to text extraction
+        }
       }
 
       // Plain text string
@@ -396,10 +408,24 @@ const extractCVData = async (input, filename = "") => {
   }
 };
 
+/**
+ * Legacy backwards compatibility wrappers
+ */
+const convertPdfToXml = async (pdfBuffer) => {
+  const json = await convertPdfToJson(pdfBuffer);
+  return JSON.stringify(json);
+};
+
+const extractCVDataFromXml = async (xmlString, filename = "") => {
+  return await extractCVData(xmlString, filename);
+};
+
 module.exports = {
-  convertPdfToXml,
-  extractCVDataFromXml,
+  convertPdfToJson,
+  extractCVDataFromJson,
   extractCVDataFromPdf,
   extractCVData,
-  localExtractFallback
+  localExtractFallback,
+  convertPdfToXml,
+  extractCVDataFromXml
 };
