@@ -1,3 +1,4 @@
+import os
 import io
 import re
 import json
@@ -12,7 +13,19 @@ from pdfminer.high_level import extract_text_to_fp, extract_text, extract_pages
 from pdfminer.layout import LAParams, LTTextBox, LTTextLine, LTChar
 
 app = FastAPI(title="IntelliHire NLP & CV Extraction Service")
-nlp = spacy.load("en_core_web_sm")
+
+# Load Custom Trained Resume NER model or fallback to base model
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "models", "resume_ner_model")
+if os.path.exists(MODEL_DIR) and os.path.exists(os.path.join(MODEL_DIR, "config.cfg")):
+    try:
+        nlp = spacy.load(MODEL_DIR)
+        print(f"[IntelliHire NLP] Successfully loaded custom trained Resume NER model from '{MODEL_DIR}'")
+    except Exception as e:
+        print(f"[IntelliHire NLP] Warning loading custom NER model: {e}. Falling back to en_core_web_sm.")
+        nlp = spacy.load("en_core_web_sm")
+else:
+    print("[IntelliHire NLP] Custom Resume NER model not found. Using en_core_web_sm.")
+    nlp = spacy.load("en_core_web_sm")
 
 class CVText(BaseModel):
     text: Optional[str] = None
@@ -717,13 +730,18 @@ def identify_section(line: str) -> Optional[str]:
     # Strip markdown headers, numbering, bullets, roman numerals, brackets
     cleaned = re.sub(r'^[#*_\-•–—~|\[\]\(\)\s]+', '', cleaned)
     cleaned = re.sub(r'^(?:section\s*\d+|part\s*\d+|[ivx]+\b|\d+)[\.\):\s-]*', '', cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r'[:|\-–—~#*_\s]+$', '', cleaned).strip()
 
-    if not cleaned or len(cleaned) > 60:
+    # Check prefix before colon if line begins with a section label (e.g. "Skills: Python, Docker")
+    prefix = cleaned.split(':')[0].strip() if ':' in cleaned else cleaned
+    prefix = re.sub(r'[:|\-–—~#*_\s]+$', '', prefix).strip()
+    target = prefix if len(prefix) <= 45 else cleaned
+    target = re.sub(r'[:|\-–—~#*_\s]+$', '', target).strip()
+
+    if not target or (len(target) > 60 and len(prefix) > 45):
         return None
 
     # Education
-    if re.search(r'^(education|educational\s*qualifications?|educational\s*background|academic\s*qualifications?|academic\s*background|academics|qualifications?|degrees?|schooling)\b', cleaned):
+    if re.search(r'^(education|educational\s*qualifications?|educational\s*background|academic\s*qualifications?|academic\s*background|academics|qualifications?|degrees?|schooling)\b', target):
         return "education"
     # Experience (Expanded with international and regional industry headings)
     if re.search(
@@ -740,35 +758,35 @@ def identify_section(line: str) -> Optional[str]:
         r'work\s*record|freelance\s*experience|consulting\s*experience|'
         r'experience\s*(?:and|&)\s*projects'
         r')\b',
-        cleaned
+        target
     ):
         return "experience"
     # Skills
-    if re.search(r'^(technical\s*skills|core\s*skills|key\s*skills|skills|technologies|competencies|core\s*competencies|tools\s*&\s*technologies|expertise|technical\s*proficiencies|areas\s*of\s*expertise|programming\s*skills|tech\s*stack|skill\s*set)\b', cleaned):
+    if re.search(r'^(technical\s*skills|core\s*skills|key\s*skills|skills|technologies|competencies|core\s*competencies|tools\s*&\s*technologies|expertise|technical\s*proficiencies|areas\s*of\s*expertise|programming\s*skills|tech\s*stack|skill\s*set)\b', target):
         return "skills"
     # Summary / Bio
-    if re.search(r'^(professional\s*summary|profile|about\s*me|summary|career\s*objective|executive\s*summary|objective|about|bio|overview|personal\s*statement)\b', cleaned):
+    if re.search(r'^(professional\s*summary|profile|about\s*me|summary|career\s*objective|executive\s*summary|objective|about|bio|overview|personal\s*statement)\b', target):
         return "bio"
     # Languages
-    if re.search(r'^(languages?|language\s*proficiency|spoken\s*languages?|language\s*skills?)\b', cleaned):
+    if re.search(r'^(languages?|language\s*proficiency|spoken\s*languages?|language\s*skills?)\b', target):
         return "language"
     # Certifications / Courses
-    if re.search(r'^(certifications?|certificates?|licenses?\s*&\s*certifications?|licenses?|credentials|courses|trainings?)\b', cleaned):
+    if re.search(r'^(certifications?|certificates?|licenses?\s*&\s*certifications?|licenses?|credentials|courses|trainings?)\b', target):
         return "certifications"
     # Projects
-    if re.search(r'^(projects?|personal\s*projects?|academic\s*projects?|key\s*projects?|portfolio)\b', cleaned):
+    if re.search(r'^(projects?|personal\s*projects?|academic\s*projects?|key\s*projects?|portfolio)\b', target):
         return "projects"
     # Publications / Research
-    if re.search(r'^(publications?|research|papers?)\b', cleaned):
+    if re.search(r'^(publications?|research|papers?)\b', target):
         return "publications"
     # Achievements / Awards
-    if re.search(r'^(achievements?|awards?|honors?|key\s*achievements?)\b', cleaned):
+    if re.search(r'^(achievements?|awards?|honors?|key\s*achievements?)\b', target):
         return "awards"
     # Volunteering / Activities
-    if re.search(r'^(volunteering|volunteer\s*experience|leadership|extracurricular(?:\s*activities)?|co-curriculars?)\b', cleaned):
+    if re.search(r'^(volunteering|volunteer\s*experience|leadership|extracurricular(?:\s*activities)?|co-curriculars?)\b', target):
         return "volunteering"
     # References
-    if re.search(r'^(references?|referees?)\b', cleaned):
+    if re.search(r'^(references?|referees?)\b', target):
         return "references"
 
     return None
@@ -1409,8 +1427,8 @@ def parse_single_line_edu(line: str):
 
     line_no_date, date_found = extract_edu_dates_from_line(line_clean)
 
-    # Only split on explicit delimiters: | or  -  or at or @
-    parts = [p.strip() for p in re.split(r'\s*(?:[|•]|\s[-–]\s|(?:\bat\b)|@)\s*', line_no_date, flags=re.IGNORECASE) if p.strip()]
+    # Only split on explicit delimiters: | or  -  or at or from or @
+    parts = [p.strip() for p in re.split(r'\s*(?:[|•]|\s[-–]\s|(?:\bat\b)|(?:\bfrom\b)|@)\s*', line_no_date, flags=re.IGNORECASE) if p.strip()]
 
     # If comma is present, only consider it if one side has degree and the other has institution
     if len(parts) < 2 and ',' in line_no_date:
@@ -1640,13 +1658,13 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
                         name = cleaned_n.title()
                         break
 
-    # Tier 3: SpaCy PERSON entity in the top document header
+    # Tier 3: SpaCy NAME / PERSON entity in the top document header
     if not name and doc:
         header_text = text[:600]
         try:
             header_doc = nlp(header_text)
             for ent in header_doc.ents:
-                if ent.label_ == "PERSON" and is_valid_name(ent.text):
+                if ent.label_ in ("NAME", "PERSON") and is_valid_name(ent.text):
                     cleaned_n = re.sub(r',?\s*(?:ph\.?d\.?|m\.?d\.?|msc|bsc|mba|pmp)$', '', ent.text, flags=re.IGNORECASE).strip()
                     name = cleaned_n.title()
                     break
@@ -1690,6 +1708,10 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
         detected_sec = identify_section(line_clean)
         if detected_sec:
             current_section = detected_sec
+            if ':' in line_clean:
+                after_colon = line_clean.split(':', 1)[1].strip()
+                if after_colon and current_section in section_lines:
+                    section_lines[current_section].append(after_colon)
             continue
 
         if current_section and current_section in section_lines:
@@ -1737,6 +1759,15 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
             else:
                 formatted = " ".join([w.capitalize() if w.lower() not in ["and", "or", "of", "in"] else w.lower() for w in clean_p.split()])
                 skills_set.add(formatted)
+
+    # ML / Trained spaCy NER Skill Extraction
+    if doc:
+        for ent in doc.ents:
+            if ent.label_ == "SKILLS":
+                clean_ent = ent.text.strip().strip('.').strip()
+                if clean_ent and len(clean_ent) >= 2 and clean_ent.lower() not in SKILL_BLACKLIST:
+                    display_name = canonical_skills.get(clean_ent.lower(), clean_ent)
+                    skills_set.add(display_name)
 
     skills = sorted(list(skills_set))
 
@@ -1930,6 +1961,15 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
                     headline = line.strip()
                     break
 
+    # ML / Trained NER Designation fallback for headline
+    if not headline and doc:
+        for ent in doc.ents:
+            if ent.label_ == "DESIGNATION":
+                desig_val = ent.text.strip()
+                if 3 <= len(desig_val) <= 60 and not re.search(r'[@:]|github|linkedin', desig_val, re.IGNORECASE):
+                    headline = desig_val
+                    break
+
     return {
         "name": name,
         "email": email,
@@ -2099,3 +2139,63 @@ def extract_cv(cv: CVText):
         "linkedin": None, "github": None, "headline": None, "bio": None,
         "language": "English", "skills": [], "education": [], "experience": []
     }
+
+
+class NERPredictRequest(BaseModel):
+    text: str
+
+class NERTrainRequest(BaseModel):
+    epochs: Optional[int] = 35
+
+@app.get("/ner/status")
+def ner_status():
+    """Returns the loaded spaCy model status, labels, and pipeline."""
+    is_custom = "DESIGNATION" in nlp.pipe_labels.get("ner", []) or "NAME" in nlp.pipe_labels.get("ner", [])
+    return {
+        "status": "ready",
+        "model_type": "custom_trained_resume_ner" if is_custom else "en_core_web_sm_base",
+        "custom_labels_loaded": is_custom,
+        "labels": nlp.pipe_labels.get("ner", []),
+        "pipeline": nlp.pipe_names
+    }
+
+@app.post("/ner/predict")
+def ner_predict(payload: NERPredictRequest):
+    """
+    Extracts entities directly using the trained spaCy Resume NER model.
+    """
+    if not payload.text:
+        return {"entities": []}
+    
+    doc = nlp(payload.text[:20000])
+    entities = []
+    for ent in doc.ents:
+        entities.append({
+            "text": ent.text.strip(),
+            "label": ent.label_,
+            "start": ent.start_char,
+            "end": ent.end_char
+        })
+    return {
+        "text_length": len(payload.text),
+        "entities_count": len(entities),
+        "entities": entities
+    }
+
+@app.post("/ner/train")
+def ner_train_endpoint(payload: Optional[NERTrainRequest] = None):
+    """
+    Triggers training of the custom Resume NER model using training_data.py.
+    """
+    epochs = payload.epochs if payload and payload.epochs else 35
+    try:
+        from train_ner import train_model
+        global nlp
+        nlp = train_model(epochs=epochs)
+        return {
+            "status": "success",
+            "message": f"Successfully trained Resume NER model for {epochs} epochs.",
+            "labels": nlp.pipe_labels.get("ner", [])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Training error: {str(e)}")
