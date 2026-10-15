@@ -63,6 +63,12 @@ function SelectPaymentMethodPage() {
       navigate('/recruiter/bank-transfer', { state: location.state });
       return;
     }
+    if (selectedMethod === 'wallet') {
+      navigate('/recruiter/mobile-wallet', {
+        state: { ...location.state, paymentMethod: 'wallet' },
+      });
+      return;
+    }
     navigate('/recruiter/complete-purchase', {
       state: { ...location.state, paymentMethod: selectedMethod },
     });

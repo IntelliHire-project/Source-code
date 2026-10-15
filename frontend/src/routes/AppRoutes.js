@@ -41,6 +41,7 @@ import VacancyDetailPage from '../pages/recruiter/VacancyDetail/VacancyDetailPag
 import PaymentBillingPage from '../pages/recruiter/PaymentBilling/PaymentBillingPage';
 import SelectPaymentMethodPage from '../pages/recruiter/SelectPaymentMethod/SelectPaymentMethodPage';
 import BankTransferPage from '../pages/recruiter/BankTransfer/BankTransferPage';
+import MobileWalletPage from '../pages/recruiter/MobileWallet/MobileWalletPage';
 import CompleteYourPurchasePage from '../pages/recruiter/CompleteYourPurchase/CompleteYourPurchasePage';
 import OTPVerificationPage from '../pages/recruiter/OTPVerification/OTPVerificationPage';
 import PaymentStatusPage from '../pages/recruiter/PaymentStatus/PaymentStatusPage';
@@ -257,6 +258,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/bank-transfer"
           element={<RecruiterProtected><BankTransferPage /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/mobile-wallet"
+          element={<RecruiterProtected><MobileWalletPage /></RecruiterProtected>}
         />
         <Route
           path="/recruiter/complete-purchase"
