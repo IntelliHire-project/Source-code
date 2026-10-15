@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import useAuth from '../../../hooks/useAuth';
 import Layout from '../../../components/common/Layout';
+import { CLOUDINARY_ASSETS } from '../../../constants/assets';
 import '../../../App.css';
 
 /**
@@ -188,11 +189,11 @@ function RecruiterSignupPage() {
         {/* Left Hero Side */}
         <section className="auth-hero-side">
           <Link to="/" className="auth-brand" aria-label="IntelliHire Home">
-            {/* Shield Icon Logo */}
-            <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              <path d="m9 11 2 2 4-4" />
-            </svg>
+            <img
+              src={CLOUDINARY_ASSETS.logoPrimary}
+              alt="IntelliHire Logo"
+              className="auth-brand-logo"
+            />
             <span className="auth-brand-text">IntelliHire</span>
           </Link>
 
@@ -296,10 +297,11 @@ function RecruiterSignupPage() {
             
             {/* Mobile Logo Header */}
             <Link to="/" className="auth-brand auth-mobile-brand" aria-label="IntelliHire Home">
-              <svg className="auth-brand-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="m9 11 2 2 4-4" />
-              </svg>
+              <img
+                src={CLOUDINARY_ASSETS.logoPrimary}
+                alt="IntelliHire Logo"
+                className="auth-brand-logo"
+              />
               <span className="auth-brand-text">IntelliHire</span>
             </Link>
 

@@ -74,10 +74,11 @@
 }
 
 .auth-brand-logo {
-  width: 28px;
-  height: 28px;
-  color: var(--accent);
-  filter: drop-shadow(0 0 8px rgba(240, 185, 11, 0.2));
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 0 8px rgba(240, 185, 11, 0.25));
 }
 
 .auth-brand-text {

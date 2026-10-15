@@ -182,6 +182,22 @@ const initializeDatabase = async () => {
         ) THEN
           ALTER TABLE candidate_cvs ADD COLUMN file_size TEXT;
         END IF;
+
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'candidate_cvs' AND column_name = 'raw_text'
+        ) THEN
+          ALTER TABLE candidate_cvs ADD COLUMN raw_text TEXT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'candidate_cvs' AND column_name = 'insights'
+        ) THEN
+          ALTER TABLE candidate_cvs ADD COLUMN insights JSONB;
+        END IF;
       END $$;
     `);
 

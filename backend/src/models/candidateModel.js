@@ -36,7 +36,9 @@ const addCandidateCV = async (
   cvPublicId = null,
   isActive = true,
   client = null,
-  fileSize = null
+  fileSize = null,
+  rawText = null,
+  insights = null
 ) => {
   const executor = client || db;
 
@@ -50,10 +52,10 @@ const addCandidateCV = async (
   }
 
   const result = await executor.query(
-    `INSERT INTO candidate_cvs (candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, NOW())
-     RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at`,
-    [candidateId, cvName, cvUrl, cvPublicId, isActive, fileSize]
+    `INSERT INTO candidate_cvs (candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+     RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at`,
+    [candidateId, cvName, cvUrl, cvPublicId, isActive, fileSize, rawText, insights]
   );
   return result.rows[0];
 };
@@ -77,7 +79,7 @@ const findCandidateByUserId = async (userId) => {
   if (!candidate) return null;
 
   const cvsResult = await db.query(
-    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at
+    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at
      FROM candidate_cvs
      WHERE candidate_id = $1
      ORDER BY is_active DESC, created_at DESC`,
@@ -97,7 +99,7 @@ const findCandidateByUserId = async (userId) => {
  */
 const findCandidateCVs = async (candidateId) => {
   const result = await db.query(
-    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at
+    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at
      FROM candidate_cvs
      WHERE candidate_id = $1
      ORDER BY is_active DESC, created_at DESC`,
@@ -130,7 +132,7 @@ const setActiveCV = async (candidateId, cvId) => {
       `UPDATE candidate_cvs
        SET is_active = true
        WHERE id = $1 AND candidate_id = $2
-       RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at`,
+       RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at`,
       [cvId, candidateId]
     );
 
@@ -152,7 +154,7 @@ const setActiveCV = async (candidateId, cvId) => {
  */
 const findCVById = async (cvId, candidateId) => {
   const result = await db.query(
-    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, created_at
+    `SELECT id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at
      FROM candidate_cvs
      WHERE id = $1 AND candidate_id = $2`,
     [cvId, candidateId]
@@ -234,34 +236,83 @@ const deleteCV = async (candidateId, cvId) => {
  * @returns {Promise<object|null>} Updated candidate record
  */
 const updateCandidateProfileData = async (candidateId, profileData) => {
-  const { skills, education, experience, headline, location, language, bio, phone, linkedin, github } = profileData;
-  
-  // Conditionally update phone if it's provided in the payload
-  const phoneUpdate = phone !== undefined ? `phone = COALESCE($9, phone),` : ``;
-  const linkedinUpdate = linkedin !== undefined ? `linkedin = COALESCE(${phone !== undefined ? '$10' : '$9'}, linkedin),` : ``;
-  
-  let paramIndexOffset = 8 + (phone !== undefined ? 1 : 0) + (linkedin !== undefined ? 1 : 0);
-  const githubUpdate = github !== undefined ? `github = COALESCE($${paramIndexOffset + 1}, github),` : ``;
-  
+  const {
+    skills,
+    education,
+    experience,
+    headline,
+    location,
+    language,
+    bio,
+    phone,
+    linkedin,
+    github
+  } = profileData;
+
   const result = await db.query(
     `UPDATE candidates
-     SET skills = $1, education = $2, experience = $3, 
-         headline = $4, location = $5, language = $6, bio = $7, ${phoneUpdate} ${linkedinUpdate} ${githubUpdate} updated_at = NOW()
-     WHERE id = $8
+     SET skills = $1,
+         education = $2,
+         experience = $3, 
+         headline = $4,
+         location = $5,
+         language = $6,
+         bio = $7,
+         phone = $8,
+         linkedin = $9,
+         github = $10,
+         updated_at = NOW()
+     WHERE id = $11
      RETURNING id, user_id, phone, skills, education, experience, headline, location, language, bio, linkedin, github, created_at, updated_at`,
     [
       JSON.stringify(skills || []),
       JSON.stringify(education || []),
       JSON.stringify(experience || []),
-      headline || null,
-      location || null,
-      language || null,
-      bio || null,
+      headline !== undefined ? (headline || null) : null,
+      location !== undefined ? (location || null) : null,
+      language !== undefined ? (language || null) : null,
+      bio !== undefined ? (bio || null) : null,
+      phone !== undefined ? (phone || null) : null,
+      linkedin !== undefined ? (linkedin || null) : null,
+      github !== undefined ? (github || null) : null,
       candidateId,
-      ...(phone !== undefined ? [phone || null] : []),
-      ...(linkedin !== undefined ? [linkedin || null] : []),
-      ...(github !== undefined ? [github || null] : [])
     ]
+  );
+  return result.rows[0] || null;
+};
+
+/**
+ * Updates insights JSON for a candidate CV.
+ * @param {number} cvId 
+ * @param {number} candidateId 
+ * @param {object} insights 
+ * @returns {Promise<object|null>}
+ */
+const updateCVInsights = async (cvId, candidateId, insights) => {
+  const result = await db.query(
+    `UPDATE candidate_cvs
+     SET insights = $1
+     WHERE id = $2 AND candidate_id = $3
+     RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at`,
+    [JSON.stringify(insights), cvId, candidateId]
+  );
+  return result.rows[0] || null;
+};
+
+/**
+ * Updates raw text for a candidate CV.
+ * @param {number} cvId 
+ * @param {number} candidateId 
+ * @param {string} rawText 
+ * @returns {Promise<object|null>}
+ */
+const updateCVRawText = async (cvId, candidateId, rawText) => {
+  const result = await db.query(
+    `UPDATE candidate_cvs
+     SET raw_text = $1
+     WHERE id = $2 AND candidate_id = $3
+     RETURNING id, candidate_id, cv_name, cv_url, cv_public_id, is_active, file_size, raw_text, insights, created_at`,
+    [rawText, cvId, candidateId]
   );
   return result.rows[0] || null;
 };
@@ -276,4 +327,6 @@ module.exports = {
   updateCV,
   deleteCV,
   updateCandidateProfileData,
+  updateCVInsights,
+  updateCVRawText,
 };
