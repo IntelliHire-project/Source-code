@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Headphones,
   Clock,
+  Wallet,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -86,6 +87,7 @@ function PaymentStatusPage() {
 
   const isPending = previewStatus === 'pending';
   const isSuccess = previewStatus === 'success';
+  const walletLabel = location.state?.walletLabel;
   const txn = storedPayment
     ? {
         id: storedPayment.payment_reference || `PAY-${storedPayment.id}`,
@@ -96,7 +98,9 @@ function PaymentStatusPage() {
         datetime: new Date(storedPayment.created_at).toLocaleString(),
         method: 'Bank Transfer',
       }
-    : isSuccess ? SUCCESS_TXN : FAILURE_TXN;
+    : isSuccess
+      ? { ...SUCCESS_TXN, method: walletLabel || SUCCESS_TXN.method }
+      : FAILURE_TXN;
   const vacancyTitle =
     location.state?.vacancyTitle || storedPayment?.vacancy_title || VACANCY_TITLE;
 
@@ -228,7 +232,11 @@ function PaymentStatusPage() {
                     <div className="ps-txn__row">
                       <span className="ps-txn__label">Payment Method</span>
                       <span className="ps-txn__value">
-                        <CreditCard size={13} className="ps-txn__icon" />
+                        {walletLabel ? (
+                          <Wallet size={13} className="ps-txn__icon" />
+                        ) : (
+                          <CreditCard size={13} className="ps-txn__icon" />
+                        )}
                         {txn.method}
                       </span>
                     </div>
