@@ -179,8 +179,9 @@ const createAccount = async (req, res, next) => {
             location: extractedData.location || null,
             linkedin: extractedData.linkedin || null,
             github: extractedData.github || null,
-            language: extractedData.language || null,
+            language: extractedData.language || "English",
             bio: extractedData.bio || null,
+            phone: extractedData.phone || phone || null,
             skills: extractedData.skills || [],
             experience: (extractedData.experience || []).map((exp, index) => ({
               ...exp,

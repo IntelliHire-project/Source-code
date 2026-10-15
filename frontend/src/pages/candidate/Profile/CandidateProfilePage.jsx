@@ -140,6 +140,8 @@ function InfoRow({ icon: Icon, label, value }) {
   );
 }
 
+const cloneProfile = (data) => JSON.parse(JSON.stringify(data));
+
 function CandidateProfilePage({ initialMode = 'view' }) {
   const { setPageLabel, user, updateAuthUser } = useContext(CandidatePageContext);
   const navigate = useNavigate();
@@ -149,13 +151,23 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   const fileInputRef = React.useRef(null);
   const [profile, setProfile] = useState(() => getInitialProfile(user));
   const [draft, setDraft] = useState(() => getInitialProfile(user));
+  const [pendingCvFile, setPendingCvFile] = useState(null);
 
-  const current = isEditing ? draft : profile;
   const pageLabel = isEditing ? 'EDIT PROFILE' : 'CANDIDATE PROFILE';
 
   useEffect(() => {
     setPageLabel(pageLabel);
   }, [pageLabel, setPageLabel]);
+
+  // Synchronize edit mode with URL/route changes and reset draft when switching back to view
+  useEffect(() => {
+    const shouldEdit = initialMode === 'edit';
+    setIsEditing(shouldEdit);
+    if (!shouldEdit) {
+      setDraft(cloneProfile(profile));
+      setPendingCvFile(null);
+    }
+  }, [initialMode, profile]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -192,12 +204,12 @@ function CandidateProfilePage({ initialMode = 'view' }) {
               : getInitialProfile(user).cv,
           };
           setProfile(mergedProfile);
-          setDraft(mergedProfile);
+          setDraft(cloneProfile(mergedProfile));
         } catch (error) {
           console.error("Failed to fetch candidate profile:", error);
           const initial = getInitialProfile(user);
           setProfile(initial);
-          setDraft(initial);
+          setDraft(cloneProfile(initial));
         }
       }
     };
@@ -213,7 +225,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     const { value } = event.target;
     setDraft((prev) => ({
       ...prev,
-      workExperience: prev.workExperience.map((job) =>
+      workExperience: (prev.workExperience || []).map((job) =>
         job.id === id ? { ...job, [field]: value } : job
       ),
     }));
@@ -223,7 +235,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     const { value } = event.target;
     setDraft((prev) => ({
       ...prev,
-      education: prev.education.map((edu) =>
+      education: (prev.education || []).map((edu) =>
         edu.id === id ? { ...edu, [field]: value } : edu
       ),
     }));
@@ -233,7 +245,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     setDraft((prev) => ({
       ...prev,
       workExperience: [
-        ...prev.workExperience,
+        ...(prev.workExperience || []),
         {
           id: `exp-${Date.now()}`,
           title: '',
@@ -248,7 +260,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   const handleRemoveExperience = (id) => {
     setDraft((prev) => ({
       ...prev,
-      workExperience: prev.workExperience.filter((job) => job.id !== id),
+      workExperience: (prev.workExperience || []).filter((job) => job.id !== id),
     }));
   };
 
@@ -256,7 +268,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
     setDraft((prev) => ({
       ...prev,
       education: [
-        ...prev.education,
+        ...(prev.education || []),
         {
           id: `edu-${Date.now()}`,
           title: '',
@@ -270,18 +282,39 @@ function CandidateProfilePage({ initialMode = 'view' }) {
   const handleRemoveEducation = (id) => {
     setDraft((prev) => ({
       ...prev,
-      education: prev.education.filter((edu) => edu.id !== id),
+      education: (prev.education || []).filter((edu) => edu.id !== id),
+    }));
+  };
+
+  const handleAddSkill = () => {
+    const skillName = window.prompt('Enter new skill:');
+    if (skillName && skillName.trim()) {
+      const trimmed = skillName.trim();
+      if (!draft.skills.includes(trimmed)) {
+        setDraft((prev) => ({ ...prev, skills: [...(prev.skills || []), trimmed] }));
+      }
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setDraft((prev) => ({
+      ...prev,
+      skills: (prev.skills || []).filter((s) => s !== skillToRemove),
     }));
   };
 
   const handleOpenEditor = () => {
-    setDraft(profile);
+    setDraft(cloneProfile(profile));
+    setPendingCvFile(null);
     setIsEditing(true);
+    navigate('/candidate/profile/edit');
   };
 
   const handleCancel = () => {
-    setDraft(profile);
+    setDraft(cloneProfile(profile));
+    setPendingCvFile(null);
     setIsEditing(false);
+    navigate('/candidate/profile');
   };
 
   const handleSave = async () => {
@@ -300,6 +333,16 @@ function CandidateProfilePage({ initialMode = 'view' }) {
         fullName: draft.fullName,
         email: draft.email,
       });
+
+      // If user uploaded a new CV during this edit session, save it permanently now
+      if (pendingCvFile) {
+        try {
+          await uploadCandidateCV(pendingCvFile, true);
+        } catch (uploadErr) {
+          console.error('Failed to save CV permanently:', uploadErr);
+        }
+        setPendingCvFile(null);
+      }
       
       // Update global auth context so the header and sidebar reflect the new name and email
       if (updateAuthUser) {
@@ -309,8 +352,9 @@ function CandidateProfilePage({ initialMode = 'view' }) {
         });
       }
 
-      setProfile(draft);
+      setProfile(cloneProfile(draft));
       setIsEditing(false);
+      navigate('/candidate/profile');
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update profile:', error);
@@ -353,24 +397,17 @@ function CandidateProfilePage({ initialMode = 'view' }) {
         }
       };
 
+      // ONLY populate the draft fields for user review before saving.
+      // Do NOT modify saved profile state or upload to database until user clicks Save.
       setDraft((prev) => ({
         ...prev,
         ...updatedFields
       }));
 
-      setProfile((prev) => ({
-        ...prev,
-        ...updatedFields
-      }));
+      // Buffer CV file for permanent upload upon confirming & saving
+      setPendingCvFile(file);
 
-      // Also upload and save this CV to the candidate's account permanently as active CV
-      try {
-        await uploadCandidateCV(file, true);
-      } catch (uploadErr) {
-        console.error('Failed to save CV permanently:', uploadErr);
-      }
-
-      alert('CV data extracted successfully! Please review the auto-filled fields.');
+      alert('CV data extracted successfully! Please review the auto-filled fields before saving.');
     } catch (error) {
       console.error('Error extracting CV data:', error);
       alert('Failed to extract data from CV.');
@@ -386,21 +423,21 @@ function CandidateProfilePage({ initialMode = 'view' }) {
         <>
           <section className="candidate-hero card-surface">
             <div className="candidate-hero__avatar-wrap">
-              <img src={current.avatar} alt={current.fullName} className="candidate-hero__avatar" />
+              <img src={profile.avatar} alt={profile.fullName} className="candidate-hero__avatar" />
               <button type="button" className="candidate-hero__edit-badge" onClick={handleOpenEditor}>
                 <PencilLine size={14} />
               </button>
             </div>
 
             <div className="candidate-hero__content">
-              <h1 className="candidate-hero__name">{current.fullName}</h1>
-              <p className="candidate-hero__headline">{current.headline} | AI Enthusiast</p>
+              <h1 className="candidate-hero__name">{profile.fullName}</h1>
+              <p className="candidate-hero__headline">{profile.headline || 'No headline set'}{profile.headline ? ' | AI Enthusiast' : ''}</p>
               <div className="candidate-hero__meta">
-                <span><MapPin size={14} /> {current.location}</span>
-                <span><CalendarDays size={14} /> {current.joined}</span>
+                <span><MapPin size={14} /> {profile.location || 'Location not specified'}</span>
+                <span><CalendarDays size={14} /> {profile.joined}</span>
               </div>
               <div className="candidate-hero__skills">
-                {current.skills.map((skill) => (
+                {(profile.skills || []).map((skill) => (
                   <span key={skill} className="candidate-pill">{skill}</span>
                 ))}
               </div>
@@ -420,7 +457,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   <h2>Work Experience</h2>
                 </div>
                 <div className="candidate-list">
-                  {current.workExperience.map((job) => (
+                  {(profile.workExperience || []).map((job) => (
                     <div className="candidate-entry" key={job.id}>
                       <div className="candidate-entry__header">
                         <div>
@@ -432,6 +469,9 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                       <p className="candidate-entry__body">{job.description}</p>
                     </div>
                   ))}
+                  {(!profile.workExperience || profile.workExperience.length === 0) && (
+                    <p style={{ color: 'var(--text-muted, #888)', fontSize: '14px', padding: '12px 0' }}>No work experience added yet.</p>
+                  )}
                 </div>
               </article>
 
@@ -440,7 +480,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   <h2>Education</h2>
                 </div>
                 <div className="candidate-list">
-                  {current.education.map((edu) => (
+                  {(profile.education || []).map((edu) => (
                     <div className="candidate-entry candidate-entry--education" key={edu.id}>
                       <div className="candidate-entry__header">
                         <div>
@@ -451,6 +491,9 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                       </div>
                     </div>
                   ))}
+                  {(!profile.education || profile.education.length === 0) && (
+                    <p style={{ color: 'var(--text-muted, #888)', fontSize: '14px', padding: '12px 0' }}>No education details added yet.</p>
+                  )}
                 </div>
               </article>
             </div>
@@ -461,14 +504,14 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   <h2>Personal Information</h2>
                 </div>
                 <div className="candidate-info-stack">
-                  <InfoRow icon={UserCircle2} label="Full Name" value={current.fullName} />
-                  <InfoRow icon={BriefcaseBusiness} label="Professional Headline" value={current.headline} />
-                  <InfoRow icon={Mail} label="Email Address" value={current.email} />
-                  <InfoRow icon={Phone} label="Phone Number" value={current.phone} />
-                  <InfoRow icon={MapPin} label="Location" value={current.location} />
-                  <InfoRow icon={Globe} label="Main Language" value={current.language} />
-                  <InfoRow icon={ShieldCheck} label="Current Status" value={current.status} />
-                  <InfoRow icon={PencilLine} label="Bio Summary" value={current.bioSummary} />
+                  <InfoRow icon={UserCircle2} label="Full Name" value={profile.fullName} />
+                  <InfoRow icon={BriefcaseBusiness} label="Professional Headline" value={profile.headline} />
+                  <InfoRow icon={Mail} label="Email Address" value={profile.email} />
+                  <InfoRow icon={Phone} label="Phone Number" value={profile.phone} />
+                  <InfoRow icon={MapPin} label="Location" value={profile.location} />
+                  <InfoRow icon={Globe} label="Main Language" value={profile.language} />
+                  <InfoRow icon={ShieldCheck} label="Current Status" value={profile.status} />
+                  <InfoRow icon={PencilLine} label="Bio Summary" value={profile.bioSummary} />
                 </div>
               </article>
 
@@ -481,14 +524,14 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                     <div className="candidate-link-row__icon"><Link2 size={14} /></div>
                     <div>
                       <div className="candidate-link-row__label">LinkedIn Profile</div>
-                      <div className="candidate-link-row__value">{current.linkedIn}</div>
+                      <div className="candidate-link-row__value">{profile.linkedIn || '-'}</div>
                     </div>
                   </div>
                   <div className="candidate-link-row">
                     <div className="candidate-link-row__icon"><Code2 size={14} /></div>
                     <div>
                       <div className="candidate-link-row__label">GitHub</div>
-                      <div className="candidate-link-row__value">{current.github}</div>
+                      <div className="candidate-link-row__value">{profile.github || '-'}</div>
                     </div>
                   </div>
                 </div>
@@ -505,9 +548,9 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                       <FileText size={18} />
                     </div>
                     <div>
-                      <div className="candidate-cv-card__name">{current.cv.name}</div>
-                      <div className="candidate-cv-card__meta">{current.cv.meta}</div>
-                      <div className="candidate-cv-card__note">{current.cv.note}</div>
+                      <div className="candidate-cv-card__name">{profile.cv?.name || 'No active CV uploaded'}</div>
+                      <div className="candidate-cv-card__meta">{profile.cv?.meta || ''}</div>
+                      <div className="candidate-cv-card__note">{profile.cv?.note || ''}</div>
                     </div>
                   </div>
                   <button
@@ -580,7 +623,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   </button>
                 </div>
                 <div className="candidate-list">
-                  {current.workExperience.map((job) => (
+                  {(draft.workExperience || []).map((job) => (
                     <div className="candidate-entry candidate-entry--edit" key={job.id}>
                       <div className="candidate-entry__header">
                         <div className="candidate-entry__title">{job.title || 'New Experience'}</div>
@@ -612,7 +655,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   </button>
                 </div>
                 <div className="candidate-list">
-                  {current.education.map((edu) => (
+                  {(draft.education || []).map((edu) => (
                     <div className="candidate-entry candidate-entry--education" key={edu.id}>
                       <div className="candidate-entry__header">
                         <div className="candidate-entry__title">{edu.title || 'New Education'}</div>
@@ -647,9 +690,9 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                       <FileText size={18} />
                     </div>
                     <div>
-                      <div className="candidate-cv-card__name">{draft.cv.name}</div>
-                      <div className="candidate-cv-card__meta">{draft.cv.meta}</div>
-                      <div className="candidate-cv-card__note">{draft.cv.note}</div>
+                      <div className="candidate-cv-card__name">{draft.cv?.name || 'No CV selected'}</div>
+                      <div className="candidate-cv-card__meta">{draft.cv?.meta || ''}</div>
+                      <div className="candidate-cv-card__note">{draft.cv?.note || ''}</div>
                     </div>
                   </div>
 
@@ -701,10 +744,23 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                   </span>
                 </div>
                 <div className="candidate-skills-grid">
-                  {draft.skills.map((skill) => (
-                    <span key={skill} className="candidate-pill candidate-pill--compact">{skill} +</span>
+                  {(draft.skills || []).map((skill) => (
+                    <button
+                      type="button"
+                      key={skill}
+                      className="candidate-pill candidate-pill--compact"
+                      onClick={() => handleRemoveSkill(skill)}
+                      title="Click to remove"
+                      style={{ border: 'none', cursor: 'pointer' }}
+                    >
+                      {skill} &times;
+                    </button>
                   ))}
-                  <button type="button" className="candidate-pill candidate-pill--compact candidate-pill--add">
+                  <button
+                    type="button"
+                    className="candidate-pill candidate-pill--compact candidate-pill--add"
+                    onClick={handleAddSkill}
+                  >
                     + Add More
                   </button>
                 </div>
