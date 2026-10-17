@@ -1051,7 +1051,13 @@ function ModerateContent() {
                         <p>All clean! No flagged comments pending review.</p>
                       </div>
                     )}
-               {/* Tab 2: Restore Content Archive */}
+                  </div>
+                </div>
+              </aside>
+            </div>
+          )}
+
+          {/* Tab 2: Restore Content Archive */}
           {activeTab === 'removed' && (
             <section className="reports-section" style={{ width: '100%' }}>
               <div className="tab-table-controls">
