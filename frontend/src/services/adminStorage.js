@@ -89,6 +89,68 @@ export function saveComments(comments) {
   safeSet(KEYS.COMMENTS, comments);
 }
 
+export function dismissCommentFlag(commentId) {
+  const comments = getComments();
+  const target = comments.find(c => c.id === commentId);
+  const updated = comments.filter(c => c.id !== commentId);
+  saveComments(updated);
+  if (target) {
+    appendAuditLog({
+      actionType: `Comment Approved: #${commentId}`,
+      module: 'COMMUNITY_MOD',
+      status: 'success'
+    });
+  }
+  return updated;
+}
+
+export function removeComment(commentId) {
+  const comments = getComments();
+  const target = comments.find(c => c.id === commentId);
+  const updated = comments.filter(c => c.id !== commentId);
+  saveComments(updated);
+  if (target) {
+    appendAuditLog({
+      actionType: `Comment Removed: #${commentId}`,
+      module: 'COMMUNITY_MOD',
+      status: 'warning'
+    });
+  }
+  return updated;
+}
+
+export function bulkDismissReports(reportIds = []) {
+  const reports = getReports();
+  const updated = reports.filter(r => !reportIds.includes(r.id));
+  saveReports(updated);
+  appendAuditLog({
+    actionType: `Bulk Reports Dismissed: ${reportIds.length} item(s)`,
+    module: 'COMMUNITY_MOD',
+    status: 'success'
+  });
+  return updated;
+}
+
+export function bulkRemoveReports(reportIds = []) {
+  const reports = getReports();
+  const toRemove = reports.filter(r => reportIds.includes(r.id));
+  toRemove.forEach(target => {
+    recordRemovedPost(target.targetPostId || target.id, target.title, {
+      category: target.category,
+      author: target.author || target.reportedBy,
+      reason: 'Bulk removal policy enforcement'
+    });
+  });
+  const updated = reports.filter(r => !reportIds.includes(r.id));
+  saveReports(updated);
+  appendAuditLog({
+    actionType: `Bulk Reports Removed: ${reportIds.length} item(s)`,
+    module: 'COMMUNITY_MOD',
+    status: 'warning'
+  });
+  return updated;
+}
+
 /**
  * Submits a new community report from the frontend (Candidate or Recruiter community feed)
  * directly into the admin moderation queue (ModerateCommunity).
