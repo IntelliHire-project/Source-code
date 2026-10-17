@@ -296,6 +296,15 @@ const initializeDatabase = async () => {
       );
     `);
 
+    // Review/verification columns (added for admin approval workflow).
+    // ALTER ... IF NOT EXISTS keeps existing databases in sync.
+    await client.query(`
+      ALTER TABLE payment_transactions
+        ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
+        ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+    `);
+
     // Create indices for fast lookups
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_candidates_user_id ON candidates(user_id);
