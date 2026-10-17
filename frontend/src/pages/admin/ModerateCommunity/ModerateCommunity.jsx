@@ -18,7 +18,9 @@ import {
   FileSpreadsheet,
   BarChart3,
   TrendingUp,
-  FileText
+  FileText,
+  Search,
+  Filter
 } from 'lucide-react';
 import AdminSidebar from '../../../components/common/AdminSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -37,7 +39,11 @@ import {
   getModerationLogs,
   recordModerationLog,
   generateModerationCSVReport,
-  getModerationStatsSummary
+  getModerationStatsSummary,
+  bulkDismissReports,
+  bulkRemoveReports,
+  dismissCommentFlag,
+  removeComment
 } from '../../../services/adminStorage';
 import './ModerateCommunity.css';
 
@@ -203,12 +209,27 @@ function ModerateContent() {
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Selection and filters
+  // Selection and filters (Tab 1)
   const [checkedIds, setCheckedIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
   
+  // Tab 2: Removed Archive search & preview
+  const [removedSearchQuery, setRemovedSearchQuery] = useState('');
+  const [previewRemovedPost, setPreviewRemovedPost] = useState(null);
+
+  // Tab 3: Warnings search & strike filter
+  const [warningSearchQuery, setWarningSearchQuery] = useState('');
+  const [warningLevelFilter, setWarningLevelFilter] = useState('all');
+
+  // Tab 4: Logs search, action filter & pagination
+  const [logSearchQuery, setLogSearchQuery] = useState('');
+  const [logActionFilter, setLogActionFilter] = useState('all');
+  const [logCurrentPage, setLogCurrentPage] = useState(1);
+  const [selectedLogDetail, setSelectedLogDetail] = useState(null);
+  const logsPerPage = 5;
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
@@ -224,6 +245,10 @@ function ModerateContent() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, userFilter, actionFilter, activeTab]);
+
+  useEffect(() => {
+    setLogCurrentPage(1);
+  }, [logSearchQuery, logActionFilter, activeTab]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -271,6 +296,70 @@ function ModerateContent() {
 
   const totalPages = Math.max(1, Math.ceil(filteredReports.length / itemsPerPage));
 
+  // Filtered Removed Posts (Tab 2)
+  const filteredRemovedList = useMemo(() => {
+    return removedList.filter((item) => {
+      const q = removedSearchQuery.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        (item.title || '').toLowerCase().includes(q) ||
+        (item.author || '').toLowerCase().includes(q) ||
+        (item.category || '').toLowerCase().includes(q) ||
+        (item.reason || '').toLowerCase().includes(q)
+      );
+    });
+  }, [removedList, removedSearchQuery]);
+
+  // Filtered Warnings (Tab 3)
+  const filteredWarningsList = useMemo(() => {
+    return warningsList.filter((warn) => {
+      const q = warningSearchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (warn.author || '').toLowerCase().includes(q) ||
+        (warn.postTitle || '').toLowerCase().includes(q) ||
+        (warn.message || '').toLowerCase().includes(q);
+
+      const matchesLevel =
+        warningLevelFilter === 'all' ||
+        (warningLevelFilter === 'level-1' && warn.warningLevel?.includes('1')) ||
+        (warningLevelFilter === 'level-2' && warn.warningLevel?.includes('2')) ||
+        (warningLevelFilter === 'level-3' && warn.warningLevel?.includes('3'));
+
+      return matchesSearch && matchesLevel;
+    });
+  }, [warningsList, warningSearchQuery, warningLevelFilter]);
+
+  // Filtered & Paginated Logs (Tab 4)
+  const filteredLogs = useMemo(() => {
+    return moderationLogs.filter((log) => {
+      const q = logSearchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (log.targetTitle || '').toLowerCase().includes(q) ||
+        (log.author || '').toLowerCase().includes(q) ||
+        (log.moderator || '').toLowerCase().includes(q) ||
+        (log.action || '').toLowerCase().includes(q) ||
+        (log.notes || '').toLowerCase().includes(q);
+
+      const matchesAction =
+        logActionFilter === 'all' ||
+        (logActionFilter === 'removed' && log.action.toLowerCase().includes('remove')) ||
+        (logActionFilter === 'restored' && log.action.toLowerCase().includes('restore')) ||
+        (logActionFilter === 'warned' && log.action.toLowerCase().includes('warn')) ||
+        (logActionFilter === 'dismissed' && log.action.toLowerCase().includes('dismiss'));
+
+      return matchesSearch && matchesAction;
+    });
+  }, [moderationLogs, logSearchQuery, logActionFilter]);
+
+  const paginatedLogs = useMemo(() => {
+    const start = (logCurrentPage - 1) * logsPerPage;
+    return filteredLogs.slice(start, start + logsPerPage);
+  }, [filteredLogs, logCurrentPage]);
+
+  const totalLogPages = Math.max(1, Math.ceil(filteredLogs.length / logsPerPage));
+
   // Checkbox functions
   const handleToggleSelectAll = (e) => {
     if (e.target.checked) {
@@ -309,6 +398,85 @@ function ModerateContent() {
     setSelectedReport(null);
     setModerationLogs(getModerationLogs());
     setToast({ type: 'info', message: `Report #${id} dismissed. Content kept.` });
+  };
+
+  // Bulk Moderation Actions
+  const handleBulkDismiss = () => {
+    if (checkedIds.length === 0) return;
+    const count = checkedIds.length;
+    checkedIds.forEach((id) => {
+      const target = reports.find((r) => r.id === id);
+      recordModerationLog({
+        action: 'Report Dismissed',
+        targetTitle: target?.title || `Report #${id}`,
+        category: target?.category || 'General',
+        author: target?.author || target?.reportedBy,
+        status: 'Resolved (No Violation)',
+        notes: 'Bulk dismissed by moderator without penalty.'
+      });
+    });
+    const updatedReports = bulkDismissReports(checkedIds);
+    setReports(updatedReports);
+    setCheckedIds([]);
+    setModerationLogs(getModerationLogs());
+    setToast({ type: 'info', message: `${count} report(s) dismissed in bulk.` });
+  };
+
+  const handleBulkRemove = () => {
+    if (checkedIds.length === 0) return;
+    const count = checkedIds.length;
+    checkedIds.forEach((id) => {
+      const target = reports.find((r) => r.id === id);
+      if (target) {
+        recordModerationLog({
+          action: 'Content Removed',
+          targetTitle: target?.title || `Post #${id}`,
+          category: target?.category || 'Violation',
+          author: target?.author || target?.reportedBy,
+          status: 'Removed & Archived',
+          notes: 'Bulk removal policy enforcement by moderator.'
+        });
+      }
+    });
+    const updatedReports = bulkRemoveReports(checkedIds);
+    setReports(updatedReports);
+    setCheckedIds([]);
+    setRemovedList(getRemovedPostsList());
+    setModerationLogs(getModerationLogs());
+    setToast({ type: 'success', message: `${count} post(s) removed and archived in bulk.` });
+  };
+
+  // Flagged Comment Moderation Handlers
+  const handleDismissComment = (commentId) => {
+    const target = comments.find((c) => c.id === commentId);
+    const updated = dismissCommentFlag(commentId);
+    setComments(updated);
+    recordModerationLog({
+      action: 'Comment Approved',
+      targetTitle: target?.text ? (target.text.slice(0, 35) + '...') : `Comment #${commentId}`,
+      category: target?.category || 'Comment',
+      author: target?.author || 'Unknown',
+      status: 'Approved',
+      notes: 'Flag reviewed and cleared by moderator.'
+    });
+    setModerationLogs(getModerationLogs());
+    setToast({ type: 'info', message: 'Comment flag cleared. Content approved.' });
+  };
+
+  const handleRemoveComment = (commentId) => {
+    const target = comments.find((c) => c.id === commentId);
+    const updated = removeComment(commentId);
+    setComments(updated);
+    recordModerationLog({
+      action: 'Comment Removed',
+      targetTitle: target?.text ? (target.text.slice(0, 35) + '...') : `Comment #${commentId}`,
+      category: target?.category || 'Violation',
+      author: target?.author || 'Unknown',
+      status: 'Deleted',
+      notes: 'Offending comment deleted by moderator.'
+    });
+    setModerationLogs(getModerationLogs());
+    setToast({ type: 'error', message: `Offending comment by @${target?.author || 'user'} removed.` });
   };
 
   // Remove Content Action
@@ -588,6 +756,43 @@ function ModerateContent() {
           {activeTab === 'active' && (
             <div className="moderation-grid">
               <section className="reports-section">
+                {checkedIds.length > 0 && (
+                  <div className="bulk-actions-toolbar">
+                    <div className="bulk-actions-toolbar__info">
+                      <span className="bulk-count-badge">{checkedIds.length}</span>
+                      <span className="bulk-count-text">
+                        {checkedIds.length === 1 ? 'report' : 'reports'} selected
+                      </span>
+                      <button
+                        type="button"
+                        className="bulk-deselect-btn"
+                        onClick={() => setCheckedIds([])}
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                    <div className="bulk-actions-toolbar__btns">
+                      <button
+                        type="button"
+                        className="bulk-action-btn dismiss"
+                        onClick={handleBulkDismiss}
+                        title="Dismiss all selected reports without penalty"
+                      >
+                        <Check size={14} />
+                        <span>Dismiss Selected ({checkedIds.length})</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="bulk-action-btn remove"
+                        onClick={handleBulkRemove}
+                        title="Remove all selected posts and archive them"
+                      >
+                        <Trash2 size={14} />
+                        <span>Remove Selected ({checkedIds.length})</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="reports-table-wrapper">
                   <table className="reports-table">
                     <thead>
@@ -808,17 +1013,44 @@ function ModerateContent() {
                     Flagged Comments Feed
                   </h3>
                   <div className="comments-feed">
-                    {comments.map((comment) => (
-                      <div className="comment-card" key={comment.id}>
-                        <div className="comment-card__header">
-                          <span className="comment-card__author">{comment.author}</span>
-                          <span className={`comment-card__badge ${comment.category === 'SPAM' ? 'spam' : ''}`}>
-                            {comment.category}
-                          </span>
+                    {comments.length > 0 ? (
+                      comments.map((comment) => (
+                        <div className="comment-card" key={comment.id}>
+                          <div className="comment-card__header">
+                            <span className="comment-card__author">@{comment.author}</span>
+                            <span className={`comment-card__badge ${comment.category === 'SPAM' ? 'spam' : ''}`}>
+                              {comment.category}
+                            </span>
+                          </div>
+                          <p className="comment-card__text">{comment.text}</p>
+                          <div className="comment-card__actions">
+                            <button
+                              type="button"
+                              className="comment-action-btn approve"
+                              title="Approve / Dismiss Flag"
+                              onClick={() => handleDismissComment(comment.id)}
+                            >
+                              <Check size={13} />
+                              <span>Keep</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="comment-action-btn delete"
+                              title="Delete Offending Comment"
+                              onClick={() => handleRemoveComment(comment.id)}
+                            >
+                              <Trash2 size={13} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </div>
-                        <p className="comment-card__text">{comment.text}</p>
+                      ))
+                    ) : (
+                      <div className="comment-card-empty">
+                        <ShieldCheck size={28} color="#4EBE88" />
+                        <p>All clean! No flagged comments pending review.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </aside>
@@ -828,6 +1060,27 @@ function ModerateContent() {
           {/* Tab 2: Restore Content Archive */}
           {activeTab === 'removed' && (
             <section className="reports-section" style={{ width: '100%' }}>
+              <div className="tab-table-controls">
+                <div className="tab-search-box">
+                  <Search size={15} className="tab-search-icon" />
+                  <input
+                    type="text"
+                    className="tab-search-input"
+                    placeholder="Search removed posts by title, author, or reason..."
+                    value={removedSearchQuery}
+                    onChange={(e) => setRemovedSearchQuery(e.target.value)}
+                  />
+                  {removedSearchQuery && (
+                    <button className="tab-search-clear" onClick={() => setRemovedSearchQuery('')} aria-label="Clear search">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <div className="tab-count-indicator">
+                  Showing <strong>{filteredRemovedList.length}</strong> archived {filteredRemovedList.length === 1 ? 'post' : 'posts'}
+                </div>
+              </div>
+
               <div className="reports-table-wrapper">
                 <table className="reports-table">
                   <thead>
@@ -837,12 +1090,12 @@ function ModerateContent() {
                       <th>Author</th>
                       <th>Removed Date</th>
                       <th>Moderator Policy Reason</th>
-                      <th>Action</th>
+                      <th className="text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {removedList.length > 0 ? (
-                      removedList.map((item) => (
+                    {filteredRemovedList.length > 0 ? (
+                      filteredRemovedList.map((item) => (
                         <tr key={item.id}>
                           <td className="post-title-cell">
                             <span className="post-title-text" style={{ textDecoration: 'line-through', color: '#9599A6' }}>
@@ -853,19 +1106,29 @@ function ModerateContent() {
                           <td>
                             <span className="category-badge spam">{item.category}</span>
                           </td>
-                          <td className="reporter-cell">{item.author}</td>
+                          <td className="reporter-cell">@{item.author}</td>
                           <td className="date-cell">{item.removedAt}</td>
                           <td style={{ fontSize: '0.8rem', color: '#D1D5DB' }}>{item.reason}</td>
-                          <td>
-                            <button
-                              type="button"
-                              className="action-icon-btn restore-btn"
-                              title="Restore Content to Public Feed"
-                              onClick={() => handleRestorePost(item.id)}
-                            >
-                              <RotateCcw size={14} />
-                              <span>Restore Post</span>
-                            </button>
+                          <td className="actions-td">
+                            <div className="actions-cell">
+                              <button
+                                type="button"
+                                className="action-icon-btn view"
+                                title="Preview Archived Content"
+                                onClick={() => setPreviewRemovedPost(item)}
+                              >
+                                <Eye size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                className="action-icon-btn restore-btn"
+                                title="Restore Content to Public Feed"
+                                onClick={() => handleRestorePost(item.id)}
+                              >
+                                <RotateCcw size={14} />
+                                <span>Restore</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -873,7 +1136,7 @@ function ModerateContent() {
                       <tr>
                         <td colSpan="6" className="table-empty-state">
                           <Check size={32} color="#4EBE88" />
-                          <p>No posts are currently archived or removed. When you remove a post, it will appear here with one-click restore options.</p>
+                          <p>{removedSearchQuery ? 'No archived posts match your search query.' : 'No posts are currently archived or removed. When you remove a post, it will appear here with one-click restore options.'}</p>
                         </td>
                       </tr>
                     )}
@@ -886,6 +1149,43 @@ function ModerateContent() {
           {/* Tab 3: Dispatched User Warnings */}
           {activeTab === 'warnings' && (
             <section className="reports-section" style={{ width: '100%' }}>
+              <div className="tab-table-controls">
+                <div className="tab-search-box">
+                  <Search size={15} className="tab-search-icon" />
+                  <input
+                    type="text"
+                    className="tab-search-input"
+                    placeholder="Search warnings by author or post title..."
+                    value={warningSearchQuery}
+                    onChange={(e) => setWarningSearchQuery(e.target.value)}
+                  />
+                  {warningSearchQuery && (
+                    <button className="tab-search-clear" onClick={() => setWarningSearchQuery('')} aria-label="Clear search">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="tab-filter-pills">
+                  <span className="tab-filter-label">Strike Level:</span>
+                  {[
+                    { key: 'all', label: 'All Strikes' },
+                    { key: 'level-1', label: 'Level 1' },
+                    { key: 'level-2', label: 'Level 2' },
+                    { key: 'level-3', label: 'Level 3' }
+                  ].map((lvl) => (
+                    <button
+                      key={lvl.key}
+                      type="button"
+                      className={`tab-filter-pill-btn ${warningLevelFilter === lvl.key ? 'active' : ''}`}
+                      onClick={() => setWarningLevelFilter(lvl.key)}
+                    >
+                      {lvl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="reports-table-wrapper">
                 <table className="reports-table">
                   <thead>
@@ -899,14 +1199,14 @@ function ModerateContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {warningsList.length > 0 ? (
-                      warningsList.map((warn) => (
+                    {filteredWarningsList.length > 0 ? (
+                      filteredWarningsList.map((warn) => (
                         <tr key={warn.id}>
                           <td className="reporter-cell" style={{ fontWeight: 700, color: '#FFFFFF' }}>
                             @{warn.author}
                           </td>
                           <td>
-                            <span className={`warn-level-badge ${warn.warningLevel.includes('1') ? 'level-1' : warn.warningLevel.includes('2') ? 'level-2' : 'level-3'}`}>
+                            <span className={`warn-level-badge ${warn.warningLevel?.includes('1') ? 'level-1' : warn.warningLevel?.includes('2') ? 'level-2' : 'level-3'}`}>
                               {warn.warningLevel}
                             </span>
                           </td>
@@ -920,7 +1220,7 @@ function ModerateContent() {
                       <tr>
                         <td colSpan="6" className="table-empty-state">
                           <ShieldCheck size={32} color="#4EBE88" />
-                          <p>No user warnings dispatched yet. Use "Warn Author" on any reported post to issue strikes.</p>
+                          <p>{warningSearchQuery || warningLevelFilter !== 'all' ? 'No warning records match the selected filters.' : 'No user warnings dispatched yet. Use "Warn Author" on any reported post to issue strikes.'}</p>
                         </td>
                       </tr>
                     )}
@@ -933,6 +1233,44 @@ function ModerateContent() {
           {/* Tab 4: Moderation Action Logs */}
           {activeTab === 'logs' && (
             <section className="reports-section" style={{ width: '100%' }}>
+              <div className="tab-table-controls">
+                <div className="tab-search-box">
+                  <Search size={15} className="tab-search-icon" />
+                  <input
+                    type="text"
+                    className="tab-search-input"
+                    placeholder="Search logs by action, title, author, or moderator..."
+                    value={logSearchQuery}
+                    onChange={(e) => setLogSearchQuery(e.target.value)}
+                  />
+                  {logSearchQuery && (
+                    <button className="tab-search-clear" onClick={() => setLogSearchQuery('')} aria-label="Clear search">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="tab-filter-pills">
+                  <span className="tab-filter-label">Action:</span>
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'removed', label: 'Removed' },
+                    { key: 'restored', label: 'Restored' },
+                    { key: 'warned', label: 'Warned' },
+                    { key: 'dismissed', label: 'Dismissed' }
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`tab-filter-pill-btn ${logActionFilter === item.key ? 'active' : ''}`}
+                      onClick={() => setLogActionFilter(item.key)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="reports-table-wrapper">
                 <table className="reports-table">
                   <thead>
@@ -944,11 +1282,12 @@ function ModerateContent() {
                       <th>Author</th>
                       <th>Moderator</th>
                       <th>Status / Notes</th>
+                      <th className="text-right">Inspect</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {moderationLogs.length > 0 ? (
-                      moderationLogs.map((log) => (
+                    {paginatedLogs.length > 0 ? (
+                      paginatedLogs.map((log) => (
                         <tr key={log.id}>
                           <td style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#9599A6' }}>{log.id}</td>
                           <td className="date-cell">{log.timestamp}</td>
@@ -961,19 +1300,63 @@ function ModerateContent() {
                           <td className="reporter-cell">@{log.author}</td>
                           <td style={{ color: '#D1D5DB', fontSize: '0.82rem' }}>{log.moderator}</td>
                           <td style={{ fontSize: '0.78rem', color: '#9599A6' }}>{log.notes}</td>
+                          <td className="actions-td">
+                            <button
+                              type="button"
+                              className="action-icon-btn view"
+                              title="Inspect Log Entry"
+                              onClick={() => setSelectedLogDetail(log)}
+                            >
+                              <Eye size={15} />
+                            </button>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="7" className="table-empty-state">
+                        <td colSpan="8" className="table-empty-state">
                           <FileText size={32} color="#4EBE88" />
-                          <p>No moderation action logs recorded yet.</p>
+                          <p>{logSearchQuery || logActionFilter !== 'all' ? 'No action logs match your filter criteria.' : 'No moderation action logs recorded yet.'}</p>
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {filteredLogs.length > 0 && (
+                <div className="table-footer">
+                  <span className="table-footer__info">
+                    Showing {Math.min(filteredLogs.length, (logCurrentPage - 1) * logsPerPage + 1)}-
+                    {Math.min(filteredLogs.length, logCurrentPage * logsPerPage)} of {filteredLogs.length} logs
+                  </span>
+                  <div className="pagination-group">
+                    <button
+                      className="pagination-btn"
+                      disabled={logCurrentPage === 1}
+                      onClick={() => setLogCurrentPage((c) => Math.max(1, c - 1))}
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: totalLogPages }, (_, i) => (
+                      <button
+                        key={i + 1}
+                        className={`pagination-btn ${logCurrentPage === i + 1 ? 'active' : ''}`}
+                        onClick={() => setLogCurrentPage(i + 1)}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      className="pagination-btn"
+                      disabled={logCurrentPage === totalLogPages}
+                      onClick={() => setLogCurrentPage((c) => Math.min(totalLogPages, c + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
         </main>
@@ -1148,6 +1531,123 @@ function ModerateContent() {
               >
                 <Download size={14} style={{ marginRight: '6px' }} />
                 Export CSV Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Removed Content Modal */}
+      {previewRemovedPost && (
+        <div className="modal-backdrop" onClick={() => setPreviewRemovedPost(null)}>
+          <div className="review-modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="review-modal__header">
+              <div className="review-modal__title-group">
+                <span className="review-modal__alert-icon" style={{ color: '#F0B90B' }}>
+                  <RotateCcw size={20} />
+                </span>
+                <h2>Archived Content Preview</h2>
+              </div>
+              <button className="btn-close-modal" onClick={() => setPreviewRemovedPost(null)} aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="review-modal__body">
+              <div className="review-modal__meta">
+                Author: <span className="meta-author">@{previewRemovedPost.author}</span> • Category:
+                <span className="meta-reason-badge">{previewRemovedPost.category}</span>
+              </div>
+
+              <div className="reported-post-box">
+                <h4 className="reported-post-box__title">{previewRemovedPost.title}</h4>
+                <p className="reported-post-box__content">{previewRemovedPost.snippet || 'No extended snippet available.'}</p>
+              </div>
+
+              <div style={{ background: 'rgba(230, 57, 70, 0.08)', borderLeft: '3px solid #FF5A65', padding: '12px 14px', borderRadius: '4px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FF5A65', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Removal Policy Rationale</span>
+                <p style={{ margin: 0, fontSize: '0.84rem', color: '#E2E4E9' }}>{previewRemovedPost.reason || 'Moderator policy enforcement'}</p>
+                <small style={{ color: '#9599A6', marginTop: '4px', display: 'block' }}>Removed on: {previewRemovedPost.removedAt}</small>
+              </div>
+            </div>
+
+            <div className="review-modal__footer" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <button type="button" className="btn-modal-ignore" onClick={() => setPreviewRemovedPost(null)}>
+                Close
+              </button>
+              <button
+                type="button"
+                className="btn-modal-ban"
+                style={{ background: '#4EBE88', borderColor: '#4EBE88', color: '#0D0E13' }}
+                onClick={() => {
+                  handleRestorePost(previewRemovedPost.id);
+                  setPreviewRemovedPost(null);
+                }}
+              >
+                <RotateCcw size={14} style={{ marginRight: '6px' }} />
+                Restore to Live Feed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Action Log Detail Inspector Modal */}
+      {selectedLogDetail && (
+        <div className="modal-backdrop" onClick={() => setSelectedLogDetail(null)}>
+          <div className="review-modal" style={{ maxWidth: '580px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="review-modal__header">
+              <div className="review-modal__title-group">
+                <span className="review-modal__alert-icon" style={{ color: '#F0B90B' }}>
+                  <FileText size={20} />
+                </span>
+                <h2>Action Log Inspector #{selectedLogDetail.id}</h2>
+              </div>
+              <button className="btn-close-modal" onClick={() => setSelectedLogDetail(null)} aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="review-modal__body">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ padding: '12px', background: '#101118', border: '1px solid #2A2C38', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>ACTION TYPE</span>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#F0B90B', marginTop: '4px' }}>{selectedLogDetail.action}</div>
+                </div>
+                <div style={{ padding: '12px', background: '#101118', border: '1px solid #2A2C38', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>RECORDED TIMESTAMP</span>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#E2E4E9', marginTop: '4px' }}>{selectedLogDetail.timestamp}</div>
+                </div>
+              </div>
+
+              <div style={{ padding: '14px', background: '#101118', border: '1px solid #2A2C38', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#9599A6' }}>Target Post / Target:</span>
+                  <strong style={{ color: '#FFFFFF', maxWidth: '300px', textAlign: 'right' }}>{selectedLogDetail.targetTitle}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#9599A6' }}>Target Author:</span>
+                  <strong style={{ color: '#F0B90B' }}>@{selectedLogDetail.author}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#9599A6' }}>Executing Moderator:</span>
+                  <strong style={{ color: '#4EBE88' }}>{selectedLogDetail.moderator}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#9599A6' }}>Compliance Status:</span>
+                  <strong style={{ color: '#E2E4E9' }}>{selectedLogDetail.status}</strong>
+                </div>
+              </div>
+
+              <div style={{ padding: '12px 14px', background: '#1B1D26', border: '1px solid #2A2C38', borderRadius: '8px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9599A6', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Audit & Moderator Notes</span>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#E2E4E9', lineHeight: 1.5 }}>{selectedLogDetail.notes}</p>
+              </div>
+            </div>
+
+            <div className="review-modal__footer" style={{ gridTemplateColumns: '1fr' }}>
+              <button type="button" className="btn-modal-ignore" onClick={() => setSelectedLogDetail(null)}>
+                Dismiss Inspector
               </button>
             </div>
           </div>
