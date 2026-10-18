@@ -42,6 +42,30 @@ const getFallbackAnalysis = (cvName = 'Resume.pdf') => ({
   atsScore: 82,
 });
 
+const FALLBACK_MODELS = [
+  process.env.GEMINI_MODEL,
+  'gemini-3.8-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
+].filter(Boolean);
+
+const callWithModelFallback = async (client, generateOptions) => {
+  let lastErr = null;
+  for (const model of FALLBACK_MODELS) {
+    try {
+      const response = await client.models.generateContent({
+        ...generateOptions,
+        model,
+      });
+      return response;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`Model ${model} failed, attempting fallback:`, err?.message || err);
+    }
+  }
+  throw lastErr;
+};
+
 /**
  * Analyzes CV text using Gemini model and returns structured insights.
  * @param {string} cvText 
@@ -96,8 +120,7 @@ Rules:
 `;
 
   try {
-    const response = await client.models.generateContent({
-      model: 'gemini-1.5-flash',
+    const response = await callWithModelFallback(client, {
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -166,8 +189,7 @@ Instructions:
 `;
 
   try {
-    const response = await client.models.generateContent({
-      model: 'gemini-1.5-flash',
+    const response = await callWithModelFallback(client, {
       contents: prompt,
     });
 
