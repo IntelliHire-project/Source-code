@@ -75,19 +75,20 @@ const callWithModelFallback = async (client, generateOptions) => {
 const generateCVInsights = async (cvText, cvName = 'Resume') => {
   const client = getAIClient();
 
-  if (!client || !cvText || cvText.trim().length < 20) {
+  if (!client) {
     return getFallbackAnalysis(cvName);
   }
+
+  const cvBody = cvText && cvText.trim().length >= 20
+    ? `CV Content:\n"""\n${cvText.slice(0, 15000)}\n"""`
+    : `Document Title: "${cvName}"\n(Document text is being indexed. Base your ATS evaluation, recommended skills, industry weaknesses, and role-specific keywords directly on the profession/role indicated by "${cvName}".)`;
 
   const prompt = `
 You are an expert Senior Technical Recruiter and ATS (Applicant Tracking System) optimization specialist.
 Analyze the following candidate CV document carefully.
 
 Document Name: "${cvName}"
-CV Content:
-"""
-${cvText.slice(0, 15000)}
-"""
+${cvBody}
 
 Provide an honest, highly actionable, and professional evaluation in strict JSON format.
 The JSON must have the following schema:
