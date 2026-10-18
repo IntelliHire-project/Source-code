@@ -10,7 +10,9 @@ import {
   Briefcase,
   FileText,
   CheckCircle,
+  XCircle,
   Clock,
+  AlertCircle,
   ShieldCheck,
   Printer
 } from 'lucide-react';
@@ -81,7 +83,7 @@ export default function TransactionDetailsModal({ transaction, onClose }) {
                   <div className="txn-info-icon"><CreditCard size={16} /></div>
                   <div className="txn-info-text">
                     <span className="label">PAYMENT METHOD</span>
-                    <span className="value">Visa ending in 4242</span>
+                    <span className="value">{transaction.method || 'Bank Transfer'}</span>
                   </div>
                 </div>
                 <div className="txn-info-item">
@@ -101,16 +103,16 @@ export default function TransactionDetailsModal({ transaction, onClose }) {
               </div>
               <div className="txn-fee-row">
                 <span>BASE PLACEMENT FEE</span>
-                <span>${(transaction.amount * 0.9).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                <span>{transaction.currency || 'LKR'} {(transaction.amount * 0.9).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
               </div>
               <div className="txn-fee-row">
                 <span>PLATFORM SERVICE TAX (10%)</span>
-                <span>${(transaction.amount * 0.1).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                <span>{transaction.currency || 'LKR'} {(transaction.amount * 0.1).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
               </div>
               <div className="txn-fee-divider"></div>
               <div className="txn-fee-total">
                 <span>TOTAL AMOUNT PAID</span>
-                <span className="total-val">${transaction.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                <span className="total-val">{transaction.currency || 'LKR'} {transaction.amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
               </div>
             </div>
 
@@ -120,9 +122,22 @@ export default function TransactionDetailsModal({ transaction, onClose }) {
                 <ShieldCheck size={16} /> COMPLIANCE & VERIFICATION
               </div>
               <ul className="txn-compliance-list">
-                <li><CheckCircle size={14} className="success-icon" /> Verified by Treasury Department on 24/10/2023</li>
-                <li><CheckCircle size={14} className="success-icon" /> Anti-Money Laundering (AML) check passed</li>
-                <li><Clock size={14} className="warning-icon" /> Next Audit Cycle: January 2024</li>
+                {transaction.status === 'successful' ? (
+                  <>
+                    <li><CheckCircle size={14} className="success-icon" /> Bank transfer slip verified by admin</li>
+                    <li><CheckCircle size={14} className="success-icon" /> Anti-Money Laundering (AML) check passed</li>
+                  </>
+                ) : transaction.status === 'failed' ? (
+                  <>
+                    <li><XCircle size={14} className="warning-icon" /> Payment slip rejected during review</li>
+                    <li><AlertCircle size={14} className="warning-icon" /> {transaction.rejectionReason || 'No reason recorded'}</li>
+                  </>
+                ) : (
+                  <>
+                    <li><Clock size={14} className="warning-icon" /> Awaiting admin verification of the payment slip</li>
+                    <li><Clock size={14} className="warning-icon" /> Vacancy remains unpublished until approved</li>
+                  </>
+                )}
               </ul>
             </div>
 
@@ -146,12 +161,27 @@ export default function TransactionDetailsModal({ transaction, onClose }) {
             {/* Confirmation */}
             <div className="txn-confirm-box">
               <div className="txn-confirm-icon">
-                <CheckCircle size={20} />
+                {transaction.status === 'successful' ? (
+                  <CheckCircle size={20} />
+                ) : transaction.status === 'failed' ? (
+                  <XCircle size={20} />
+                ) : (
+                  <Clock size={20} />
+                )}
               </div>
-              <h3>Payment Confirmed</h3>
+              <h3>
+                {transaction.status === 'successful'
+                  ? 'Payment Confirmed'
+                  : transaction.status === 'failed'
+                  ? 'Payment Rejected'
+                  : 'Awaiting Verification'}
+              </h3>
               <p>
-                This transaction has been successfully processed and recorded in the permanent ledger. 
-                Funds have been distributed to the recruiter's account.
+                {transaction.status === 'successful'
+                  ? "This bank transfer has been verified and recorded in the permanent ledger. The recruiter's vacancy has been published."
+                  : transaction.status === 'failed'
+                  ? `This payment slip was rejected.${transaction.rejectionReason ? ` Reason: ${transaction.rejectionReason}` : ''}`
+                  : "This bank-transfer slip is pending admin verification. The recruiter's vacancy remains unpublished until it is approved."}
               </p>
               <button className="txn-print-btn">
                 PRINT RECEIPT (PHYSICAL COPY)
@@ -164,13 +194,12 @@ export default function TransactionDetailsModal({ transaction, onClose }) {
             {/* Recruiter Assigned */}
             <div className="txn-recruiter-box">
               <div className="txn-recruiter-info">
-                <img src="https://api.dicebear.com/7.x/initials/svg?seed=SJ" alt="" className="txn-recruiter-avatar" />
+                <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent((transaction.recruiterName || 'NA').slice(0, 2))}`} alt="" className="txn-recruiter-avatar" />
                 <div>
-                  <span className="label">RECRUITER ASSIGNED</span>
-                  <span className="name">Sarah Jenkins</span>
+                  <span className="label">RECRUITER</span>
+                  <span className="name">{transaction.recruiterName || '—'}</span>
                 </div>
               </div>
-              <button className="txn-profile-btn">Profile</button>
             </div>
 
           </div>

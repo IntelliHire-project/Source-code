@@ -34,6 +34,7 @@ const PAGE_SIZE = 5;
 
 const STATUS_LABELS = {
   published: 'Published',
+  pending: 'Pending Payment',
   draft: 'Draft',
   closed: 'Closed',
 };
@@ -63,6 +64,7 @@ function parseDate(dateStr = '') {
 const STATUS_OPTIONS = [
   { id: 'all', label: 'All statuses' },
   { id: 'published', label: 'Published' },
+  { id: 'pending', label: 'Pending Payment' },
   { id: 'draft', label: 'Draft' },
   { id: 'closed', label: 'Closed' },
 ];
@@ -139,8 +141,8 @@ function VacancyManagementPage() {
       { icon: Users, label: 'TOTAL APPLICANTS', value: totalApplicants, variant: 'success' },
       {
         icon: FileText,
-        label: 'PENDING DRAFTS',
-        value: allVacancies.filter((v) => v.status === 'draft').length,
+        label: 'PENDING PAYMENT',
+        value: allVacancies.filter((v) => v.status === 'pending').length,
         variant: 'muted',
       },
     ];

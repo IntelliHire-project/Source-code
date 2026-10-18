@@ -73,7 +73,7 @@ const submitBankTransfer = async (req, res) => {
     transactionStarted = true;
 
     const vacancy = await createVacancy(
-      { ...vacancyData, status: 'draft' },
+      { ...vacancyData, status: 'pending' },
       req.user.id,
       recruiter.id,
       client
@@ -138,7 +138,8 @@ const getBankTransferStatus = async (req, res) => {
     const result = await db.query(
       `SELECT payment.id, payment.vacancy_id, payment.payment_reference,
         payment.payment_method, payment.status, payment.amount, payment.currency,
-        payment.created_at, vacancy.title AS vacancy_title
+        payment.rejection_reason, payment.reviewed_at, payment.created_at,
+        vacancy.title AS vacancy_title
        FROM payment_transactions AS payment
        LEFT JOIN vacancies AS vacancy ON vacancy.id = payment.vacancy_id
        WHERE payment.payment_reference = $1

@@ -182,7 +182,7 @@ function PaymentStatusPage() {
                 ) : isPending ? (
                   <>
                     We received your bank-transfer slip for the <strong>{vacancyTitle}</strong> listing.
-                    The payment is pending verification, and the vacancy will remain a draft until
+                    The payment is pending verification, and the vacancy will remain pending until
                     the transfer is confirmed.
                   </>
                 ) : isSuccess ? (
@@ -192,9 +192,11 @@ function PaymentStatusPage() {
                   </>
                 ) : (
                   <>
-                    We were unable to process your payment of <strong>{TOTAL_PAYABLE}</strong> for
-                    the <strong>{vacancyTitle}</strong> vacancy listing. No charge was made.
-                    Please try again or contact support.
+                    We were unable to accept your payment of <strong>{TOTAL_PAYABLE}</strong> for
+                    the <strong>{vacancyTitle}</strong> vacancy listing. No vacancy was published.
+                    {storedPayment?.rejection_reason
+                      ? ` Reason: ${storedPayment.rejection_reason}`
+                      : ' Please try again or contact support.'}
                   </>
                 )}
               </p>
@@ -337,7 +339,7 @@ function PaymentStatusPage() {
                 <Lock size={13} />
                 <span>
                   {isPending ? (
-                    'Your payment slip has been submitted securely. The transfer has not yet been verified, so the vacancy remains a draft.'
+                    'Your payment slip has been submitted securely. The transfer has not yet been verified, so the vacancy remains pending.'
                   ) : isSuccess ? (
                     'This is a secure confirmation page. Your financial data was encrypted during the transaction and is not stored on our servers. A receipt has been sent to your registered email.'
                   ) : (

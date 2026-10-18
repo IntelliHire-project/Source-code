@@ -313,6 +313,61 @@
   color: #fff;
 }
 
+/* ── Bank transfer verification table ── */
+.txn-verify-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.txn-verify-heading__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.txn-verify-heading__count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #F0B90B;
+  background: rgba(240, 185, 11, 0.12);
+  border: 1px solid rgba(240, 185, 11, 0.25);
+  border-radius: 12px;
+  padding: 3px 10px;
+}
+
+.txn-btn-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(240, 185, 11, 0.12);
+  border: 1px solid rgba(240, 185, 11, 0.35);
+  color: #F0B90B;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.txn-btn-review:hover {
+  background: rgba(240, 185, 11, 0.2);
+}
+
+.txn-empty {
+  text-align: center;
+  color: var(--text-secondary, #9CA0A8);
+  padding: 32px 24px !important;
+  font-size: 0.85rem;
+}
+
+@keyframes txn-spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: txn-spin 1s linear infinite;
+}
+
 /* Pagination */
 .txn-pagination {
   padding: 16px 24px;

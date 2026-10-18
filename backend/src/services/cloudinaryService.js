@@ -58,8 +58,30 @@ const deleteFile = async (publicId, options = {}) => {
   });
 };
 
+/**
+ * Builds a short-lived signed URL for an authenticated (private) asset.
+ * Used to stream payment proofs to admins without exposing a permanent URL.
+ * @param {string} publicId - Cloudinary public ID of the asset
+ * @param {object} [options={}] - Extra options (e.g. expires_at)
+ * @returns {string} Signed download URL
+ */
+const getAuthenticatedDownloadUrl = (publicId, options = {}) => {
+  const lastDot = publicId.lastIndexOf(".");
+  const hasExtension = lastDot > -1;
+  const format = hasExtension ? publicId.substring(lastDot + 1) : null;
+  const baseId = hasExtension ? publicId.substring(0, lastDot) : publicId;
+
+  return cloudinary.utils.private_download_url(baseId, format, {
+    resource_type: "raw",
+    type: "authenticated",
+    attachment: false,
+    ...options,
+  });
+};
+
 module.exports = {
   uploadFile,
   uploadBuffer,
   deleteFile,
+  getAuthenticatedDownloadUrl,
 };

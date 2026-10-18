@@ -118,7 +118,7 @@ function BankTransferPage() {
             <h1>Transfer and upload your receipt</h1>
             <p>
               Pay for <strong>{vacancy?.jobTitle || vacancy?.title || 'your vacancy listing'}</strong>.
-              Your listing remains a draft until the transfer is verified.
+              Your listing remains pending until the transfer is verified and approved by an admin.
             </p>
           </header>
 
