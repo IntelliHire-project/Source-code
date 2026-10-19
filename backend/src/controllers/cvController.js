@@ -1,16 +1,16 @@
 const fs = require('fs');
-const pdf = require('pdf-parse');
+const { parsePdfText } = require('../utils/pdfParser');
 const {
   extractCVDataFromPdf,
-  convertPdfToXml,
-  extractCVDataFromXml,
+  convertPdfToJson,
+  extractCVDataFromJson,
   extractCVData,
   localExtractFallback
 } = require('../services/nlpService');
 const { successResponse, errorResponse } = require('../utils/response');
 
 /**
- * Uploads a CV PDF, converts it to XML with layout preservation,
+ * Uploads a CV PDF, converts it to structured JSON with layout preservation,
  * and extracts all candidate information without ever failing.
  */
 const uploadCV = async (req, res) => {
@@ -34,36 +34,36 @@ const uploadCV = async (req, res) => {
     // Read PDF file buffer
     const dataBuffer = fs.readFileSync(file.path);
 
-    let cvXml = null;
+    let cvJson = null;
     let extractedData = null;
 
     console.log("\n========================================================");
     console.log(`[CV Extraction Pipeline] Processing file: ${file.originalname} (${file.size} bytes)...`);
 
-    // STEP 1: Direct single-call PDF to XML + Candidate Data extraction
+    // STEP 1: Direct single-call PDF to JSON + Candidate Data extraction
     try {
-      console.log("[CV Extraction Pipeline] Step 1: Converting CV PDF into XML and extracting structured data...");
+      console.log("[CV Extraction Pipeline] Step 1: Converting CV PDF into structured JSON and extracting data...");
       const pdfResult = await extractCVDataFromPdf(dataBuffer, file.originalname);
       if (pdfResult && (pdfResult.name || (pdfResult.skills && pdfResult.skills.length > 0) || (pdfResult.experience && pdfResult.experience.length > 0))) {
         extractedData = pdfResult;
-        cvXml = pdfResult.xml || null;
+        cvJson = pdfResult.json || null;
         console.log(`[CV Extraction Pipeline] Single-call extraction successful! Candidate: ${extractedData.name}`);
       }
     } catch (directErr) {
       console.warn("[CV Extraction Pipeline] Direct PDF extraction warning:", directErr.message);
     }
 
-    // STEP 2: Fallback to separate XML conversion and extraction
+    // STEP 2: Fallback to separate JSON conversion and extraction
     if (!extractedData) {
       try {
-        console.log("[CV Extraction Pipeline] Step 2: Converting PDF to XML separately...");
-        cvXml = await convertPdfToXml(dataBuffer);
-        if (cvXml && cvXml.trim().length > 0) {
-          extractedData = await extractCVDataFromXml(cvXml, file.originalname);
-          console.log("[CV Extraction Pipeline] Extraction from XML complete!");
+        console.log("[CV Extraction Pipeline] Step 2: Converting PDF to structured JSON separately...");
+        cvJson = await convertPdfToJson(dataBuffer);
+        if (cvJson && ((cvJson.pages && cvJson.pages.length > 0) || cvJson.text_blocks)) {
+          extractedData = await extractCVDataFromJson(cvJson, file.originalname);
+          console.log("[CV Extraction Pipeline] Extraction from JSON complete!");
         }
-      } catch (xmlErr) {
-        console.warn("[CV Extraction Pipeline] XML conversion/extraction fallback warning:", xmlErr.message);
+      } catch (jsonErr) {
+        console.warn("[CV Extraction Pipeline] JSON conversion/extraction fallback warning:", jsonErr.message);
       }
     }
 
@@ -72,8 +72,7 @@ const uploadCV = async (req, res) => {
       console.log("[CV Extraction Pipeline] Step 3: Falling back to text-based extraction via pdf-parse...");
       let cvText = "";
       try {
-        const pdfData = await pdf(dataBuffer);
-        cvText = pdfData && pdfData.text ? pdfData.text.trim() : "";
+        cvText = await parsePdfText(dataBuffer);
       } catch (pdfParseErr) {
         console.warn("[CV Extraction Pipeline] pdf-parse warning:", pdfParseErr.message);
       }
@@ -119,7 +118,7 @@ const uploadCV = async (req, res) => {
         ...edu,
         id: `edu-${Date.now()}-${index}`
       })),
-      cvXml: cvXml ? cvXml.slice(0, 2000) : null
+      cvJson: cvJson || null
     });
 
   } catch (error) {
@@ -129,7 +128,7 @@ const uploadCV = async (req, res) => {
       ...safeData,
       experience: [],
       education: [],
-      cvXml: null
+      cvJson: null
     });
   } finally {
     // Reliably clean up the temporary uploaded file

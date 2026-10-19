@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Headphones,
   Clock,
+  Wallet,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -86,6 +87,7 @@ function PaymentStatusPage() {
 
   const isPending = previewStatus === 'pending';
   const isSuccess = previewStatus === 'success';
+  const walletLabel = location.state?.walletLabel;
   const txn = storedPayment
     ? {
         id: storedPayment.payment_reference || `PAY-${storedPayment.id}`,
@@ -96,7 +98,9 @@ function PaymentStatusPage() {
         datetime: new Date(storedPayment.created_at).toLocaleString(),
         method: 'Bank Transfer',
       }
-    : isSuccess ? SUCCESS_TXN : FAILURE_TXN;
+    : isSuccess
+      ? { ...SUCCESS_TXN, method: walletLabel || SUCCESS_TXN.method }
+      : FAILURE_TXN;
   const vacancyTitle =
     location.state?.vacancyTitle || storedPayment?.vacancy_title || VACANCY_TITLE;
 
@@ -178,7 +182,7 @@ function PaymentStatusPage() {
                 ) : isPending ? (
                   <>
                     We received your bank-transfer slip for the <strong>{vacancyTitle}</strong> listing.
-                    The payment is pending verification, and the vacancy will remain a draft until
+                    The payment is pending verification, and the vacancy will remain pending until
                     the transfer is confirmed.
                   </>
                 ) : isSuccess ? (
@@ -188,9 +192,11 @@ function PaymentStatusPage() {
                   </>
                 ) : (
                   <>
-                    We were unable to process your payment of <strong>{TOTAL_PAYABLE}</strong> for
-                    the <strong>{vacancyTitle}</strong> vacancy listing. No charge was made.
-                    Please try again or contact support.
+                    We were unable to accept your payment of <strong>{TOTAL_PAYABLE}</strong> for
+                    the <strong>{vacancyTitle}</strong> vacancy listing. No vacancy was published.
+                    {storedPayment?.rejection_reason
+                      ? ` Reason: ${storedPayment.rejection_reason}`
+                      : ' Please try again or contact support.'}
                   </>
                 )}
               </p>
@@ -228,7 +234,11 @@ function PaymentStatusPage() {
                     <div className="ps-txn__row">
                       <span className="ps-txn__label">Payment Method</span>
                       <span className="ps-txn__value">
-                        <CreditCard size={13} className="ps-txn__icon" />
+                        {walletLabel ? (
+                          <Wallet size={13} className="ps-txn__icon" />
+                        ) : (
+                          <CreditCard size={13} className="ps-txn__icon" />
+                        )}
                         {txn.method}
                       </span>
                     </div>
@@ -329,7 +339,7 @@ function PaymentStatusPage() {
                 <Lock size={13} />
                 <span>
                   {isPending ? (
-                    'Your payment slip has been submitted securely. The transfer has not yet been verified, so the vacancy remains a draft.'
+                    'Your payment slip has been submitted securely. The transfer has not yet been verified, so the vacancy remains pending.'
                   ) : isSuccess ? (
                     'This is a secure confirmation page. Your financial data was encrypted during the transaction and is not stored on our servers. A receipt has been sent to your registered email.'
                   ) : (

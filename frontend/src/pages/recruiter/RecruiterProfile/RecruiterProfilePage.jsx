@@ -58,6 +58,7 @@ const getInitialProfile = (user) => {
 function RecruiterProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(() => getInitialProfile(user));
+  const [initialProfile, setInitialProfile] = useState(() => getInitialProfile(user));
   const [notifications, setNotifications] = useState({
     email: true,
     alerts: true,
@@ -140,8 +141,18 @@ function RecruiterProfilePage() {
 
   const handleSaveProfile = useCallback(() => {
     setProfile(editFormData);
+    setInitialProfile(editFormData);
     setEditModalOpen(false);
   }, [editFormData]);
+
+  const handleSaveMainProfile = useCallback(() => {
+    setInitialProfile(profile);
+    alert('Profile changes saved successfully!');
+  }, [profile]);
+
+  const handleCancelMainProfile = useCallback(() => {
+    setProfile(initialProfile);
+  }, [initialProfile]);
 
   const handleTabChange = useCallback((tab) => {
     setActiveTab(tab);
@@ -581,8 +592,8 @@ function RecruiterProfilePage() {
 
           {/* Action Buttons */}
           <section className="profile-actions">
-            <button className="btn btn--primary" type="button" onClick={handleEditClick}>Save Changes</button>
-            <button className="btn btn--secondary" type="button" onClick={() => setProfile(initialProfile)}>Cancel</button>
+            <button className="btn btn--primary" type="button" onClick={handleSaveMainProfile}>Save Changes</button>
+            <button className="btn btn--secondary" type="button" onClick={handleCancelMainProfile}>Cancel</button>
           </section>
 
           {/* Edit Profile Modal */}

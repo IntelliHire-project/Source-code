@@ -6,8 +6,10 @@ import {
   Search, ShieldCheck, Sparkles, Target, TrendingUp, Upload,
   UserPlus, Users, X, Zap,
 } from 'lucide-react';
-import logo from '../../logo.png';
+import { CLOUDINARY_ASSETS } from '../../constants/assets';
 import './LandingPage.css';
+
+const logo = CLOUDINARY_ASSETS.logoPrimary;
 
 const Button = ({ children, variant = 'primary', size = 'md', className = '', to, ...props }) => {
   const classes = `ih-button ih-button--${variant} ih-button--${size} ${className}`;

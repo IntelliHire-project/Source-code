@@ -4,6 +4,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const requireRole = require("../middlewares/roleMiddleware");
 const userModel = require("../models/userModel");
 const recruiterModel = require("../models/recruiterModel");
+const adminPaymentController = require("../controllers/adminPaymentController");
 const { successResponse, errorResponse } = require("../utils/response");
 
 const router = express.Router();
@@ -99,5 +100,36 @@ const handleUpdateUserStatus = async (req, res, next) => {
 
 router.put("/users/:id/status", authMiddleware, requireRole("admin"), handleUpdateUserStatus);
 router.patch("/users/:id/status", authMiddleware, requireRole("admin"), handleUpdateUserStatus);
+
+/**
+ * Admin-only: bank-transfer payment slip verification workflow.
+ */
+router.get(
+  "/admin/payments",
+  authMiddleware,
+  requireRole("admin"),
+  adminPaymentController.listPayments
+);
+
+router.get(
+  "/admin/payments/stats",
+  authMiddleware,
+  requireRole("admin"),
+  adminPaymentController.getStats
+);
+
+router.patch(
+  "/admin/payments/:id/review",
+  authMiddleware,
+  requireRole("admin"),
+  adminPaymentController.reviewPayment
+);
+
+router.get(
+  "/admin/payments/:id/proof",
+  authMiddleware,
+  requireRole("admin"),
+  adminPaymentController.streamProof
+);
 
 module.exports = router;
