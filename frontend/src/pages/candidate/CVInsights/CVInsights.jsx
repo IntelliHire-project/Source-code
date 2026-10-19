@@ -385,6 +385,7 @@ function CVInsights() {
   const [cvDropdownOpen, setCvDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('strengths');
   const [analysis, setAnalysis] = useState(MOCK_ANALYSIS);
+  const [insightsCache, setInsightsCache] = useState({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoadingCvs, setIsLoadingCvs] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -469,8 +470,17 @@ function CVInsights() {
     cvList[0] ||
     null;
 
-  async function runAnalysis(cv, onComplete) {
+  async function runAnalysis(cv, onComplete, force = false) {
     if (!cv) return;
+
+    // Check client-side cache first to ensure instant, consistent summary without changing
+    if (!force && insightsCache[cv.id]) {
+      setAnalysis(insightsCache[cv.id]);
+      setActiveTab('strengths');
+      onComplete?.();
+      return;
+    }
+
     setIsAnalyzing(true);
     setActiveTab('strengths');
 
@@ -479,6 +489,7 @@ function CVInsights() {
         const res = await getCVInsightsApi(cv.id);
         const liveInsights = res?.insights || res?.data?.insights;
         if (liveInsights && Array.isArray(liveInsights.strengths)) {
+          setInsightsCache((prev) => ({ ...prev, [cv.id]: liveInsights }));
           setAnalysis(liveInsights);
           setIsAnalyzing(false);
           onComplete?.();
@@ -490,10 +501,12 @@ function CVInsights() {
     }
 
     setTimeout(() => {
-      setAnalysis(buildAnalysisForCv(cv));
+      const fallback = buildAnalysisForCv(cv);
+      setInsightsCache((prev) => ({ ...prev, [cv.id]: fallback }));
+      setAnalysis(fallback);
       setIsAnalyzing(false);
       onComplete?.();
-    }, 1000);
+    }, 400);
   }
 
   async function handleCvSelect(cv) {
@@ -510,24 +523,10 @@ function CVInsights() {
       ...prev,
       {
         role: 'ai',
-        text: `Switched analysis to "${cv.filename}". Check the tabs above for updated strengths, weaknesses, suggestions, and keyword gaps!`,
+        text: `Switched analysis to "${cv.filename}". Check the tabs above for consistent strengths, weaknesses, suggestions, and keyword gaps!`,
       },
     ]);
-
-    // Update active CV in backend if it's a persisted CV
-    if (cv.isRealCv) {
-      try {
-        await setActiveCandidateCV(cv.id);
-        setCvList((prev) =>
-          prev.map((item) => ({
-            ...item,
-            isActive: item.id === cv.id,
-          }))
-        );
-      } catch (err) {
-        console.warn('Could not set active CV in backend:', err);
-      }
-    }
+    // Note: Active CV remains strictly managed by CV Management page and is not modified here
   }
 
   async function handleFileChange(e) {

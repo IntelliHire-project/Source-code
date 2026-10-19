@@ -731,7 +731,14 @@ const getCVInsights = async (req, res, next) => {
 
     // Return cached insights if already generated and force re-analysis not requested
     const forceRefresh = req.query.refresh === 'true';
-    if (cv.insights && !forceRefresh) {
+    const isOldGenericFallback =
+      cv.insights &&
+      cv.insights.atsScore === 82 &&
+      Array.isArray(cv.insights.presentKeywords) &&
+      cv.insights.presentKeywords[0] === 'JavaScript' &&
+      !cv.cv_name.toLowerCase().includes('javascript');
+
+    if (cv.insights && !forceRefresh && !isOldGenericFallback) {
       return successResponse(res, "CV insights retrieved successfully.", {
         insights: cv.insights,
         cvId: cv.id,

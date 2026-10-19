@@ -42,6 +42,30 @@ const getFallbackAnalysis = (cvName = 'Resume.pdf') => ({
   atsScore: 82,
 });
 
+const FALLBACK_MODELS = [
+  process.env.GEMINI_MODEL,
+  'gemini-3.8-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
+].filter(Boolean);
+
+const callWithModelFallback = async (client, generateOptions) => {
+  let lastErr = null;
+  for (const model of FALLBACK_MODELS) {
+    try {
+      const response = await client.models.generateContent({
+        ...generateOptions,
+        model,
+      });
+      return response;
+    } catch (err) {
+      lastErr = err;
+      console.warn(`Model ${model} failed, attempting fallback:`, err?.message || err);
+    }
+  }
+  throw lastErr;
+};
+
 /**
  * Analyzes CV text using Gemini model and returns structured insights.
  * @param {string} cvText 
@@ -51,19 +75,20 @@ const getFallbackAnalysis = (cvName = 'Resume.pdf') => ({
 const generateCVInsights = async (cvText, cvName = 'Resume') => {
   const client = getAIClient();
 
-  if (!client || !cvText || cvText.trim().length < 20) {
+  if (!client) {
     return getFallbackAnalysis(cvName);
   }
+
+  const cvBody = cvText && cvText.trim().length >= 20
+    ? `CV Content:\n"""\n${cvText.slice(0, 15000)}\n"""`
+    : `Document Title: "${cvName}"\n(Document text is being indexed. Base your ATS evaluation, recommended skills, industry weaknesses, and role-specific keywords directly on the profession/role indicated by "${cvName}".)`;
 
   const prompt = `
 You are an expert Senior Technical Recruiter and ATS (Applicant Tracking System) optimization specialist.
 Analyze the following candidate CV document carefully.
 
 Document Name: "${cvName}"
-CV Content:
-"""
-${cvText.slice(0, 15000)}
-"""
+${cvBody}
 
 Provide an honest, highly actionable, and professional evaluation in strict JSON format.
 The JSON must have the following schema:
@@ -96,8 +121,7 @@ Rules:
 `;
 
   try {
-    const response = await client.models.generateContent({
-      model: 'gemini-1.5-flash',
+    const response = await callWithModelFallback(client, {
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -166,8 +190,7 @@ Instructions:
 `;
 
   try {
-    const response = await client.models.generateContent({
-      model: 'gemini-1.5-flash',
+    const response = await callWithModelFallback(client, {
       contents: prompt,
     });
 
