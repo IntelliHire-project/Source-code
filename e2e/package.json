@@ -7,7 +7,8 @@
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
     "test:login": "playwright test tests/auth/login.spec.js",
-    "test:signup": "playwright test tests/auth/recruiter-signup.spec.js"
+    "test:signup": "playwright test tests/auth/recruiter-signup.spec.js",
+    "test:cv-insights": "playwright test tests/candidate/cv-insights.spec.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1"
