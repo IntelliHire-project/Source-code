@@ -543,10 +543,10 @@ function CVInsights() {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       setFeedback({
         type: 'error',
-        message: 'File size exceeds 10MB limit. Please upload a smaller PDF.',
+        message: 'File size exceeds 5MB limit. Please upload a smaller PDF.',
       });
       e.target.value = '';
       return;
