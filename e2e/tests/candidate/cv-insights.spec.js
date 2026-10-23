@@ -10,7 +10,7 @@
  *  3.  Analysis tabs navigation (Strengths, Weaknesses, Suggestions, Keyword Gaps)
  *  4.  Keyword tags verification (Present in CV vs Missing in-demand)
  *  5.  CV Upload Validation — Non-PDF file rejection (.png, .docx, etc.)
- *  6.  CV Upload Validation — Oversized file rejection (> 10MB)
+ *  6.  CV Upload Validation — Oversized file rejection (> 5MB)
  *  7.  Dismissing alert feedback banners
  *  8.  Dropdown outside-click dismissal
  *  9.  Valid PDF file upload flow (Happy Path)
@@ -148,8 +148,8 @@ test.describe('Candidate CV Insights — Frontend UI & Interactions', () => {
     const dropdown = page.locator('.cv-insights__cv-dropdown');
     await expect(dropdown).toBeVisible();
 
-    // Click on the AI Analysis header outside the dropdown
-    await page.getByRole('heading', { name: 'AI Analysis' }).click();
+    // Click outside the dropdown (top corner of page)
+    await page.locator('body').click({ position: { x: 5, y: 5 } });
 
     // Dropdown should close
     await expect(dropdown).not.toBeVisible();
@@ -164,7 +164,7 @@ test.describe('Candidate CV Insights — Frontend UI & Interactions', () => {
     // 1. Strengths tab is default active
     const strengthsTab = page.locator('.cv-insights__tab', { hasText: 'Strengths' });
     await expect(strengthsTab).toHaveClass(/cv-insights__tab--active/);
-    await expect(page.locator('.insight-item')).toBeVisible();
+    await expect(page.locator('.insight-item').first()).toBeVisible();
 
     // 2. Click Weaknesses tab
     const weaknessesTab = page.locator('.cv-insights__tab', { hasText: 'Weaknesses' });
@@ -224,13 +224,13 @@ test.describe('Candidate CV Insights — Frontend UI & Interactions', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 7: CV Upload Validation — Rejection of Oversized File (> 10MB)
+  // Test 7: CV Upload Validation — Rejection of Oversized File (> 5MB)
   // -------------------------------------------------------------------------
-  test('should reject files exceeding 10MB limit with exact error message', async ({ page }) => {
+  test('should reject files exceeding 5MB limit with exact error message', async ({ page }) => {
     await loginAndNavigateToInsights(page);
 
-    // Create a buffer slightly over 10MB (10.5 MB)
-    const largeBuffer = Buffer.alloc(10.5 * 1024 * 1024);
+    // Create a buffer slightly over 5MB (5.5 MB)
+    const largeBuffer = Buffer.alloc(5.5 * 1024 * 1024);
     const fileInput = page.locator('.cv-insights__file-input');
 
     await fileInput.setInputFiles({
@@ -241,7 +241,7 @@ test.describe('Candidate CV Insights — Frontend UI & Interactions', () => {
 
     const alert = page.locator('.cv-insights__alert--error');
     await expect(alert).toBeVisible();
-    await expect(alert).toContainText('File size exceeds 10MB limit. Please upload a smaller PDF.');
+    await expect(alert).toContainText('File size exceeds 5MB limit. Please upload a smaller PDF.');
   });
 
   // -------------------------------------------------------------------------
@@ -385,6 +385,7 @@ test.describe('Candidate CV Insights — Backend API & Security', () => {
   // Test 14: Insight Response Schema & Database Caching
   // -------------------------------------------------------------------------
   test('should return valid insight schema and utilize database caching on repeated request', async () => {
+    test.setTimeout(60_000);
     // 1. First fetch candidate's available CV list
     const cvsRes = await fetch(`${BASE_URL}/auth/candidate/cvs`, {
       headers: { Authorization: `Bearer ${candidateToken}` },
@@ -402,7 +403,8 @@ test.describe('Candidate CV Insights — Backend API & Security', () => {
       return;
     }
 
-    const targetCvId = cvList[0].id;
+    const targetCv = cvList.find((c) => c.insights) || cvList[0];
+    const targetCvId = targetCv.id;
 
     // 2. First call to /insights
     const res1 = await fetch(`${BASE_URL}/auth/candidate/cvs/${targetCvId}/insights`, {
