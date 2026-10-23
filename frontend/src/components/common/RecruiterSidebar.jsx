@@ -41,6 +41,7 @@ const NAV_ITEMS = [
       { label: 'Interviewed', path: '/recruiter/applicants/interviewed' },
     ],
   },
+  { label: 'Assessments', icon: ClipboardCheck, path: '/recruiter/assessments' },
   {
     label: 'Interviews',
     icon: Calendar,
