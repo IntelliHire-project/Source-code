@@ -15,6 +15,32 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #2A2C38 #141620;
+}
+
+/* Custom Sleek Dark Scrollbar for the entire application */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141620;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2A2C38;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3B3E4F;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2A2C38 #141620;
 }
 
 body {

@@ -514,6 +514,26 @@
   width: 100%;
   overflow-x: auto;
   margin-top: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: #2A2C38 #16171F;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 5px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #16171F;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #2A2C38;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #3B3E4F;
 }
 
 .alloc-table {
@@ -730,24 +750,28 @@
 .results-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
+  table-layout: auto;
 }
 
 .results-table th {
   text-align: left;
-  padding: 12px 14px;
-  font-size: 0.72rem;
+  padding: 10px 8px;
+  font-size: 0.70rem;
   font-weight: 700;
   color: var(--text-secondary, #6E7079);
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border-dark, #2A2C38);
+  white-space: nowrap;
 }
 
 .results-table td {
-  padding: 14px;
+  padding: 10px 8px;
   border-bottom: 1px solid rgba(42, 44, 56, 0.5);
   color: #E2E8F0;
-  vertical-align: middle;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  font-size: 0.82rem;
 }
 
 .results-table tr:hover {
@@ -759,11 +783,12 @@
 }
 
 .time-slot-cell {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--accent, #F0B90B);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Status Result Badges */
@@ -981,10 +1006,10 @@
 
 .btn-reschedule-row,
 .btn-unassign-row {
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 6px;
-  font-size: 0.72rem;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-size: 0.70rem;
   font-weight: 700;
   cursor: pointer;
 }
