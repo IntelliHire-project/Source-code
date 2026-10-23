@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Clock3,
   ExternalLink,
+  Mail,
   MapPin,
   Pencil,
   Phone,
@@ -20,47 +21,117 @@ import {
   RotateCcw,
   Save,
   Search,
+  Send,
   Sparkles,
   Star,
+  Trash2,
   Users,
   Video,
   X,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import AdminToast from '../../../components/common/AdminToast';
 import { INTERVIEWS } from '../../../data/interviews';
+import { VACANCIES } from '../../../data/vacancies';
 import '../../../style.css';
 import './CandidateInterviewAllocation.css';
 
-// Initial Mock Candidates Data
-const INITIAL_CANDIDATES = [
-  { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-004', name: 'Sara Jayawardena', score: 75, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-005', name: 'Ruwan Bandara', score: 71, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-006', name: 'Dilhani Wickramasinghe', score: 68, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-007', name: 'Ishara Gunasekara', score: 84, status: 'SHORTLISTED', jobPosition: 'UI/UX Designer', round: 'HR Portfolio Review', selected: false },
-  { id: 'APP-008', name: 'Malith Senanayake', score: 77, status: 'SHORTLISTED', jobPosition: 'QA Automation Engineer', round: 'Technical Interview', selected: false },
+export function formatDisplayTime(timeValue) {
+  if (!timeValue) return '—';
+  if (timeValue.includes('AM') || timeValue.includes('PM')) return timeValue;
+  const match = timeValue.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return timeValue;
+  let hours = Number(match[1]);
+  const minutes = match[2];
+  if (Number.isNaN(hours)) return timeValue;
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const normalizedHours = hours % 12 || 12;
+  return `${String(normalizedHours).padStart(2, '0')}:${minutes} ${period}`;
+}
+
+// Initial Mock Candidates Data (Compact candidates per role)
+export const INITIAL_CANDIDATES = [
+  // Senior Software Engineer
+  { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'ALLOCATED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'ALLOCATED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-004', name: 'Dinesh Mendis', score: 75, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 73, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  // UI/UX Designer
+  { id: 'APP-007', name: 'Ishara Gunasekara', score: 84, status: 'SHORTLISTED', jobPosition: 'UI/UX Designer', role: 'UI/UX Designer', round: 'HR Portfolio Review', selected: false },
+  // QA Automation Engineer
+  { id: 'APP-008', name: 'Malith Senanayake', score: 77, status: 'SHORTLISTED', jobPosition: 'QA Automation Engineer', role: 'QA Automation Engineer', round: 'Technical Interview', selected: false },
+  // Business Analyst
+  { id: 'APP-009', name: 'Tharindu Rathnayake', score: 80, status: 'SHORTLISTED', jobPosition: 'Business Analyst', role: 'Business Analyst', round: 'Technical Interview', selected: false },
+  // Product Manager
+  { id: 'APP-010', name: 'Kavindu Weerasinghe', score: 86, status: 'SHORTLISTED', jobPosition: 'Product Manager', role: 'Product Manager', round: 'Technical Interview', selected: false },
+  // DevOps Lead
+  { id: 'APP-011', name: 'Kasun Wijesinghe', score: 83, status: 'SHORTLISTED', jobPosition: 'DevOps Lead', role: 'DevOps Lead', round: 'Technical Interview', selected: false },
+  // Product Designer
+  { id: 'APP-012', name: 'Sanduni Wickramasinghe', score: 89, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
+  { id: 'APP-013', name: 'Ishara Gunasekara', score: 88, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
+  { id: 'APP-014', name: 'Dinesh Mendis', score: 86, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
 ];
 
-// Initial Mock Time Slots Data
+// Initial Mock Time Slots Data (1 past slot on 23 Oct to demo validation, remaining future dates in next month Nov 2026)
 const INITIAL_SLOTS = [
-  { id: 'SLOT-101', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 5, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
-  { id: 'SLOT-102', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '11:00 AM', end: '12:00 PM', type: 'Physical', cap: 3, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
-  { id: 'SLOT-103', dateKey: '2026-08-04', date: '04 Aug 2026', dateShort: '04 Aug', time: '02:00 PM', end: '03:00 PM', type: 'Online', cap: 4, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
-  { id: 'SLOT-104', dateKey: '2026-08-05', date: '05 Aug 2026', dateShort: '05 Aug', time: '10:00 AM', end: '11:00 AM', type: 'Physical', cap: 1, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
-  { id: 'SLOT-105', dateKey: '2026-08-06', date: '06 Aug 2026', dateShort: '06 Aug', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 6, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
-  { id: 'SLOT-106', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '01:00 PM', end: '02:00 PM', type: 'Physical', cap: 3, jobPosition: 'UI/UX Designer', round: 'HR Portfolio Review' },
-  { id: 'SLOT-107', dateKey: '2026-08-03', date: '03 Aug 2026', dateShort: '03 Aug', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 3, jobPosition: 'QA Automation Engineer', round: 'Technical Interview' },
+  // Senior Software Engineer
+  { id: 'SLOT-100', dateKey: '2026-10-23', date: '23 Oct 2026', dateShort: '23 Oct', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 1, rem: 1, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', isPast: true },
+  { id: 'SLOT-101', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-102', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '11:00 AM', end: '12:00 PM', type: 'Physical', cap: 2, rem: 1, jobPosition: 'Senior Software Engineer', round: 'System Architecture' },
+  { id: 'SLOT-103', dateKey: '2026-11-05', date: '05 Nov 2026', dateShort: '05 Nov', time: '02:00 PM', end: '03:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-104', dateKey: '2026-11-10', date: '10 Nov 2026', dateShort: '10 Nov', time: '10:00 AM', end: '11:00 AM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'System Architecture' },
+  { id: 'SLOT-105', dateKey: '2026-11-12', date: '12 Nov 2026', dateShort: '12 Nov', time: '03:30 PM', end: '04:30 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+
+  // Product Designer
+  { id: 'SLOT-200', dateKey: '2026-10-23', date: '23 Oct 2026', dateShort: '23 Oct', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 1, rem: 1, jobPosition: 'Product Designer', round: 'Portfolio Review', isPast: true },
+  { id: 'SLOT-201', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '09:30 AM', end: '10:30 AM', type: 'Online', cap: 2, rem: 1, jobPosition: 'Product Designer', round: 'Portfolio Review' },
+  { id: 'SLOT-202', dateKey: '2026-11-04', date: '04 Nov 2026', dateShort: '04 Nov', time: '01:30 PM', end: '02:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Product Designer', round: 'Portfolio Review' },
+  { id: 'SLOT-203', dateKey: '2026-11-06', date: '06 Nov 2026', dateShort: '06 Nov', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Product Designer', round: 'Portfolio Review' },
 ];
 
-// Initial Allocation Results Data (Pre-populated to match wireframe)
-const INITIAL_ALLOCATIONS = [
-  { candidateId: 'APP-001', candidateName: 'Alice Fernando', slotId: 'SLOT-101', assignedTime: '09:00 AM', interviewDate: '03 Aug 2026', interviewType: 'Online', status: 'ALLOCATED' },
-  { candidateId: 'APP-002', candidateName: 'Kamal Perera', slotId: 'SLOT-103', assignedTime: '02:00 PM', interviewDate: '04 Aug 2026', interviewType: 'Online', status: 'ALLOCATED' },
-  { candidateId: 'APP-003', candidateName: 'Nimal Silva', slotId: 'SLOT-104', assignedTime: '10:00 AM', interviewDate: '05 Aug 2026', interviewType: 'Physical', status: 'ALLOCATED' },
-  { candidateId: 'APP-004', candidateName: 'Sara Jayawardena', slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' },
+// Initial Allocation Results Data
+export const INITIAL_ALLOCATIONS = [
+  {
+    candidateId: 'APP-001',
+    candidateName: 'Alice Fernando',
+    slotId: 'SLOT-101',
+    assignedTime: '09:30 AM',
+    interviewDate: '02 Nov 2026',
+    interviewType: 'Online',
+    panelName: 'Panel A (Technical Leads)',
+    interviewRound: 'Technical Interview',
+    jobPosition: 'Senior Software Engineer',
+    status: 'ALLOCATED',
+    score: 88,
+  },
+  {
+    candidateId: 'APP-002',
+    candidateName: 'Kamal Perera',
+    slotId: 'SLOT-102',
+    assignedTime: '02:00 PM',
+    interviewDate: '06 Nov 2026',
+    interviewType: 'Physical',
+    panelName: 'Panel A (Technical Leads)',
+    interviewRound: 'HR Portfolio Review',
+    jobPosition: 'Senior Software Engineer',
+    status: 'ALLOCATED',
+    score: 82,
+  },
+  {
+    candidateId: 'APP-003',
+    candidateName: 'Nimal Silva',
+    slotId: 'SLOT-103',
+    assignedTime: '11:00 AM',
+    interviewDate: '04 Nov 2026',
+    interviewType: 'Online',
+    panelName: 'Panel A (Technical Leads)',
+    interviewRound: 'System Architecture',
+    jobPosition: 'Senior Software Engineer',
+    status: 'ALLOCATED',
+    score: 79,
+  },
 ];
 
 // Assigned panel data model (id, name, meetingType, roundLabel, members[])
@@ -106,6 +177,68 @@ function panelMemberInitials(name = '') {
     .slice(0, 2)
     .map((part) => part[0].toUpperCase())
     .join('');
+}
+
+// Helper to convert slot date and time into a comparable timestamp for sorting
+function parseSlotDateTime(slot) {
+  let timeMinutes = 0;
+  const tStr = slot.time || slot.startTime || '';
+  if (tStr) {
+    const match = tStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const period = match[3] ? match[3].toUpperCase() : '';
+      if (period === 'PM' && h < 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      timeMinutes = h * 60 + m;
+    }
+  }
+
+  let dateTimestamp = 0;
+  const dStr = slot.dateKey || slot.date || '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) {
+    const [y, m, d] = dStr.split('-').map(Number);
+    dateTimestamp = new Date(y, m - 1, d).getTime();
+  } else if (dStr) {
+    const withYear = /\d{4}/.test(dStr) ? dStr : `${dStr} 2026`;
+    const parsed = new Date(withYear);
+    if (!isNaN(parsed.getTime())) {
+      dateTimestamp = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()).getTime();
+    }
+  }
+
+  return dateTimestamp + timeMinutes * 60 * 1000;
+}
+
+function isSlotTimeInPast(slotDate, slotTimeStr) {
+  if (!slotDate || !slotTimeStr) return false;
+  const today = new Date();
+  let dateFormatted = '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(slotDate)) {
+    dateFormatted = slotDate;
+  } else {
+    const d = new Date(/\d{4}/.test(slotDate) ? slotDate : `${slotDate} ${today.getFullYear()}`);
+    if (!isNaN(d.getTime())) {
+      dateFormatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+  }
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  if (dateFormatted && dateFormatted < todayStr) return true;
+  if (dateFormatted && dateFormatted > todayStr) return false;
+
+  const currentMinutes = today.getHours() * 60 + today.getMinutes();
+  let slotMinutes = 0;
+  const match = slotTimeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (match) {
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const ampm = match[3] ? match[3].toUpperCase() : '';
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    slotMinutes = h * 60 + m;
+  }
+  return slotMinutes <= currentMinutes;
 }
 
 function AssignedPanelCard({ panel, onOpen }) {
@@ -209,50 +342,144 @@ function PanelDetailsModal({ panel, onClose, onEditPanel, onReassignPanel }) {
 
 export default function CandidateInterviewAllocationPage({ embeddedVacancy = null }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // State Management
-  const [jobPosition, setJobPosition] = useState(embeddedVacancy ? embeddedVacancy.title : 'Senior Software Engineer');
-  const [interviewRound, setInterviewRound] = useState('Technical Interview');
-  const [interviewDate, setInterviewDate] = useState('2026-08-03');
+  // State Management - Default empty so all roles and rounds are visible without being filtered out
+  const [jobPosition, setJobPosition] = useState(() => {
+    if (embeddedVacancy) return embeddedVacancy.title;
+    return '';
+  });
+  const [interviewRound, setInterviewRound] = useState('');
+  const [interviewDate, setInterviewDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
-  const [roundsCount, setRoundsCount] = useState(3);
-  const [roundTitles, setRoundTitles] = useState(['HR Screening', 'Technical / Live Coding', 'System Design Architecture']);
-
-  const handleRoundsCountChange = (e) => {
-    const val = parseInt(e.target.value, 10);
-    if (val >= 1 && val <= 10) {
-      setRoundsCount(val);
-      setRoundTitles(prev => {
-        const newTitles = [...prev];
-        while (newTitles.length < val) newTitles.push('');
-        return newTitles;
-      });
-    } else if (e.target.value === '') {
-      setRoundsCount('');
+  useEffect(() => {
+    if (embeddedVacancy?.title) {
+      setJobPosition(embeddedVacancy.title);
     }
-  };
-
-  const handleRoundTitleChange = (index, val) => {
-    setRoundTitles(prev => {
-      const newTitles = [...prev];
-      newTitles[index] = val;
-      return newTitles;
-    });
-  };
+  }, [embeddedVacancy]);
 
   const [candidates, setCandidates] = useState(() => {
+    try {
+      const stored = localStorage.getItem('intellihire_candidates');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const storedByName = new Map(parsed.map((c) => [(c.name || '').toLowerCase(), c]));
+          const merged = INITIAL_CANDIDATES.map((initC) => {
+            const fromStored = storedByName.get((initC.name || '').toLowerCase());
+            return fromStored ? { ...initC, ...fromStored } : initC;
+          });
+          const initNames = new Set(INITIAL_CANDIDATES.map((c) => (c.name || '').toLowerCase()));
+          parsed.forEach((c) => {
+            if (c && c.name && !initNames.has(c.name.toLowerCase())) {
+              merged.push(c);
+            }
+          });
+          if (embeddedVacancy) {
+            const forVacancy = merged.filter(
+              (c) => c.jobPosition === embeddedVacancy.title || c.role === embeddedVacancy.title
+            );
+            if (forVacancy.length > 0) return forVacancy;
+          }
+          return merged;
+        }
+      }
+    } catch {}
     if (embeddedVacancy) {
-      if (embeddedVacancy.title === 'Product Designer') return [];
+      const vacancyCandidates = INITIAL_CANDIDATES.filter((c) => c.jobPosition === embeddedVacancy.title);
+      if (vacancyCandidates.length > 0) return vacancyCandidates;
       return INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }));
     }
     return INITIAL_CANDIDATES;
   });
-  const [allocations, setAllocations] = useState(INITIAL_ALLOCATIONS);
+  const [allocations, setAllocations] = useState(() => {
+    try {
+      const stored = localStorage.getItem('intellihire_allocations');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          const hasForeign = parsed.some(
+            (p) =>
+              (p.candidateName || '').toLowerCase().includes('nina') ||
+              (p.candidateName || '').toLowerCase().includes('petrova') ||
+              (p.candidateName || '').toLowerCase().includes('arjun') ||
+              (p.candidateName || '').toLowerCase().includes('elena')
+          );
+          if (!hasForeign && parsed.length >= 3) return parsed;
+        }
+      }
+    } catch {}
+    localStorage.setItem('intellihire_allocations', JSON.stringify(INITIAL_ALLOCATIONS));
+    return INITIAL_ALLOCATIONS;
+  });
+
+  // Live listener to ensure any time slots or allocations added in the Time Slot form reflect immediately
+  useEffect(() => {
+    const handleSync = () => {
+      try {
+        const storedAlloc = localStorage.getItem('intellihire_allocations');
+        if (storedAlloc) {
+          setAllocations(JSON.parse(storedAlloc));
+        }
+        const storedCustom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
+        const storedSlots = JSON.parse(localStorage.getItem('intellihire_interview_slots') || '[]');
+        if (storedCustom.length > 0 || storedSlots.length > 0) {
+          const mappedInterviewSlots = storedSlots.map((s) => {
+            const dObj = new Date(s.interviewDate || s.rawDate);
+            const shortDate = isNaN(dObj.getTime())
+              ? (s.interviewDate || '30 Oct').substring(0, 6)
+              : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            const displayTime = formatDisplayTime(s.startTime);
+            const displayEnd = formatDisplayTime(s.endTime);
+            return {
+              id: `SLOT-${s.id}`,
+              dateKey: s.rawDate || s.interviewDate,
+              date: s.interviewDate,
+              dateShort: shortDate,
+              time: displayTime,
+              end: displayEnd,
+              startTime: displayTime,
+              endTime: displayEnd,
+              type: s.interviewType || 'Online',
+              cap: s.capacity || 1,
+              capacity: s.capacity || 1,
+              rem: s.assignedCandidate ? Math.max(0, (s.capacity || 1) - 1) : (s.capacity || 1),
+              jobPosition: s.jobPosition,
+              round: s.round,
+              status: 'AVAILABLE',
+              bookedCount: s.assignedCandidate ? 1 : 0,
+              isCustom: true,
+            };
+          });
+          const map = new Map();
+          [...storedCustom.map(c => ({ ...c, isCustom: true, time: formatDisplayTime(c.time || c.startTime), end: formatDisplayTime(c.end || c.endTime) })), ...mappedInterviewSlots].forEach((slot) => {
+            if (!map.has(slot.id)) map.set(slot.id, slot);
+          });
+          setCustomSlots(Array.from(map.values()));
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('intellihire_slots_updated', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('intellihire_slots_updated', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
   const [selectedSlotId, setSelectedSlotId] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState('success');
+  const [allocationStatusFilter, setAllocationStatusFilter] = useState('ALL');
+  const [showEmailPreviewModal, setShowEmailPreviewModal] = useState(false);
+  const [previewSelectedCandidate, setPreviewSelectedCandidate] = useState(null);
+  const [toast, setToast] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pendingReallocation, setPendingReallocation] = useState(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -264,6 +491,48 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     Array.isArray(embeddedVacancy?.panels) ? embeddedVacancy.panels : INITIAL_PANELS
   );
   const [viewingPanel, setViewingPanel] = useState(null);
+  const [notifiedCandidateIds, setNotifiedCandidateIds] = useState(() => new Set());
+
+  const handleNotifyCandidate = (item) => {
+    setNotifiedCandidateIds((prev) => {
+      const next = new Set(prev);
+      next.add(item.candidateId);
+      return next;
+    });
+    setToast({
+      type: 'success',
+      message: `Interview invitation with meeting details sent to ${item.candidateName} successfully!`,
+    });
+  };
+
+  const handleOpenEmailPreview = (specificCandidate = null) => {
+    const allocated = filteredAllocations.filter((a) => a.status === 'ALLOCATED');
+    if (allocated.length === 0) {
+      setToast({ type: 'warning', message: 'No allocated candidates to notify.' });
+      return;
+    }
+    setPreviewSelectedCandidate(specificCandidate || allocated[0]);
+    setShowEmailPreviewModal(true);
+  };
+
+  const handleConfirmSendAllInvites = () => {
+    const allocated = filteredAllocations.filter((a) => a.status === 'ALLOCATED');
+    setNotifiedCandidateIds((prev) => {
+      const next = new Set(prev);
+      allocated.forEach((a) => next.add(a.candidateId));
+      return next;
+    });
+    setShowEmailPreviewModal(false);
+    setToast({
+      type: 'success',
+      message: `All ${allocated.length} interview invitations with calendar links dispatched to candidates and panel members!`,
+    });
+  };
+
+  const handleNotifyAllAllocated = () => {
+    handleOpenEmailPreview();
+  };
+
   const itemsPerPage = 4;
   
   // Header Navigation Active Tab State
@@ -275,53 +544,198 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     });
   };
 
-  // Show Toast Utility
-  const showToast = (msg, type = 'success') => {
-    setToastMessage(msg);
-    setToastType(type);
+// Helper to detect outdated slots from past months (e.g. August, early October)
+function isOutdatedPastDate(dateVal) {
+  if (!dateVal) return false;
+  if (/Aug|Jul|Jun|Sep/i.test(dateVal)) return true;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal) && dateVal < '2026-10-23') return true;
+  if (/\b(0[1-9]|1[0-9]|2[0-2])\s+Oct\s+2026/i.test(dateVal)) return true;
+  return false;
+}
+
+  // Show Toast Utility using standard AdminToast
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
   };
 
+  const [customSlots, setCustomSlots] = useState(() => {
+    try {
+      const custom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
+      return custom.filter((s) => !isOutdatedPastDate(s.dateKey || s.rawDate || s.date));
+    } catch {
+      return [];
+    }
+  });
+
   useEffect(() => {
-    if (!toastMessage) return undefined;
-    const timeoutId = window.setTimeout(() => setToastMessage(''), 4000);
-    return () => window.clearTimeout(timeoutId);
-  }, [toastMessage]);
+    const handleSync = () => {
+      try {
+        const storedCandidates = localStorage.getItem('intellihire_candidates');
+        if (storedCandidates) {
+          setCandidates(JSON.parse(storedCandidates));
+        }
+        const storedAllocations = localStorage.getItem('intellihire_allocations');
+        if (storedAllocations) {
+          setAllocations(JSON.parse(storedAllocations));
+        }
+
+        const custom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
+        const validCustom = custom.filter((s) => !isOutdatedPastDate(s.dateKey || s.rawDate || s.date));
+        setCustomSlots(validCustom);
+      } catch {}
+    };
+    handleSync();
+    window.addEventListener('intellihire_slots_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('intellihire_slots_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
+
+  const allSlots = useMemo(() => {
+    const map = new Map();
+    // Prioritize valid custom slots from panels/form
+    customSlots
+      .filter((s) => !isOutdatedPastDate(s.dateKey || s.date))
+      .forEach((s) => map.set(s.id, s));
+    // INITIAL_SLOTS (1 past slot + future slots)
+    INITIAL_SLOTS.forEach((s) => {
+      if (!map.has(s.id)) map.set(s.id, s);
+    });
+    return Array.from(map.values());
+  }, [customSlots]);
 
   const allocationByCandidate = useMemo(
     () => new Map(allocations.map((allocation) => [allocation.candidateId, allocation])),
     [allocations]
   );
 
-  const slotsWithRemaining = useMemo(
-    () => INITIAL_SLOTS.map((rawSlot) => {
+  const slotsWithRemaining = useMemo(() => {
+    const rawSlotsList = allSlots.length > 0 ? allSlots : INITIAL_SLOTS;
+    return rawSlotsList.map((rawSlot) => {
       const slot = embeddedVacancy ? { ...rawSlot, jobPosition: embeddedVacancy.title } : rawSlot;
       const allocatedCount = allocations.filter(
         (allocation) => allocation.status === 'ALLOCATED' && allocation.slotId === slot.id
       ).length;
       return { ...slot, rem: Math.max(0, slot.cap - allocatedCount) };
-    }),
-    [allocations, embeddedVacancy]
-  );
+    });
+  }, [allSlots, allocations, embeddedVacancy]);
 
-  const filteredCandidates = useMemo(
-    () => candidates.filter(
-      (candidate) =>
-        candidate.status === 'SHORTLISTED' &&
-        candidate.jobPosition === jobPosition &&
-        candidate.round === interviewRound
-    ),
-    [candidates, interviewRound, jobPosition]
-  );
+  const contextualAllocations = useMemo(() => {
+    if (!jobPosition && !interviewRound) return allocations;
 
-  const filteredSlots = useMemo(
-    () => slotsWithRemaining.filter(
-      (slot) =>
-        slot.jobPosition === jobPosition &&
-        slot.round === interviewRound &&
-        slot.dateKey === interviewDate
-    ),
-    [interviewDate, interviewRound, jobPosition, slotsWithRemaining]
-  );
+    const visibleCandidates = candidates.filter((candidate) => {
+      if (!jobPosition) return true;
+      const cPos = (candidate.jobPosition || candidate.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const curPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cPos === curPos || cPos.includes(curPos) || curPos.includes(cPos)
+        || ((cPos.includes('software') || cPos.includes('fullstack')) && (curPos.includes('software') || curPos.includes('fullstack')));
+    });
+    const visibleIds = new Set(visibleCandidates.map((c) => c.id));
+    const visibleNames = new Set(visibleCandidates.map((c) => (c.name || '').toLowerCase()));
+
+    const filtered = allocations.filter((allocation) => {
+      if (jobPosition) {
+        const matchId = allocation.candidateId && visibleIds.has(allocation.candidateId);
+        const matchName = allocation.candidateName && visibleNames.has((allocation.candidateName || '').toLowerCase());
+        const allocPos = (allocation.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const targetPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matchPos = allocPos && (allocPos.includes(targetPos) || targetPos.includes(allocPos) ||
+          ((allocPos.includes('software') || allocPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack'))));
+        if (!matchId && !matchName && !matchPos) return false;
+      }
+      if (interviewRound) {
+        if (allocation.interviewRound && allocation.interviewRound !== interviewRound) return false;
+      }
+      return true;
+    });
+
+    // Ensure at least 3 candidates are displayed if available
+    return filtered.length >= 3 ? filtered : allocations;
+  }, [allocations, candidates, jobPosition, interviewRound]);
+
+  const filteredCandidates = useMemo(() => {
+    const allocatedNames = new Set(
+      contextualAllocations
+        .filter((a) => a.status === 'ALLOCATED' && a.slotId)
+        .map((a) => (a.candidateName || '').toLowerCase().trim())
+    );
+    const allocatedIds = new Set(
+      contextualAllocations
+        .filter((a) => a.status === 'ALLOCATED' && a.slotId)
+        .map((a) => a.candidateId)
+    );
+
+    const seenNames = new Set();
+    return candidates.filter((candidate) => {
+      if (jobPosition) {
+        const cPos = (candidate.jobPosition || candidate.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const curPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matchesPos = !curPos || !cPos || cPos === curPos || cPos.includes(curPos) || curPos.includes(cPos)
+          || ((cPos.includes('software') || cPos.includes('fullstack')) && (curPos.includes('software') || curPos.includes('fullstack')));
+        if (!matchesPos) return false;
+      }
+
+      const lowerName = (candidate.name || '').toLowerCase().trim();
+      if (seenNames.has(lowerName)) return false;
+      seenNames.add(lowerName);
+
+      // If candidate is already allocated to a slot, exclude from unallocated shortlist
+      const isAllocated = allocatedIds.has(candidate.id) || allocatedNames.has(lowerName);
+      return !isAllocated;
+    }).slice(0, 6);
+  }, [candidates, jobPosition, contextualAllocations]);
+
+  const filteredSlots = useMemo(() => {
+    // Match on position
+    const posMatches = slotsWithRemaining.filter((slot) => {
+      if (isOutdatedPastDate(slot.dateKey || slot.date)) return false;
+      if (!jobPosition) return true;
+      const slotPos = (slot.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const targetPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!slotPos || !targetPos) return true;
+      return slotPos === targetPos || slotPos.includes(targetPos) || targetPos.includes(slotPos)
+        || ((slotPos.includes('software') || slotPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack')));
+    });
+
+    const displayPool = posMatches.length > 0
+      ? posMatches
+      : slotsWithRemaining.filter((s) => !isOutdatedPastDate(s.dateKey || s.date));
+
+    // Deduplicate slots by unique date + time + panel to avoid runaway duplicates
+    const uniqueMap = new Map();
+    displayPool.forEach((s) => {
+      const key = `${s.date || s.dateKey}-${s.time || s.startTime}-${s.panelName || ''}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, s);
+      }
+    });
+
+    const allValid = Array.from(uniqueMap.values());
+    const pastSlots = allValid.filter((s) => s.isPast || isSlotTimeInPast(s.dateKey || s.date, s.time || s.startTime));
+    const futureSlots = allValid.filter((s) => !(s.isPast || isSlotTimeInPast(s.dateKey || s.date, s.time || s.startTime)));
+
+    // Sort future slots chronologically
+    futureSlots.sort((a, b) => {
+      const diff = parseSlotDateTime(a) - parseSlotDateTime(b);
+      if (diff !== 0) return diff;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    // Exactly 1 past slot at top (for validation demo) + remaining future slots (up to 6 total)
+    const result = [];
+    if (pastSlots.length > 0) {
+      result.push({ ...pastSlots[0], isPast: true });
+    }
+    futureSlots.forEach((s) => {
+      if (result.length < 6) result.push(s);
+    });
+
+    return result;
+  }, [jobPosition, slotsWithRemaining]);
 
   useEffect(() => {
     if (!filteredSlots.some((slot) => slot.id === selectedSlotId && slot.rem > 0)) {
@@ -329,10 +743,13 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     }
   }, [filteredSlots, selectedSlotId]);
 
-  // Toggle selection for Candidate checkbox
+  // Toggle selection for Candidate radio
   const handleToggleCandidateSelect = (id) => {
     setCandidates((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, selected: !c.selected } : c))
+      prev.map((c) => ({
+        ...c,
+        selected: c.id === id ? !c.selected : false,
+      }))
     );
   };
 
@@ -351,9 +768,11 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     candidateId: candidate.id,
     candidateName: candidate.name,
     slotId: slot.id,
-    assignedTime: slot.time,
+    assignedTime: formatDisplayTime(slot.time || slot.startTime),
     interviewDate: slot.date,
     interviewType: slot.type,
+    panelName: slot.panelName || assignedPanels[0]?.name || 'Panel A (Technical Leads)',
+    interviewRound: slot.round || interviewRound,
     status: 'ALLOCATED',
   });
 
@@ -384,7 +803,13 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       return next;
     });
     setCandidates((current) =>
-      current.map((candidate) => candidate.selected ? { ...candidate, selected: false } : candidate)
+      current.map((candidate) => {
+        const isMoved = candidatesToMove.some((c) => c.id === candidate.id);
+        if (isMoved) {
+          return { ...candidate, status: 'ALLOCATED', selected: false };
+        }
+        return candidate.selected ? { ...candidate, selected: false } : candidate;
+      })
     );
     setSelectedSlotId('');
     setPendingReallocation(null);
@@ -392,6 +817,18 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       `Allocated ${candidatesToMove.length} candidate(s) to ${slotToAssign.time} on ${slotToAssign.dateShort}. Google Calendar invite sent!`
     );
   };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('intellihire_allocations', JSON.stringify(allocations));
+    } catch {}
+  }, [allocations]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('intellihire_candidates', JSON.stringify(candidates));
+    } catch {}
+  }, [candidates]);
 
   // Manual Allocate Button Action
   const handleManualAllocate = () => {
@@ -423,34 +860,56 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     performManualAllocation(selectedCands, slotToAssign);
   };
 
-  // Remove Allocation Action
+  // Remove Allocation Action (Unassign single candidate)
   const handleRemoveAllocation = (candidateId) => {
-    setAllocations((prev) =>
-      prev.map((a) =>
-        a.candidateId === candidateId
-          ? { ...a, slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' }
-          : a
-      )
-    );
-    showToast('Allocation removed for selected candidate.');
+    const targetAlloc = allocations.find((a) => a.candidateId === candidateId);
+    setAllocations((prev) => prev.filter((a) => a.candidateId !== candidateId));
+    setCandidates((prev) => {
+      const exists = prev.some((c) => c.id === candidateId || (targetAlloc && (c.name || '').toLowerCase() === (targetAlloc.candidateName || '').toLowerCase()));
+      if (exists) {
+        return prev.map((c) =>
+          c.id === candidateId || (targetAlloc && (c.name || '').toLowerCase() === (targetAlloc.candidateName || '').toLowerCase())
+            ? { ...c, status: 'SHORTLISTED', selected: false }
+            : c
+        );
+      }
+      if (targetAlloc) {
+        return [
+          ...prev,
+          {
+            id: targetAlloc.candidateId || candidateId,
+            name: targetAlloc.candidateName,
+            score: targetAlloc.score || 85,
+            jobPosition: targetAlloc.jobPosition || jobPosition || 'Senior Software Engineer',
+            role: targetAlloc.jobPosition || jobPosition || 'Senior Software Engineer',
+            round: targetAlloc.interviewRound || targetAlloc.round || 'Technical Interview',
+            status: 'SHORTLISTED',
+            selected: false,
+          },
+        ];
+      }
+      return prev;
+    });
+    showToast(`Candidate unassigned and returned to shortlist.`);
   };
 
   // Auto Allocate Algorithm
   const handleAutoAllocate = () => {
     const eligibleCandidates = [...filteredCandidates].sort((a, b) => b.score - a.score);
-    const availableSlots = filteredSlots.map((slot) => ({ ...slot, rem: slot.cap }));
+    const availableSlots = filteredSlots.map((slot) => ({ ...slot, rem: slot.rem }));
     
     if (eligibleCandidates.length === 0) {
       setShowNoCandidatesModal(true);
       return;
     }
-    if (availableSlots.length === 0) {
-      showToast('No matching time slots are available.', 'error');
+    if (availableSlots.filter((s) => s.rem > 0).length === 0) {
+      showToast('No matching time slots with remaining capacity are available.', 'error');
       return;
     }
     
     const visibleIds = new Set(eligibleCandidates.map((candidate) => candidate.id));
     const newAllocations = allocations.filter((allocation) => !visibleIds.has(allocation.candidateId));
+    const allocatedCandIds = new Set();
 
     eligibleCandidates.forEach((cand) => {
       const availableSlot = availableSlots.find((slot) => slot.rem > 0);
@@ -458,6 +917,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       if (availableSlot) {
         availableSlot.rem -= 1;
         newAllocations.push(buildAllocationRecord(cand, availableSlot));
+        allocatedCandIds.add(cand.id);
       } else {
         newAllocations.push({
           candidateId: cand.id,
@@ -472,19 +932,97 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     });
 
     setAllocations(newAllocations);
-    setCandidates((current) => current.map((candidate) => ({ ...candidate, selected: false })));
+    setCandidates((current) =>
+      current.map((candidate) => {
+        if (allocatedCandIds.has(candidate.id)) {
+          return { ...candidate, status: 'ALLOCATED', selected: false };
+        }
+        return { ...candidate, selected: false };
+      })
+    );
     setSelectedSlotId('');
     showToast('Auto-allocation completed! Google Calendar invites sent to allocated candidates.');
   };
 
-  // Reset Allocations
-  const handleResetAllocations = () => {
-    setCandidates(INITIAL_CANDIDATES);
-    setAllocations(INITIAL_ALLOCATIONS);
+  // Reset All Allocations (Bulk Clear)
+  const handleResetAllAllocations = () => {
+    // 1. Gather all candidates currently present in allocations
+    const candidatesFromAllocations = (allocations || []).map((a) => ({
+      id: a.candidateId || `APP-${(a.candidateName || '').replace(/\s+/g, '')}`,
+      name: a.candidateName,
+      score: a.score || 85,
+      jobPosition: a.jobPosition || jobPosition || 'Senior Software Engineer',
+      role: a.jobPosition || jobPosition || 'Senior Software Engineer',
+      round: a.interviewRound || a.round || 'Technical Interview',
+      status: 'SHORTLISTED',
+      selected: false,
+    }));
+
+    // 2. Clear all allocations
+    setAllocations([]);
+    try {
+      localStorage.removeItem('intellihire_allocations');
+      localStorage.setItem('intellihire_allocations', JSON.stringify([]));
+    } catch (e) {}
+
+    // 3. Clear candidate assignments from custom slots
+    try {
+      const customSlots = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
+      if (customSlots.length > 0) {
+        const cleared = customSlots.map((s) => ({ ...s, assignedCandidate: null, bookedCount: 0 }));
+        localStorage.setItem('intellihire_custom_slots', JSON.stringify(cleared));
+      }
+    } catch (e) {}
+
+    // 4. Update candidates state: restore all candidates to SHORTLISTED and ensure all unassigned candidates appear in shortlist table below
+    setCandidates((prev) => {
+      const map = new Map();
+
+      // Existing candidates in state -> set status: SHORTLISTED
+      (prev || []).forEach((c) => {
+        const key = (c.name || '').toLowerCase().trim();
+        if (key) {
+          map.set(key, { ...c, status: 'SHORTLISTED', selected: false });
+        }
+      });
+
+      // Candidates from allocations -> ensure they exist with status: SHORTLISTED
+      candidatesFromAllocations.forEach((c) => {
+        const key = (c.name || '').toLowerCase().trim();
+        if (key) {
+          const existing = map.get(key);
+          map.set(key, {
+            ...(existing || {}),
+            ...c,
+            status: 'SHORTLISTED',
+            selected: false,
+            jobPosition: c.jobPosition || existing?.jobPosition || jobPosition || 'Senior Software Engineer',
+          });
+        }
+      });
+
+      // Ensure INITIAL_CANDIDATES are included
+      INITIAL_CANDIDATES.forEach((initC) => {
+        const key = (initC.name || '').toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, { ...initC, status: 'SHORTLISTED', selected: false });
+        }
+      });
+
+      const updatedList = Array.from(map.values());
+      try {
+        localStorage.setItem('intellihire_candidates', JSON.stringify(updatedList));
+      } catch (e) {}
+      return updatedList;
+    });
+
     setSelectedSlotId('');
+    setNotifiedCandidateIds(new Set());
     setShowResetConfirm(false);
-    showToast('Allocations reset to initial state.', 'info');
+    window.dispatchEvent(new Event('intellihire_slots_updated'));
+    showToast('All allocations have been reset. Candidates are returned to shortlist.', 'success');
   };
+  const handleResetAllocations = handleResetAllAllocations;
 
   const handleConfirmReschedule = () => {
     const candidate = candidates.find(
@@ -543,21 +1081,22 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
   // Filtered Allocations for display
   const filteredAllocations = useMemo(() => {
-    const visibleCandidateIds = new Set(
-      candidates
-        .filter((candidate) => candidate.jobPosition === jobPosition)
-        .map((candidate) => candidate.id)
-    );
-    const contextualAllocations = allocations.filter((allocation) =>
-      visibleCandidateIds.has(allocation.candidateId)
-    );
-    if (!searchQuery) return contextualAllocations;
-    return contextualAllocations.filter((a) =>
-      a.candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.interviewType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.status.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [allocations, candidates, jobPosition, searchQuery]);
+    let list = contextualAllocations;
+    if (allocationStatusFilter && allocationStatusFilter !== 'ALL') {
+      list = list.filter((a) => (a.status || '').toUpperCase() === allocationStatusFilter.toUpperCase());
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((a) =>
+        (a.candidateName || '').toLowerCase().includes(q) ||
+        (a.interviewType || '').toLowerCase().includes(q) ||
+        (a.status || '').toLowerCase().includes(q) ||
+        (a.panelName || '').toLowerCase().includes(q) ||
+        (a.interviewRound || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [contextualAllocations, searchQuery, allocationStatusFilter]);
 
   // Pagination calculations
   const totalResults = filteredAllocations.length;
@@ -569,7 +1108,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [jobPosition, searchQuery]);
+  }, [jobPosition, searchQuery, allocationStatusFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -591,225 +1130,213 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const allCandidatesSelected =
     filteredCandidates.length > 0 && filteredCandidates.every((candidate) => candidate.selected);
 
+  const allPositions = useMemo(() => {
+    const defaultPositions = [
+      'Senior Software Engineer',
+      'UI/UX Designer',
+      'QA Automation Engineer',
+      'Product Designer',
+      'Senior Frontend Engineer',
+      'Backend Engineer',
+      'Business Analyst',
+      'Product Manager',
+      'DevOps Lead',
+    ];
+    const vacancyTitles = VACANCIES.map((v) => v.title);
+    return Array.from(new Set([...vacancyTitles, ...defaultPositions, jobPosition].filter(Boolean)));
+  }, [jobPosition]);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const mainContent = (
     <>
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className={`alert-toast alert-${toastType === 'error' ? 'danger' : 'success'}`}>
-          <span>{toastMessage}</span>
-          <button type="button" className="toast-close" onClick={() => setToastMessage('')}>
-            ×
-          </button>
-        </div>
-      )}
+      {/* Standard IntelliHire Toast Notification */}
+      <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
       {/* ── Filter Controls Card ── */}
-      <div className="card-surface filter-card-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', flex: 1, minWidth: '60%' }}>
+      <div 
+        className="card-surface" 
+        style={{ 
+          display: 'flex', 
+          alignItems: 'flex-end', 
+          justifyContent: 'space-between', 
+          flexWrap: 'nowrap', 
+          gap: '12px', 
+          padding: '12px 18px', 
+          marginBottom: '20px',
+          borderRadius: '10px',
+          border: '1px solid #2A2C38',
+          backgroundColor: '#16171F',
+          overflowX: 'auto'
+        }}
+      >
+        {/* Left: Position & Round Filters */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexShrink: 0 }}>
           {!embeddedVacancy && (
-            <div className="filter-item">
-              <label className="filter-item-label">
-                <BriefcaseBusiness size={14} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '0.68rem', color: '#9599A6', fontWeight: 700, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <BriefcaseBusiness size={12} style={{ color: '#F0B90B' }} />
                 <span>JOB POSITION</span>
               </label>
-              <div className="select-input-wrap">
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <select
                   value={jobPosition}
                   onChange={(e) => setJobPosition(e.target.value)}
-                  className="form-control"
+                  style={{
+                    height: '35px',
+                    minWidth: '190px',
+                    padding: '0 26px 0 10px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    backgroundColor: '#0D0E13',
+                    border: '1px solid #2A2C38',
+                    borderRadius: '6px',
+                    color: '#FFFFFF',
+                    outline: 'none',
+                    appearance: 'none',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <option value="Senior Software Engineer">Senior Software Engineer</option>
-                  <option value="UI/UX Designer">UI/UX Designer</option>
-                  <option value="QA Automation Engineer">QA Automation Engineer</option>
-                  <option value="Business Analyst">Business Analyst</option>
-                  <option value="Product Manager">Product Manager</option>
-                  <option value="DevOps Lead">DevOps Lead</option>
+                  <option value="">All Job Positions</option>
+                  {allPositions.map((pos) => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
                 </select>
-                <span className="select-arrow">▼</span>
+                <span style={{ position: 'absolute', right: '10px', fontSize: '0.65rem', color: '#9599A6', pointerEvents: 'none' }}>▼</span>
               </div>
             </div>
           )}
 
-          <div className="dynamic-rounds-pipeline" style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minWidth: '350px' }}>
-            <div style={{ paddingRight: '140px' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-on-dark, #fff)', margin: '0 0 4px 0' }}>
-                Set Up Interview Rounds for This Vacancy
-              </h3>
-              <p style={{ fontSize: '0.75rem', color: '#9599A6', margin: 0 }}>
-                Choose the number of interview rounds and select the type for each round.
-              </p>
-            </div>
-            <div style={{ 
-              position: 'absolute', 
-              top: 0, 
-              right: 0, 
-              display: 'flex', 
-              alignItems: 'center', 
-              background: 'rgba(240, 185, 11, 0.15)', 
-              border: '1px solid #F0B90B', 
-              borderRadius: '6px', 
-              padding: '0 10px', 
-              height: '32px' 
-            }}>
-              <label style={{ fontSize: '0.7rem', color: '#F0B90B', fontWeight: 700, margin: 0, whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                ROUNDS COUNT:
-              </label>
-              <input 
-                type="number" 
-                min="1" 
-                max="10" 
-                value={roundsCount} 
-                onChange={handleRoundsCountChange}
-                style={{ 
-                  width: '28px', 
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#F0B90B', 
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '0.68rem', color: '#9599A6', fontWeight: 700, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Clock3 size={12} style={{ color: '#F0B90B' }} />
+              <span>INTERVIEW ROUND</span>
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <select
+                value={interviewRound}
+                onChange={(e) => setInterviewRound(e.target.value)}
+                style={{
+                  height: '35px',
+                  minWidth: '180px',
+                  padding: '0 26px 0 10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  backgroundColor: '#0D0E13',
+                  border: '1px solid #2A2C38',
+                  borderRadius: '6px',
+                  color: '#FFFFFF',
                   outline: 'none',
-                  textAlign: 'center',
-                  marginLeft: '4px',
-                  padding: 0
+                  appearance: 'none',
+                  cursor: 'pointer'
                 }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {Array.from({ length: roundsCount || 0 }).map((_, idx) => (
-                <div key={idx} style={{ flex: '1 1 150px' }}>
-                  <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', marginBottom: '6px', fontWeight: 600 }}>
-                    ROUND {idx + 1} TITLE
-                  </label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="Add Round Name"
-                    value={roundTitles[idx] || ''} 
-                    onChange={(e) => handleRoundTitleChange(idx, e.target.value)}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-dark, #2A2C38)', background: 'rgba(255, 255, 255, 0.03)', color: 'var(--text-on-dark, #fff)', fontSize: '0.85rem', outline: 'none' }} 
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Next Step Section */}
-            <div style={{ 
-              marginTop: '24px', 
-              border: '1px solid var(--border-dark, #2A2C38)',
-              borderLeft: '4px solid #F0B90B',
-              backgroundColor: 'rgba(240, 185, 11, 0.04)',
-              borderRadius: '8px',
-              padding: '16px 20px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              flexWrap: 'wrap', 
-              gap: '16px' 
-            }}>
-              <div>
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-on-dark, #fff)', margin: '0 0 4px 0' }}>
-                  Next Step: Schedule Interviews 
-                </h4>
-                <p style={{ fontSize: '0.75rem', color: '#9599A6', margin: 0 }}>
-                  Once rounds are configured, start scheduling interviews as per selected rounds.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <a
-                  href="https://calendar.google.com/calendar/r"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-schedule-inline"
-                  title="Open Google Calendar in a new tab"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '0 16px',
-                    height: '42px',
-                    borderRadius: '8px',
-                    fontSize: '0.84rem',
-                    fontWeight: 600,
-                    backgroundColor: '#1E222D',
-                    border: '1px solid #2A2C38',
-                    color: '#4285F4',
-                    textDecoration: 'none',
-                    transition: 'all 0.2s ease',
-                    boxShadow: 'none',
-                  }}
-                >
-                  <Calendar size={15} style={{ color: '#4285F4' }} />
-                  <span>Google Calendar Sync</span>
-                  <ExternalLink size={13} style={{ color: '#9599A6' }} />
-                </a>
-
-                <button
-                  type="button"
-                  className="btn-primary-accent btn-schedule-inline"
-                  onClick={() =>
-                    navigate('/recruiter/interviews', {
-                      state: { selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition, openForm: true },
-                    })
-                  }
-                  style={{ height: '42px' }}
-                >
-                  <CalendarPlus size={16} />
-                  <span>Schedule Interviews</span>
-                </button>
-              </div>
+              >
+                <option value="">All Rounds</option>
+                <option value="Technical Interview">Technical Interview</option>
+                <option value="Technical">Technical</option>
+                <option value="HR Screening">HR Screening</option>
+                <option value="HR Portfolio Review">HR Portfolio Review</option>
+                <option value="System Design Architecture">System Design Architecture</option>
+                <option value="Final Cultural Fit">Final Cultural Fit</option>
+                <option value="Final Management Round">Final Management Round</option>
+                {interviewRound && !['Technical Interview', 'Technical', 'HR Screening', 'HR Portfolio Review', 'System Design Architecture', 'Final Cultural Fit', 'Final Management Round', ''].includes(interviewRound) && (
+                  <option value={interviewRound}>{interviewRound}</option>
+                )}
+              </select>
+              <span style={{ position: 'absolute', right: '10px', fontSize: '0.65rem', color: '#9599A6', pointerEvents: 'none' }}>▼</span>
             </div>
           </div>
         </div>
-      </div>
 
-          {/* ── Panel Details Section ── */}
-          <div className="card-surface" style={{ marginBottom: '24px' }}>
-            <div className="card-header-bar border-bottom-header">
-              <div className="card-title-group">
-                <span className="gold-indicator"></span>
-                <h2 className="card-title">Assigned Panel Details</h2>
-              </div>
+        {/* Right: Parallel badges & compact buttons on the same single line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {/* Quick Metrics Badge */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px',
+            backgroundColor: '#0D0E13',
+            border: '1px solid #2A2C38',
+            borderRadius: '6px',
+            padding: '0 12px',
+            height: '35px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', color: '#9599A6' }}>
+              <Users size={12} style={{ color: '#F0B90B' }} />
+              <span>Shortlisted:</span>
+              <strong style={{ color: '#FFFFFF', fontWeight: 700 }}>{filteredCandidates.length}</strong>
             </div>
-
-            {assignedPanels.length === 0 ? (
-              <div className="assigned-panels-empty">
-                <div className="assigned-panels-empty__icon">
-                  <Users size={22} />
-                </div>
-                <p className="assigned-panels-empty__title">No interview panels assigned yet</p>
-                <p className="assigned-panels-empty__hint">
-                  Create an interview panel for this vacancy to start scheduling interviews.
-                </p>
-                <button type="button" className="btn-primary-accent" onClick={openPanelManager}>
-                  <Plus size={15} />
-                  <span>Create Panel</span>
-                </button>
-              </div>
-            ) : (
-              <div className="assigned-panels-grid">
-                {assignedPanels.map((panel, index) => (
-                  <AssignedPanelCard
-                    key={panel.id || `panel-${index}`}
-                    panel={panel}
-                    onOpen={() => setViewingPanel(panel)}
-                  />
-                ))}
-              </div>
-            )}
+            <span style={{ color: '#2A2C38' }}>|</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', color: '#9599A6' }}>
+              <CalendarDays size={12} style={{ color: '#60A5FA' }} />
+              <span>Available Slots:</span>
+              <strong style={{ color: '#FFFFFF', fontWeight: 700 }}>{filteredSlots.length}</strong>
+            </div>
           </div>
 
-          {viewingPanel && (
-            <PanelDetailsModal
-              panel={viewingPanel}
-              onClose={() => setViewingPanel(null)}
-              onEditPanel={openPanelManager}
-              onReassignPanel={openPanelManager}
-            />
-          )}
+          {/* Compact Schedule Button */}
+          <button
+            type="button"
+            onClick={() =>
+              navigate('/recruiter/interviews', {
+                state: {
+                  selectedVacancy: embeddedVacancy ? embeddedVacancy.title : jobPosition,
+                  selectedRound: interviewRound,
+                  openForm: true,
+                },
+              })
+            }
+            title="Schedule a new interview time slot"
+            style={{
+              height: '35px',
+              padding: '0 13px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#F0B90B',
+              color: '#0D0E13',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <CalendarPlus size={13} />
+            <span>+ Schedule New Slot</span>
+          </button>
+
+          {/* Compact Google Calendar Button */}
+          <a
+            href="https://calendar.google.com/calendar/r"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Google Calendar in a new tab"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0 12px',
+              height: '35px',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              backgroundColor: '#1E222D',
+              border: '1px solid #2A2C38',
+              color: '#4285F4',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <Calendar size={13} style={{ color: '#4285F4' }} />
+            <span>Google Calendar</span>
+            <ExternalLink size={11} style={{ color: '#9599A6' }} />
+          </a>
+        </div>
+      </div>
 
           {/* ── Bottom Card: Allocation Results ── */}
           <div className="card-surface results-card-section">
@@ -819,7 +1346,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 <h2 className="card-title">Allocation Results</h2>
               </div>
 
-              <div className="action-buttons-group">
+              <div className="action-buttons-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div className="allocation-results-search">
                   <Search size={15} />
                   <input
@@ -830,13 +1357,89 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                     aria-label="Search allocation results"
                   />
                 </div>
-                <button type="button" className="btn-ghost-dark" onClick={() => setShowResetConfirm(true)}>
-                  <RotateCcw size={14} />
-                  <span>Reset</span>
+                <div className="allocation-status-filter" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <select
+                    value={allocationStatusFilter}
+                    onChange={(e) => setAllocationStatusFilter(e.target.value)}
+                    title="Filter allocations by status"
+                    style={{
+                      height: '35px',
+                      padding: '0 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      backgroundColor: '#1E222D',
+                      border: '1px solid #2A2C38',
+                      borderRadius: '8px',
+                      color: '#FFFFFF',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s',
+                    }}
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="ALLOCATED">Allocated</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="RESCHEDULED">Rescheduled</option>
+                    <option value="PENDING">Pending</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetAllAllocations}
+                  title="Unassign all candidates and clear allocations to start fresh"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    color: '#EF4444',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.22)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
+                  }}
+                >
+                  <RotateCcw size={13} />
+                  <span>Reset All Allocations</span>
                 </button>
-                <button type="button" className="btn-primary-accent" onClick={handleSaveAllocations}>
-                  <Save size={14} />
-                  <span>Save Allocation</span>
+                <button
+                  type="button"
+                  onClick={handleNotifyAllAllocated}
+                  title="Send email invitations with calendar links to all allocated candidates"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                    border: '1px solid rgba(59, 130, 246, 0.35)',
+                    color: '#60A5FA',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.22)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.12)';
+                  }}
+                >
+                  <Send size={13} />
+                  <span>Send All Invites</span>
                 </button>
               </div>
             </div>
@@ -846,41 +1449,67 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
               <table className="results-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '18%' }}>CANDIDATE NAME</th>
-                    <th style={{ width: '15%' }}>INTERVIEW ROUND</th>
-                    <th style={{ width: '12%' }}>PANEL NAME</th>
-                    <th style={{ width: '13%' }}>ASSIGNED TIME SLOT</th>
-                    <th style={{ width: '12%' }}>INTERVIEW DATE</th>
-                    <th style={{ width: '10%' }}>INTERVIEW TYPE</th>
-                    <th style={{ width: '12%' }}>ALLOCATION STATUS</th>
-                    <th style={{ width: '8%', textAlign: 'right' }}>ACTION</th>
+                    <th style={{ width: '15%', whiteSpace: 'nowrap' }}>CANDIDATE NAME</th>
+                    <th style={{ width: '15%', whiteSpace: 'nowrap' }}>INTERVIEW ROUND</th>
+                    <th style={{ width: '16%', whiteSpace: 'nowrap' }}>PANEL NAME</th>
+                    <th style={{ width: '13%', whiteSpace: 'nowrap' }}>ASSIGNED TIME SLOT</th>
+                    <th style={{ width: '11%', whiteSpace: 'nowrap' }}>INTERVIEW DATE</th>
+                    <th style={{ width: '8%', whiteSpace: 'nowrap' }}>INTERVIEW TYPE</th>
+                    <th style={{ width: '11%', whiteSpace: 'nowrap' }}>ALLOCATION STATUS</th>
+                    <th style={{ width: '11%', textAlign: 'right', whiteSpace: 'nowrap' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedAllocations.map((item) => (
-                    <tr key={item.candidateId}>
-                      <td className="font-bold cand-name-cell">{item.candidateName}</td>
-                      <td>
-                        <span className="type-tag" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                          {item.interviewRound || interviewRound}
+                  {paginatedAllocations.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '36px 16px', color: '#9599A6' }}>
+                        No candidates allocated yet. Select candidates from the shortlist below to allocate.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedAllocations.map((item) => (
+                      <tr key={item.candidateId}>
+                      <td className="font-bold cand-name-cell" style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.candidateName}</td>
+                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                        <span
+                          className="type-tag"
+                          style={{
+                            ...((r => {
+                              const l = (r || '').toLowerCase();
+                              if (l.includes('arch') || l.includes('system')) {
+                                return { backgroundColor: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B', border: '1px solid rgba(240, 185, 11, 0.35)' };
+                              }
+                              if (l.includes('port') || l.includes('hr') || l.includes('review') || l.includes('design')) {
+                                return { backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#C084FC', border: '1px solid rgba(168, 85, 247, 0.35)' };
+                              }
+                              return { backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.35)' };
+                            })(item.interviewRound || item.round)),
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
+                          }}
+                        >
+                          {item.interviewRound || item.round || 'Technical Interview'}
                         </span>
                       </td>
-                      <td style={{ color: '#E0E1E6', fontSize: '0.85rem' }}>
+                      <td style={{ color: '#E0E1E6', fontSize: '0.85rem', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                         {item.panelName || 'Panel A'}
                       </td>
-                      <td className="time-slot-cell">
-                        {item.assignedTime !== '—' && (
-                          <Clock3 size={14} />
-                        )}
-                        <span>{item.assignedTime}</span>
+                      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                        <div className="time-slot-cell" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#F0B90B', fontWeight: 600, verticalAlign: 'middle' }}>
+                          {item.assignedTime !== '—' && (
+                            <Clock3 size={14} />
+                          )}
+                          <span>{formatDisplayTime(item.assignedTime)}</span>
+                        </div>
                       </td>
-                      <td>{item.interviewDate}</td>
-                      <td>{item.interviewType}</td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.interviewDate}</td>
+                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.interviewType}</td>
+                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                         <span
                           className={`status-result-badge ${
                             item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'
                           }`}
+                          style={{ whiteSpace: 'nowrap' }}
                         >
                           {item.status === 'ALLOCATED' ? (
                             <>
@@ -895,9 +1524,49 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                           )}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         {item.status === 'ALLOCATED' && (
-                          <div className="result-row-actions">
+                          <div className="result-row-actions" style={{ display: 'inline-flex', gap: '4px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap', verticalAlign: 'middle' }}>
+                            <button
+                              type="button"
+                              className="btn-notify-row"
+                              onClick={() => handleNotifyCandidate(item)}
+                              title="Send interview invitation and meeting details"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '3px 8px',
+                                height: '26px',
+                                borderRadius: '5px',
+                                fontSize: '0.70rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                backgroundColor: notifiedCandidateIds.has(item.candidateId)
+                                  ? 'rgba(34, 197, 94, 0.15)'
+                                  : 'rgba(59, 130, 246, 0.15)',
+                                border: `1px solid ${
+                                  notifiedCandidateIds.has(item.candidateId)
+                                    ? 'rgba(34, 197, 94, 0.4)'
+                                    : 'rgba(59, 130, 246, 0.4)'
+                                }`,
+                                color: notifiedCandidateIds.has(item.candidateId) ? '#4ADE80' : '#60A5FA',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              {notifiedCandidateIds.has(item.candidateId) ? (
+                                <>
+                                  <Check size={11} />
+                                  <span>Sent</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Send size={11} />
+                                  <span>Notify</span>
+                                </>
+                              )}
+                            </button>
                             <button
                               type="button"
                               className="btn-reschedule-row"
@@ -905,6 +1574,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                                 setReschedulingAllocation(item);
                                 setRescheduleSlotId(item.slotId);
                               }}
+                              style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 8px', fontSize: '0.70rem' }}
                             >
                               Reschedule
                             </button>
@@ -913,6 +1583,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                               className="btn-unassign-row"
                               onClick={() => handleRemoveAllocation(item.candidateId)}
                               title="Unassign this candidate"
+                              style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 8px', fontSize: '0.70rem' }}
                             >
                               Unassign
                             </button>
@@ -920,13 +1591,18 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                         )}
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
             <div className="allocation-mobile-list results-mobile-list">
-              {paginatedAllocations.map((item) => (
-                <article className="allocation-result-mobile-card" key={`mobile-${item.candidateId}`}>
+              {paginatedAllocations.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 16px', color: '#9599A6' }}>
+                  No candidates allocated yet.
+                </div>
+              ) : (
+                paginatedAllocations.map((item) => (
+                  <article className="allocation-result-mobile-card" key={`mobile-${item.candidateId}`}>
                   <div>
                     <strong>{item.candidateName}</strong>
                     <span className={`status-result-badge ${item.status === 'ALLOCATED' ? 'badge-allocated' : 'badge-pending'}`}>
@@ -934,14 +1610,44 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                     </span>
                   </div>
                   <dl>
-                    <div><dt>Round</dt><dd>{item.interviewRound || interviewRound}</dd></div>
+                    <div><dt>Round</dt><dd>{item.interviewRound || item.round || 'Technical Interview'}</dd></div>
                     <div><dt>Panel</dt><dd>{item.panelName || 'Panel A'}</dd></div>
                     <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
                     <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
                     <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
                   </dl>
                   {item.status === 'ALLOCATED' && (
-                    <div className="result-row-actions">
+                    <div className="result-row-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
+                      <button
+                        type="button"
+                        className="btn-notify-row"
+                        onClick={() => handleNotifyCandidate(item)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          backgroundColor: notifiedCandidateIds.has(item.candidateId) ? 'rgba(34, 197, 94, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                          border: `1px solid ${notifiedCandidateIds.has(item.candidateId) ? 'rgba(34, 197, 94, 0.4)' : 'rgba(59, 130, 246, 0.4)'}`,
+                          color: notifiedCandidateIds.has(item.candidateId) ? '#4ADE80' : '#60A5FA',
+                        }}
+                      >
+                        {notifiedCandidateIds.has(item.candidateId) ? (
+                          <>
+                            <Check size={12} />
+                            <span>Sent</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send size={12} />
+                            <span>Notify</span>
+                          </>
+                        )}
+                      </button>
                       <button type="button" className="btn-reschedule-row" onClick={() => {
                         setReschedulingAllocation(item);
                         setRescheduleSlotId(item.slotId);
@@ -952,7 +1658,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                     </div>
                   )}
                 </article>
-              ))}
+              )))}
             </div>
 
             {/* Pagination Footer */}
@@ -995,8 +1701,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
             </div>
           )}
         </div>
-          {!embeddedVacancy && (
-            <>
+
           {/* ── Dual Workspace Grid: Shortlisted Candidates | Action Buttons | Available Time Slots ── */}
           <div className="allocation-workspace-grid">
             {/* Left Card: Shortlisted Candidates */}
@@ -1022,14 +1727,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                   <table className="alloc-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '36px', textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={allCandidatesSelected}
-                            onChange={handleSelectAllCandidates}
-                            className="styled-checkbox"
-                          />
-                        </th>
+                        <th style={{ width: '36px', textAlign: 'center' }}></th>
                         <th>CANDIDATE NAME</th>
                         <th>APP. ID</th>
                         <th>SCORE</th>
@@ -1045,8 +1743,9 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                         >
                           <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
                             <input
-                              type="checkbox"
-                              checked={cand.selected}
+                              type="radio"
+                              name="allocation-candidate"
+                              checked={Boolean(cand.selected)}
                               onChange={() => handleToggleCandidateSelect(cand.id)}
                               className="styled-checkbox"
                             />
@@ -1123,7 +1822,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                     );
                     setCandidates((current) =>
                       current.map((candidate) =>
-                        selectedIds.has(candidate.id) ? { ...candidate, selected: false } : candidate
+                        selectedIds.has(candidate.id) ? { ...candidate, status: 'SHORTLISTED', selected: false } : candidate
                       )
                     );
                     showToast(`Removed allocations for ${selected.length} candidate(s).`);
@@ -1178,42 +1877,52 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                         <td colSpan="6" className="allocation-empty-cell">No slots match the selected filters.</td>
                       </tr>
                     )}
-                    {filteredSlots.map((slot) => (
-                      <tr
-                        key={slot.id}
-                        className={`${selectedSlotId === slot.id ? 'row-selected' : ''} ${slot.rem === 0 ? 'row-disabled' : ''}`}
-                        onClick={() => slot.rem > 0 && setSelectedSlotId(slot.id)}
-                      >
-                        <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="radio"
-                            name="allocation-slot"
-                            checked={selectedSlotId === slot.id}
-                            disabled={slot.rem === 0}
-                            onChange={() => setSelectedSlotId(slot.id)}
-                            className="styled-checkbox"
-                          />
-                        </td>
-                        <td className="slot-date-cell">{slot.dateShort}</td>
-                        <td className="slot-time-cell">
-                          <Clock3 size={12} />
-                          <span>{slot.time}</span>
-                        </td>
-                        <td>
-                          <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
-                            {slot.type}
-                          </span>
-                        </td>
-                        <td className="font-bold">{slot.cap}</td>
-                        <td>
-                          {slot.rem === 0 ? (
-                            <span className="slot-full-badge">FULL</span>
-                          ) : (
-                            <span className="rem-count">{slot.rem}</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredSlots.map((slot) => {
+                      const isPast = Boolean(slot.isPast || isSlotTimeInPast(slot.dateKey || slot.date, slot.time || slot.startTime));
+                      return (
+                        <tr
+                          key={slot.id}
+                          className={`${selectedSlotId === slot.id ? 'row-selected' : ''} ${(slot.rem === 0 || isPast) ? 'row-disabled' : ''}`}
+                          onClick={() => !isPast && slot.rem > 0 && setSelectedSlotId(slot.id)}
+                          style={{ opacity: isPast ? 0.45 : 1 }}
+                        >
+                          <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="radio"
+                              name="allocation-slot"
+                              checked={selectedSlotId === slot.id}
+                              disabled={slot.rem === 0 || isPast}
+                              onChange={() => !isPast && setSelectedSlotId(slot.id)}
+                              className="styled-checkbox"
+                              style={{ cursor: isPast ? 'not-allowed' : 'pointer' }}
+                            />
+                          </td>
+                          <td className="slot-date-cell">{slot.dateShort}</td>
+                          <td className="slot-time-cell">
+                            <Clock3 size={12} />
+                            <span>{formatDisplayTime(slot.time || slot.startTime)}</span>
+                            {isPast && (
+                              <span style={{ marginLeft: '4px', color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
+                                Past
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
+                              {slot.type}
+                            </span>
+                          </td>
+                          <td className="font-bold">{slot.cap}</td>
+                          <td>
+                            {slot.rem === 0 ? (
+                              <span className="slot-full-badge">FULL</span>
+                            ) : (
+                              <span className="rem-count">{slot.rem}</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1231,7 +1940,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                   >
                     <span>
                       <strong>{slot.dateShort}</strong>
-                      <small>{slot.time} – {slot.end}</small>
+                      <small>{formatDisplayTime(slot.time || slot.startTime)} – {formatDisplayTime(slot.end || slot.endTime)}</small>
                     </span>
                     <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
                       {slot.type}
@@ -1242,248 +1951,9 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
               </div>
             </div>
           </div>
-            </>
-          )}
 
 
-        {/* ── Scheduled & Logged Time Slots Table Card (Exact Replica of Image 2) ── */}
-        <div className="an-table-section" style={{ marginTop: '28px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '14px', overflow: 'hidden' }}>
-          <div className="an-section-header" style={{ padding: '18px 24px', borderBottom: '1px solid #2A2C38', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#16171F' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span className="an-chart-gold-bar" style={{ width: '3.5px', height: '16px', backgroundColor: '#F0B90B', borderRadius: '2px', display: 'inline-block' }} />
-              <span className="an-section-title" style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#FFFFFF' }}>
-                INTERVIEW STAGE &amp; ALLOCATION TRACKING
-              </span>
-            </div>
 
-            <div className="an-local-search" style={{ width: '220px', height: '36px', padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '8px', color: '#9599A6' }}>
-              <Search size={14} />
-              <input
-                type="search"
-                placeholder="Search slots..."
-                aria-label="Search scheduled and logged slots"
-                style={{ width: '100%', border: 0, outline: 0, background: 'transparent', color: '#FFFFFF', fontSize: '0.82rem' }}
-              />
-            </div>
-          </div>
-
-          <div className="an-table-wrap" style={{ overflowX: 'auto', width: '100%' }}>
-            <table className="an-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#13141C', borderBottom: '1px solid #2A2C38' }}>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>CANDIDATE NAME / ROLE</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>INTERVIEW ROUND</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>SLOT ID</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>DATE &amp; TIME</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>TYPE</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>STATUS</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'right', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9599A6' }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {INITIAL_SLOTS.slice(0, 5).map((slot, index) => {
-                  const isCompleted = index % 2 === 0;
-                  const candidate = INITIAL_CANDIDATES[index] || { name: 'Alice Fernando', jobPosition: 'Senior Software Engineer' };
-                  const slotIdFormatted = `#SLOT-10${index + 1}`;
-
-                  return (
-                    <tr key={slot.id || index} style={{ borderBottom: '1px solid #2A2C38', transition: 'background-color 0.15s ease' }}>
-                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '0.9rem' }}>{candidate.name}</span>
-                          <span style={{ color: '#9599A6', fontSize: '0.78rem', fontWeight: 400 }}>{candidate.jobPosition}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
-                        <span style={{ display: 'inline-block', backgroundColor: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '4px 14px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                          {slot.round || 'Technical Interview'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace' }}>
-                        {slotIdFormatted}
-                      </td>
-                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 500 }}>
-                        {slot.date} ({slot.time})
-                      </td>
-                      <td style={{ padding: '16px 20px', verticalAlign: 'middle', color: '#FFFFFF', fontSize: '0.85rem' }}>
-                        {slot.type}
-                      </td>
-                      <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '4px 12px',
-                            borderRadius: '9999px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.03em',
-                            backgroundColor: isCompleted ? 'rgba(34, 197, 94, 0.12)' : 'rgba(240, 185, 11, 0.12)',
-                            color: isCompleted ? '#22C55E' : '#F0B90B',
-                            border: isCompleted ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid rgba(240, 185, 11, 0.25)',
-                          }}
-                        >
-                          {isCompleted && <CheckCircle2 size={12} />}
-                          <span>{isCompleted ? 'COMPLETED' : 'INTERVIEW SCHEDULED'}</span>
-                        </span>
-                      </td>
-                      <td style={{ padding: '16px 20px', textAlign: 'right', verticalAlign: 'middle' }}>
-                        <button
-                          type="button"
-                          onClick={() => setViewingSlotModal(slot)}
-                          style={{
-                            backgroundColor: '#F0B90B',
-                            color: '#0D0E12',
-                            border: 'none',
-                            borderRadius: '9999px',
-                            padding: '6px 22px',
-                            fontSize: '0.82rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 8px rgba(240, 185, 11, 0.2)',
-                            transition: 'all 0.2s ease',
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8C31D')}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F0B90B')}
-                        >
-                          Manage
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Controls (Exact Match to Image 2) */}
-          <div className="an-pagination" style={{ padding: '16px 24px', borderTop: '1px solid #2A2C38', backgroundColor: '#16171F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="an-pagination-info" style={{ fontSize: '0.82rem', color: '#9599A6' }}>
-              Showing <strong style={{ color: '#FFFFFF' }}>1–5</strong> of <strong style={{ color: '#FFFFFF' }}>6</strong> records
-            </span>
-
-            <div className="an-pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                type="button"
-                className="an-page-btn"
-                disabled
-                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#6E7079', display: 'grid', placeItems: 'center', cursor: 'not-allowed' }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                type="button"
-                className="an-page-btn an-page-num is-active"
-                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', backgroundColor: '#F0B90B', color: '#0D0E12', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                1
-              </button>
-              <button
-                type="button"
-                className="an-page-btn an-page-num"
-                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#FFFFFF', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                2
-              </button>
-              <button
-                type="button"
-                className="an-page-btn"
-                style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: '#16171F', color: '#FFFFFF', display: 'grid', placeItems: 'center', cursor: 'pointer' }}
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-      {/* ── Modal: Manage / View Slot Details ── */}
-      {viewingSlotModal && (
-        <div className="allocation-modal-backdrop" onClick={() => setViewingSlotModal(null)}>
-          <div
-            className="allocation-modal"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '580px', width: '92%', borderRadius: '16px', backgroundColor: '#16171F', border: '1px solid rgba(240, 185, 11, 0.3)', padding: '24px' }}
-          >
-            <div className="flex-between" style={{ paddingBottom: '16px', borderBottom: '1px solid #2A2C38', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '8px', height: '22px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>
-                  Interview Slot &amp; Evaluation Details
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setViewingSlotModal(null)}
-                style={{ background: 'none', border: 'none', color: '#9599A6', fontSize: '1.4rem', cursor: 'pointer' }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.88rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
-                <span style={{ color: '#9599A6' }}>Interview Round:</span>
-                <span style={{ color: '#FFFFFF', fontWeight: 700 }}>{viewingSlotModal.round || 'Technical Interview'} ({viewingSlotModal.type})</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
-                <span style={{ color: '#9599A6' }}>Date &amp; Time:</span>
-                <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{viewingSlotModal.date} ({viewingSlotModal.time} - {viewingSlotModal.end || '10:00 AM'})</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
-                <span style={{ color: '#9599A6' }}>Assigned Panel:</span>
-                <span style={{ color: '#F0B90B', fontWeight: 600 }}>Panel A (Technical Leads)</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
-                <span style={{ color: '#9599A6' }}>Evaluator Emails:</span>
-                <span style={{ color: '#9599A6', fontFamily: 'monospace', fontSize: '0.8rem' }}>saman.tech@company.com, nirosha.hr@company.com</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
-                <span style={{ color: '#9599A6' }}>Evaluation Rating:</span>
-                <span style={{ color: '#F0B90B', fontWeight: 700 }}>⭐⭐⭐⭐⭐ (5 Stars - Exceptional)</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1E222D', paddingBottom: '8px' }}>
-                <span style={{ color: '#9599A6' }}>Hiring Recommendation:</span>
-                <span style={{ color: '#22C55E', fontWeight: 700 }}>✅ Recommended for Next Round</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span style={{ color: '#9599A6', fontWeight: 600 }}>Panel Feedback Notes &amp; Remarks:</span>
-                <div style={{ backgroundColor: '#1E222D', padding: '12px', borderRadius: '8px', color: '#D1D5DB', fontSize: '0.84rem', fontStyle: 'italic', border: '1px solid #2A2C38' }}>
-                  "Candidate demonstrated exceptional problem solving abilities, clean code architecture knowledge, and strong technical communication during the live session."
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #2A2C38' }}>
-              <button
-                type="button"
-                className="btn-primary-accent"
-                style={{ flex: 1, padding: '11px 16px', fontWeight: 700, borderRadius: '8px', border: 'none', backgroundColor: '#F0B90B', color: '#0D0E12', cursor: 'pointer' }}
-                onClick={() => {
-                  const slotToEdit = viewingSlotModal;
-                  setViewingSlotModal(null);
-                  navigate('/recruiter/interviews', {
-                    state: {
-                      editSlot: slotToEdit,
-                      activeZohoType: 'Log'
-                    }
-                  });
-                }}
-              >
-                Edit Slot Settings
-              </button>
-              <button
-                type="button"
-                className="btn-ghost-dark"
-                style={{ padding: '11px 20px', borderRadius: '8px', border: '1px solid #2A2C38', backgroundColor: 'transparent', color: '#FFFFFF', cursor: 'pointer' }}
-                onClick={() => setViewingSlotModal(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {pendingReallocation && (
         <div className="allocation-modal-backdrop" onClick={() => setPendingReallocation(null)}>
@@ -1516,27 +1986,6 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
         </div>
       )}
 
-      {showResetConfirm && (
-        <div className="allocation-modal-backdrop" onClick={() => setShowResetConfirm(false)}>
-          <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="allocation-modal__header">
-              <h3>Reset Allocations?</h3>
-              <button type="button" onClick={() => setShowResetConfirm(false)} aria-label="Close">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="allocation-modal__body">
-              <p>This will discard the current allocation changes and restore the initial demo records.</p>
-            </div>
-            <div className="allocation-modal__actions">
-              <button type="button" className="allocation-modal-cancel" onClick={() => setShowResetConfirm(false)}>Cancel</button>
-              <button type="button" className="allocation-modal-confirm allocation-modal-danger" onClick={handleResetAllocations}>
-                Reset Allocations
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {reschedulingAllocation && (
         <div className="allocation-modal-backdrop" onClick={() => setReschedulingAllocation(null)}>
@@ -1559,7 +2008,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                 <option value="">Select a slot</option>
                 {rescheduleOptions.map((slot) => (
                   <option key={slot.id} value={slot.id}>
-                    {slot.date} · {slot.time}–{slot.end} · {slot.type} · {slot.rem} available
+                    {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available
                   </option>
                 ))}
               </select>
@@ -1623,18 +2072,14 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
             </button>
           </div>
 
-          {/* ── Page Heading Block + Auto Allocate Button ── */}
-          <div className="page-heading-block heading-with-action">
-            <div>
-              <h1 className="interview-page-title">Candidate Interview Allocation</h1>
-              <p className="page-subtitle">
-                Assign shortlisted candidates to available interview slots by priority.
-              </p>
-            </div>
-            <button type="button" className="btn-auto-allocate" onClick={handleAutoAllocate}>
-              <Sparkles size={16} />
-              <span>Auto Allocate</span>
-            </button>
+          {/* ── Page Heading Block ── */}
+          <div style={{ marginBottom: '16px' }}>
+            <h1 className="interview-page-title" style={{ margin: '0 0 4px 0', fontSize: '1.65rem', fontWeight: 700, color: '#FFFFFF' }}>
+              Candidate Interview Allocation
+            </h1>
+            <p className="page-subtitle" style={{ margin: 0, fontSize: '0.86rem', color: '#9599A6' }}>
+              Assign shortlisted candidates to available interview slots by priority.
+            </p>
           </div>
 
           {mainContent}
@@ -1677,6 +2122,166 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
                   Go to Applicants Section
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Email Invitation Preview Modal ── */}
+      {showEmailPreviewModal && previewSelectedCandidate && (
+        <div className="modal-backdrop" onClick={() => setShowEmailPreviewModal(false)} style={{ zIndex: 9999 }}>
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '640px', width: '92%', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '14px', overflow: 'hidden' }}
+          >
+            {/* Modal Header */}
+            <div className="modal-header border-bottom-header flex-between" style={{ padding: '16px 22px', backgroundColor: '#1A1C26' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Mail size={18} style={{ color: '#F0B90B' }} />
+                <h3 className="modal-title" style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
+                  Interview Invitation Email Preview
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowEmailPreviewModal(false)}
+                style={{ background: 'none', border: 'none', color: '#9599A6', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="modal-body" style={{ padding: '20px 22px' }}>
+              {/* Recipient switcher (if multiple allocated candidates exist) */}
+              {filteredAllocations.filter((a) => a.status === 'ALLOCATED').length > 1 && (
+                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>PREVIEWING RECIPIENT:</label>
+                  <select
+                    value={previewSelectedCandidate.candidateId}
+                    onChange={(e) => {
+                      const found = filteredAllocations.find((a) => a.candidateId === e.target.value);
+                      if (found) setPreviewSelectedCandidate(found);
+                    }}
+                    style={{
+                      backgroundColor: '#1E222D',
+                      color: '#F0B90B',
+                      border: '1px solid #2A2C38',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      outline: 'none',
+                    }}
+                  >
+                    {filteredAllocations.filter((a) => a.status === 'ALLOCATED').map((c) => (
+                      <option key={c.candidateId} value={c.candidateId}>
+                        {c.candidateName} — {formatDisplayTime(c.assignedTime)} ({c.interviewDate})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Email Envelope Container */}
+              <div style={{ backgroundColor: '#1E222D', border: '1px solid #2A2C38', borderRadius: '10px', padding: '16px', fontSize: '0.82rem' }}>
+                {/* Meta details */}
+                <div style={{ borderBottom: '1px solid #2A2C38', paddingBottom: '10px', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div>
+                    <span style={{ color: '#9599A6', fontWeight: 600 }}>From: </span>
+                    <span style={{ color: '#FFFFFF', fontWeight: 500 }}>IntelliHire Recruitment Team &lt;interviews@intellihire.com&gt;</span>
+                  </div>
+                  <div>
+                    <span style={{ color: '#9599A6', fontWeight: 600 }}>To: </span>
+                    <span style={{ color: '#60A5FA', fontWeight: 600 }}>
+                      {previewSelectedCandidate.candidateName} &lt;{previewSelectedCandidate.candidateName.toLowerCase().replace(/\s+/g, '.') || 'candidate'}@example.com&gt;
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ color: '#9599A6', fontWeight: 600 }}>Subject: </span>
+                    <span style={{ color: '#F0B90B', fontWeight: 700 }}>
+                      Invitation: {previewSelectedCandidate.interviewRound || 'Technical Interview'} — {previewSelectedCandidate.jobPosition || 'Software Engineer'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Email Body Content */}
+                <div style={{ color: '#D1D5DB', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <p style={{ margin: 0 }}>Dear <strong>{previewSelectedCandidate.candidateName}</strong>,</p>
+                  <p style={{ margin: 0 }}>
+                    Congratulations! Following your evaluation, we are pleased to invite you for your upcoming <strong>{previewSelectedCandidate.interviewRound || 'Technical Interview'}</strong> for the <strong>{previewSelectedCandidate.jobPosition || 'Engineering'}</strong> role at IntelliHire.
+                  </p>
+
+                  <div style={{ backgroundColor: '#16171F', border: '1px solid rgba(240, 185, 11, 0.25)', borderRadius: '8px', padding: '12px 14px', margin: '6px 0' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px', fontSize: '0.8rem' }}>
+                      <span style={{ color: '#9599A6' }}>Date:</span>
+                      <strong style={{ color: '#FFFFFF' }}>{previewSelectedCandidate.interviewDate}</strong>
+
+                      <span style={{ color: '#9599A6' }}>Time:</span>
+                      <strong style={{ color: '#F0B90B' }}>{formatDisplayTime(previewSelectedCandidate.assignedTime)}</strong>
+
+                      <span style={{ color: '#9599A6' }}>Interview Mode:</span>
+                      <span style={{ color: '#FFFFFF' }}>{previewSelectedCandidate.interviewType}</span>
+
+                      <span style={{ color: '#9599A6' }}>Assigned Panel:</span>
+                      <span style={{ color: '#FFFFFF' }}>{previewSelectedCandidate.panelName || 'Panel A (Technical Leads)'}</span>
+
+                      <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
+                      <span style={{ color: '#60A5FA', wordBreak: 'break-all' }}>
+                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/intelli-xyz-123')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#9599A6' }}>
+                    A Google Calendar invitation has been attached to this email. Please join the meeting at least 5 minutes prior to commencement. If you have any questions or scheduling conflicts, please reply directly to this invitation.
+                  </p>
+                  <p style={{ margin: 0 }}>Best regards,<br /><strong style={{ color: '#FFFFFF' }}>IntelliHire Talent Acquisition Team</strong></p>
+                </div>
+              </div>
+
+              {/* Total recipients summary */}
+              <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: 'rgba(59, 130, 246, 0.08)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                <span style={{ fontSize: '0.78rem', color: '#93C5FD' }}>
+                  📨 Ready to dispatch invitations to <strong>{filteredAllocations.filter((a) => a.status === 'ALLOCATED').length}</strong> allocated candidate(s).
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#4ADE80', fontWeight: 600 }}>Includes Calendar .ics ✓</span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '14px 22px', backgroundColor: '#1A1C26', borderTop: '1px solid #2A2C38', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                className="btn-ghost-dark"
+                onClick={() => setShowEmailPreviewModal(false)}
+                style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSendAllInvites}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#3B82F6',
+                  color: '#FFFFFF',
+                  padding: '8px 18px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <Send size={14} />
+                <span>Confirm &amp; Send All Invites ({filteredAllocations.filter((a) => a.status === 'ALLOCATED').length})</span>
+              </button>
             </div>
           </div>
         </div>

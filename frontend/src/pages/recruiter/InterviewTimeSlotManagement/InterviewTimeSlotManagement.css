@@ -748,6 +748,26 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   overflow-x: auto;
   border: 1px solid var(--border-dark, #2A2C38);
   border-radius: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #2A2C38 #16171F;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 5px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #16171F;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #2A2C38;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #3B3E4F;
 }
 
 .slots-data-table {
