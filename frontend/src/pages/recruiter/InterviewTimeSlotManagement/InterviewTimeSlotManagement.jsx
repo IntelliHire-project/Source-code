@@ -348,9 +348,9 @@ export const CANDIDATES_BY_ROLE = {
     { id: 'APP-011', name: 'Kasun Wijesinghe', score: 83, status: 'SHORTLISTED', email: 'kasun.w@example.com', role: 'DevOps Lead' },
   ],
   'Product Designer': [
-    { id: 'APP-012', name: 'Nina Petrova', score: 89, status: 'SHORTLISTED', email: 'nina.petrova@example.com', role: 'Product Designer' },
-    { id: 'APP-013', name: 'Arjun Mehta', score: 88, status: 'SHORTLISTED', email: 'arjun.mehta@example.com', role: 'Product Designer' },
-    { id: 'APP-014', name: 'Elena Vargas', score: 86, status: 'SHORTLISTED', email: 'elena.vargas@example.com', role: 'Product Designer' },
+    { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 89, status: 'SHORTLISTED', email: 'sanduni.w@example.com', role: 'Product Designer' },
+    { id: 'APP-007', name: 'Ishara Gunasekara', score: 88, status: 'SHORTLISTED', email: 'ishara.g@example.com', role: 'Product Designer' },
+    { id: 'APP-004', name: 'Dinesh Mendis', score: 86, status: 'SHORTLISTED', email: 'dinesh.m@example.com', role: 'Product Designer' },
   ],
 };
 
@@ -582,6 +582,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [showCustomInput, setShowCustomInput] = useState(false);
 
   // Dynamic Panels & Time Slots Generator State (Default to tomorrow if today's business hours are past)
+  // Only Panel A is created by default. Recruiter can add more panels using "+ Add Panel" if needed.
   const [panels, setPanels] = useState(() => {
     const today = getTodayInputValue();
     const tomorrow = getTomorrowInputValue();
@@ -597,17 +598,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
         slots: [
           { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
           { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Physical', assignedCandidate: null },
-        ],
-      },
-      {
-        id: 2,
-        name: 'Panel B (HR & Culture Panel)',
-        emails: 'kusal.lead@company.com, amali.hr@company.com',
-        capacity: 2,
-        selectedDate: defaultDate,
-        slots: [
-          { id: 3, date: defaultDate, startTime: '14:00', endTime: '15:00', type: 'Physical', assignedCandidate: null },
-          { id: 4, date: defaultDate, startTime: '16:00', endTime: '17:00', type: 'Online', assignedCandidate: null },
         ],
       },
     ];
@@ -969,15 +959,32 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleResetForm = () => {
+    const defaultDate = new Date().getHours() >= 17 ? getTomorrowInputValue() : getTodayInputValue();
     setFormData({
       ...emptyForm,
-      jobPosition: '',
-      interviewRound: '',
+      interviewDate: defaultDate,
+      jobPosition: defaultVacancy,
+      interviewRound: 'Technical Interview',
     });
+    const defaultPanels = [
+      {
+        id: 1,
+        name: 'Panel A (Technical Leads)',
+        emails: 'saman.tech@company.com, nirosha.hr@company.com',
+        capacity: 2,
+        selectedDate: defaultDate,
+        slots: [
+          { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
+          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Physical', assignedCandidate: null },
+        ],
+      },
+    ];
+    setPanels(defaultPanels);
     setSelectedCandidates([]);
     setSelectedSlotKey(null);
     setSelectedSlotId(null);
     setAutoAssignSummary(null);
+    syncCandidateAllocations(defaultPanels);
     setToast({ type: 'success', message: 'Time slot form reset to default values.' });
   };
 

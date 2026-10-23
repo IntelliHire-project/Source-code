@@ -69,9 +69,9 @@ export const INITIAL_CANDIDATES = [
   // DevOps Lead
   { id: 'APP-011', name: 'Kasun Wijesinghe', score: 83, status: 'SHORTLISTED', jobPosition: 'DevOps Lead', role: 'DevOps Lead', round: 'Technical Interview', selected: false },
   // Product Designer
-  { id: 'APP-012', name: 'Nina Petrova', score: 89, status: 'ALLOCATED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
-  { id: 'APP-013', name: 'Arjun Mehta', score: 88, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
-  { id: 'APP-014', name: 'Elena Vargas', score: 86, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
+  { id: 'APP-012', name: 'Sanduni Wickramasinghe', score: 89, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
+  { id: 'APP-013', name: 'Ishara Gunasekara', score: 88, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
+  { id: 'APP-014', name: 'Dinesh Mendis', score: 86, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
 ];
 
 // Initial Mock Time Slots Data (1 past slot on 23 Oct to demo validation, remaining future dates in next month Nov 2026)
@@ -94,17 +94,17 @@ const INITIAL_SLOTS = [
 // Initial Allocation Results Data
 export const INITIAL_ALLOCATIONS = [
   {
-    candidateId: 'APP-012',
-    candidateName: 'Nina Petrova',
-    slotId: 'SLOT-201',
+    candidateId: 'APP-001',
+    candidateName: 'Alice Fernando',
+    slotId: 'SLOT-101',
     assignedTime: '09:30 AM',
     interviewDate: '02 Nov 2026',
     interviewType: 'Online',
-    panelName: 'Panel A (Design Lead)',
+    panelName: 'Panel A (Technical Leads)',
     interviewRound: 'Technical Interview',
-    jobPosition: 'Product Designer',
+    jobPosition: 'Senior Software Engineer',
     status: 'ALLOCATED',
-    score: 89,
+    score: 88,
   },
   {
     candidateId: 'APP-002',
@@ -113,24 +113,24 @@ export const INITIAL_ALLOCATIONS = [
     assignedTime: '02:00 PM',
     interviewDate: '06 Nov 2026',
     interviewType: 'Physical',
-    panelName: 'Panel B (HR & Culture Panel)',
+    panelName: 'Panel A (Technical Leads)',
     interviewRound: 'HR Portfolio Review',
     jobPosition: 'Senior Software Engineer',
     status: 'ALLOCATED',
     score: 82,
   },
   {
-    candidateId: 'APP-001',
-    candidateName: 'Alice Fernando',
-    slotId: 'SLOT-101',
+    candidateId: 'APP-003',
+    candidateName: 'Nimal Silva',
+    slotId: 'SLOT-103',
     assignedTime: '11:00 AM',
     interviewDate: '04 Nov 2026',
     interviewType: 'Online',
-    panelName: 'Panel C (Live Coding Panel)',
+    panelName: 'Panel A (Technical Leads)',
     interviewRound: 'System Architecture',
     jobPosition: 'Senior Software Engineer',
     status: 'ALLOCATED',
-    score: 88,
+    score: 79,
   },
 ];
 
@@ -402,15 +402,14 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          if (parsed.length >= 3) return parsed;
-          // Merge to ensure 3 candidates are always allocated
-          const existingNames = new Set(parsed.map((p) => (p.candidateName || '').toLowerCase()));
-          const toAdd = INITIAL_ALLOCATIONS.filter(
-            (init) => !existingNames.has((init.candidateName || '').toLowerCase())
+          const hasForeign = parsed.some(
+            (p) =>
+              (p.candidateName || '').toLowerCase().includes('nina') ||
+              (p.candidateName || '').toLowerCase().includes('petrova') ||
+              (p.candidateName || '').toLowerCase().includes('arjun') ||
+              (p.candidateName || '').toLowerCase().includes('elena')
           );
-          const merged = [...parsed, ...toAdd].slice(0, 3);
-          localStorage.setItem('intellihire_allocations', JSON.stringify(merged));
-          return merged;
+          if (!hasForeign && parsed.length >= 3) return parsed;
         }
       }
     } catch {}
