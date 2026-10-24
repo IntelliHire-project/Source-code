@@ -5,6 +5,7 @@ import useAuth from '../../../hooks/useAuth';
 import Layout from '../../../components/common/Layout';
 import { roleHomePath } from '../../../utils/roleRoutes';
 import { resendVerification, requestPasswordReset } from '../../../api/authApi';
+import { clearRecruiterInterviewSession } from '../../../services/storage';
 import { CLOUDINARY_ASSETS } from '../../../constants/assets';
 import '../../../App.css';
 
@@ -36,6 +37,7 @@ function SignInPage() {
   const location = useLocation();
 
   useEffect(() => {
+    clearRecruiterInterviewSession();
     const searchParams = new URLSearchParams(location.search);
     if (searchParams.get('session_expired') === 'true') {
       setStatusType('error');

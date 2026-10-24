@@ -115,6 +115,21 @@ export const removeUser = () => {
 };
 
 /**
+ * Clears mock recruiter interview data from localStorage and sessionStorage
+ */
+export const clearRecruiterInterviewSession = () => {
+  try {
+    sessionStorage.removeItem('intellihire_recruiter_session');
+    localStorage.removeItem('intellihire_allocations');
+    localStorage.removeItem('intellihire_candidates');
+    localStorage.removeItem('intellihire_custom_slots');
+    localStorage.removeItem('intellihire_interview_slots');
+    localStorage.removeItem('intellihire_active_vacancy');
+    localStorage.removeItem('intellihire_reschedule_requests');
+  } catch {}
+};
+
+/**
  * Clears all auth session data from both localStorage and sessionStorage.
  */
 export const clearAuthSession = () => {
@@ -126,5 +141,7 @@ export const clearAuthSession = () => {
   sessionStorage.removeItem(USER_KEY);
   sessionStorage.removeItem('hasChosenVacancy');
   sessionStorage.removeItem('selectedVacancyId');
+
+  clearRecruiterInterviewSession();
 };
 

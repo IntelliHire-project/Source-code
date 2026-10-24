@@ -15,6 +15,23 @@
   width: 100%;
 }
 
+/* ── Page Heading Block (Allocation UI Style) ── */
+.interview-page-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.4px;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 0.88rem;
+  color: #9599A6;
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* ── Top Header Banner ── */
 .panel-hero-card {
   background: linear-gradient(145deg, #191B24 0%, #12131A 100%);
@@ -230,17 +247,18 @@
   gap: 16px;
 }
 
+/* ── Unified Interview Card ── */
 .panel-interview-card {
   background: #1E222D;
   border: 1px solid #2A2C38;
   border-radius: 14px;
-  padding: 22px 24px;
-  display: flex;
-  justify-content: space-between;
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 210px 280px;
   align-items: center;
-  gap: 24px;
+  gap: 22px;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .panel-interview-card:hover {
@@ -248,27 +266,30 @@
   transform: translateY(-1px);
 }
 
-.panel-interview-card.pending-reschedule {
-  border-left: 4px solid #F0B90B;
-  background: linear-gradient(90deg, rgba(240, 185, 11, 0.06) 0%, #1E222D 25%);
+.panel-interview-card.status-completed {
+  border-left: 3px solid #22C55E;
 }
 
-.panel-interview-card.rescheduled-done {
-  border-left: 4px solid #6B8CFF;
-  background: linear-gradient(90deg, rgba(107, 140, 255, 0.06) 0%, #1E222D 25%);
+.panel-interview-card.status-reschedule-requested {
+  border-left: 3px solid #F0B90B;
+}
+
+.panel-interview-card.status-scheduled {
+  border-left: 3px solid #60A5FA;
 }
 
 .card-left {
   display: flex;
   align-items: center;
-  gap: 18px;
-  flex: 1;
+  gap: 16px;
+  min-width: 0;
 }
 
 .candidate-avatar-wrap {
   position: relative;
-  width: 52px;
-  height: 52px;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
 }
 
 .candidate-avatar {
@@ -292,6 +313,10 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
+.candidate-info {
+  min-width: 0;
+}
+
 .candidate-info h3 {
   margin: 0 0 4px 0;
   font-size: 16px;
@@ -302,7 +327,7 @@
 .role-tag-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 6px;
   flex-wrap: wrap;
 }
@@ -327,112 +352,290 @@
   border-radius: 6px;
 }
 
-.candidate-notes {
-  font-size: 13px;
-  color: #9599A6;
-  margin: 0;
-  max-width: 500px;
-}
-
-/* ── Card Middle: Timing ── */
-.card-timing {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 180px;
-}
-
-.timing-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
+.panelist-chip {
+  background: rgba(240, 185, 11, 0.12);
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.25);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 600;
-  color: #FFFFFF;
-}
-
-.timing-item.date {
-  color: #6B8CFF;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .status-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 6px;
-  width: fit-content;
 }
 
-.status-tag.scheduled {
+.status-tag-completed {
   background: rgba(34, 197, 94, 0.15);
-  color: #22C55E;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ADE80;
+  border: 1px solid rgba(34, 197, 94, 0.35);
 }
 
-.status-tag.reschedule_requested {
+.status-tag-pending {
   background: rgba(240, 185, 11, 0.15);
   color: #F0B90B;
-  border: 1px solid rgba(240, 185, 11, 0.3);
+  border: 1px solid rgba(240, 185, 11, 0.35);
 }
 
-.status-tag.rescheduled {
-  background: rgba(107, 140, 255, 0.15);
-  color: #6B8CFF;
-  border: 1px solid rgba(107, 140, 255, 0.3);
+.status-tag-confirmed {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60A5FA;
+  border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
-/* ── Card Right: Actions ── */
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+.candidate-notes {
+  font-size: 12px;
+  color: #9599A6;
+  margin: 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.btn-meet-join {
+/* ── Middle: Standardized Timing Box ── */
+.card-timing-box {
   background: #16171F;
-  color: #FFFFFF;
   border: 1px solid #2A2C38;
-  padding: 9px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.timing-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.15s ease;
-  text-decoration: none;
 }
 
-.btn-meet-join:hover {
-  background: #0D0E13;
-  border-color: #6B8CFF;
-  color: #6B8CFF;
+.timing-date-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
 }
 
-.btn-reschedule-trigger {
-  background: #16171F;
-  color: #F0B90B;
-  border: 1px solid rgba(240, 185, 11, 0.4);
-  padding: 9px 14px;
+.timing-time-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9599A6;
+}
+
+.timing-duration-pill {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9599A6;
+  background: #1E222D;
+  border: 1px solid #2A2C38;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 2px;
+}
+
+.timing-mode-row {
+  margin-top: 2px;
+}
+
+.timing-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.timing-mode-pill.mode-online {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60A5FA;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.timing-mode-pill.mode-physical {
+  background: rgba(168, 85, 247, 0.12);
+  color: #C084FC;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+/* ── Right: Standardized Actions Box ── */
+.card-actions-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Primary CTA Button (Join Call, View Evaluation, or In-person) */
+.btn-primary-action-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* Join Call (Vibrant Blue Google Meet style) */
+.btn-primary-action-cta.join-call {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: 1px solid #3B82F6;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.btn-primary-action-cta.join-call:hover {
+  background: #1D4ED8;
+  border-color: #60A5FA;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
+  transform: translateY(-1px);
+}
+
+/* In-Person venue indicator */
+.btn-primary-action-cta.in-person {
+  background: rgba(168, 85, 247, 0.14);
+  color: #C084FC;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  cursor: default;
+}
+
+/* View Evaluation */
+.btn-primary-action-cta.view-eval {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid #22C55E;
+  color: #4ADE80;
+}
+
+.btn-primary-action-cta.view-eval:hover {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+/* Ready to Evaluate (Today/Past) */
+.btn-primary-action-cta.eval-ready {
+  background: #F0B90B;
+  border: 1px solid #F0B90B;
+  color: #000000;
+}
+
+.btn-primary-action-cta.eval-ready:hover {
+  background: #d9a50a;
+}
+
+/* Reschedule Pending */
+.btn-primary-action-cta.reschedule-pending {
+  background: rgba(240, 185, 11, 0.12);
+  border: 1px solid rgba(240, 185, 11, 0.35);
+  color: #F0B90B;
+  cursor: default;
+}
+
+/* Secondary utility actions row */
+.card-actions-subrow {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.15s ease;
+  width: 100%;
 }
 
-.btn-reschedule-trigger:hover {
-  background: #F0B90B;
-  color: #000000;
+.subrow-action-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #16171F;
+  border: 1px solid #2A2C38;
+  color: #9599A6;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.subrow-action-btn:hover {
+  color: #FFFFFF;
+  border-color: #3A3D4C;
+  background: #1E222D;
+}
+
+.subrow-action-btn.reschedule:hover {
+  color: #F0B90B;
+  border-color: rgba(240, 185, 11, 0.4);
+}
+
+.subrow-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  width: 100%;
+}
+
+.subrow-status-pill.completed {
+  color: #4ADE80;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.subrow-status-pill.pending {
+  color: #F0B90B;
+  background: rgba(240, 185, 11, 0.08);
+  border: 1px solid rgba(240, 185, 11, 0.2);
+}
+
+/* Hint footnote */
+.actions-footnote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #6B7280;
+  margin-top: 2px;
+}
+
+@media (max-width: 992px) {
+  .panel-interview-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .card-timing-box {
+    max-width: 100%;
+  }
+  .actions-utility-row {
+    justify-content: flex-start;
+  }
 }
 
 .btn-reschedule-trigger.pending {
@@ -730,23 +933,31 @@
 /* Toast alert */
 .panel-toast {
   position: fixed;
-  bottom: 24px;
+  top: 80px;
   right: 24px;
   background: #16171F;
   color: #FFFFFF;
-  padding: 14px 20px;
-  border-radius: 12px;
+  padding: 13px 18px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  font-size: 0.86rem;
+  font-weight: 500;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(34, 197, 94, 0.12);
   border: 1px solid #2A2C38;
   border-left: 4px solid #22C55E;
-  z-index: 2000;
-  animation: slideToast 0.3s ease-out;
+  z-index: 9999;
+  animation: admin-toast-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes slideToast {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes admin-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(52px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }

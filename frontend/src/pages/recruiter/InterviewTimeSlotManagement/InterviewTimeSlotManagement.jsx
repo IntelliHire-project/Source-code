@@ -40,7 +40,33 @@ import {
   customRescheduleSlot,
   getInterviewSlots,
   saveInterviewSlots,
+  getEndTime,
 } from '../../../services/interviewService';
+import { INITIAL_CANDIDATES, INITIAL_ALLOCATIONS, resetToDefaultMockData, formatPanelDisplayName } from '../InterviewAllocation/CandidateInterviewAllocation';
+
+const CLEAN_STORAGE_VERSION = 'v12_fresh_session_defaults';
+(() => {
+  try {
+    if (typeof window !== 'undefined') {
+      const isNewSession = !sessionStorage.getItem('intellihire_recruiter_session');
+      const isOutdatedVersion = localStorage.getItem('intellihire_clean_version') !== CLEAN_STORAGE_VERSION;
+      if (isNewSession || isOutdatedVersion) {
+        if (typeof resetToDefaultMockData === 'function') {
+          resetToDefaultMockData();
+        } else {
+          localStorage.setItem('intellihire_allocations', JSON.stringify(INITIAL_ALLOCATIONS));
+          localStorage.setItem('intellihire_candidates', JSON.stringify(INITIAL_CANDIDATES));
+          localStorage.removeItem('intellihire_custom_slots');
+          localStorage.removeItem('intellihire_interview_slots');
+          localStorage.removeItem('intellihire_active_vacancy');
+          localStorage.removeItem('intellihire_reschedule_requests');
+          localStorage.setItem('intellihire_clean_version', CLEAN_STORAGE_VERSION);
+          sessionStorage.setItem('intellihire_recruiter_session', 'active');
+        }
+      }
+    }
+  } catch {}
+})();
 
 // ── Google Calendar URL Helper ─────────────────────────────────────────────
 const generateGoogleCalendarUrl = ({ title, description, interviewDate, startTime, endTime, location }) => {
@@ -323,34 +349,53 @@ const emptyForm = {
 
 export const CANDIDATES_BY_ROLE = {
   'Senior Software Engineer': [
-    { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'SHORTLISTED', email: 'alice.f@example.com', role: 'Senior Software Engineer' },
-    { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'SHORTLISTED', email: 'kamal.p@example.com', role: 'Senior Software Engineer' },
-    { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'SHORTLISTED', email: 'nimal.s@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'ALLOCATED', email: 'alice.f@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'ALLOCATED', email: 'kamal.p@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'ALLOCATED', email: 'nimal.s@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-004', name: 'Dinesh Mendis', score: 76, status: 'SHORTLISTED', email: 'dinesh.m@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 74, status: 'SHORTLISTED', email: 'sanduni.w@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-006', name: 'Ishara Gunasekara', score: 72, status: 'SHORTLISTED', email: 'ishara.g@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-007', name: 'Malith Senanayake', score: 70, status: 'SHORTLISTED', email: 'malith.s@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-008', name: 'Tharindu Rathnayake', score: 68, status: 'SHORTLISTED', email: 'tharindu.r@example.com', role: 'Senior Software Engineer' },
+    { id: 'APP-009', name: 'Kasun Wijesinghe', score: 65, status: 'SHORTLISTED', email: 'kasun.w@example.com', role: 'Senior Software Engineer' },
   ],
   'Senior Fullstack Engineer': [
-    { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'SHORTLISTED', email: 'alice.f@example.com', role: 'Senior Fullstack Engineer' },
-    { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'SHORTLISTED', email: 'kamal.p@example.com', role: 'Senior Fullstack Engineer' },
-    { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'SHORTLISTED', email: 'nimal.s@example.com', role: 'Senior Fullstack Engineer' },
+    { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'ALLOCATED', email: 'alice.f@example.com', role: 'Senior Fullstack Engineer' },
+    { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'ALLOCATED', email: 'kamal.p@example.com', role: 'Senior Fullstack Engineer' },
+    { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'ALLOCATED', email: 'nimal.s@example.com', role: 'Senior Fullstack Engineer' },
+    { id: 'APP-004', name: 'Dinesh Mendis', score: 76, status: 'SHORTLISTED', email: 'dinesh.m@example.com', role: 'Senior Fullstack Engineer' },
   ],
-  'UI/UX Designer': [
-    { id: 'APP-007', name: 'Ishara Gunasekara', score: 84, status: 'SHORTLISTED', email: 'ishara.g@example.com', role: 'UI/UX Designer' },
+  'Senior Frontend Engineer': [
+    { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'ALLOCATED', email: 'alice.f@example.com', role: 'Senior Frontend Engineer' },
+    { id: 'APP-004', name: 'Dinesh Mendis', score: 76, status: 'SHORTLISTED', email: 'dinesh.m@example.com', role: 'Senior Frontend Engineer' },
   ],
-  'QA Automation Engineer': [
-    { id: 'APP-008', name: 'Malith Senanayake', score: 77, status: 'SHORTLISTED', email: 'malith.s@example.com', role: 'QA Automation Engineer' },
+  'Backend Engineer': [
+    { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'ALLOCATED', email: 'kamal.p@example.com', role: 'Backend Engineer' },
+    { id: 'APP-004', name: 'Dinesh Mendis', score: 76, status: 'SHORTLISTED', email: 'dinesh.m@example.com', role: 'Backend Engineer' },
+    { id: 'APP-009', name: 'Kasun Wijesinghe', score: 65, status: 'SHORTLISTED', email: 'kasun.w@example.com', role: 'Backend Engineer' },
   ],
-  'Business Analyst': [
-    { id: 'APP-009', name: 'Tharindu Rathnayake', score: 80, status: 'SHORTLISTED', email: 'tharindu.r@example.com', role: 'Business Analyst' },
-  ],
-  'Product Manager': [
-    { id: 'APP-010', name: 'Kavindu Weerasinghe', score: 86, status: 'SHORTLISTED', email: 'kavindu.w@example.com', role: 'Product Manager' },
+  'DevOps Engineer': [
+    { id: 'APP-009', name: 'Kasun Wijesinghe', score: 65, status: 'SHORTLISTED', email: 'kasun.w@example.com', role: 'DevOps Engineer' },
   ],
   'DevOps Lead': [
-    { id: 'APP-011', name: 'Kasun Wijesinghe', score: 83, status: 'SHORTLISTED', email: 'kasun.w@example.com', role: 'DevOps Lead' },
+    { id: 'APP-009', name: 'Kasun Wijesinghe', score: 65, status: 'SHORTLISTED', email: 'kasun.w@example.com', role: 'DevOps Lead' },
+  ],
+  'UI/UX Designer': [
+    { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 74, status: 'SHORTLISTED', email: 'sanduni.w@example.com', role: 'UI/UX Designer' },
+    { id: 'APP-006', name: 'Ishara Gunasekara', score: 72, status: 'SHORTLISTED', email: 'ishara.g@example.com', role: 'UI/UX Designer' },
   ],
   'Product Designer': [
-    { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 89, status: 'SHORTLISTED', email: 'sanduni.w@example.com', role: 'Product Designer' },
-    { id: 'APP-007', name: 'Ishara Gunasekara', score: 88, status: 'SHORTLISTED', email: 'ishara.g@example.com', role: 'Product Designer' },
-    { id: 'APP-004', name: 'Dinesh Mendis', score: 86, status: 'SHORTLISTED', email: 'dinesh.m@example.com', role: 'Product Designer' },
+    { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 74, status: 'SHORTLISTED', email: 'sanduni.w@example.com', role: 'Product Designer' },
+    { id: 'APP-006', name: 'Ishara Gunasekara', score: 72, status: 'SHORTLISTED', email: 'ishara.g@example.com', role: 'Product Designer' },
+  ],
+  'QA Automation Engineer': [
+    { id: 'APP-007', name: 'Malith Senanayake', score: 70, status: 'SHORTLISTED', email: 'malith.s@example.com', role: 'QA Automation Engineer' },
+  ],
+  'Business Analyst': [
+    { id: 'APP-008', name: 'Tharindu Rathnayake', score: 68, status: 'SHORTLISTED', email: 'tharindu.r@example.com', role: 'Business Analyst' },
+  ],
+  'Product Manager': [
+    { id: 'APP-032', name: 'Kavindi Weerakkody', score: 82, status: 'SHORTLISTED', email: 'kavindi.w@example.com', role: 'Product Manager' },
   ],
 };
 
@@ -504,6 +549,12 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   const [slots, setSlots] = useState(() => {
     try {
+      if (!sessionStorage.getItem('intellihire_recruiter_session')) {
+        if (typeof resetToDefaultMockData === 'function') {
+          resetToDefaultMockData();
+        }
+        return initialSlots;
+      }
       const stored = localStorage.getItem('intellihire_interview_slots');
       if (stored) return JSON.parse(stored);
     } catch {}
@@ -536,12 +587,66 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   // Dynamic candidate list matching the active job position
   const currentShortlisted = useMemo(() => {
-    return CANDIDATES_BY_ROLE[formData.jobPosition] || CANDIDATES_BY_ROLE['Senior Software Engineer'] || [];
+    const pos = (formData.jobPosition || '').trim();
+
+    // 0. Prefer candidates saved in intellihire_candidates if available
+    try {
+      const stored = localStorage.getItem('intellihire_candidates');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const targetPos = pos.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const matched = parsed.filter(c => {
+            if (!targetPos) return true;
+            const cPos = (c.jobPosition || c.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return !cPos || cPos === targetPos || cPos.includes(targetPos) || targetPos.includes(cPos)
+              || ((cPos.includes('software') || cPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack')));
+          });
+          if (matched.length > 0) {
+            return matched.map(c => ({ ...c, role: pos || c.role || c.jobPosition, jobPosition: pos || c.jobPosition || c.role }));
+          }
+        }
+      }
+    } catch {}
+
+    if (!pos) return CANDIDATES_BY_ROLE['Senior Software Engineer'] || [];
+
+    // 1. Direct exact match
+    if (CANDIDATES_BY_ROLE[pos] && CANDIDATES_BY_ROLE[pos].length > 0) {
+      return CANDIDATES_BY_ROLE[pos].map((c) => ({ ...c, role: pos, jobPosition: pos }));
+    }
+
+    // 2. Normalized / fuzzy match against CANDIDATES_BY_ROLE keys
+    const norm = pos.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (const [roleKey, candList] of Object.entries(CANDIDATES_BY_ROLE)) {
+      const normKey = roleKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (
+        normKey === norm ||
+        norm.includes(normKey) ||
+        normKey.includes(norm) ||
+        (norm.includes('devops') && normKey.includes('devops')) ||
+        (norm.includes('frontend') && normKey.includes('frontend')) ||
+        (norm.includes('backend') && normKey.includes('backend')) ||
+        (norm.includes('qa') && normKey.includes('qa')) ||
+        (norm.includes('design') && normKey.includes('design')) ||
+        (norm.includes('intern') && normKey.includes('intern')) ||
+        (norm.includes('analyst') && normKey.includes('analyst'))
+      ) {
+        return candList.map((c) => ({ ...c, role: pos, jobPosition: pos }));
+      }
+    }
+
+    // 3. Realistic dynamic candidate list for any custom vacancy
+    return [
+      { id: `APP-${pos.replace(/[^a-zA-Z]/g, '').substring(0, 3)}-001`, name: 'Kasun Wijesinghe', score: 85, status: 'SHORTLISTED', email: 'kasun.w@example.com', role: pos, jobPosition: pos },
+      { id: `APP-${pos.replace(/[^a-zA-Z]/g, '').substring(0, 3)}-002`, name: 'Nuwan Pradeep', score: 81, status: 'SHORTLISTED', email: 'nuwan.p@example.com', role: pos, jobPosition: pos },
+      { id: `APP-${pos.replace(/[^a-zA-Z]/g, '').substring(0, 3)}-003`, name: 'Ankit Sharma', score: 78, status: 'SHORTLISTED', email: 'ankit.s@example.com', role: pos, jobPosition: pos },
+    ];
   }, [formData.jobPosition]);
 
   // Synchronize form and filter when navigating with location.state
   useEffect(() => {
-    if (location.state?.selectedVacancy || location.state?.selectedRound || location.state?.openForm) {
+    if (location.state?.selectedVacancy || location.state?.selectedRound || location.state?.openForm || location.state?.openRescheduleModal) {
       if (location.state.selectedVacancy) {
         setPositionFilter(location.state.selectedVacancy);
         setFormData(prev => ({
@@ -559,6 +664,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
           const formElem = document.getElementById('intelli-inline-interview-form');
           if (formElem) formElem.scrollIntoView({ behavior: 'smooth' });
         }, 150);
+      }
+      if (location.state.openRescheduleModal) {
+        setShowRescheduleModal(true);
       }
     }
   }, [location.state]);
@@ -603,11 +711,31 @@ function RecruiterInterviewTimeSlotManagementPage() {
     ];
   });
 
-  // Cross-page sync helper to ensure Candidate Interview Allocation page reflects current allocations
   const syncCandidateAllocations = (updatedPanels) => {
     try {
-      const existingAllocations = JSON.parse(localStorage.getItem('intellihire_allocations') || '[]');
-      const existingCandidates = JSON.parse(localStorage.getItem('intellihire_candidates') || '[]');
+      const getStoredAlloc = () => {
+        try {
+          const raw = localStorage.getItem('intellihire_allocations');
+          if (raw !== null) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+          }
+        } catch {}
+        return INITIAL_ALLOCATIONS;
+      };
+      const getStoredCands = () => {
+        try {
+          const raw = localStorage.getItem('intellihire_candidates');
+          if (raw !== null) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch {}
+        return INITIAL_CANDIDATES;
+      };
+
+      const existingAllocations = getStoredAlloc();
+      const existingCandidates = getStoredCands();
       
       const currentFormCandidateNames = new Set(
         currentShortlisted.map(c => c.name)
@@ -625,34 +753,42 @@ function RecruiterInterviewTimeSlotManagementPage() {
         });
       });
 
-      // Filter out this role's candidates who are no longer allocated in this form
-      let nextAllocations = existingAllocations.filter(a => {
-        if (currentFormCandidateNames.has(a.candidateName)) {
-          return allocatedInForm.has(a.candidateName);
-        }
-        return true;
-      });
+      // Preserve all existing allocations and update/prepend newly allocated candidates
+      const nextAllocations = [...existingAllocations];
+      const newlyAllocatedCandIds = new Set();
+      const newlyAllocatedCandNames = new Set();
 
-      // Add or update currently allocated candidates
       allocatedInForm.forEach(({ candidate, slot, panel }, candName) => {
         const candId = candidate.id || `APP-${candName.replace(/\s+/g, '')}`;
+        newlyAllocatedCandIds.add(String(candId));
+        newlyAllocatedCandNames.add(candName.toLowerCase().trim());
+
+        const slotRawDate = slot.date || panel.selectedDate || getTodayInputValue();
+        const startTimeStr = formatTime(slot.startTime || '09:00 AM');
+        const endTimeStr = formatTime(slot.endTime || getEndTime(slot.startTime || '09:00 AM') || '10:00 AM');
+        const timeRange = `${startTimeStr} – ${endTimeStr}`;
+
         const record = {
           candidateId: candId,
           candidateName: candidate.name,
           slotId: `SLOT-${panel.id}-${slot.id}`,
-          assignedTime: formatTime(slot.startTime) || '09:00 AM',
-          interviewDate: formatDate(slot.date || panel.selectedDate),
+          assignedTime: timeRange,
+          interviewDate: formatDate(slotRawDate),
           interviewType: slot.type || (activeZohoType === 'In-Person' ? 'Physical' : 'Online'),
           panelName: panel.name || 'Panel A (Technical Leads)',
           interviewRound: formData.interviewRound || 'Technical Interview',
           jobPosition: candidate.jobPosition || candidate.role || formData.jobPosition || 'Senior Software Engineer',
+          score: candidate.score || 85,
           status: 'ALLOCATED',
         };
-        const exIdx = nextAllocations.findIndex(a => a.candidateName === candidate.name || a.candidateId === candId);
+        const exIdx = nextAllocations.findIndex(a => 
+          (a.candidateId && String(a.candidateId) === String(candId)) ||
+          (a.candidateName && a.candidateName.toLowerCase().trim() === candName.toLowerCase().trim())
+        );
         if (exIdx >= 0) {
-          nextAllocations[exIdx] = record;
+          nextAllocations[exIdx] = { ...nextAllocations[exIdx], ...record };
         } else {
-          nextAllocations.push(record);
+          nextAllocations.unshift(record);
         }
       });
 
@@ -694,37 +830,63 @@ function RecruiterInterviewTimeSlotManagementPage() {
           });
         });
       });
-      localStorage.setItem('intellihire_custom_slots', JSON.stringify(allSlotsToSync));
-      window.dispatchEvent(new Event('intellihire_slots_updated'));
+      // Merge with existing custom slots without duplicates or outdated dates
+      const existingCustom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
+      const customMap = new Map();
+      existingCustom
+        .filter(s => s && (!s.dateKey || s.dateKey >= '2026-10-24'))
+        .forEach(s => {
+          const key = `${s.dateKey || s.date}-${s.time || s.startTime}`;
+          customMap.set(key, s);
+        });
+      allSlotsToSync
+        .filter(s => s && (!s.dateKey || s.dateKey >= '2026-10-24'))
+        .forEach(s => {
+          const key = `${s.dateKey || s.date}-${s.time || s.startTime}`;
+          customMap.set(key, s);
+        });
+      localStorage.setItem('intellihire_custom_slots', JSON.stringify(Array.from(customMap.values())));
+      window.dispatchEvent(new CustomEvent('intellihire_slots_updated', { detail: { source: 'InterviewTimeSlotManagement' } }));
+      window.dispatchEvent(new Event('storage'));
 
-      // Update intellihire_candidates ensuring jobPosition and role are both set
-      const allRolesCandidates = Object.entries(CANDIDATES_BY_ROLE).flatMap(([roleName, cList]) =>
-        cList.map(c => ({
-          ...c,
-          jobPosition: c.jobPosition || c.role || roleName,
-          role: c.role || roleName,
-        }))
-      );
-      // Always guarantee ALL candidates across ALL roles exist so no role's candidates vanish
+      // Keep all candidates, marking any that are allocated anywhere as ALLOCATED
+      const allAllocatedNames = new Set([
+        ...existingAllocations.filter(a => a.status === 'ALLOCATED').map(a => (a.candidateName || '').toLowerCase().trim()),
+        ...Array.from(allocatedInForm.keys()).map(name => name.toLowerCase().trim())
+      ]);
+
+      // Base candidate pool: strictly use existingCandidates if available, or INITIAL_CANDIDATES (never expand to 27 mock candidates)
+      const basePool = (existingCandidates && existingCandidates.length > 0) ? existingCandidates : INITIAL_CANDIDATES;
       const candidatesMap = new Map();
-      allRolesCandidates.forEach(c => {
-        candidatesMap.set((c.name || '').toLowerCase(), c);
+      basePool.forEach(c => {
+        if (c && c.name) candidatesMap.set(c.name.toLowerCase().trim(), c);
       });
-      existingCandidates.forEach(c => {
-        if (c && c.name) {
-          const key = c.name.toLowerCase();
-          const base = candidatesMap.get(key) || c;
-          candidatesMap.set(key, { ...base, ...c });
+
+      // If any candidate was allocated in the form and is not yet in the pool, add only that candidate!
+      allocatedInForm.forEach(({ candidate }) => {
+        if (candidate && candidate.name) {
+          const key = candidate.name.toLowerCase().trim();
+          if (!candidatesMap.has(key)) {
+            candidatesMap.set(key, {
+              id: candidate.id || `APP-${Date.now()}`,
+              name: candidate.name,
+              score: candidate.score || 85,
+              status: 'ALLOCATED',
+              jobPosition: candidate.jobPosition || candidate.role || formData.jobPosition || 'Senior Software Engineer',
+              role: candidate.role || formData.jobPosition || 'Senior Software Engineer',
+              round: formData.interviewRound || 'Technical Interview',
+              selected: false,
+            });
+          }
         }
       });
+
       const updatedCandidates = Array.from(candidatesMap.values()).map(c => {
-        if (currentFormCandidateNames.has(c.name)) {
-          return {
-            ...c,
-            status: allocatedInForm.has(c.name) ? 'ALLOCATED' : 'SHORTLISTED',
-          };
-        }
-        return c;
+        const isAlloc = allAllocatedNames.has((c.name || '').toLowerCase().trim());
+        return {
+          ...c,
+          status: isAlloc ? 'ALLOCATED' : 'SHORTLISTED',
+        };
       });
       localStorage.setItem('intellihire_candidates', JSON.stringify(updatedCandidates));
     } catch (err) {
@@ -1009,8 +1171,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleSlotTimeChange = (panelId, slotId, field, val) => {
-    setPanels(prev =>
-      prev.map(p => {
+    setPanels(prev => {
+      const next = prev.map(p => {
         if (p.id !== panelId) return p;
         return {
           ...p,
@@ -1029,8 +1191,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             return updated;
           }),
         };
-      })
-    );
+      });
+      syncCandidateAllocations(next);
+      return next;
+    });
   };
 
   const handleAddPanel = () => {
@@ -1335,11 +1499,98 @@ function RecruiterInterviewTimeSlotManagementPage() {
         });
         const existing = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
         const map = new Map();
-        newAllocSlots.forEach(s => map.set(s.id, s));
-        existing.forEach(s => { if (!map.has(s.id)) map.set(s.id, s); });
-        localStorage.setItem('intellihire_custom_slots', JSON.stringify(Array.from(map.values()).slice(0, 8)));
+        existing
+          .filter(s => s && (!s.dateKey || s.dateKey >= '2026-10-24'))
+          .forEach(s => map.set(`${s.dateKey || s.date}-${s.time || s.startTime}`, s));
+        newAllocSlots
+          .filter(s => s && (!s.dateKey || s.dateKey >= '2026-10-24'))
+          .forEach(s => map.set(`${s.dateKey || s.date}-${s.time || s.startTime}`, s));
+        localStorage.setItem('intellihire_custom_slots', JSON.stringify(Array.from(map.values())));
+
+        // Directly sync any allocated candidate from the submitted form to intellihire_allocations
+        const currentAllocations = (() => {
+          try {
+            const raw = localStorage.getItem('intellihire_allocations');
+            if (raw !== null) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) return parsed;
+            }
+          } catch {}
+          return INITIAL_ALLOCATIONS;
+        })();
+
+        createdSlots.forEach(s => {
+          if (s.assignedCandidate && s.assignedCandidate.name) {
+            const cand = s.assignedCandidate;
+            const candId = cand.id || `APP-${cand.name.replace(/\s+/g, '')}`;
+            const timeRange = `${formatTime(s.startTime)} – ${formatTime(s.endTime || getEndTime(s.startTime))}`;
+            const allocRecord = {
+              candidateId: candId,
+              candidateName: cand.name,
+              slotId: `SLOT-${s.id}`,
+              assignedTime: timeRange,
+              interviewDate: s.interviewDate,
+              interviewType: s.interviewType,
+              panelName: s.panelName || 'Panel A (Technical Leads)',
+              interviewRound: s.round || formData.interviewRound || 'Technical Interview',
+              jobPosition: cand.jobPosition || cand.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
+              status: 'ALLOCATED',
+              score: cand.score || 85,
+            };
+            const exIdx = currentAllocations.findIndex(a => 
+              (a.candidateId && String(a.candidateId) === String(candId)) ||
+              (a.candidateName && a.candidateName.trim().toLowerCase() === cand.name.trim().toLowerCase())
+            );
+            if (exIdx >= 0) {
+              currentAllocations[exIdx] = { ...currentAllocations[exIdx], ...allocRecord };
+            } else {
+              currentAllocations.unshift(allocRecord);
+            }
+          }
+        });
+        localStorage.setItem('intellihire_allocations', JSON.stringify(currentAllocations));
+
+        // Update intellihire_candidates in localStorage for any assigned candidates
+        const existingCands = (() => {
+          try {
+            const raw = localStorage.getItem('intellihire_candidates');
+            if (raw !== null) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+          } catch {}
+          return INITIAL_CANDIDATES;
+        })();
+
+        let nextCands = [...existingCands];
+        createdSlots.forEach(s => {
+          if (s.assignedCandidate && s.assignedCandidate.name) {
+            const candName = s.assignedCandidate.name.trim();
+            const lower = candName.toLowerCase();
+            const idx = nextCands.findIndex(c => (c.name || '').trim().toLowerCase() === lower);
+            if (idx >= 0) {
+              nextCands[idx] = { ...nextCands[idx], status: 'ALLOCATED' };
+            } else {
+              nextCands.unshift({
+                id: s.assignedCandidate.id || `APP-${Date.now()}`,
+                name: candName,
+                score: s.assignedCandidate.score || 85,
+                status: 'ALLOCATED',
+                jobPosition: s.assignedCandidate.jobPosition || s.assignedCandidate.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
+                role: s.assignedCandidate.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
+                round: s.round || formData.interviewRound || 'Technical Interview',
+                selected: false,
+              });
+            }
+          }
+        });
+        localStorage.setItem('intellihire_candidates', JSON.stringify(nextCands));
+
+        // Do not force active vacancy into localStorage to avoid filtering Candidate Allocation unexpectedly
+
         syncCandidateAllocations(activePanels);
-        window.dispatchEvent(new Event('intellihire_slots_updated'));
+        window.dispatchEvent(new CustomEvent('intellihire_slots_updated', { detail: { source: 'InterviewTimeSlotManagement' } }));
+        window.dispatchEvent(new Event('storage'));
       } catch (err) {
         console.error('Failed to sync allocation slots to localStorage:', err);
       }
@@ -1422,17 +1673,12 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 }}
               >
                 <Calendar size={16} />
-                Time Slot Management
+                Time Slots
               </button>
 
               <button
                 type="button"
-                onClick={() => navigate('/recruiter/interviews/allocation', {
-                  state: {
-                    selectedVacancy: formData.jobPosition || positionFilter,
-                    selectedRound: formData.interviewRound,
-                  }
-                })}
+                onClick={() => navigate('/recruiter/interviews/allocation')}
                 style={{
                   backgroundColor: '#1E222D',
                   color: '#FFFFFF',
@@ -1696,6 +1942,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         onChange={(e) => {
                           handleFieldChange(e);
                           setPositionFilter(e.target.value);
+                          setSelectedCandidates([]);
+                          setSelectedSlotKey(null);
+                          setSelectedSlotId(null);
+                          setAutoAssignSummary(null);
                         }}
                         className="form-control"
                         style={{ fontSize: '0.84rem', backgroundColor: '#16171F', color: '#FFFFFF', width: '100%' }}
@@ -2396,7 +2646,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               let candIdx = 0;
                               const shortlisted = currentShortlisted || [];
                               if (shortlisted.length > 0) {
-                                setPanels(prev => prev.map(p => ({
+                                const nextPanels = panels.map(p => ({
                                   ...p,
                                   slots: p.slots.map(s => {
                                     if (s.assignedCandidate) return s;
@@ -2404,7 +2654,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                     candIdx++;
                                     return { ...s, assignedCandidate: c };
                                   })
-                                })));
+                                }));
+                                setPanels(nextPanels);
+                                syncCandidateAllocations(nextPanels);
                                 setToast({ type: 'success', message: 'Auto-assigned candidates across configured panels.' });
                               }
                             }
@@ -2481,9 +2733,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   const c = s.assignedCandidate;
                                   return (
                                     <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', paddingBottom: '6px', borderBottom: sIdx < p.slots.length - 1 ? '1px solid #2A2C38' : 'none' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9599A6', minWidth: '120px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9599A6', minWidth: '150px' }}>
                                         <Clock size={12} />
-                                        <span>{formatTime(s.startTime || '09:00')}</span>
+                                        <span>{formatTime(s.startTime || '09:00')} – {formatTime(s.endTime || getEndTime(s.startTime || '09:00'))}</span>
                                       </div>
                                       
                                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2799,10 +3051,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               </div>
                             </div>
                             
-                            <div style={{ display: 'grid', gridTemplateColumns: '32px 0.85fr 1.25fr 1fr 0.85fr 0.5fr 0.5fr 36px', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '32px 0.8fr 1.6fr 0.9fr 0.8fr 0.45fr 0.45fr 36px', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
                               <div></div>
                               <div>Date</div>
-                              <div>Time</div>
+                              <div>Time Period</div>
                               <div>Panel</div>
                               <div>Type</div>
                               <div style={{ textAlign: 'center' }}>Cap.</div>
@@ -2847,7 +3099,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                     return `${String(h).padStart(2, '0')}:${min} ${p2}`;
                                   };
                                   return (
-                                    <div key={slotKey} style={{ display: 'grid', gridTemplateColumns: '32px 0.85fr 1.25fr 1fr 0.85fr 0.5fr 0.5fr 36px', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38', backgroundColor: isSelected ? 'rgba(240, 185, 11, 0.05)' : 'transparent', opacity: isPast ? 0.45 : 1 }}>
+                                    <div key={slotKey} style={{ display: 'grid', gridTemplateColumns: '32px 0.8fr 1.6fr 0.9fr 0.8fr 0.45fr 0.45fr 36px', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38', backgroundColor: isSelected ? 'rgba(240, 185, 11, 0.05)' : 'transparent', opacity: isPast ? 0.45 : 1 }}>
                                       <div>
                                         <input 
                                           type="radio" 
@@ -2863,16 +3115,16 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                         />
                                       </div>
                                       <div style={{ color: '#FFFFFF', fontSize: '0.85rem', fontWeight: 600 }}>{formatSlotDateShort(slot.date)}</div>
-                                      <div style={{ color: '#FFFFFF', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      <div style={{ color: '#FFFFFF', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                                         <Clock size={12} style={{ color: '#9599A6' }} />
-                                        <span>{formatTimeAmPm(slot.startTime)}</span>
+                                        <span>{formatTimeAmPm(slot.startTime)} – {formatTimeAmPm(slot.endTime || getEndTime(slot.startTime))}</span>
                                         {isPast && (
                                           <span style={{ marginLeft: '4px', color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
                                             Past
                                           </span>
                                         )}
                                       </div>
-                                      <div style={{ color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 600 }}>{slot.panelActualName || `Panel ${slot.panelNo}`}</div>
+                                      <div style={{ color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 600 }}>{formatPanelDisplayName(slot.panelActualName || `Panel ${slot.panelNo}`)}</div>
                                       <div>
                                         <span style={{ 
                                           backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)', 
@@ -2977,49 +3229,47 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                                       
                                                       const selectedCand = allShortlisted.find(c => c.name === newCandName) || null;
                                                       
-                                                      setPanels(prevPanels => {
-                                                        let oldSlotId = null;
-                                                        let oldPanelId = null;
-                                                        if (selectedCand) {
-                                                          prevPanels.forEach(p => {
-                                                            p.slots.forEach(s => {
-                                                              if (s.assignedCandidate && s.assignedCandidate.name === newCandName) {
-                                                                oldSlotId = s.id;
-                                                                oldPanelId = p.id;
-                                                              }
-                                                            });
-                                                          });
-                                                        }
-
-                                                        const currentCand = match.candidate;
-                                                        const targetPanelId = match.slot.panelNo;
-                                                        const targetSlotId = match.slot.id;
-
-                                                        const newPanels = prevPanels.map(p => ({
-                                                          ...p,
-                                                          slots: p.slots.map(s => {
-                                                            if (p.id === targetPanelId && s.id === targetSlotId) {
-                                                              return { ...s, assignedCandidate: selectedCand };
-                                                            }
-                                                            if (oldSlotId && p.id === oldPanelId && s.id === oldSlotId) {
-                                                              return { ...s, assignedCandidate: currentCand };
-                                                            }
-                                                            return s;
-                                                          })
-                                                        }));
-                                                        
-                                                        let newSummary = [];
-                                                        newPanels.forEach(p => {
+                                                      let oldSlotId = null;
+                                                      let oldPanelId = null;
+                                                      if (selectedCand) {
+                                                        panels.forEach(p => {
                                                           p.slots.forEach(s => {
-                                                            if (s.assignedCandidate) {
-                                                              newSummary.push({ candidate: s.assignedCandidate, slot: { ...s, panelNo: p.id }, panelName: p.name });
+                                                            if (s.assignedCandidate && s.assignedCandidate.name === newCandName) {
+                                                              oldSlotId = s.id;
+                                                              oldPanelId = p.id;
                                                             }
                                                           });
                                                         });
-                                                        setAutoAssignSummary(newSummary);
-                                                        
-                                                        return newPanels;
+                                                      }
+
+                                                      const currentCand = match.candidate;
+                                                      const targetPanelId = match.slot.panelNo;
+                                                      const targetSlotId = match.slot.id;
+
+                                                      const newPanels = panels.map(p => ({
+                                                        ...p,
+                                                        slots: p.slots.map(s => {
+                                                          if (p.id === targetPanelId && s.id === targetSlotId) {
+                                                            return { ...s, assignedCandidate: selectedCand };
+                                                          }
+                                                          if (oldSlotId && p.id === oldPanelId && s.id === oldSlotId) {
+                                                            return { ...s, assignedCandidate: currentCand };
+                                                          }
+                                                          return s;
+                                                        })
+                                                      }));
+                                                      
+                                                      let newSummary = [];
+                                                      newPanels.forEach(p => {
+                                                        p.slots.forEach(s => {
+                                                          if (s.assignedCandidate) {
+                                                            newSummary.push({ candidate: s.assignedCandidate, slot: { ...s, panelNo: p.id }, panelName: p.name });
+                                                          }
+                                                        });
                                                       });
+                                                      setAutoAssignSummary(newSummary);
+                                                      setPanels(newPanels);
+                                                      syncCandidateAllocations(newPanels);
                                                     }}
                                                     style={{
                                                       backgroundColor: 'transparent',
@@ -3061,7 +3311,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                                 {match.slot ? (
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FFFFFF', fontSize: '0.8rem' }}>
                                                     <Clock size={14} style={{ color: '#F0B90B' }} />
-                                                    <span>{formatTime(match.slot.startTime || '09:00 AM')}</span>
+                                                    <span>{formatTime(match.slot.startTime || '09:00 AM')} – {formatTime(match.slot.endTime || getEndTime(match.slot.startTime || '09:00 AM'))}</span>
                                                   </div>
                                                 ) : (
                                                   <span style={{ color: '#EF4444' }}>-</span>
@@ -3394,46 +3644,6 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   </h4>
                   <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
                     Schedule and conduct both recorded and live video Interviews with Candidates, Recruiters and Interviewers.
-                  </p>
-                </div>
-              </div>
-
-              {/* Choice 3: Log an Interview */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('Log')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid #2A2C38',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
-                    color: '#F0B90B',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <ClipboardList size={24} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                    Log an Interview
-                  </h4>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Log Interview data that had happened in the past or spontaneously.
                   </p>
                 </div>
               </div>

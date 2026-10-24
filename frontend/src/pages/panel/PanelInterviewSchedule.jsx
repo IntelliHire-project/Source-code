@@ -20,12 +20,19 @@ import {
   Sparkles,
   ArrowLeft,
   Users,
+  Star,
+  Award,
+  ClipboardCheck,
+  Lock,
+  Building2,
 } from 'lucide-react';
 import {
   getInterviewSlots,
+  saveInterviewSlots,
   getPanelMembers,
   submitRescheduleRequest,
   generateGoogleCalendarLink,
+  isPastOrToday,
 } from '../../services/interviewService';
 import TopBar from '../../components/TopBar/TopBar';
 import RecruiterSidebar from '../../components/common/RecruiterSidebar';
@@ -44,7 +51,7 @@ export default function PanelInterviewSchedule() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [panelMembers, setPanelMembers] = useState([]);
-  const [selectedPanelistId, setSelectedPanelistId] = useState('');
+  const [selectedPanelistId, setSelectedPanelistId] = useState('ALL');
   const [slots, setSlots] = useState([]);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [toastMessage, setToastMessage] = useState(null);
@@ -64,14 +71,34 @@ export default function PanelInterviewSchedule() {
   ]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Load data on mount
+  // Evaluation & Feedback Modal State
+  const [evalModalOpen, setEvalModalOpen] = useState(false);
+  const [evalSlot, setEvalSlot] = useState(null);
+  const [evalScore, setEvalScore] = useState(4);
+  const [evalStrengths, setEvalStrengths] = useState('');
+  const [evalImprovements, setEvalImprovements] = useState('');
+  const [evalRecommendation, setEvalRecommendation] = useState('HIRE');
+
+  // Load data on mount & listen to live allocation updates
   useEffect(() => {
     const loadedPanelists = getPanelMembers();
     setPanelMembers(loadedPanelists);
-    if (loadedPanelists.length > 0) {
-      setSelectedPanelistId(loadedPanelists[0].id);
-    }
+    setSelectedPanelistId('ALL');
     refreshSlots();
+
+    const handleSync = () => {
+      refreshSlots();
+    };
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('intellihire_slots_updated', handleSync);
+    window.addEventListener('focus', handleSync);
+
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('intellihire_slots_updated', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
   }, []);
 
   const refreshSlots = () => {
@@ -79,20 +106,35 @@ export default function PanelInterviewSchedule() {
     setSlots(allSlots);
   };
 
-  const currentPanelist = useMemo(() => {
-    return panelMembers.find((p) => p.id === selectedPanelistId) || panelMembers[0];
-  }, [panelMembers, selectedPanelistId]);
+  const isAllView = selectedPanelistId === 'ALL';
 
-  // Filter slots for the active panelist
+  const currentPanelist = useMemo(() => {
+    if (isAllView) {
+      return {
+        id: 'ALL',
+        name: 'All Panel Members',
+        role: 'Full Recruitment Schedule Overview',
+        department: 'All Departments (Engineering & HR)',
+        avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop&q=80',
+      };
+    }
+    return panelMembers.find((p) => p.id === selectedPanelistId) || panelMembers[0];
+  }, [panelMembers, selectedPanelistId, isAllView]);
+
+  // Filter slots for the active panelist (or show ALL slots if isAllView)
   const panelistSlots = useMemo(() => {
+    if (isAllView) return slots;
     if (!currentPanelist) return [];
     return slots.filter((slot) => slot.panelMember?.id === currentPanelist.id || slot.panelMember?.email === currentPanelist.email);
-  }, [slots, currentPanelist]);
+  }, [slots, currentPanelist, isAllView]);
 
   // Sub-filter tabs
   const filteredSlots = useMemo(() => {
     if (activeFilter === 'UPCOMING') {
       return panelistSlots.filter((s) => s.status === 'SCHEDULED' || s.status === 'RESCHEDULED');
+    }
+    if (activeFilter === 'COMPLETED') {
+      return panelistSlots.filter((s) => s.status === 'COMPLETED');
     }
     if (activeFilter === 'PENDING_RESCHEDULE') {
       return panelistSlots.filter((s) => s.status === 'RESCHEDULE_REQUESTED');
@@ -104,8 +146,9 @@ export default function PanelInterviewSchedule() {
   const stats = useMemo(() => {
     const total = panelistSlots.length;
     const upcoming = panelistSlots.filter((s) => s.status === 'SCHEDULED' || s.status === 'RESCHEDULED').length;
+    const completed = panelistSlots.filter((s) => s.status === 'COMPLETED').length;
     const pendingReschedules = panelistSlots.filter((s) => s.status === 'RESCHEDULE_REQUESTED').length;
-    return { total, upcoming, pendingReschedules };
+    return { total, upcoming, completed, pendingReschedules };
   }, [panelistSlots]);
 
   const showToast = (msg) => {
@@ -215,12 +258,68 @@ export default function PanelInterviewSchedule() {
     setSubmitting(false);
   };
 
+  // Open Evaluation Modal
+  const handleOpenEvaluationModal = (slot) => {
+    // If it's not already evaluated and date is upcoming (in future), disallow
+    if (!slot.evaluation && !isPastOrToday(slot.interviewDate)) {
+      showToast(`Evaluation is locked. This interview is scheduled for ${slot.displayDate || slot.interviewDate}. Evaluations unlock on the interview date.`);
+      return;
+    }
+
+    setEvalSlot(slot);
+    if (slot.evaluation) {
+      setEvalScore(slot.evaluation.score || 4);
+      setEvalStrengths(slot.evaluation.strengths || '');
+      setEvalImprovements(slot.evaluation.improvements || '');
+      setEvalRecommendation(slot.evaluation.recommendation || 'HIRE');
+    } else {
+      setEvalScore(4);
+      setEvalStrengths('');
+      setEvalImprovements('');
+      setEvalRecommendation('HIRE');
+    }
+    setEvalModalOpen(true);
+  };
+
+  const handleSubmitEvaluation = (e) => {
+    e.preventDefault();
+    if (!evalSlot) return;
+
+    if (!isPastOrToday(evalSlot.interviewDate)) {
+      showToast(`Cannot submit evaluation for an upcoming interview. The interview session must take place first.`);
+      return;
+    }
+
+    const updatedSlots = slots.map((s) => {
+      if (s.id === evalSlot.id) {
+        return {
+          ...s,
+          status: 'COMPLETED',
+          evaluation: {
+            score: evalScore,
+            strengths: evalStrengths,
+            improvements: evalImprovements,
+            recommendation: evalRecommendation,
+            evaluatedBy: currentPanelist?.name || 'Panel Member',
+            submittedAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          },
+        };
+      }
+      return s;
+    });
+
+    setSlots(updatedSlots);
+    saveInterviewSlots(updatedSlots);
+    setEvalModalOpen(false);
+    showToast(`Evaluation recorded successfully for ${evalSlot.candidate?.name}!`);
+  };
+
   return (
     <div className="create-vacancy">
       <RecruiterSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        activeItem="Panel Schedule & Reschedules"
+        activeItem="Panel Schedule"
       />
       
       <div className="create-vacancy__main">
@@ -265,7 +364,7 @@ export default function PanelInterviewSchedule() {
                 }}
               >
                 <Calendar size={16} />
-                Time Slot Management
+                Time Slots
               </button>
 
               <button
@@ -306,21 +405,45 @@ export default function PanelInterviewSchedule() {
                 }}
               >
                 <ShieldCheck size={16} />
-                <span>Panel Schedule & Reschedules</span>
+                <span>Panel Schedule</span>
               </button>
             </div>
           </div>
-        {/* Top Hero Banner */}
-        <div className="panel-hero-card">
-          <div className="panel-hero-info">
-            <h1>
-              <ShieldCheck className="w-7 h-7 text-accent" style={{ color: 'var(--accent)' }} />
+          {/* ── Page Heading Block (Separated exactly like Allocation UI) ── */}
+          <div style={{ marginBottom: '20px' }}>
+            <h1 className="interview-page-title" style={{ margin: '0 0 6px 0', fontSize: '1.65rem', fontWeight: 700, color: '#FFFFFF' }}>
               Panel Member Interview Portal
             </h1>
-            <p>
+            <p className="page-subtitle" style={{ margin: 0, fontSize: '0.88rem', color: '#9599A6' }}>
               View your assigned technical rounds, join live video sessions, and submit reschedule requests when conflicts arise.
             </p>
           </div>
+
+          {/* Top Panel Workspace & Switcher Banner */}
+          <div className="panel-hero-card" style={{ padding: '16px 22px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                background: 'rgba(240, 185, 11, 0.12)',
+                border: '1px solid rgba(240, 185, 11, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#F0B90B'
+              }}>
+                <Calendar size={20} />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.74rem', color: '#F0B90B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '2px' }}>
+                  Current Panel Workspace
+                </span>
+                <span style={{ fontSize: '0.88rem', color: '#D1D5DB' }}>
+                  Live video sessions, schedule overview & evaluation status
+                </span>
+              </div>
+            </div>
 
           {/* Panelist Switcher (Allows testing different interviewers) */}
           <div className="panel-selector-wrap">
@@ -343,6 +466,7 @@ export default function PanelInterviewSchedule() {
                 value={selectedPanelistId}
                 onChange={(e) => setSelectedPanelistId(e.target.value)}
               >
+                <option value="ALL">👥 All Panel Members (View All)</option>
                 {panelMembers.map((pm) => (
                   <option key={pm.id} value={pm.id}>
                     {pm.name} ({pm.role.split('&')[0]})
@@ -353,53 +477,26 @@ export default function PanelInterviewSchedule() {
           </div>
         </div>
 
-        {/* Quick Stats Grid */}
-        <div className="panel-stats-grid">
-          <div className="panel-stat-card">
-            <div className="panel-stat-icon blue">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div className="panel-stat-info">
-              <span>Total Assigned</span>
-              <h2>{stats.total}</h2>
-            </div>
-          </div>
-
-          <div className="panel-stat-card">
-            <div className="panel-stat-icon green">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <div className="panel-stat-info">
-              <span>Upcoming Confirmed</span>
-              <h2>{stats.upcoming}</h2>
-            </div>
-          </div>
-
-          <div className="panel-stat-card">
-            <div className="panel-stat-icon gold">
-              <RefreshCw className="w-5 h-5" />
-            </div>
-            <div className="panel-stat-info">
-              <span>Reschedule Pending</span>
-              <h2>{stats.pendingReschedules}</h2>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter Tabs Bar */}
-        <div className="panel-tabs-bar">
+        {/* Filter Tabs Bar (Integrated with active counts & review action) */}
+        <div className="panel-tabs-bar" style={{ marginTop: '8px' }}>
           <div className="panel-tab-group">
             <button
               className={`panel-tab-btn ${activeFilter === 'ALL' ? 'active' : ''}`}
               onClick={() => setActiveFilter('ALL')}
             >
-              All Interviews <span className="tab-badge">{panelistSlots.length}</span>
+              All Sessions <span className="tab-badge">{panelistSlots.length}</span>
             </button>
             <button
               className={`panel-tab-btn ${activeFilter === 'UPCOMING' ? 'active' : ''}`}
               onClick={() => setActiveFilter('UPCOMING')}
             >
-              Confirmed Active <span className="tab-badge">{stats.upcoming}</span>
+              Upcoming Confirmed <span className="tab-badge">{stats.upcoming}</span>
+            </button>
+            <button
+              className={`panel-tab-btn ${activeFilter === 'COMPLETED' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('COMPLETED')}
+            >
+              Completed & Evaluated <span className="tab-badge">{stats.completed}</span>
             </button>
             <button
               className={`panel-tab-btn ${activeFilter === 'PENDING_RESCHEDULE' ? 'active' : ''}`}
@@ -409,10 +506,37 @@ export default function PanelInterviewSchedule() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
+              type="button"
               className="btn-modal-cancel"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: stats.pendingReschedules > 0 ? 'rgba(240, 185, 11, 0.15)' : '#16171F',
+                color: stats.pendingReschedules > 0 ? '#F0B90B' : '#FFFFFF',
+                border: stats.pendingReschedules > 0 ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+              onClick={() => navigate('/recruiter/interviews', { state: { openRescheduleModal: true } })}
+              title="Review, approve, or adjust reschedule requests in Recruiter Hub"
+            >
+              <RefreshCw size={14} />
+              <span>Review Reschedule Requests</span>
+              {stats.pendingReschedules > 0 && (
+                <span style={{ backgroundColor: '#F0B90B', color: '#000', borderRadius: '10px', padding: '1px 6px', fontSize: '0.72rem', fontWeight: 800 }}>
+                  {stats.pendingReschedules}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="btn-modal-cancel"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem' }}
               onClick={() => navigate('/recruiter/interviews')}
             >
               <ArrowLeft className="w-4 h-4" /> Recruiter Hub
@@ -451,10 +575,16 @@ export default function PanelInterviewSchedule() {
                 location: slot.meetingLocation,
               });
 
+              const statusClass = slot.status === 'COMPLETED'
+                ? 'status-completed'
+                : isPendingReschedule
+                ? 'status-reschedule-requested'
+                : 'status-scheduled';
+
               return (
                 <div
                   key={slot.id}
-                  className={`panel-interview-card ${isPendingReschedule ? 'pending-reschedule' : ''} ${isRescheduled ? 'rescheduled-done' : ''}`}
+                  className={`panel-interview-card ${statusClass}`}
                 >
                   {/* Left: Candidate & Position */}
                   <div className="card-left">
@@ -473,19 +603,22 @@ export default function PanelInterviewSchedule() {
                       <div className="role-tag-row">
                         <span className="role-badge">{slot.jobPosition}</span>
                         <span className="round-badge">{slot.round}</span>
-                        {isPendingReschedule && (
-                          <span className="status-tag reschedule_requested">
-                            <Clock className="w-3 h-3" /> Reschedule Pending
+                        {isAllView && slot.panelMember && (
+                          <span className="panelist-chip">
+                            <User size={12} /> {slot.panelMember.name}
                           </span>
                         )}
-                        {isRescheduled && (
-                          <span className="status-tag rescheduled">
-                            <CheckCircle2 className="w-3 h-3" /> Rescheduled
+                        {slot.status === 'COMPLETED' ? (
+                          <span className="status-tag status-tag-completed">
+                            <CheckCircle2 size={12} /> Evaluated ({slot.evaluation?.recommendation || 'HIRE'})
                           </span>
-                        )}
-                        {!isPendingReschedule && !isRescheduled && (
-                          <span className="status-tag scheduled">
-                            <CheckCircle2 className="w-3 h-3" /> Confirmed
+                        ) : isPendingReschedule ? (
+                          <span className="status-tag status-tag-pending">
+                            <Clock size={12} /> Reschedule Pending
+                          </span>
+                        ) : (
+                          <span className="status-tag status-tag-confirmed">
+                            <CheckCircle2 size={12} /> Confirmed
                           </span>
                         )}
                       </div>
@@ -496,55 +629,135 @@ export default function PanelInterviewSchedule() {
                     </div>
                   </div>
 
-                  {/* Middle: Timing Details */}
-                  <div className="card-timing">
-                    <div className="timing-item date">
-                      <Calendar className="w-4 h-4" />
-                      <span>{slot.displayDate || slot.interviewDate}</span>
+                  {/* Middle: Standardized Timing Box */}
+                  <div className="card-timing-box">
+                    <div className="timing-row date-row">
+                      <Calendar size={14} className="timing-icon text-accent" />
+                      <span className="timing-date-text">{slot.displayDate || slot.interviewDate}</span>
                     </div>
-                    <div className="timing-item">
-                      <Clock className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                      <span>{slot.startTime} - {slot.endTime}</span>
+                    <div className="timing-row time-row">
+                      <Clock size={13} className="timing-icon text-muted" />
+                      <span className="timing-time-text">{slot.startTime} – {slot.endTime}</span>
+                    </div>
+                    <div className="timing-mode-row">
+                      <span className={`timing-mode-pill ${slot.interviewType === 'Physical' ? 'mode-physical' : 'mode-online'}`}>
+                        {slot.interviewType === 'Physical' ? '🏢 In-person Suite 102' : '🌐 Online Meet'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Right: Actions */}
-                  <div className="card-actions">
-                    {/* Google Meet Link */}
-                    {slot.meetingLocation && (
-                      <a
-                        href={slot.meetingLocation}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn-meet-join"
-                      >
-                        <Video className="w-4 h-4" /> Join Call
-                      </a>
-                    )}
-
-                    {/* Google Calendar Link */}
-                    <a
-                      href={gcalUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-gcal"
-                      title="Add to Google Calendar"
-                    >
-                      <CalendarPlus className="w-4 h-4" />
-                    </a>
-
-                    {/* Request Reschedule Trigger */}
-                    {isPendingReschedule ? (
-                      <button className="btn-reschedule-trigger pending" disabled>
-                        <Clock className="w-4 h-4" /> Awaiting HR Review
-                      </button>
+                  {/* Right: Redesigned Premium Actions Box */}
+                  <div className="card-actions-box">
+                    {slot.status === 'COMPLETED' ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-primary-action-cta view-eval"
+                          onClick={() => handleOpenEvaluationModal(slot)}
+                        >
+                          <Award size={15} />
+                          <span>View Evaluation ({slot.evaluation?.recommendation || 'HIRE'})</span>
+                        </button>
+                        <div className="card-actions-subrow">
+                          <span className="subrow-status-pill completed">
+                            <CheckCircle2 size={12} /> Session Concluded &amp; Evaluated
+                          </span>
+                        </div>
+                      </>
+                    ) : isPendingReschedule ? (
+                      <>
+                        <div className="btn-primary-action-cta reschedule-pending">
+                          <Clock size={15} />
+                          <span>Reschedule Pending Review</span>
+                        </div>
+                        <div className="card-actions-subrow">
+                          <button
+                            type="button"
+                            className="subrow-action-btn reschedule"
+                            onClick={() => navigate('/recruiter/interviews', { state: { openRescheduleModal: true } })}
+                            style={{ width: '100%' }}
+                            title="Review or Approve in Recruiter Hub"
+                          >
+                            <RefreshCw size={12} />
+                            <span>Review / Approve in Recruiter Hub</span>
+                          </button>
+                        </div>
+                      </>
+                    ) : isPastOrToday(slot.interviewDate) ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-primary-action-cta eval-ready"
+                          onClick={() => handleOpenEvaluationModal(slot)}
+                        >
+                          <ClipboardCheck size={15} />
+                          <span>Complete &amp; Evaluate</span>
+                        </button>
+                        <div className="card-actions-subrow">
+                          {slot.meetingLocation && (
+                            <a
+                              href={slot.meetingLocation}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="subrow-action-btn"
+                            >
+                              <Video size={13} /> Meeting Link
+                            </a>
+                          )}
+                          <a
+                            href={gcalUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="subrow-action-btn"
+                            title="Add to Google Calendar"
+                          >
+                            <CalendarPlus size={13} /> Calendar
+                          </a>
+                        </div>
+                      </>
                     ) : (
-                      <button
-                        className="btn-reschedule-trigger"
-                        onClick={() => handleOpenRescheduleModal(slot)}
-                      >
-                        <RefreshCw className="w-4 h-4" /> Request Reschedule
-                      </button>
+                      <>
+                        {slot.interviewType === 'Physical' ? (
+                          <div className="btn-primary-action-cta in-person" title={slot.meetingLocation || 'Innovation Hub — Suite 102'}>
+                            <Building2 size={15} />
+                            <span>{slot.meetingLocation || 'Innovation Hub — Suite 102'}</span>
+                          </div>
+                        ) : (
+                          <a
+                            href={slot.meetingLocation}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn-primary-action-cta join-call"
+                          >
+                            <Video size={15} />
+                            <span>Join Video Call</span>
+                            <ExternalLink size={13} style={{ marginLeft: 'auto', opacity: 0.8 }} />
+                          </a>
+                        )}
+                        <div className="card-actions-subrow">
+                          <a
+                            href={gcalUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="subrow-action-btn"
+                            title="Add to Google Calendar"
+                          >
+                            <CalendarPlus size={13} /> Calendar
+                          </a>
+                          <button
+                            type="button"
+                            className="subrow-action-btn reschedule"
+                            onClick={() => handleOpenRescheduleModal(slot)}
+                            title="Request Reschedule"
+                          >
+                            <RefreshCw size={12} /> Reschedule
+                          </button>
+                        </div>
+                        <div className="actions-footnote">
+                          <Lock size={11} />
+                          <span>Evaluation unlocks on {slot.displayDate || slot.interviewDate}</span>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -692,6 +905,196 @@ export default function PanelInterviewSchedule() {
                 >
                   <Send className="w-4 h-4" />
                   {submitting ? 'Submitting...' : 'Send Reschedule Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Interview Evaluation & Feedback ── */}
+      {evalModalOpen && evalSlot && (
+        <div className="reschedule-modal-overlay" onClick={() => setEvalModalOpen(false)}>
+          <div className="reschedule-modal-card" style={{ maxWidth: '620px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-wrap">
+                <div className="modal-title-icon" style={{ backgroundColor: 'rgba(240, 185, 11, 0.15)', color: '#F0B90B' }}>
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2>Interview Evaluation & Feedback</h2>
+                  <p>Log evaluation score and hiring recommendation for candidate</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-modal-close"
+                onClick={() => setEvalModalOpen(false)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitEvaluation}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Upcoming Session Lock Warning */}
+                {!isPastOrToday(evalSlot.interviewDate) && (
+                  <div style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    color: '#F87171',
+                    fontSize: '0.86rem',
+                  }}>
+                    <Lock size={18} style={{ flexShrink: 0 }} />
+                    <div>
+                      <strong style={{ display: 'block', marginBottom: '2px' }}>Evaluation Locked for Upcoming Session</strong>
+                      <span>This interview is scheduled for {evalSlot.displayDate || evalSlot.interviewDate}. You cannot submit an evaluation before the session date.</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Candidate & Slot Banner */}
+                <div style={{ backgroundColor: '#1E222D', border: '1px solid #2A2C38', borderRadius: '10px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#FFFFFF', fontSize: '1rem', fontWeight: 700 }}>
+                      {evalSlot.candidate?.name}
+                    </h4>
+                    <span style={{ fontSize: '0.8rem', color: '#9599A6' }}>
+                      {evalSlot.jobPosition} • {evalSlot.round}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#F0B90B', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>Interviewer</span>
+                    <span style={{ fontSize: '0.85rem', color: '#FFFFFF', fontWeight: 600 }}>{evalSlot.panelMember?.name || currentPanelist.name}</span>
+                  </div>
+                </div>
+
+                {/* Score Selector (1-5 Stars / Rating) */}
+                <div className="form-field-group">
+                  <label className="form-field-label">Overall Rating / Score (1 - 5 Stars)</label>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {[1, 2, 3, 4, 5].map((starVal) => (
+                      <button
+                        type="button"
+                        key={starVal}
+                        disabled={!isPastOrToday(evalSlot.interviewDate)}
+                        onClick={() => setEvalScore(starVal)}
+                        style={{
+                          backgroundColor: evalScore >= starVal ? 'rgba(240, 185, 11, 0.2)' : '#16171F',
+                          border: `1px solid ${evalScore >= starVal ? '#F0B90B' : '#2A2C38'}`,
+                          color: evalScore >= starVal ? '#F0B90B' : '#6B7280',
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontWeight: 700,
+                          cursor: !isPastOrToday(evalSlot.interviewDate) ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        <Star size={16} fill={evalScore >= starVal ? '#F0B90B' : 'none'} />
+                        {starVal}
+                      </button>
+                    ))}
+                    <span style={{ fontSize: '0.85rem', color: '#F0B90B', fontWeight: 600, marginLeft: '6px' }}>
+                      {evalScore === 5 ? 'Exceptional' : evalScore === 4 ? 'Strong' : evalScore === 3 ? 'Average' : 'Below Expectations'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Strengths & Observations */}
+                <div className="form-field-group">
+                  <label className="form-field-label">Key Technical Strengths & Observations</label>
+                  <textarea
+                    className="form-textarea"
+                    rows={3}
+                    placeholder="Candidate demonstrated deep knowledge of architecture, clean coding practices, and team communication..."
+                    value={evalStrengths}
+                    onChange={(e) => setEvalStrengths(e.target.value)}
+                    disabled={!isPastOrToday(evalSlot.interviewDate)}
+                    required
+                  />
+                </div>
+
+                {/* Areas for Improvement */}
+                <div className="form-field-group">
+                  <label className="form-field-label">Areas for Improvement</label>
+                  <textarea
+                    className="form-textarea"
+                    rows={2}
+                    placeholder="Could improve in database indexing concepts and automated testing strategies..."
+                    value={evalImprovements}
+                    onChange={(e) => setEvalImprovements(e.target.value)}
+                    disabled={!isPastOrToday(evalSlot.interviewDate)}
+                  />
+                </div>
+
+                {/* Recommendation */}
+                <div className="form-field-group">
+                  <label className="form-field-label">Final Recommendation</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                    {[
+                      { key: 'HIRE', label: 'Strong Hire / Pass', color: '#4ADE80', bg: 'rgba(34, 197, 94, 0.15)' },
+                      { key: 'HOLD', label: 'Hold / Review', color: '#F0B90B', bg: 'rgba(240, 185, 11, 0.15)' },
+                      { key: 'REJECT', label: 'Do Not Recommend', color: '#F87171', bg: 'rgba(239, 68, 68, 0.15)' },
+                    ].map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.key}
+                        disabled={!isPastOrToday(evalSlot.interviewDate)}
+                        onClick={() => setEvalRecommendation(opt.key)}
+                        style={{
+                          backgroundColor: evalRecommendation === opt.key ? opt.bg : '#16171F',
+                          border: `1px solid ${evalRecommendation === opt.key ? opt.color : '#2A2C38'}`,
+                          color: evalRecommendation === opt.key ? opt.color : '#9599A6',
+                          padding: '10px 8px',
+                          borderRadius: '8px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          cursor: !isPastOrToday(evalSlot.interviewDate) ? 'not-allowed' : 'pointer',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setEvalModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!isPastOrToday(evalSlot.interviewDate)}
+                  className="btn-modal-submit"
+                  style={{
+                    backgroundColor: !isPastOrToday(evalSlot.interviewDate) ? '#2A2C38' : '#F0B90B',
+                    color: !isPastOrToday(evalSlot.interviewDate) ? '#6B7280' : '#000000',
+                    cursor: !isPastOrToday(evalSlot.interviewDate) ? 'not-allowed' : 'pointer',
+                    fontWeight: 700,
+                  }}
+                >
+                  {!isPastOrToday(evalSlot.interviewDate) ? (
+                    <>
+                      <Lock className="w-4 h-4" /> Locked Until Session Date
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" /> Save Evaluation
+                    </>
+                  )}
                 </button>
               </div>
             </form>

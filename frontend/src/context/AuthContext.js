@@ -5,6 +5,7 @@ import {
   getUser,
   saveAuthSession,
   clearAuthSession,
+  clearRecruiterInterviewSession,
   isTokenExpired,
 } from '../services/storage';
 
@@ -111,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await apiLogin(email, password);
       if (data.token && data.user) {
+        clearRecruiterInterviewSession();
         saveAuthSession(data.token, data.user, rememberDevice);
         setUser(data.user);
       }
