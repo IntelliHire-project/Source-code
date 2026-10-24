@@ -52,12 +52,12 @@ const getInitialProfile = (user) => {
       ? {
           name: 'Alex_Rivera_CV_2024_Final.pdf',
           meta: 'Uploaded on May 12, 2024',
-          note: 'PDF up to 10MB',
+          note: 'PDF up to 5MB',
         }
       : {
           name: '',
           meta: '',
-          note: 'PDF up to 10MB',
+          note: 'PDF up to 5MB',
         },
     skills: hasCV
       ? ['React', 'TypeScript', 'Node.js', 'Next.js', 'AWS', 'Python', 'Docker', 'GraphQL']
@@ -193,13 +193,13 @@ function CandidateProfilePage({ initialMode = 'view' }) {
               ? {
                   name: candidateData.activeCv.cv_name,
                   meta: `Uploaded on ${new Date(candidateData.activeCv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-                  note: candidateData.activeCv.file_size || 'PDF up to 10MB',
+                  note: candidateData.activeCv.file_size || 'PDF up to 5MB',
                 }
               : (candidateData.cvs && candidateData.cvs.length > 0)
               ? {
                   name: candidateData.cvs[0].cv_name,
                   meta: `Uploaded on ${new Date(candidateData.cvs[0].created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-                  note: candidateData.cvs[0].file_size || 'PDF up to 10MB',
+                  note: candidateData.cvs[0].file_size || 'PDF up to 5MB',
                 }
               : getInitialProfile(user).cv,
           };
@@ -713,7 +713,7 @@ function CandidateProfilePage({ initialMode = 'view' }) {
                     <div className="candidate-upload-dropzone__title">
                       {isUploading ? 'Extracting Data...' : 'Click to upload CV and auto-fill'}
                     </div>
-                    <div className="candidate-upload-dropzone__meta">PDF only (Max 10MB)</div>
+                    <div className="candidate-upload-dropzone__meta">PDF only (Max 5MB)</div>
                   </div>
 
                   <button

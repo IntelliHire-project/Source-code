@@ -50,9 +50,12 @@ module.exports = defineConfig({
 
   projects: [
     {
-      // We only test in Chromium as specified
+      // Use locally installed Google Chrome to avoid downloading external binaries
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+      },
     },
   ],
 
