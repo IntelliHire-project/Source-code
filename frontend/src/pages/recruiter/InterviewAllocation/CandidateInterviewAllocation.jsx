@@ -34,6 +34,7 @@ import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { INTERVIEWS } from '../../../data/interviews';
 import { VACANCIES } from '../../../data/vacancies';
+import { getRescheduleRequests, getEndTime } from '../../../services/interviewService';
 import '../../../style.css';
 import './CandidateInterviewAllocation.css';
 
@@ -50,54 +51,59 @@ export function formatDisplayTime(timeValue) {
   return `${String(normalizedHours).padStart(2, '0')}:${minutes} ${period}`;
 }
 
-// Initial Mock Candidates Data (Compact candidates per role)
+export function formatPanelDisplayName(name) {
+  if (!name) return 'Panel A';
+  return String(name).replace(/\s*\([^)]*\)/g, '').trim() || 'Panel A';
+}
+
+export function formatTimeRange(startTime, endTime) {
+  if (!startTime || startTime === '—') return '—';
+  const startStr = String(startTime).trim();
+  if (startStr.includes('–') || startStr.includes(' - ')) {
+    return startStr;
+  }
+  const formattedStart = formatDisplayTime(startStr);
+  const formattedEnd = endTime ? formatDisplayTime(endTime) : getEndTime(formattedStart);
+  return `${formattedStart} – ${formattedEnd}`;
+}
+
+// Initial Mock Candidates Data (3 allocated by default, 6 shortlisted)
 export const INITIAL_CANDIDATES = [
-  // Senior Software Engineer
+  // 3 candidates allocated by default (match INITIAL_ALLOCATIONS)
   { id: 'APP-001', name: 'Alice Fernando', score: 88, status: 'ALLOCATED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
   { id: 'APP-002', name: 'Kamal Perera', score: 82, status: 'ALLOCATED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-004', name: 'Dinesh Mendis', score: 75, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 73, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
-  // UI/UX Designer
-  { id: 'APP-007', name: 'Ishara Gunasekara', score: 84, status: 'SHORTLISTED', jobPosition: 'UI/UX Designer', role: 'UI/UX Designer', round: 'HR Portfolio Review', selected: false },
-  // QA Automation Engineer
-  { id: 'APP-008', name: 'Malith Senanayake', score: 77, status: 'SHORTLISTED', jobPosition: 'QA Automation Engineer', role: 'QA Automation Engineer', round: 'Technical Interview', selected: false },
-  // Business Analyst
-  { id: 'APP-009', name: 'Tharindu Rathnayake', score: 80, status: 'SHORTLISTED', jobPosition: 'Business Analyst', role: 'Business Analyst', round: 'Technical Interview', selected: false },
-  // Product Manager
-  { id: 'APP-010', name: 'Kavindu Weerasinghe', score: 86, status: 'SHORTLISTED', jobPosition: 'Product Manager', role: 'Product Manager', round: 'Technical Interview', selected: false },
-  // DevOps Lead
-  { id: 'APP-011', name: 'Kasun Wijesinghe', score: 83, status: 'SHORTLISTED', jobPosition: 'DevOps Lead', role: 'DevOps Lead', round: 'Technical Interview', selected: false },
-  // Product Designer
-  { id: 'APP-012', name: 'Sanduni Wickramasinghe', score: 89, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
-  { id: 'APP-013', name: 'Ishara Gunasekara', score: 88, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
-  { id: 'APP-014', name: 'Dinesh Mendis', score: 86, status: 'SHORTLISTED', jobPosition: 'Product Designer', role: 'Product Designer', round: 'Technical Interview', selected: false },
+  { id: 'APP-003', name: 'Nimal Silva', score: 79, status: 'ALLOCATED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  // 6 candidates shortlisted by default
+  { id: 'APP-004', name: 'Dinesh Mendis', score: 76, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-005', name: 'Sanduni Wickramasinghe', score: 74, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-006', name: 'Ishara Gunasekara', score: 72, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-007', name: 'Malith Senanayake', score: 70, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-008', name: 'Tharindu Rathnayake', score: 68, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
+  { id: 'APP-009', name: 'Kasun Wijesinghe', score: 65, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
 ];
 
-// Initial Mock Time Slots Data (1 past slot on 23 Oct to demo validation, remaining future dates in next month Nov 2026)
+// Clean Default Mock Time Slots (6 balanced slots across roles, upcoming November 2026)
 const INITIAL_SLOTS = [
   // Senior Software Engineer
-  { id: 'SLOT-100', dateKey: '2026-10-23', date: '23 Oct 2026', dateShort: '23 Oct', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 1, rem: 1, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', isPast: true },
-  { id: 'SLOT-101', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
-  { id: 'SLOT-102', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '11:00 AM', end: '12:00 PM', type: 'Physical', cap: 2, rem: 1, jobPosition: 'Senior Software Engineer', round: 'System Architecture' },
-  { id: 'SLOT-103', dateKey: '2026-11-05', date: '05 Nov 2026', dateShort: '05 Nov', time: '02:00 PM', end: '03:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
-  { id: 'SLOT-104', dateKey: '2026-11-10', date: '10 Nov 2026', dateShort: '10 Nov', time: '10:00 AM', end: '11:00 AM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'System Architecture' },
-  { id: 'SLOT-105', dateKey: '2026-11-12', date: '12 Nov 2026', dateShort: '12 Nov', time: '03:30 PM', end: '04:30 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview' },
+  { id: 'SLOT-101', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '09:30 AM', end: '10:30 AM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-102', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '02:00 PM', end: '03:00 PM', type: 'Physical', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'HR Portfolio Review', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-103', dateKey: '2026-11-04', date: '04 Nov 2026', dateShort: '04 Nov', time: '11:00 AM', end: '12:00 PM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'System Architecture', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-104', dateKey: '2026-11-05', date: '05 Nov 2026', dateShort: '05 Nov', time: '10:00 AM', end: '11:00 AM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
 
-  // Product Designer
-  { id: 'SLOT-200', dateKey: '2026-10-23', date: '23 Oct 2026', dateShort: '23 Oct', time: '09:00 AM', end: '10:00 AM', type: 'Online', cap: 1, rem: 1, jobPosition: 'Product Designer', round: 'Portfolio Review', isPast: true },
-  { id: 'SLOT-201', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '09:30 AM', end: '10:30 AM', type: 'Online', cap: 2, rem: 1, jobPosition: 'Product Designer', round: 'Portfolio Review' },
-  { id: 'SLOT-202', dateKey: '2026-11-04', date: '04 Nov 2026', dateShort: '04 Nov', time: '01:30 PM', end: '02:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Product Designer', round: 'Portfolio Review' },
-  { id: 'SLOT-203', dateKey: '2026-11-06', date: '06 Nov 2026', dateShort: '06 Nov', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Product Designer', round: 'Portfolio Review' },
+  // Backend Engineer
+  { id: 'SLOT-105', dateKey: '2026-11-06', date: '06 Nov 2026', dateShort: '06 Nov', time: '01:30 PM', end: '02:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Backend Engineer', round: 'API Design & Database', panelName: 'Panel A (Technical Leads)' },
+
+  // UI/UX Designer
+  { id: 'SLOT-106', dateKey: '2026-11-10', date: '10 Nov 2026', dateShort: '10 Nov', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'UI/UX Designer', round: 'Design Portfolio Review', panelName: 'Panel A (Technical Leads)' },
 ];
 
-// Initial Allocation Results Data
+// Initial Allocation Results Data (3 mock allocations matching Panel Interview Schedule)
 export const INITIAL_ALLOCATIONS = [
   {
     candidateId: 'APP-001',
     candidateName: 'Alice Fernando',
     slotId: 'SLOT-101',
-    assignedTime: '09:30 AM',
+    assignedTime: '09:30 AM – 10:30 AM',
     interviewDate: '02 Nov 2026',
     interviewType: 'Online',
     panelName: 'Panel A (Technical Leads)',
@@ -110,8 +116,8 @@ export const INITIAL_ALLOCATIONS = [
     candidateId: 'APP-002',
     candidateName: 'Kamal Perera',
     slotId: 'SLOT-102',
-    assignedTime: '02:00 PM',
-    interviewDate: '06 Nov 2026',
+    assignedTime: '02:00 PM – 03:00 PM',
+    interviewDate: '02 Nov 2026',
     interviewType: 'Physical',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'HR Portfolio Review',
@@ -123,7 +129,7 @@ export const INITIAL_ALLOCATIONS = [
     candidateId: 'APP-003',
     candidateName: 'Nimal Silva',
     slotId: 'SLOT-103',
-    assignedTime: '11:00 AM',
+    assignedTime: '11:00 AM – 12:00 PM',
     interviewDate: '04 Nov 2026',
     interviewType: 'Online',
     panelName: 'Panel A (Technical Leads)',
@@ -133,6 +139,36 @@ export const INITIAL_ALLOCATIONS = [
     score: 79,
   },
 ];
+
+// Clean Storage Version to permanently purge old duplicate test entries and keep single default dataset
+const CLEAN_STORAGE_VERSION = 'v12_fresh_session_defaults';
+
+export const resetToDefaultMockData = () => {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('intellihire_allocations', JSON.stringify(INITIAL_ALLOCATIONS));
+      localStorage.setItem('intellihire_candidates', JSON.stringify(INITIAL_CANDIDATES));
+      localStorage.removeItem('intellihire_custom_slots');
+      localStorage.removeItem('intellihire_interview_slots');
+      localStorage.removeItem('intellihire_active_vacancy');
+      localStorage.removeItem('intellihire_reschedule_requests');
+      localStorage.setItem('intellihire_clean_version', CLEAN_STORAGE_VERSION);
+      sessionStorage.setItem('intellihire_recruiter_session', 'active');
+    }
+  } catch {}
+};
+
+(() => {
+  try {
+    if (typeof window !== 'undefined') {
+      const isNewSession = !sessionStorage.getItem('intellihire_recruiter_session');
+      const isOutdatedVersion = localStorage.getItem('intellihire_clean_version') !== CLEAN_STORAGE_VERSION;
+      if (isNewSession || isOutdatedVersion) {
+        resetToDefaultMockData();
+      }
+    }
+  } catch {}
+})();
 
 // Assigned panel data model (id, name, meetingType, roundLabel, members[])
 const INITIAL_PANELS = [
@@ -344,10 +380,9 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   const navigate = useNavigate();
   const location = useLocation();
 
-  // State Management
-  // State Management - Default empty so all roles and rounds are visible without being filtered out
+  // Default to '' so all positions and rounds are visible by default ('All Job Positions')
   const [jobPosition, setJobPosition] = useState(() => {
-    if (embeddedVacancy) return embeddedVacancy.title;
+    if (embeddedVacancy?.title) return embeddedVacancy.title;
     return '';
   });
   const [interviewRound, setInterviewRound] = useState('');
@@ -364,66 +399,58 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
   const [candidates, setCandidates] = useState(() => {
     try {
+      if (!sessionStorage.getItem('intellihire_recruiter_session')) {
+        resetToDefaultMockData();
+        return INITIAL_CANDIDATES;
+      }
       const stored = localStorage.getItem('intellihire_candidates');
-      if (stored) {
+      if (stored !== null) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const storedByName = new Map(parsed.map((c) => [(c.name || '').toLowerCase(), c]));
-          const merged = INITIAL_CANDIDATES.map((initC) => {
-            const fromStored = storedByName.get((initC.name || '').toLowerCase());
-            return fromStored ? { ...initC, ...fromStored } : initC;
-          });
-          const initNames = new Set(INITIAL_CANDIDATES.map((c) => (c.name || '').toLowerCase()));
-          parsed.forEach((c) => {
-            if (c && c.name && !initNames.has(c.name.toLowerCase())) {
-              merged.push(c);
-            }
-          });
-          if (embeddedVacancy) {
-            const forVacancy = merged.filter(
-              (c) => c.jobPosition === embeddedVacancy.title || c.role === embeddedVacancy.title
-            );
-            if (forVacancy.length > 0) return forVacancy;
-          }
-          return merged;
+          return parsed;
         }
       }
     } catch {}
-    if (embeddedVacancy) {
-      const vacancyCandidates = INITIAL_CANDIDATES.filter((c) => c.jobPosition === embeddedVacancy.title);
-      if (vacancyCandidates.length > 0) return vacancyCandidates;
-      return INITIAL_CANDIDATES.map((c) => ({ ...c, jobPosition: embeddedVacancy.title }));
-    }
     return INITIAL_CANDIDATES;
   });
+
   const [allocations, setAllocations] = useState(() => {
     try {
+      if (!sessionStorage.getItem('intellihire_recruiter_session')) {
+        resetToDefaultMockData();
+        return INITIAL_ALLOCATIONS;
+      }
       const stored = localStorage.getItem('intellihire_allocations');
-      if (stored) {
+      if (stored !== null) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          const hasForeign = parsed.some(
-            (p) =>
-              (p.candidateName || '').toLowerCase().includes('nina') ||
-              (p.candidateName || '').toLowerCase().includes('petrova') ||
-              (p.candidateName || '').toLowerCase().includes('arjun') ||
-              (p.candidateName || '').toLowerCase().includes('elena')
-          );
-          if (!hasForeign && parsed.length >= 3) return parsed;
+          return parsed;
         }
       }
     } catch {}
-    localStorage.setItem('intellihire_allocations', JSON.stringify(INITIAL_ALLOCATIONS));
     return INITIAL_ALLOCATIONS;
   });
 
-  // Live listener to ensure any time slots or allocations added in the Time Slot form reflect immediately
+  // Live listener to sync custom slots from other components / tabs
   useEffect(() => {
-    const handleSync = () => {
+    const handleSync = (e) => {
+      // Do not sync if event was dispatched by this component itself
+      if (e?.detail?.source === 'CandidateInterviewAllocation') return;
       try {
         const storedAlloc = localStorage.getItem('intellihire_allocations');
-        if (storedAlloc) {
-          setAllocations(JSON.parse(storedAlloc));
+        if (storedAlloc !== null) {
+          const parsed = JSON.parse(storedAlloc);
+          if (Array.isArray(parsed)) {
+            setAllocations(parsed);
+          }
+        }
+
+        const storedCandidates = localStorage.getItem('intellihire_candidates');
+        if (storedCandidates !== null) {
+          const parsedC = JSON.parse(storedCandidates);
+          if (Array.isArray(parsedC) && parsedC.length > 0) {
+            setCandidates(parsedC);
+          }
         }
         const storedCustom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
         const storedSlots = JSON.parse(localStorage.getItem('intellihire_interview_slots') || '[]');
@@ -434,7 +461,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
               ? (s.interviewDate || '30 Oct').substring(0, 6)
               : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
             const displayTime = formatDisplayTime(s.startTime);
-            const displayEnd = formatDisplayTime(s.endTime);
+            const displayEnd = formatDisplayTime(s.endTime || getEndTime(s.startTime));
             return {
               id: `SLOT-${s.id}`,
               dateKey: s.rawDate || s.interviewDate,
@@ -447,11 +474,13 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
               type: s.interviewType || 'Online',
               cap: s.capacity || 1,
               capacity: s.capacity || 1,
-              rem: s.assignedCandidate ? Math.max(0, (s.capacity || 1) - 1) : (s.capacity || 1),
+              rem: s.assignedCandidate ? 0 : (s.capacity || 1),
               jobPosition: s.jobPosition,
               round: s.round,
-              status: 'AVAILABLE',
+              status: s.assignedCandidate ? 'BOOKED' : 'AVAILABLE',
               bookedCount: s.assignedCandidate ? 1 : 0,
+              panelName: s.panelName || 'Panel A (Technical Leads)',
+              assignedCandidate: s.assignedCandidate || null,
               isCustom: true,
             };
           });
@@ -466,17 +495,39 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
     window.addEventListener('storage', handleSync);
     window.addEventListener('intellihire_slots_updated', handleSync);
-    window.addEventListener('focus', handleSync);
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('intellihire_slots_updated', handleSync);
-      window.removeEventListener('focus', handleSync);
     };
   }, []);
   const [selectedSlotId, setSelectedSlotId] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [candidateSearchQuery, setCandidateSearchQuery] = useState('');
   const [allocationStatusFilter, setAllocationStatusFilter] = useState('ALL');
+  const [pendingRescheduleCount, setPendingRescheduleCount] = useState(() => {
+    try {
+      const reqs = getRescheduleRequests();
+      return (reqs || []).filter((r) => r.status === 'PENDING').length;
+    } catch {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    const handleRequestsSync = () => {
+      try {
+        const reqs = getRescheduleRequests();
+        setPendingRescheduleCount((reqs || []).filter((r) => r.status === 'PENDING').length);
+      } catch {}
+    };
+    window.addEventListener('intellihire_slots_updated', handleRequestsSync);
+    window.addEventListener('storage', handleRequestsSync);
+    return () => {
+      window.removeEventListener('intellihire_slots_updated', handleRequestsSync);
+      window.removeEventListener('storage', handleRequestsSync);
+    };
+  }, []);
   const [showEmailPreviewModal, setShowEmailPreviewModal] = useState(false);
   const [previewSelectedCandidate, setPreviewSelectedCandidate] = useState(null);
   const [toast, setToast] = useState(null);
@@ -534,6 +585,8 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
   };
 
   const itemsPerPage = 4;
+  const [slotPage, setSlotPage] = useState(1);
+  const slotsPerPage = 6;
   
   // Header Navigation Active Tab State
   const activeSubTab = 'allocation'; // 'management' or 'allocation'
@@ -544,12 +597,18 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     });
   };
 
-// Helper to detect outdated slots from past months (e.g. August, early October)
+// Helper to detect outdated slots from past dates/months (anything strictly before today 24 Oct 2026)
 function isOutdatedPastDate(dateVal) {
   if (!dateVal) return false;
-  if (/Aug|Jul|Jun|Sep/i.test(dateVal)) return true;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateVal) && dateVal < '2026-10-23') return true;
-  if (/\b(0[1-9]|1[0-9]|2[0-2])\s+Oct\s+2026/i.test(dateVal)) return true;
+  const str = String(dateVal).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str < '2026-10-24';
+  }
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    const today = new Date('2026-10-24T00:00:00');
+    return parsed < today;
+  }
   return false;
 }
 
@@ -561,39 +620,47 @@ function isOutdatedPastDate(dateVal) {
   const [customSlots, setCustomSlots] = useState(() => {
     try {
       const custom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
-      return custom.filter((s) => !isOutdatedPastDate(s.dateKey || s.rawDate || s.date));
+      const storedSlots = JSON.parse(localStorage.getItem('intellihire_interview_slots') || '[]');
+      const mapped = storedSlots.map((s) => {
+        const dObj = new Date(s.interviewDate || s.rawDate);
+        const shortDate = isNaN(dObj.getTime())
+          ? (s.interviewDate || '30 Oct').substring(0, 6)
+          : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const displayTime = formatDisplayTime(s.startTime);
+        const displayEnd = formatDisplayTime(s.endTime || getEndTime(s.startTime));
+        return {
+          id: `SLOT-${s.id}`,
+          dateKey: s.rawDate || s.interviewDate,
+          date: s.interviewDate,
+          dateShort: shortDate,
+          time: displayTime,
+          end: displayEnd,
+          startTime: displayTime,
+          endTime: displayEnd,
+          type: s.interviewType || 'Online',
+          cap: s.capacity || 1,
+          capacity: s.capacity || 1,
+          rem: s.assignedCandidate ? 0 : (s.capacity || 1),
+          jobPosition: s.jobPosition,
+          round: s.round,
+          status: s.assignedCandidate ? 'BOOKED' : 'AVAILABLE',
+          bookedCount: s.assignedCandidate ? 1 : 0,
+          panelName: s.panelName || 'Panel A (Technical Leads)',
+          assignedCandidate: s.assignedCandidate || null,
+          isCustom: true,
+        };
+      });
+      const map = new Map();
+      [...custom, ...mapped].forEach(s => {
+        if (!isOutdatedPastDate(s.dateKey || s.rawDate || s.date)) {
+          map.set(s.id, s);
+        }
+      });
+      return Array.from(map.values());
     } catch {
       return [];
     }
   });
-
-  useEffect(() => {
-    const handleSync = () => {
-      try {
-        const storedCandidates = localStorage.getItem('intellihire_candidates');
-        if (storedCandidates) {
-          setCandidates(JSON.parse(storedCandidates));
-        }
-        const storedAllocations = localStorage.getItem('intellihire_allocations');
-        if (storedAllocations) {
-          setAllocations(JSON.parse(storedAllocations));
-        }
-
-        const custom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
-        const validCustom = custom.filter((s) => !isOutdatedPastDate(s.dateKey || s.rawDate || s.date));
-        setCustomSlots(validCustom);
-      } catch {}
-    };
-    handleSync();
-    window.addEventListener('intellihire_slots_updated', handleSync);
-    window.addEventListener('storage', handleSync);
-    window.addEventListener('focus', handleSync);
-    return () => {
-      window.removeEventListener('intellihire_slots_updated', handleSync);
-      window.removeEventListener('storage', handleSync);
-      window.removeEventListener('focus', handleSync);
-    };
-  }, []);
 
   const allSlots = useMemo(() => {
     const map = new Map();
@@ -609,7 +676,7 @@ function isOutdatedPastDate(dateVal) {
   }, [customSlots]);
 
   const allocationByCandidate = useMemo(
-    () => new Map(allocations.map((allocation) => [allocation.candidateId, allocation])),
+    () => new Map(allocations.map((allocation) => [String(allocation.candidateId), allocation])),
     [allocations]
   );
 
@@ -618,59 +685,35 @@ function isOutdatedPastDate(dateVal) {
     return rawSlotsList.map((rawSlot) => {
       const slot = embeddedVacancy ? { ...rawSlot, jobPosition: embeddedVacancy.title } : rawSlot;
       const allocatedCount = allocations.filter(
-        (allocation) => allocation.status === 'ALLOCATED' && allocation.slotId === slot.id
+        (allocation) => allocation.status === 'ALLOCATED' && (
+          String(allocation.slotId) === String(slot.id) ||
+          (slot.id && String(slot.id).replace('SLOT-', '') === String(allocation.slotId).replace('SLOT-', ''))
+        )
       ).length;
-      return { ...slot, rem: Math.max(0, slot.cap - allocatedCount) };
+      const isBooked = Boolean(rawSlot.status === 'BOOKED' || rawSlot.assignedCandidate || allocatedCount >= slot.cap);
+      return { ...slot, rem: isBooked ? 0 : Math.max(0, slot.cap - allocatedCount) };
     });
   }, [allSlots, allocations, embeddedVacancy]);
 
-  const contextualAllocations = useMemo(() => {
-    if (!jobPosition && !interviewRound) return allocations;
-
-    const visibleCandidates = candidates.filter((candidate) => {
-      if (!jobPosition) return true;
-      const cPos = (candidate.jobPosition || candidate.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const curPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return cPos === curPos || cPos.includes(curPos) || curPos.includes(cPos)
-        || ((cPos.includes('software') || cPos.includes('fullstack')) && (curPos.includes('software') || curPos.includes('fullstack')));
-    });
-    const visibleIds = new Set(visibleCandidates.map((c) => c.id));
-    const visibleNames = new Set(visibleCandidates.map((c) => (c.name || '').toLowerCase()));
-
-    const filtered = allocations.filter((allocation) => {
-      if (jobPosition) {
-        const matchId = allocation.candidateId && visibleIds.has(allocation.candidateId);
-        const matchName = allocation.candidateName && visibleNames.has((allocation.candidateName || '').toLowerCase());
-        const allocPos = (allocation.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const targetPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const matchPos = allocPos && (allocPos.includes(targetPos) || targetPos.includes(allocPos) ||
-          ((allocPos.includes('software') || allocPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack'))));
-        if (!matchId && !matchName && !matchPos) return false;
-      }
-      if (interviewRound) {
-        if (allocation.interviewRound && allocation.interviewRound !== interviewRound) return false;
-      }
-      return true;
-    });
-
-    // Ensure at least 3 candidates are displayed if available
-    return filtered.length >= 3 ? filtered : allocations;
-  }, [allocations, candidates, jobPosition, interviewRound]);
-
   const filteredCandidates = useMemo(() => {
-    const allocatedNames = new Set(
-      contextualAllocations
-        .filter((a) => a.status === 'ALLOCATED' && a.slotId)
-        .map((a) => (a.candidateName || '').toLowerCase().trim())
-    );
-    const allocatedIds = new Set(
-      contextualAllocations
-        .filter((a) => a.status === 'ALLOCATED' && a.slotId)
-        .map((a) => a.candidateId)
+    const activeAllocations = allocations.filter((a) => a.status === 'ALLOCATED' && a.slotId);
+    const allocatedCandIds = new Set(activeAllocations.map((a) => String(a.candidateId)));
+    const allocatedCandNames = new Set(
+      activeAllocations.map((a) => (a.candidateName || '').toLowerCase().trim())
     );
 
     const seenNames = new Set();
     return candidates.filter((candidate) => {
+      const lowerName = (candidate.name || '').toLowerCase().trim();
+      const candIdStr = String(candidate.id);
+
+      // Candidate is allocated strictly if they currently exist in active allocations
+      const isAllocated =
+        allocatedCandIds.has(candIdStr) ||
+        allocatedCandNames.has(lowerName);
+
+      if (isAllocated) return false;
+
       if (jobPosition) {
         const cPos = (candidate.jobPosition || candidate.role || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         const curPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -679,15 +722,19 @@ function isOutdatedPastDate(dateVal) {
         if (!matchesPos) return false;
       }
 
-      const lowerName = (candidate.name || '').toLowerCase().trim();
+      if (candidateSearchQuery) {
+        const q = candidateSearchQuery.toLowerCase().trim();
+        const matchesName = lowerName.includes(q);
+        const matchesId = candIdStr.toLowerCase().includes(q);
+        if (!matchesName && !matchesId) return false;
+      }
+
       if (seenNames.has(lowerName)) return false;
       seenNames.add(lowerName);
 
-      // If candidate is already allocated to a slot, exclude from unallocated shortlist
-      const isAllocated = allocatedIds.has(candidate.id) || allocatedNames.has(lowerName);
-      return !isAllocated;
-    }).slice(0, 6);
-  }, [candidates, jobPosition, contextualAllocations]);
+      return true;
+    });
+  }, [candidates, jobPosition, allocations, candidateSearchQuery]);
 
   const filteredSlots = useMemo(() => {
     // Match on position
@@ -705,36 +752,38 @@ function isOutdatedPastDate(dateVal) {
       ? posMatches
       : slotsWithRemaining.filter((s) => !isOutdatedPastDate(s.dateKey || s.date));
 
-    // Deduplicate slots by unique date + time + panel to avoid runaway duplicates
+    // Deduplicate slots strictly by normalized date + time to prevent any duplicates
+    const normalizeSlotKey = (s) => {
+      const d = (s.dateShort || s.date || s.dateKey || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t = formatDisplayTime(s.time || s.startTime || '').toLowerCase().replace(/\s+/g, '');
+      return `${d}-${t}`;
+    };
+
     const uniqueMap = new Map();
     displayPool.forEach((s) => {
-      const key = `${s.date || s.dateKey}-${s.time || s.startTime}-${s.panelName || ''}`;
+      if (isOutdatedPastDate(s.dateKey || s.date)) return;
+      const key = normalizeSlotKey(s);
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, s);
+      } else {
+        // If this slot is BOOKED (rem === 0), keep the booked one so it reflects FULL accurately
+        const existing = uniqueMap.get(key);
+        if (existing.rem > 0 && s.rem === 0) {
+          uniqueMap.set(key, s);
+        }
       }
     });
 
     const allValid = Array.from(uniqueMap.values());
-    const pastSlots = allValid.filter((s) => s.isPast || isSlotTimeInPast(s.dateKey || s.date, s.time || s.startTime));
-    const futureSlots = allValid.filter((s) => !(s.isPast || isSlotTimeInPast(s.dateKey || s.date, s.time || s.startTime)));
 
-    // Sort future slots chronologically
-    futureSlots.sort((a, b) => {
+    // Sort slots chronologically
+    allValid.sort((a, b) => {
       const diff = parseSlotDateTime(a) - parseSlotDateTime(b);
       if (diff !== 0) return diff;
       return String(a.id).localeCompare(String(b.id));
     });
 
-    // Exactly 1 past slot at top (for validation demo) + remaining future slots (up to 6 total)
-    const result = [];
-    if (pastSlots.length > 0) {
-      result.push({ ...pastSlots[0], isPast: true });
-    }
-    futureSlots.forEach((s) => {
-      if (result.length < 6) result.push(s);
-    });
-
-    return result;
+    return allValid;
   }, [jobPosition, slotsWithRemaining]);
 
   useEffect(() => {
@@ -743,12 +792,26 @@ function isOutdatedPastDate(dateVal) {
     }
   }, [filteredSlots, selectedSlotId]);
 
+  const totalSlotPages = Math.max(1, Math.ceil(filteredSlots.length / slotsPerPage));
+  const paginatedSlots = useMemo(() => {
+    const startIdx = (slotPage - 1) * slotsPerPage;
+    return filteredSlots.slice(startIdx, startIdx + slotsPerPage);
+  }, [filteredSlots, slotPage, slotsPerPage]);
+
+  useEffect(() => {
+    setSlotPage(1);
+  }, [jobPosition, interviewRound, interviewDate]);
+
+  useEffect(() => {
+    if (slotPage > totalSlotPages) setSlotPage(totalSlotPages);
+  }, [slotPage, totalSlotPages]);
+
   // Toggle selection for Candidate radio
-  const handleToggleCandidateSelect = (id) => {
+  const handleToggleCandidateSelect = (id, forceSelect = false) => {
     setCandidates((prev) =>
       prev.map((c) => ({
         ...c,
-        selected: c.id === id ? !c.selected : false,
+        selected: c.id === id ? (forceSelect ? true : !c.selected) : false,
       }))
     );
   };
@@ -768,11 +831,13 @@ function isOutdatedPastDate(dateVal) {
     candidateId: candidate.id,
     candidateName: candidate.name,
     slotId: slot.id,
-    assignedTime: formatDisplayTime(slot.time || slot.startTime),
+    assignedTime: formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime),
     interviewDate: slot.date,
     interviewType: slot.type,
     panelName: slot.panelName || assignedPanels[0]?.name || 'Panel A (Technical Leads)',
-    interviewRound: slot.round || interviewRound,
+    interviewRound: (interviewRound && interviewRound !== 'All Rounds') ? interviewRound : (slot.round || candidate.round || 'Technical Interview'),
+    jobPosition: jobPosition || slot.jobPosition || candidate.jobPosition || candidate.role || 'Senior Software Engineer',
+    score: candidate.score || 85,
     status: 'ALLOCATED',
   });
 
@@ -792,52 +857,74 @@ function isOutdatedPastDate(dateVal) {
       return;
     }
 
-    setAllocations((current) => {
-      const next = [...current];
-      candidatesToMove.forEach((candidate) => {
-        const record = buildAllocationRecord(candidate, slotToAssign);
-        const existingIndex = next.findIndex((item) => item.candidateId === candidate.id);
-        if (existingIndex >= 0) next[existingIndex] = record;
-        else next.push(record);
-      });
-      return next;
+    // 1. Calculate updated allocations synchronously
+    const nextAllocations = [...allocations];
+    candidatesToMove.forEach((candidate) => {
+      const record = buildAllocationRecord(candidate, slotToAssign);
+      const existingIndex = nextAllocations.findIndex(
+        (item) => String(item.candidateId) === String(candidate.id) ||
+          (item.candidateName && candidate.name && item.candidateName.toLowerCase().trim() === candidate.name.toLowerCase().trim())
+      );
+      if (existingIndex >= 0) {
+        nextAllocations[existingIndex] = record;
+      } else {
+        nextAllocations.unshift(record);
+      }
     });
-    setCandidates((current) =>
-      current.map((candidate) => {
-        const isMoved = candidatesToMove.some((c) => c.id === candidate.id);
-        if (isMoved) {
-          return { ...candidate, status: 'ALLOCATED', selected: false };
-        }
-        return candidate.selected ? { ...candidate, selected: false } : candidate;
-      })
-    );
+
+    // 2. Calculate updated candidates synchronously
+    const nextCandidates = candidates.map((candidate) => {
+      const isMoved = candidatesToMove.some(
+        (c) => String(c.id) === String(candidate.id) || (c.name && candidate.name && c.name.toLowerCase().trim() === candidate.name.toLowerCase().trim())
+      );
+      if (isMoved) {
+        return { ...candidate, status: 'ALLOCATED', selected: false };
+      }
+      return candidate.selected ? { ...candidate, selected: false } : candidate;
+    });
+
+    // 3. Immediately persist synchronously to localStorage
+    try {
+      localStorage.setItem('intellihire_allocations', JSON.stringify(nextAllocations));
+      localStorage.setItem('intellihire_candidates', JSON.stringify(nextCandidates));
+    } catch {}
+
+    // 4. Update component state with precomputed arrays
+    setAllocations(nextAllocations);
+    setCandidates(nextCandidates);
+
     setSelectedSlotId('');
     setPendingReallocation(null);
+    setCurrentPage(1);
+
+    // 5. Dispatch event with source tag so this component does not self-overwrite
+    window.dispatchEvent(
+      new CustomEvent('intellihire_slots_updated', {
+        detail: { source: 'CandidateInterviewAllocation' },
+      })
+    );
+
     showToast(
       `Allocated ${candidatesToMove.length} candidate(s) to ${slotToAssign.time} on ${slotToAssign.dateShort}. Google Calendar invite sent!`
     );
   };
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('intellihire_allocations', JSON.stringify(allocations));
-    } catch {}
-  }, [allocations]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('intellihire_candidates', JSON.stringify(candidates));
-    } catch {}
-  }, [candidates]);
-
   // Manual Allocate Button Action
   const handleManualAllocate = () => {
-    const visibleIds = new Set(filteredCandidates.map((candidate) => candidate.id));
-    const selectedCands = candidates.filter(
-      (candidate) => candidate.selected && visibleIds.has(candidate.id)
-    );
-    const slotToAssign = filteredSlots.find((slot) => slot.id === selectedSlotId);
-    if (selectedCands.length === 0) {
+    // 1. Resolve selected candidate(s) strictly from visible active selection first
+    let selectedCands = selectedVisibleCandidates;
+    if (!selectedCands || selectedCands.length === 0) {
+      selectedCands = filteredCandidates.filter((c) => c.selected);
+    }
+    if (!selectedCands || selectedCands.length === 0) {
+      selectedCands = candidates.filter((c) => c.selected);
+    }
+
+    // 2. Resolve selected slot
+    const slotToAssign = filteredSlots.find((slot) => slot.id === selectedSlotId) ||
+      allSlots.find((slot) => slot.id === selectedSlotId);
+
+    if (!selectedCands || selectedCands.length === 0) {
       showToast('Please select at least one candidate to allocate.', 'error');
       return;
     }
@@ -860,37 +947,50 @@ function isOutdatedPastDate(dateVal) {
     performManualAllocation(selectedCands, slotToAssign);
   };
 
-  // Remove Allocation Action (Unassign single candidate)
-  const handleRemoveAllocation = (candidateId) => {
-    const targetAlloc = allocations.find((a) => a.candidateId === candidateId);
-    setAllocations((prev) => prev.filter((a) => a.candidateId !== candidateId));
-    setCandidates((prev) => {
-      const exists = prev.some((c) => c.id === candidateId || (targetAlloc && (c.name || '').toLowerCase() === (targetAlloc.candidateName || '').toLowerCase()));
-      if (exists) {
-        return prev.map((c) =>
-          c.id === candidateId || (targetAlloc && (c.name || '').toLowerCase() === (targetAlloc.candidateName || '').toLowerCase())
-            ? { ...c, status: 'SHORTLISTED', selected: false }
-            : c
-        );
-      }
-      if (targetAlloc) {
-        return [
-          ...prev,
-          {
-            id: targetAlloc.candidateId || candidateId,
-            name: targetAlloc.candidateName,
-            score: targetAlloc.score || 85,
-            jobPosition: targetAlloc.jobPosition || jobPosition || 'Senior Software Engineer',
-            role: targetAlloc.jobPosition || jobPosition || 'Senior Software Engineer',
-            round: targetAlloc.interviewRound || targetAlloc.round || 'Technical Interview',
-            status: 'SHORTLISTED',
-            selected: false,
-          },
-        ];
-      }
-      return prev;
-    });
-    showToast(`Candidate unassigned and returned to shortlist.`);
+  // Remove Allocation Action (Unassign single candidate - returns immediately to shortlist)
+  const handleRemoveAllocation = (candidateId, candName = null) => {
+    const targetAlloc = allocations.find(
+      (a) => String(a.candidateId) === String(candidateId) || (candName && (a.candidateName || '').toLowerCase().trim() === candName.toLowerCase().trim())
+    );
+    const candidateName = candName || targetAlloc?.candidateName;
+
+    const nextAllocations = allocations.filter(
+      (a) => String(a.candidateId) !== String(candidateId) && (!candidateName || (a.candidateName || '').toLowerCase().trim() !== candidateName.toLowerCase().trim())
+    );
+
+    const matchCandidate = (c) =>
+      String(c.id) === String(candidateId) || (candidateName && (c.name || '').toLowerCase().trim() === candidateName.toLowerCase().trim());
+
+    const matched = (candidates || []).find(matchCandidate);
+    const remaining = (candidates || []).filter((c) => !matchCandidate(c));
+
+    const restoredCandidate = {
+      id: candidateId || matched?.id || `APP-${Date.now()}`,
+      name: candidateName || matched?.name || targetAlloc?.candidateName || 'Candidate',
+      score: targetAlloc?.score || matched?.score || 85,
+      jobPosition: targetAlloc?.jobPosition || matched?.jobPosition || jobPosition || 'Senior Software Engineer',
+      role: targetAlloc?.role || targetAlloc?.jobPosition || matched?.role || matched?.jobPosition || jobPosition || 'Senior Software Engineer',
+      round: (interviewRound && interviewRound !== 'All Rounds') ? interviewRound : (targetAlloc?.interviewRound || matched?.round || 'Technical Interview'),
+      status: 'SHORTLISTED',
+      selected: false,
+    };
+
+    const nextCandidates = [restoredCandidate, ...remaining];
+
+    try {
+      localStorage.setItem('intellihire_allocations', JSON.stringify(nextAllocations));
+      localStorage.setItem('intellihire_candidates', JSON.stringify(nextCandidates));
+    } catch {}
+
+    setAllocations(nextAllocations);
+    setCandidates(nextCandidates);
+
+    window.dispatchEvent(
+      new CustomEvent('intellihire_slots_updated', {
+        detail: { source: 'CandidateInterviewAllocation' },
+      })
+    );
+    showToast(`${candidateName || 'Candidate'} unassigned and returned to shortlist.`);
   };
 
   // Auto Allocate Algorithm
@@ -899,7 +999,7 @@ function isOutdatedPastDate(dateVal) {
     const availableSlots = filteredSlots.map((slot) => ({ ...slot, rem: slot.rem }));
     
     if (eligibleCandidates.length === 0) {
-      setShowNoCandidatesModal(true);
+      showToast('No shortlisted candidates available to allocate.', 'info');
       return;
     }
     if (availableSlots.filter((s) => s.rem > 0).length === 0) {
@@ -907,8 +1007,7 @@ function isOutdatedPastDate(dateVal) {
       return;
     }
     
-    const visibleIds = new Set(eligibleCandidates.map((candidate) => candidate.id));
-    const newAllocations = allocations.filter((allocation) => !visibleIds.has(allocation.candidateId));
+    const newAllocations = [...allocations];
     const allocatedCandIds = new Set();
 
     eligibleCandidates.forEach((cand) => {
@@ -916,138 +1015,125 @@ function isOutdatedPastDate(dateVal) {
 
       if (availableSlot) {
         availableSlot.rem -= 1;
-        newAllocations.push(buildAllocationRecord(cand, availableSlot));
+        const record = buildAllocationRecord(cand, availableSlot);
+        const exIdx = newAllocations.findIndex(
+          (a) => String(a.candidateId) === String(cand.id) || (a.candidateName && a.candidateName.toLowerCase().trim() === cand.name.toLowerCase().trim())
+        );
+        if (exIdx >= 0) newAllocations[exIdx] = record;
+        else newAllocations.unshift(record);
         allocatedCandIds.add(cand.id);
-      } else {
-        newAllocations.push({
-          candidateId: cand.id,
-          candidateName: cand.name,
-          slotId: null,
-          assignedTime: '—',
-          interviewDate: '—',
-          interviewType: '—',
-          status: 'PENDING',
-        });
       }
     });
 
+    const nextCandidates = candidates.map((candidate) => {
+      if (allocatedCandIds.has(candidate.id)) {
+        return { ...candidate, status: 'ALLOCATED', selected: false };
+      }
+      return { ...candidate, selected: false };
+    });
+
+    try {
+      localStorage.setItem('intellihire_allocations', JSON.stringify(newAllocations));
+      localStorage.setItem('intellihire_candidates', JSON.stringify(nextCandidates));
+    } catch {}
+
     setAllocations(newAllocations);
-    setCandidates((current) =>
-      current.map((candidate) => {
-        if (allocatedCandIds.has(candidate.id)) {
-          return { ...candidate, status: 'ALLOCATED', selected: false };
-        }
-        return { ...candidate, selected: false };
+    setCandidates(nextCandidates);
+
+    setSelectedSlotId('');
+    setCurrentPage(1);
+    window.dispatchEvent(
+      new CustomEvent('intellihire_slots_updated', {
+        detail: { source: 'CandidateInterviewAllocation' },
       })
     );
-    setSelectedSlotId('');
-    showToast('Auto-allocation completed! Google Calendar invites sent to allocated candidates.');
+    showToast(`Auto-allocated ${allocatedCandIds.size} candidate(s)! Google Calendar invites sent.`);
   };
 
-  // Reset All Allocations (Bulk Clear)
+  // Reset All Allocations (Unassign all candidates so all 9 go to shortlist)
   const handleResetAllAllocations = () => {
-    // 1. Gather all candidates currently present in allocations
-    const candidatesFromAllocations = (allocations || []).map((a) => ({
-      id: a.candidateId || `APP-${(a.candidateName || '').replace(/\s+/g, '')}`,
-      name: a.candidateName,
-      score: a.score || 85,
-      jobPosition: a.jobPosition || jobPosition || 'Senior Software Engineer',
-      role: a.jobPosition || jobPosition || 'Senior Software Engineer',
-      round: a.interviewRound || a.round || 'Technical Interview',
-      status: 'SHORTLISTED',
-      selected: false,
-    }));
-
-    // 2. Clear all allocations
+    // 1. Clear all allocations completely
     setAllocations([]);
     try {
-      localStorage.removeItem('intellihire_allocations');
       localStorage.setItem('intellihire_allocations', JSON.stringify([]));
     } catch (e) {}
 
-    // 3. Clear candidate assignments from custom slots
+    // 2. Mark ALL 9 candidates as SHORTLISTED (0 allocated, 9 shortlisted)
+    const allShortlistedCandidates = INITIAL_CANDIDATES.map((c) => ({
+      ...c,
+      status: 'SHORTLISTED',
+      selected: false,
+    }));
+    setCandidates(allShortlistedCandidates);
     try {
-      const customSlots = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
-      if (customSlots.length > 0) {
-        const cleared = customSlots.map((s) => ({ ...s, assignedCandidate: null, bookedCount: 0 }));
-        localStorage.setItem('intellihire_custom_slots', JSON.stringify(cleared));
-      }
+      localStorage.setItem('intellihire_candidates', JSON.stringify(allShortlistedCandidates));
     } catch (e) {}
 
-    // 4. Update candidates state: restore all candidates to SHORTLISTED and ensure all unassigned candidates appear in shortlist table below
-    setCandidates((prev) => {
-      const map = new Map();
-
-      // Existing candidates in state -> set status: SHORTLISTED
-      (prev || []).forEach((c) => {
-        const key = (c.name || '').toLowerCase().trim();
-        if (key) {
-          map.set(key, { ...c, status: 'SHORTLISTED', selected: false });
-        }
-      });
-
-      // Candidates from allocations -> ensure they exist with status: SHORTLISTED
-      candidatesFromAllocations.forEach((c) => {
-        const key = (c.name || '').toLowerCase().trim();
-        if (key) {
-          const existing = map.get(key);
-          map.set(key, {
-            ...(existing || {}),
-            ...c,
-            status: 'SHORTLISTED',
-            selected: false,
-            jobPosition: c.jobPosition || existing?.jobPosition || jobPosition || 'Senior Software Engineer',
-          });
-        }
-      });
-
-      // Ensure INITIAL_CANDIDATES are included
-      INITIAL_CANDIDATES.forEach((initC) => {
-        const key = (initC.name || '').toLowerCase().trim();
-        if (!map.has(key)) {
-          map.set(key, { ...initC, status: 'SHORTLISTED', selected: false });
-        }
-      });
-
-      const updatedList = Array.from(map.values());
-      try {
-        localStorage.setItem('intellihire_candidates', JSON.stringify(updatedList));
-      } catch (e) {}
-      return updatedList;
-    });
+    // 3. Clear custom slots and interview slots completely to restore clean default state
+    try {
+      localStorage.removeItem('intellihire_custom_slots');
+      localStorage.removeItem('intellihire_interview_slots');
+    } catch (e) {}
+    setCustomSlots([]);
 
     setSelectedSlotId('');
     setNotifiedCandidateIds(new Set());
     setShowResetConfirm(false);
-    window.dispatchEvent(new Event('intellihire_slots_updated'));
-    showToast('All allocations have been reset. Candidates are returned to shortlist.', 'success');
+    setCurrentPage(1);
+    window.dispatchEvent(
+      new CustomEvent('intellihire_slots_updated', {
+        detail: { source: 'CandidateInterviewAllocation' },
+      })
+    );
+    window.dispatchEvent(new Event('storage'));
+    showToast('Reset completed: All allocations unassigned. All 9 candidates returned to shortlist.', 'success');
   };
   const handleResetAllocations = handleResetAllAllocations;
 
   const handleConfirmReschedule = () => {
-    const candidate = candidates.find(
-      (item) => item.id === reschedulingAllocation?.candidateId
-    );
-    const targetSlot = slotsWithRemaining.find((slot) => slot.id === rescheduleSlotId);
-    if (!candidate || !targetSlot) {
+    if (!reschedulingAllocation || !rescheduleSlotId) {
       showToast('Select an available slot to reschedule this candidate.', 'error');
       return;
     }
-    const isCurrentSlot = reschedulingAllocation.slotId === targetSlot.id;
+    const targetSlot = slotsWithRemaining.find((slot) => String(slot.id) === String(rescheduleSlotId));
+    if (!targetSlot) {
+      showToast('Selected time slot not found.', 'error');
+      return;
+    }
+    const isCurrentSlot = String(reschedulingAllocation.slotId) === String(targetSlot.id);
     if (!isCurrentSlot && targetSlot.rem <= 0) {
       showToast('The selected slot is fully booked.', 'error');
       return;
     }
-    setAllocations((current) =>
-      current.map((allocation) =>
-        allocation.candidateId === candidate.id
-          ? buildAllocationRecord(candidate, targetSlot)
-          : allocation
-      )
-    );
+
+    const candidateRecord = rescheduleCandidate || {
+      id: reschedulingAllocation.candidateId,
+      name: reschedulingAllocation.candidateName,
+      score: reschedulingAllocation.score || 85,
+      jobPosition: reschedulingAllocation.jobPosition || jobPosition,
+    };
+
+    const newRecord = buildAllocationRecord(candidateRecord, targetSlot);
+
+    setAllocations((current) => {
+      const next = current.map((allocation) => {
+        const isTarget =
+          allocation.candidateId === reschedulingAllocation.candidateId ||
+          (allocation.candidateName &&
+            reschedulingAllocation.candidateName &&
+            allocation.candidateName.toLowerCase() === reschedulingAllocation.candidateName.toLowerCase());
+        return isTarget ? newRecord : allocation;
+      });
+      try {
+        localStorage.setItem('intellihire_allocations', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
     setReschedulingAllocation(null);
     setRescheduleSlotId('');
-    showToast(`${candidate.name}'s interview was rescheduled successfully.`);
+    window.dispatchEvent(new Event('intellihire_slots_updated'));
+    showToast(`${reschedulingAllocation.candidateName}'s interview was rescheduled to ${targetSlot.date} at ${targetSlot.time || targetSlot.startTime}!`);
   };
 
   // Save Allocations
@@ -1081,12 +1167,26 @@ function isOutdatedPastDate(dateVal) {
 
   // Filtered Allocations for display
   const filteredAllocations = useMemo(() => {
-    let list = contextualAllocations;
-    if (allocationStatusFilter && allocationStatusFilter !== 'ALL') {
-      list = list.filter((a) => (a.status || '').toUpperCase() === allocationStatusFilter.toUpperCase());
+    let list = allocations;
+    if (jobPosition) {
+      const targetPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
+      list = list.filter((a) => {
+        const allocPos = (a.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return !targetPos || !allocPos || allocPos === targetPos || allocPos.includes(targetPos) || targetPos.includes(allocPos)
+          || ((allocPos.includes('software') || allocPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack')));
+      });
+    }
+    if (interviewRound && interviewRound !== 'All Rounds') {
+      const irLower = interviewRound.toLowerCase().replace(/[^a-z0-9]/g, '');
+      list = list.filter((a) => {
+        if (!a.interviewRound) return true;
+        const aRound = (a.interviewRound || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return aRound === irLower || aRound.includes(irLower) || irLower.includes(aRound)
+          || ((aRound.includes('tech') || aRound.includes('system')) && (irLower.includes('tech') || irLower.includes('system')));
+      });
     }
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       list = list.filter((a) =>
         (a.candidateName || '').toLowerCase().includes(q) ||
         (a.interviewType || '').toLowerCase().includes(q) ||
@@ -1096,7 +1196,7 @@ function isOutdatedPastDate(dateVal) {
       );
     }
     return list;
-  }, [contextualAllocations, searchQuery, allocationStatusFilter]);
+  }, [allocations, jobPosition, interviewRound, searchQuery]);
 
   // Pagination calculations
   const totalResults = filteredAllocations.length;
@@ -1116,17 +1216,38 @@ function isOutdatedPastDate(dateVal) {
 
   const selectedVisibleCandidates = filteredCandidates.filter((candidate) => candidate.selected);
   const selectedSlot = filteredSlots.find((slot) => slot.id === selectedSlotId);
-  const rescheduleCandidate = candidates.find(
-    (candidate) => candidate.id === reschedulingAllocation?.candidateId
-  );
-  const rescheduleOptions = rescheduleCandidate
-    ? slotsWithRemaining.filter(
-        (slot) =>
-          slot.jobPosition === rescheduleCandidate.jobPosition &&
-          slot.round === rescheduleCandidate.round &&
-          (slot.rem > 0 || slot.id === reschedulingAllocation?.slotId)
-      )
-    : [];
+  const rescheduleCandidate = reschedulingAllocation
+    ? candidates.find(
+        (c) =>
+          c.id === reschedulingAllocation.candidateId ||
+          (c.name && reschedulingAllocation.candidateName && c.name.toLowerCase() === reschedulingAllocation.candidateName.toLowerCase())
+      ) || {
+        id: reschedulingAllocation.candidateId,
+        name: reschedulingAllocation.candidateName,
+        jobPosition: reschedulingAllocation.jobPosition || jobPosition,
+        round: reschedulingAllocation.interviewRound || reschedulingAllocation.round,
+      }
+    : null;
+
+  const rescheduleOptions = useMemo(() => {
+    if (!reschedulingAllocation) return [];
+
+    return slotsWithRemaining.filter((slot) => {
+      if (isOutdatedPastDate(slot.dateKey || slot.date)) return false;
+      if (slot.isPast || isSlotTimeInPast(slot.dateKey || slot.date, slot.time || slot.startTime)) return false;
+
+      const targetPos = (rescheduleCandidate?.jobPosition || reschedulingAllocation.jobPosition || jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const slotPos = (slot.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (targetPos && slotPos) {
+        const matchesPos = slotPos === targetPos || slotPos.includes(targetPos) || targetPos.includes(slotPos)
+          || ((slotPos.includes('software') || slotPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack')));
+        if (!matchesPos) return false;
+      }
+
+      const isCurrentSlot = String(slot.id) === String(reschedulingAllocation.slotId);
+      return slot.rem > 0 || isCurrentSlot;
+    });
+  }, [reschedulingAllocation, rescheduleCandidate, slotsWithRemaining, jobPosition]);
   const allCandidatesSelected =
     filteredCandidates.length > 0 && filteredCandidates.every((candidate) => candidate.selected);
 
@@ -1357,32 +1478,6 @@ function isOutdatedPastDate(dateVal) {
                     aria-label="Search allocation results"
                   />
                 </div>
-                <div className="allocation-status-filter" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <select
-                    value={allocationStatusFilter}
-                    onChange={(e) => setAllocationStatusFilter(e.target.value)}
-                    title="Filter allocations by status"
-                    style={{
-                      height: '35px',
-                      padding: '0 12px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      backgroundColor: '#1E222D',
-                      border: '1px solid #2A2C38',
-                      borderRadius: '8px',
-                      color: '#FFFFFF',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      transition: 'border-color 0.2s',
-                    }}
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="ALLOCATED">Allocated</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="RESCHEDULED">Rescheduled</option>
-                    <option value="PENDING">Pending</option>
-                  </select>
-                </div>
                 <button
                   type="button"
                   onClick={handleResetAllAllocations}
@@ -1492,14 +1587,14 @@ function isOutdatedPastDate(dateVal) {
                         </span>
                       </td>
                       <td style={{ color: '#E0E1E6', fontSize: '0.85rem', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
-                        {item.panelName || 'Panel A'}
+                        {formatPanelDisplayName(item.panelName || 'Panel A')}
                       </td>
                       <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         <div className="time-slot-cell" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#F0B90B', fontWeight: 600, verticalAlign: 'middle' }}>
                           {item.assignedTime !== '—' && (
                             <Clock3 size={14} />
                           )}
-                          <span>{formatDisplayTime(item.assignedTime)}</span>
+                          <span>{formatTimeRange(item.assignedTime, item.assignedEndTime || item.endTime)}</span>
                         </div>
                       </td>
                       <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.interviewDate}</td>
@@ -1569,19 +1664,8 @@ function isOutdatedPastDate(dateVal) {
                             </button>
                             <button
                               type="button"
-                              className="btn-reschedule-row"
-                              onClick={() => {
-                                setReschedulingAllocation(item);
-                                setRescheduleSlotId(item.slotId);
-                              }}
-                              style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 8px', fontSize: '0.70rem' }}
-                            >
-                              Reschedule
-                            </button>
-                            <button
-                              type="button"
                               className="btn-unassign-row"
-                              onClick={() => handleRemoveAllocation(item.candidateId)}
+                              onClick={() => handleRemoveAllocation(item.candidateId, item.candidateName)}
                               title="Unassign this candidate"
                               style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 8px', fontSize: '0.70rem' }}
                             >
@@ -1611,7 +1695,7 @@ function isOutdatedPastDate(dateVal) {
                   </div>
                   <dl>
                     <div><dt>Round</dt><dd>{item.interviewRound || item.round || 'Technical Interview'}</dd></div>
-                    <div><dt>Panel</dt><dd>{item.panelName || 'Panel A'}</dd></div>
+                    <div><dt>Panel</dt><dd>{formatPanelDisplayName(item.panelName || 'Panel A')}</dd></div>
                     <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
                     <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
                     <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
@@ -1648,11 +1732,7 @@ function isOutdatedPastDate(dateVal) {
                           </>
                         )}
                       </button>
-                      <button type="button" className="btn-reschedule-row" onClick={() => {
-                        setReschedulingAllocation(item);
-                        setRescheduleSlotId(item.slotId);
-                      }}>Reschedule</button>
-                      <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId)}>
+                      <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId, item.candidateName)}>
                         Unassign
                       </button>
                     </div>
@@ -1665,7 +1745,7 @@ function isOutdatedPastDate(dateVal) {
             {filteredAllocations.length > itemsPerPage && (
               <div className="table-pagination-footer">
               <span className="pagination-info">
-                Showing <strong>{paginatedAllocations.length}</strong> of <strong>{filteredAllocations.length}</strong> allocation results
+                Showing <strong>{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredAllocations.length)}</strong> of <strong>{filteredAllocations.length}</strong> allocation results
               </span>
 
               <div className="pagination-controls">
@@ -1706,20 +1786,46 @@ function isOutdatedPastDate(dateVal) {
           <div className="allocation-workspace-grid">
             {/* Left Card: Shortlisted Candidates */}
             <div className="card-surface candidate-list-card">
-              <div className="card-header-bar flex-between">
-                <div className="card-title-group">
-                  <Users size={16} />
-                  <h3 className="card-title">Shortlisted Candidates</h3>
+              <div className="card-header-bar flex-between" style={{ padding: '12px 16px' }}>
+                <div className="card-title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={16} style={{ color: '#F0B90B' }} />
+                  <h3 className="card-title" style={{ margin: 0, fontSize: '0.95rem' }}>Shortlisted Candidates</h3>
                 </div>
-                <span className="count-badge">{filteredCandidates.length} TOTAL</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Search size={12} style={{ position: 'absolute', left: '8px', color: '#9599A6', pointerEvents: 'none' }} />
+                    <input
+                      type="search"
+                      placeholder="Filter candidate..."
+                      value={candidateSearchQuery}
+                      onChange={(e) => setCandidateSearchQuery(e.target.value)}
+                      style={{
+                        height: '28px',
+                        padding: '0 8px 0 24px',
+                        fontSize: '0.74rem',
+                        backgroundColor: '#0D0E13',
+                        border: '1px solid #2A2C38',
+                        borderRadius: '6px',
+                        color: '#FFFFFF',
+                        outline: 'none',
+                        width: '130px',
+                      }}
+                    />
+                  </div>
+                  <span className="count-badge">{filteredCandidates.length} TO ALLOCATE</span>
+                </div>
               </div>
 
               {filteredCandidates.length === 0 ? (
-                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9599A6', borderTop: '1px solid #2A2C38' }}>
-                  <Users size={32} style={{ marginBottom: '16px', opacity: 0.3, display: 'inline-block' }} />
-                  <h4 style={{ color: '#fff', fontSize: '0.95rem', marginBottom: '8px', fontWeight: 600 }}>No candidates found</h4>
-                  <p style={{ fontSize: '0.8rem', lineHeight: '1.5', maxWidth: '250px', margin: '0 auto' }}>
-                    No candidates have been shortlisted yet. Open candidate details to shortlist them.
+                <div style={{ padding: '48px 20px', textAlign: 'center', color: '#9599A6', borderTop: '1px solid #2A2C38' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#4ADE80', marginBottom: '12px' }}>
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <h4 style={{ color: '#FFFFFF', fontSize: '0.96rem', fontWeight: 700, margin: '0 0 6px 0' }}>
+                    All Candidates Allocated!
+                  </h4>
+                  <p style={{ fontSize: '0.80rem', color: '#9599A6', maxWidth: '270px', margin: '0 auto', lineHeight: '1.5' }}>
+                    All shortlisted candidates have been assigned to interview slots. Review their schedules in the Allocation Results table above.
                   </p>
                 </div>
               ) : (
@@ -1746,7 +1852,7 @@ function isOutdatedPastDate(dateVal) {
                               type="radio"
                               name="allocation-candidate"
                               checked={Boolean(cand.selected)}
-                              onChange={() => handleToggleCandidateSelect(cand.id)}
+                              onChange={() => handleToggleCandidateSelect(cand.id, true)}
                               className="styled-checkbox"
                             />
                           </td>
@@ -1800,37 +1906,10 @@ function isOutdatedPastDate(dateVal) {
                 type="button"
                 className="btn-primary-accent btn-allocate"
                 onClick={handleManualAllocate}
+                title="Allocate selected candidate to the chosen time slot"
               >
                 <span>Allocate</span>
                 <ArrowRight size={14} />
-              </button>
-              <button
-                type="button"
-                className="btn-ghost-dark btn-remove-alloc"
-                onClick={() => {
-                  const selected = selectedVisibleCandidates;
-                  if (selected.length === 0) {
-                    showToast('Select a candidate to remove allocation.', 'error');
-                  } else {
-                    const selectedIds = new Set(selected.map((candidate) => candidate.id));
-                    setAllocations((current) =>
-                      current.map((allocation) =>
-                        selectedIds.has(allocation.candidateId)
-                          ? { ...allocation, slotId: null, assignedTime: '—', interviewDate: '—', interviewType: '—', status: 'PENDING' }
-                          : allocation
-                      )
-                    );
-                    setCandidates((current) =>
-                      current.map((candidate) =>
-                        selectedIds.has(candidate.id) ? { ...candidate, status: 'SHORTLISTED', selected: false } : candidate
-                      )
-                    );
-                    showToast(`Removed allocations for ${selected.length} candidate(s).`);
-                  }
-                }}
-              >
-                <ArrowLeft size={14} />
-                <span>Remove</span>
               </button>
             </div>
 
@@ -1877,7 +1956,7 @@ function isOutdatedPastDate(dateVal) {
                         <td colSpan="6" className="allocation-empty-cell">No slots match the selected filters.</td>
                       </tr>
                     )}
-                    {filteredSlots.map((slot) => {
+                    {paginatedSlots.map((slot) => {
                       const isPast = Boolean(slot.isPast || isSlotTimeInPast(slot.dateKey || slot.date, slot.time || slot.startTime));
                       return (
                         <tr
@@ -1900,7 +1979,7 @@ function isOutdatedPastDate(dateVal) {
                           <td className="slot-date-cell">{slot.dateShort}</td>
                           <td className="slot-time-cell">
                             <Clock3 size={12} />
-                            <span>{formatDisplayTime(slot.time || slot.startTime)}</span>
+                            <span>{formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime)}</span>
                             {isPast && (
                               <span style={{ marginLeft: '4px', color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
                                 Past
@@ -1926,11 +2005,54 @@ function isOutdatedPastDate(dateVal) {
                   </tbody>
                 </table>
               </div>
+
+              {filteredSlots.length > slotsPerPage && (
+                <div className="table-pagination-footer" style={{ padding: '10px 14px 6px', borderTop: '1px solid #2A2C38', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className="pagination-info" style={{ fontSize: '0.74rem', color: '#9599A6' }}>
+                    Showing <strong>{(slotPage - 1) * slotsPerPage + 1}–{Math.min(slotPage * slotsPerPage, filteredSlots.length)}</strong> of <strong>{filteredSlots.length}</strong> slots
+                  </span>
+
+                  <div className="pagination-controls" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      type="button"
+                      className="page-nav-btn"
+                      disabled={slotPage === 1}
+                      onClick={() => setSlotPage((p) => Math.max(1, p - 1))}
+                      aria-label="Previous Slots Page"
+                      style={{ width: '28px', height: '28px' }}
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    {Array.from({ length: totalSlotPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        className={`page-num-btn ${pageNum === slotPage ? 'active' : ''}`}
+                        onClick={() => setSlotPage(pageNum)}
+                        style={{ width: '28px', height: '28px', fontSize: '0.76rem' }}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="page-nav-btn"
+                      disabled={slotPage === totalSlotPages}
+                      onClick={() => setSlotPage((p) => Math.min(totalSlotPages, p + 1))}
+                      aria-label="Next Slots Page"
+                      style={{ width: '28px', height: '28px' }}
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="allocation-mobile-list">
                 {filteredSlots.length === 0 && (
                   <div className="allocation-mobile-empty">No slots match the selected filters.</div>
                 )}
-                {filteredSlots.map((slot) => (
+                {paginatedSlots.map((slot) => (
                   <button
                     type="button"
                     key={`mobile-${slot.id}`}
@@ -2008,9 +2130,12 @@ function isOutdatedPastDate(dateVal) {
                 <option value="">Select a slot</option>
                 {rescheduleOptions.map((slot) => (
                   <option key={slot.id} value={slot.id}>
-                    {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available
+                    {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available {String(slot.id) === String(reschedulingAllocation.slotId) ? '(Current Slot)' : ''}
                   </option>
                 ))}
+                {rescheduleOptions.length === 0 && (
+                  <option value="" disabled>No other available slots for this position</option>
+                )}
               </select>
             </div>
             <div className="allocation-modal__actions">
@@ -2054,7 +2179,7 @@ function isOutdatedPastDate(dateVal) {
               onClick={() => navigate('/recruiter/interviews')}
               type="button"
             >
-              Time Slot Management
+              Time Slots
             </button>
             <button
               className={`subnav-tab-btn ${activeSubTab === 'allocation' ? 'is-active' : ''}`}
@@ -2067,8 +2192,25 @@ function isOutdatedPastDate(dateVal) {
               className="subnav-tab-btn"
               onClick={() => navigate('/panel/interviews')}
               type="button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
-              Panel Schedule & Reschedules
+              <span>Panel Schedule</span>
+              {pendingRescheduleCount > 0 && (
+                <span
+                  style={{
+                    backgroundColor: '#F59E0B',
+                    color: '#0D0E13',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: '10px',
+                    lineHeight: '1',
+                  }}
+                  title={`${pendingRescheduleCount} pending reschedule request(s)`}
+                >
+                  {pendingRescheduleCount}
+                </span>
+              )}
             </button>
           </div>
 

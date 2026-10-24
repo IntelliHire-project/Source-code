@@ -46,9 +46,9 @@ const NAV_ITEMS = [
     label: 'Interviews',
     icon: Calendar,
     subItems: [
-      { label: 'Time Slot Management', path: '/recruiter/interviews' },
+      { label: 'Time Slots', path: '/recruiter/interviews' },
       { label: 'Candidate Allocation', path: '/recruiter/interviews/allocation' },
-      { label: 'Panel Schedule & Reschedules', path: '/panel/interviews' },
+      { label: 'Panel Schedule', path: '/panel/interviews' },
     ],
   },
   {
