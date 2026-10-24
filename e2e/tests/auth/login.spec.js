@@ -4,11 +4,11 @@
  * Tests for the IntelliHire Sign In page (/signin).
  *
  * Covers:
- *  1. Page loads correctly
- *  2. Login with valid candidate credentials → success message + redirect
- *  3. Login with wrong password → "Invalid email or password."
- *  4. Login with non-existent email → "Invalid email or password."
- *  5. Login with empty fields → browser built-in required validation fires
+ *  TC - AUTH - 011: Candidate Sign In with valid credentials
+ *  TC - AUTH - 012: Sign In with Incorrect Password
+ *  TC - AUTH - 013: Sign In with Non-Existent Email (Account Enumeration Prevention)
+ *  TC - AUTH - 015: Sign In Form Empty Fields Validation
+ *
  *
  * SELECTORS: All selectors are based on the real HTML `id` attributes and
  * CSS classes found in SignInPage.js. Nothing is invented.
@@ -78,9 +78,9 @@ test.describe('Sign In Page', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 2: Valid candidate login → success message → redirect
+  // TC - AUTH - 011: Valid candidate login → success message → redirect
   // -------------------------------------------------------------------------
-  test('should sign in successfully with valid candidate credentials', async ({ page }) => {
+  test('TC - AUTH - 011: Candidate Sign In with valid credentials', async ({ page }) => {
     await goToSignIn(page);
 
     await fillAndSubmitLogin(page, DEMO_CANDIDATE_EMAIL, DEMO_CANDIDATE_PASSWORD);
@@ -97,9 +97,9 @@ test.describe('Sign In Page', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 3: Wrong password → error message
+  // TC - AUTH - 012: Wrong password → error message
   // -------------------------------------------------------------------------
-  test('should show an error for an incorrect password', async ({ page }) => {
+  test('TC - AUTH - 012: Sign In with Incorrect Password', async ({ page }) => {
     await goToSignIn(page);
 
     await fillAndSubmitLogin(page, DEMO_CANDIDATE_EMAIL, 'WrongPassword999!');
@@ -115,9 +115,9 @@ test.describe('Sign In Page', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 4: Non-existent email → same generic error (no user enumeration)
+  // TC - AUTH - 013: Non-existent email → same generic error (no user enumeration)
   // -------------------------------------------------------------------------
-  test('should show an error for a non-existent email', async ({ page }) => {
+  test('TC - AUTH - 013: Sign In with Non-Existent Email (Account Enumeration Prevention)', async ({ page }) => {
     await goToSignIn(page);
 
     await fillAndSubmitLogin(page, 'nobody@test.invalid', 'SomePassword1!');
@@ -132,9 +132,9 @@ test.describe('Sign In Page', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 5: Empty email field → browser reports "required"
+  // TC - AUTH - 015: Empty email field → browser reports "required"
   // -------------------------------------------------------------------------
-  test('should prevent submission when email is empty', async ({ page }) => {
+  test('TC - AUTH - 015: Sign In Form Empty Fields Validation - Email required', async ({ page }) => {
     await goToSignIn(page);
 
     // Leave email blank, only fill password
@@ -152,9 +152,9 @@ test.describe('Sign In Page', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 6: Empty password field → browser reports "required"
+  // TC - AUTH - 015: Empty password field → browser reports "required"
   // -------------------------------------------------------------------------
-  test('should prevent submission when password is empty', async ({ page }) => {
+  test('TC - AUTH - 015: Sign In Form Empty Fields Validation - Password required', async ({ page }) => {
     await goToSignIn(page);
 
     await page.locator('#email').fill(DEMO_CANDIDATE_EMAIL);

@@ -4,16 +4,11 @@
  * Tests for recruiter registration and the admin-verification flow.
  *
  * Covers:
- *  1.  Registration page loads
- *  2.  Frontend validation — missing Company Name shows exact error
- *  3.  Frontend validation — missing Industry shows exact error
- *  4.  Frontend validation — missing Company Website shows exact error
- *  5.  Frontend validation — password too weak shows exact error
- *  6.  Frontend validation — passwords don't match shows exact error
- *  7.  Frontend validation — terms not accepted shows exact error
- *  8.  Successful recruiter registration → pending-approval page
- *  9.  Pending recruiter cannot log in → exact error message
- * 10.  Admin approves recruiter → recruiter can now log in
+ *  TC - AUTH - 006: Recruiter Registration with complete valid details
+ *  TC - AUTH - 007: Recruiter Registration Missing Required Fields
+ *  TC - AUTH - 008: Recruiter Login Attempt while in Pending Approval status
+ *  TC - AUTH - 009: Recruiter Login after Admin Approval
+ *  TC - AUTH - 010: Terms of Service agreement validation on Recruiter Registration
  *
  * SELECTORS: All `id` attributes are taken from the real
  * frontend/src/pages/recruiter/Signup/SignupPage.js source code.
@@ -183,7 +178,10 @@ test.describe('Recruiter Signup — Form Validation', () => {
   // Exact error strings come from SignupPage.js handleSubmit() validation
   // -----------------------------------------------------------------------
 
-  test('should require Company Name', async ({ page }) => {
+  // -------------------------------------------------------------------------
+  // TC - AUTH - 007: Recruiter Registration Missing Required Fields
+  // -------------------------------------------------------------------------
+  test('TC - AUTH - 007: Recruiter Registration Missing Required Fields (Company Name)', async ({ page }) => {
     await expectValidationError(
       page,
       { companyName: '' },          // blank out companyName
@@ -191,7 +189,7 @@ test.describe('Recruiter Signup — Form Validation', () => {
     );
   });
 
-  test('should require Industry selection', async ({ page }) => {
+  test('TC - AUTH - 007: Recruiter Registration Missing Required Fields (Industry)', async ({ page }) => {
     await expectValidationError(
       page,
       { industry: null },                    // skip selecting industry
@@ -264,7 +262,10 @@ test.describe('Recruiter Signup — Form Validation', () => {
     );
   });
 
-  test('should require Terms agreement', async ({ page }) => {
+  // -------------------------------------------------------------------------
+  // TC - AUTH - 010: Terms of Service agreement validation on Recruiter Registration
+  // -------------------------------------------------------------------------
+  test('TC - AUTH - 010: Terms of Service agreement validation on Recruiter Registration', async ({ page }) => {
     await goToRecruiterSignup(page);
     // Fill everything validly but do NOT check the terms box
     await fillRecruiterForm(page, { agreeTerms: false });
@@ -307,9 +308,9 @@ test.describe('Recruiter Signup — Registration & Pending Flow', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 8: Complete registration via the UI — should land on pending page
+  // TC - AUTH - 006: Recruiter Registration with complete valid details
   // -------------------------------------------------------------------------
-  test('should complete recruiter registration and redirect to pending-approval', async ({ page }) => {
+  test('TC - AUTH - 006: Recruiter Registration with complete valid details', async ({ page }) => {
     testEmail = generateTestEmail('recruiter-reg');
 
     await goToRecruiterSignup(page);
@@ -331,12 +332,9 @@ test.describe('Recruiter Signup — Registration & Pending Flow', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 9: Pending recruiter cannot log in
-  //
-  // We register directly via API here (faster, more reliable than UI)
-  // to get the userId, then test the login denial via UI.
+  // TC - AUTH - 008: Recruiter Login Attempt while in Pending Approval status
   // -------------------------------------------------------------------------
-  test('should deny login to a pending recruiter with exact error message', async ({ page }) => {
+  test('TC - AUTH - 008: Recruiter Login Attempt while in Pending Approval status', async ({ page }) => {
     // Register a fresh pending recruiter via API so we know it's definitely pending
     const pendingEmail = generateTestEmail('recruiter-pending');
     const { userId } = await registerTestRecruiter(pendingEmail);
@@ -366,9 +364,9 @@ test.describe('Recruiter Signup — Registration & Pending Flow', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Test 10: After admin approval, the recruiter CAN log in
+  // TC - AUTH - 009: Recruiter Login after Admin Approval
   // -------------------------------------------------------------------------
-  test('should allow a verified recruiter to log in after admin approval', async ({ page }) => {
+  test('TC - AUTH - 009: Recruiter Login after Admin Approval', async ({ page }) => {
     // Register a new pending recruiter via API
     const approvedEmail = generateTestEmail('recruiter-approved');
     const { userId } = await registerTestRecruiter(approvedEmail);
