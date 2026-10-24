@@ -10,134 +10,127 @@ const STORAGE_KEYS = {
   PANEL_MEMBERS: 'intellihire_panel_members',
 };
 
-// Initial Mock Panel Members
+// Initial Mock Panel Members - Single Consistent List
 export const DEFAULT_PANEL_MEMBERS = [
   {
     id: 'pm-1',
-    name: 'Dr. Emily Watson',
-    email: 'emily.watson@intellihire.com',
-    role: 'Lead AI Engineer & Technical Interviewer',
+    name: 'Saman Tech',
+    email: 'saman.tech@company.com',
+    role: 'Technical Lead & Interviewer',
     department: 'Engineering',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    specialties: ['Machine Learning', 'Python', 'System Architecture'],
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    specialties: ['React', 'Node.js', 'System Architecture'],
   },
   {
     id: 'pm-2',
-    name: 'Marcus Vance',
-    email: 'marcus.vance@intellihire.com',
-    role: 'Senior Fullstack Architect',
-    department: 'Platform Engineering',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    specialties: ['React', 'Node.js', 'Distributed Systems'],
+    name: 'Nirosha HR',
+    email: 'nirosha.hr@company.com',
+    role: 'HR Manager & Culture Fit Interviewer',
+    department: 'Human Resources',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    specialties: ['HR Screening', 'Culture Fit', 'Portfolio Review'],
   },
   {
     id: 'pm-3',
-    name: 'Sarah Chen',
-    email: 'sarah.chen@intellihire.com',
-    role: 'Director of Product Engineering',
-    department: 'Management',
+    name: 'Dilhani Wickramasinghe',
+    email: 'dilhani.w@company.com',
+    role: 'Talent Acquisition Lead',
+    department: 'Talent Acquisition',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    specialties: ['Culture Fit', 'Leadership', 'System Design'],
+    specialties: ['Talent Sourcing', 'Behavioral Interview', 'Leadership'],
+  },
+  {
+    id: 'pm-4',
+    name: 'Ruwan Bandara',
+    email: 'ruwan.b@company.com',
+    role: 'Principal Engineer & System Architect',
+    department: 'Platform Engineering',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    specialties: ['Distributed Systems', 'Cloud & DevOps', 'Database Architecture'],
   },
 ];
 
-// Initial Mock Interview Slots with Panel Members assigned
+// Initial Mock Interview Slots with Panel Members assigned (Strictly matching Candidate Allocation Results)
 export const DEFAULT_SLOTS = [
   {
     id: 1,
-    jobPosition: 'Senior Fullstack Engineer',
+    jobPosition: 'Senior Software Engineer',
     vacancyId: 'v-1',
-    round: 'Technical Round',
-    interviewDate: '2026-10-14',
-    displayDate: '14 Oct 2026',
-    startTime: '09:00 AM',
-    endTime: '10:00 AM',
+    round: 'Technical Interview',
+    interviewDate: '2026-10-22',
+    displayDate: '22 Oct 2026',
+    startTime: '09:30 AM',
+    endTime: '10:30 AM',
     interviewType: 'Online',
-    status: 'SCHEDULED', // SCHEDULED, RESCHEDULE_REQUESTED, RESCHEDULED, COMPLETED, CANCELLED
-    meetingLocation: 'https://meet.google.com/abc-tech-interview',
+    status: 'COMPLETED', // COMPLETED with evaluation on past date
+    meetingLocation: 'https://meet.google.com/intelli-tech-round',
     capacity: 1,
     bookedCount: 1,
-    panelMember: DEFAULT_PANEL_MEMBERS[1], // Marcus Vance
+    panelMember: DEFAULT_PANEL_MEMBERS[0], // Saman Tech
     candidate: {
-      id: 'c-101',
-      name: 'Alexander Wright',
-      email: 'alex.wright@example.com',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-      matchScore: 94,
+      id: 'APP-001',
+      name: 'Alice Fernando',
+      email: 'alice.fernando@example.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      matchScore: 88,
     },
-    additionalNotes: 'Focus on React performance, Redux, Node.js concurrency, and PostgreSQL indexing.',
+    additionalNotes: 'Live coding session completed. Architecture evaluation and problem-solving interview.',
+    evaluation: {
+      score: 4,
+      strengths: 'Demonstrated exceptional understanding of React performance optimization, state management, and clean architecture principles.',
+      improvements: 'Can further explore advanced Redis caching and automated end-to-end testing pipelines.',
+      recommendation: 'HIRE',
+      evaluatedBy: 'Saman Tech',
+      submittedAt: '22 Oct 2026',
+    },
   },
   {
     id: 2,
-    jobPosition: 'Lead AI Engineer',
-    vacancyId: 'v-2',
-    round: 'Deep Learning & NLP Round',
-    interviewDate: '2026-10-15',
-    displayDate: '15 Oct 2026',
-    startTime: '11:00 AM',
-    endTime: '12:00 PM',
-    interviewType: 'Online',
+    jobPosition: 'Senior Software Engineer',
+    vacancyId: 'v-1',
+    round: 'HR Portfolio Review',
+    interviewDate: '2026-11-02',
+    displayDate: '02 Nov 2026',
+    startTime: '02:00 PM',
+    endTime: '03:00 PM',
+    interviewType: 'Physical',
     status: 'RESCHEDULE_REQUESTED',
-    meetingLocation: 'https://meet.google.com/ai-nlp-interview',
+    meetingLocation: 'Innovation Hub — Interview Suite 102',
     capacity: 1,
     bookedCount: 1,
-    panelMember: DEFAULT_PANEL_MEMBERS[0], // Dr. Emily Watson
+    panelMember: DEFAULT_PANEL_MEMBERS[1], // Nirosha HR
     candidate: {
-      id: 'c-102',
-      name: 'Sophia Rodriguez',
-      email: 'sophia.r@example.com',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-      matchScore: 91,
+      id: 'APP-002',
+      name: 'Kamal Perera',
+      email: 'kamal.perera@example.com',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      matchScore: 82,
     },
-    additionalNotes: 'Review transformer fine-tuning experience, spaCy, and PyTorch deployment.',
+    additionalNotes: 'Review portfolio artifacts, team leadership experience, and cultural fit.',
   },
   {
     id: 3,
-    jobPosition: 'DevOps & Cloud Specialist',
-    vacancyId: 'v-3',
-    round: 'System Architecture & Final Panel',
-    interviewDate: '2026-10-16',
-    displayDate: '16 Oct 2026',
-    startTime: '02:00 PM',
-    endTime: '03:00 PM',
-    interviewType: 'Online',
-    status: 'SCHEDULED',
-    meetingLocation: 'https://meet.google.com/cloud-arch-eval',
-    capacity: 1,
-    bookedCount: 1,
-    panelMember: DEFAULT_PANEL_MEMBERS[2], // Sarah Chen
-    candidate: {
-      id: 'c-103',
-      name: 'Daniel Kim',
-      email: 'daniel.kim@example.com',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      matchScore: 88,
-    },
-    additionalNotes: 'Evaluate Kubernetes cluster provisioning, CI/CD pipeline reliability, and Docker security.',
-  },
-  {
-    id: 4,
-    jobPosition: 'Senior Fullstack Engineer',
+    jobPosition: 'Senior Software Engineer',
     vacancyId: 'v-1',
-    round: 'System Design',
-    interviewDate: '2026-10-18',
-    displayDate: '18 Oct 2026',
-    startTime: '04:00 PM',
-    endTime: '05:00 PM',
+    round: 'System Architecture',
+    interviewDate: '2026-11-04',
+    displayDate: '04 Nov 2026',
+    startTime: '11:00 AM',
+    endTime: '12:00 PM',
     interviewType: 'Online',
-    status: 'SCHEDULED',
-    meetingLocation: 'https://meet.google.com/fullstack-system-design',
+    status: 'SCHEDULED', // UPCOMING FUTURE DATE - Evaluation is LOCKED
+    meetingLocation: 'https://meet.google.com/intelli-architecture-eval',
     capacity: 1,
     bookedCount: 1,
-    panelMember: DEFAULT_PANEL_MEMBERS[1], // Marcus Vance
+    panelMember: DEFAULT_PANEL_MEMBERS[3], // Ruwan Bandara
     candidate: {
-      id: 'c-104',
-      name: 'Liam O\'Connor',
-      email: 'liam.oc@example.com',
+      id: 'APP-003',
+      name: 'Nimal Silva',
+      email: 'nimal.silva@example.com',
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-      matchScore: 96,
+      matchScore: 79,
     },
-    additionalNotes: 'Microservices event streaming with Kafka, database partitioning, and caching strategies.',
+    additionalNotes: 'Upcoming technical round. Evaluation is locked until the interview date has arrived.',
   },
 ];
 
@@ -147,37 +140,30 @@ export const DEFAULT_RESCHEDULE_REQUESTS = [
     id: 'req-201',
     slotId: 2,
     requestedBy: 'PANEL_MEMBER', // 'PANEL_MEMBER' or 'CANDIDATE'
-    panelMember: DEFAULT_PANEL_MEMBERS[0],
-    candidateName: 'Sophia Rodriguez',
-    candidateEmail: 'sophia.r@example.com',
-    jobPosition: 'Lead AI Engineer',
-    round: 'Deep Learning & NLP Round',
-    currentDate: '2026-10-15',
-    currentDisplayDate: '15 Oct 2026',
-    currentTime: '11:00 AM - 12:00 PM',
+    panelMember: DEFAULT_PANEL_MEMBERS[1], // Nirosha HR
+    candidateName: 'Kamal Perera',
+    candidateEmail: 'kamal.perera@example.com',
+    jobPosition: 'Senior Software Engineer',
+    round: 'HR Portfolio Review',
+    currentDate: '2026-11-02',
+    currentDisplayDate: '02 Nov 2026',
+    currentTime: '02:00 PM - 03:00 PM',
     reasonCategory: 'Schedule Conflict / Urgent Meeting',
-    detailedReason: 'I have an unavoidable keynote presentation and sprint demo at 11:00 AM on 15 Oct. Kindly reschedule to one of my proposed alternative slots.',
+    detailedReason: 'Prior urgent leadership sync scheduled at this time. Requesting to reschedule to an alternative slot.',
     proposedSlots: [
       {
         id: 'prop-1',
-        date: '2026-10-16',
-        displayDate: '16 Oct 2026',
+        date: '2026-11-05',
+        displayDate: '05 Nov 2026',
         startTime: '10:00 AM',
         endTime: '11:00 AM',
       },
       {
         id: 'prop-2',
-        date: '2026-10-16',
-        displayDate: '16 Oct 2026',
+        date: '2026-11-06',
+        displayDate: '06 Nov 2026',
         startTime: '03:30 PM',
         endTime: '04:30 PM',
-      },
-      {
-        id: 'prop-3',
-        date: '2026-10-17',
-        displayDate: '17 Oct 2026',
-        startTime: '09:30 AM',
-        endTime: '10:30 AM',
       },
     ],
     status: 'PENDING', // 'PENDING', 'APPROVED', 'REJECTED'
@@ -186,12 +172,71 @@ export const DEFAULT_RESCHEDULE_REQUESTS = [
   },
 ];
 
+const MONTH_MAP = {
+  jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+  jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+};
+
+// Helper: Convert display date string to ISO 'YYYY-MM-DD'
+export const toIsoDateString = (dStr) => {
+  if (!dStr) return '2026-11-05';
+  const clean = dStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  const parts = clean.split(/\s+/);
+  if (parts.length >= 2) {
+    const day = parts[0].padStart(2, '0');
+    const mon = MONTH_MAP[parts[1].toLowerCase().slice(0, 3)] || '11';
+    const year = parts[2] || '2026';
+    return `${year}-${mon}-${day}`;
+  }
+  return '2026-11-05';
+};
+
+// Helper: Calculate end time (+1 hour)
+export const getEndTime = (timeStr) => {
+  if (!timeStr) return '11:00 AM';
+  const m = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  if (!m) return '11:00 AM';
+  let hrs = parseInt(m[1], 10);
+  const mins = m[2];
+  let ampm = m[3] ? m[3].toUpperCase() : 'AM';
+  hrs = hrs + 1;
+  if (hrs === 12) {
+    ampm = ampm === 'AM' ? 'PM' : 'AM';
+  } else if (hrs > 12) {
+    hrs = hrs - 12;
+  }
+  return `${String(hrs).padStart(2, '0')}:${mins} ${ampm}`;
+};
+
+const CANDIDATE_AVATARS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+];
+
+// Helper: Check whether a date is in the past or today (format: YYYY-MM-DD or display date)
+export const isPastOrToday = (dateStr) => {
+  if (!dateStr) return false;
+  const iso = toIsoDateString(dateStr);
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+  return iso <= todayStr;
+};
+
 // Helper: Generate Google Calendar URL
 export const generateGoogleCalendarLink = ({ title, description, date, startTime, endTime, location }) => {
   try {
     const parseDateTime = (dStr, tStr) => {
       if (!dStr) return new Date();
-      const dateObj = new Date(dStr);
+      const iso = toIsoDateString(dStr);
+      const dateObj = new Date(iso);
       if (tStr) {
         const match = tStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
         if (match) {
@@ -229,13 +274,125 @@ export const generateGoogleCalendarLink = ({ title, description, date, startTime
 
 export const getInterviewSlots = () => {
   try {
+    let baseSlots = [];
     const stored = localStorage.getItem(STORAGE_KEYS.SLOTS);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          baseSlots = parsed;
+        }
+      } catch {}
+    }
+    if (baseSlots.length === 0) {
+      baseSlots = [...DEFAULT_SLOTS];
+    }
+
+    // Read live allocations from Candidate Interview Allocation UI (intellihire_allocations)
+    const allocJson = localStorage.getItem('intellihire_allocations');
+    if (allocJson) {
+      try {
+        const allocations = JSON.parse(allocJson);
+        if (Array.isArray(allocations)) {
+          if (allocations.length === 0) {
+            localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify([]));
+            return [];
+          }
+          const activeAllocations = allocations.filter((a) => a.status === 'ALLOCATED');
+
+          if (activeAllocations.length > 0) {
+            const merged = [];
+
+            activeAllocations.forEach((alloc, idx) => {
+              // Match existing slot by candidate ID or Name
+              const existing = baseSlots.find(
+                (s) =>
+                  s.candidate?.id === alloc.candidateId ||
+                  s.candidate?.name?.trim().toLowerCase() === (alloc.candidateName || '').trim().toLowerCase()
+              );
+
+              if (existing) {
+                const sTime = alloc.assignedTime || existing.startTime || '11:00 AM';
+                const eTime = (alloc.assignedTime || !existing.endTime || existing.endTime === existing.startTime || (sTime.includes('02:00') && existing.endTime.includes('11:00')))
+                  ? getEndTime(sTime)
+                  : existing.endTime;
+
+                merged.push({
+                  ...existing,
+                  jobPosition: alloc.jobPosition || existing.jobPosition,
+                  round: alloc.interviewRound || existing.round,
+                  interviewDate: toIsoDateString(alloc.interviewDate || existing.interviewDate),
+                  displayDate: alloc.interviewDate || existing.displayDate,
+                  startTime: sTime,
+                  endTime: eTime,
+                  interviewType: alloc.interviewType || existing.interviewType,
+                });
+              } else {
+                // Newly allocated candidate from Candidate Allocation!
+                let pm = DEFAULT_PANEL_MEMBERS[idx % DEFAULT_PANEL_MEMBERS.length];
+                const roundLower = (alloc.interviewRound || '').toLowerCase();
+                if (roundLower.includes('hr') || roundLower.includes('culture') || roundLower.includes('portfolio')) {
+                  pm = DEFAULT_PANEL_MEMBERS[1]; // Nirosha HR
+                } else if (roundLower.includes('arch') || roundLower.includes('system') || roundLower.includes('lead')) {
+                  pm = DEFAULT_PANEL_MEMBERS[3]; // Ruwan Bandara
+                } else if (roundLower.includes('design') || roundLower.includes('product')) {
+                  pm = DEFAULT_PANEL_MEMBERS[2]; // Dilhani Wickramasinghe
+                } else {
+                  pm = DEFAULT_PANEL_MEMBERS[0]; // Saman Tech
+                }
+
+                merged.push({
+                  id: `slot-alloc-${alloc.candidateId || idx + 10}`,
+                  jobPosition: alloc.jobPosition || 'Senior Software Engineer',
+                  vacancyId: 'v-1',
+                  round: alloc.interviewRound || 'Technical Interview',
+                  interviewDate: toIsoDateString(alloc.interviewDate),
+                  displayDate: alloc.interviewDate || '05 Nov 2026',
+                  startTime: (() => {
+                    const raw = alloc.assignedTime || '02:00 PM';
+                    return raw.includes('–') ? raw.split('–')[0].trim() : (raw.includes(' - ') ? raw.split(' - ')[0].trim() : raw);
+                  })(),
+                  endTime: (() => {
+                    const raw = alloc.assignedTime || '02:00 PM';
+                    if (raw.includes('–')) return raw.split('–')[1].trim();
+                    if (raw.includes(' - ')) return raw.split(' - ')[1].trim();
+                    return getEndTime(raw);
+                  })(),
+                  interviewType: alloc.interviewType || 'Online',
+                  status: 'SCHEDULED',
+                  meetingLocation:
+                    alloc.interviewType === 'Physical'
+                      ? 'Innovation Hub — Interview Suite 102'
+                      : 'https://meet.google.com/intelli-tech-round',
+                  capacity: 1,
+                  bookedCount: 1,
+                  panelMember: pm,
+                  candidate: {
+                    id: alloc.candidateId || `APP-${idx + 10}`,
+                    name: alloc.candidateName,
+                    email: `${(alloc.candidateName || 'candidate').toLowerCase().replace(/\s+/g, '.')}@example.com`,
+                    avatar: CANDIDATE_AVATARS[idx % CANDIDATE_AVATARS.length],
+                    matchScore: alloc.score || 80,
+                  },
+                  additionalNotes: `Allocated via Candidate Allocation for ${alloc.interviewRound || 'technical review'}.`,
+                });
+              }
+            });
+
+            localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(merged));
+            return merged;
+          }
+        }
+      } catch (e) {
+        console.error('Error syncing intellihire_allocations into slots:', e);
+      }
+    }
+
+    return baseSlots;
   } catch (err) {
     console.error('Failed to load slots from localStorage:', err);
+    return DEFAULT_SLOTS;
   }
-  localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(DEFAULT_SLOTS));
-  return DEFAULT_SLOTS;
 };
 
 export const saveInterviewSlots = (slots) => {
@@ -249,7 +406,14 @@ export const saveInterviewSlots = (slots) => {
 export const getRescheduleRequests = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.RESCHEDULE_REQUESTS);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.some(r => r.candidateName?.includes('Sophia') || r.panelMember?.name?.includes('Watson'))) {
+        localStorage.removeItem(STORAGE_KEYS.RESCHEDULE_REQUESTS);
+      } else {
+        return parsed;
+      }
+    }
   } catch (err) {
     console.error('Failed to load reschedule requests:', err);
   }
@@ -268,7 +432,14 @@ export const saveRescheduleRequests = (requests) => {
 export const getPanelMembers = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.PANEL_MEMBERS);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.some(p => p.name?.includes('Watson') || p.name?.includes('Vance'))) {
+        localStorage.removeItem(STORAGE_KEYS.PANEL_MEMBERS);
+      } else {
+        return parsed;
+      }
+    }
   } catch (err) {
     console.error('Failed to load panel members:', err);
   }

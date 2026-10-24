@@ -718,6 +718,8 @@ img {
   transition: all 0.2s ease;
   cursor: pointer;
   white-space: nowrap; /* Ensure sub-labels do not wrap */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-sub-item:hover {
