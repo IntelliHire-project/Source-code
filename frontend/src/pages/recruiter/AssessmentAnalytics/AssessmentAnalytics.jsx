@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart2,
@@ -12,9 +12,12 @@ import {
   ChevronRight,
   Search,
   RotateCcw,
+  Printer,
+  Star,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getInterviewSlots } from '../../../services/interviewService';
 import '../../../style.css';
 import './AssessmentAnalytics.css';
 
@@ -34,12 +37,12 @@ const SCORE_DISTRIBUTION = [
 ];
 
 const PANEL_EVALUATIONS = [
-  { id: 'E-1', candidate: 'Alice Fernando', role: 'Senior Fullstack Engineer', round: 'Technical', comm: 4, tech: 5, problem: 4, teamwork: 4, overall: '4.5 / 5', recommendation: 'Hire' },
-  { id: 'E-2', candidate: 'Kamal Perera', role: 'UI/UX Designer', round: 'HR Portfolio Review', comm: 4, tech: 3, problem: 4, teamwork: 5, overall: '4.0 / 5', recommendation: 'Hold' },
-  { id: 'E-3', candidate: 'Nimal Silva', role: 'QA Automation Engineer', round: 'Final Cultural Fit', comm: 3, tech: 4, problem: 3, teamwork: 4, overall: '3.5 / 5', recommendation: 'Reject' },
-  { id: 'E-4', candidate: 'Sara Jayawardena', role: 'Business Analyst', round: 'Technical Case Study', comm: 5, tech: 4, problem: 5, teamwork: 5, overall: '4.8 / 5', recommendation: 'Hire' },
-  { id: 'E-5', candidate: 'Ruwan Bandara', role: 'Product Manager', round: 'HR Screening', comm: 4, tech: 3, problem: 4, teamwork: 4, overall: '3.8 / 5', recommendation: 'Hold' },
-  { id: 'E-6', candidate: 'Dilhani Wickramasinghe', role: 'DevOps Lead', round: 'Architecture Final', comm: 4, tech: 5, problem: 5, teamwork: 3, overall: '4.3 / 5', recommendation: 'Hire' },
+  { id: 'E-1', candidate: 'Alice Fernando', role: 'Senior Software Engineer', round: 'Technical Interview', comm: 4, tech: 5, problem: 4, teamwork: 4, overall: '4.5 / 5', recommendation: 'Hire' },
+  { id: 'E-2', candidate: 'Kamal Perera', role: 'Senior Software Engineer', round: 'HR Portfolio Review', comm: 4, tech: 3, problem: 4, teamwork: 5, overall: '4.0 / 5', recommendation: 'Hold' },
+  { id: 'E-3', candidate: 'Nimal Silva', role: 'Senior Software Engineer', round: 'System Architecture', comm: 3, tech: 4, problem: 3, teamwork: 4, overall: '3.5 / 5', recommendation: 'Reject' },
+  { id: 'E-4', candidate: 'Dinesh Mendis', role: 'Senior Software Engineer', round: 'Technical Interview', comm: 4, tech: 4, problem: 4, teamwork: 4, overall: '4.0 / 5', recommendation: 'Hire' },
+  { id: 'E-5', candidate: 'Sanduni Wickramasinghe', role: 'Senior Software Engineer', round: 'HR Screening', comm: 4, tech: 3, problem: 4, teamwork: 4, overall: '3.8 / 5', recommendation: 'Hold' },
+  { id: 'E-6', candidate: 'Malith Senanayake', role: 'UI/UX Designer', round: 'Design Portfolio Review', comm: 5, tech: 4, problem: 4, teamwork: 5, overall: '4.5 / 5', recommendation: 'Hire' },
 ];
 
 const TABS = [
@@ -49,9 +52,45 @@ const TABS = [
   { id: 'progress', label: 'Recruitment Progress', path: '/recruiter/analytics/progress' },
 ];
 
+const loadPanelEvaluations = () => {
+  try {
+    const slots = getInterviewSlots();
+    if (Array.isArray(slots) && slots.length > 0) {
+      const liveEvaluations = slots
+        .filter((s) => s.evaluation && s.candidate)
+        .map((s) => {
+          const ev = s.evaluation;
+          const scoreVal = typeof ev.score === 'number' ? ev.score : 4;
+          return {
+            id: `E-LIVE-${s.id}`,
+            candidate: s.candidate.name,
+            role: s.jobPosition || 'Senior Software Engineer',
+            round: s.round || 'Technical Interview',
+            comm: 4,
+            tech: scoreVal,
+            problem: 4,
+            teamwork: 4,
+            overall: `${scoreVal}.0 / 5`,
+            recommendation: ev.recommendation === 'HIRE' ? 'Hire' : (ev.recommendation === 'REJECT' ? 'Reject' : 'Hold'),
+          };
+        });
+
+      if (liveEvaluations.length > 0) {
+        const liveNames = new Set(liveEvaluations.map((e) => e.candidate.toLowerCase()));
+        const remaining = PANEL_EVALUATIONS.filter((p) => !liveNames.has(p.candidate.toLowerCase()));
+        return [...liveEvaluations, ...remaining];
+      }
+    }
+  } catch (err) {
+    console.error('Failed to sync slot evaluations in AssessmentAnalytics:', err);
+  }
+  return PANEL_EVALUATIONS;
+};
+
 export default function AssessmentAnalytics() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [allEvals, setAllEvals] = useState(loadPanelEvaluations);
   const [roleFilter, setRoleFilter] = useState('all');
   const [roundFilter, setRoundFilter] = useState('all');
   const [recommendationFilter, setRecommendationFilter] = useState('all');
@@ -59,22 +98,39 @@ export default function AssessmentAnalytics() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  const filteredEvals = PANEL_EVALUATIONS.filter((e) => {
+  useEffect(() => {
+    const handleSync = () => {
+      setAllEvals(loadPanelEvaluations());
+    };
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
+
+  const filteredEvals = allEvals.filter((e) => {
     const query = searchQuery.trim().toLowerCase();
-    return (roleFilter === 'all' || e.role === roleFilter)
-      && (roundFilter === 'all' || e.round === roundFilter)
-      && (recommendationFilter === 'all' || e.recommendation === recommendationFilter)
-      && (!query || e.candidate.toLowerCase().includes(query) || e.role.toLowerCase().includes(query));
+    const matchRole = roleFilter === 'all' || e.role.toLowerCase() === roleFilter.toLowerCase() || e.role.toLowerCase().includes(roleFilter.toLowerCase());
+    const matchRound = roundFilter === 'all' || e.round.toLowerCase() === roundFilter.toLowerCase() || e.round.toLowerCase().includes(roundFilter.toLowerCase());
+    const matchRec = recommendationFilter === 'all' || e.recommendation.toLowerCase() === recommendationFilter.toLowerCase();
+    const matchSearch = !query || e.candidate.toLowerCase().includes(query) || e.role.toLowerCase().includes(query);
+    return matchRole && matchRound && matchRec && matchSearch;
   });
 
   const averageScore = filteredEvals.length
     ? filteredEvals.reduce((sum, item) => sum + (Number.parseFloat(item.overall) * 20), 0) / filteredEvals.length
     : 0;
+  const hireCount = filteredEvals.filter((item) => item.recommendation === 'Hire').length;
+  const rejectCount = filteredEvals.filter((item) => item.recommendation === 'Reject').length;
+  const hireRate = filteredEvals.length ? Math.round((hireCount / filteredEvals.length) * 100) : 0;
+
   const assessmentStats = [
-    { ...ASSESSMENT_STATS[0], label: 'Evaluation Records', value: filteredEvals.length },
-    { ...ASSESSMENT_STATS[1], value: filteredEvals.length ? '100%' : '0%' },
-    { ...ASSESSMENT_STATS[2], value: `${averageScore.toFixed(1)}%` },
-    { ...ASSESSMENT_STATS[3], value: filteredEvals.filter((item) => item.recommendation === 'Reject').length },
+    { label: 'Evaluations Completed', value: filteredEvals.length, icon: BarChart2, color: '#F0B90B', bg: 'rgba(240,185,11,0.12)' },
+    { label: 'Hire Recommendation Rate', value: `${hireRate}%`, icon: CheckCircle, color: '#22C55E', bg: 'rgba(34,197,94,0.12)' },
+    { label: 'Avg Assessment Score', value: `${averageScore.toFixed(1)}%`, icon: Award, color: '#6B8CFF', bg: 'rgba(107,140,255,0.12)' },
+    { label: 'Rejected Candidates', value: rejectCount, icon: XCircle, color: '#E63946', bg: 'rgba(230,57,70,0.12)' },
   ];
   const scoreDistribution = SCORE_DISTRIBUTION.map((range, index) => {
     const limits = [[81, 100], [61, 80], [41, 60], [21, 40], [0, 20]][index];
@@ -84,7 +140,8 @@ export default function AssessmentAnalytics() {
     }).length;
     return { ...range, count, pct: filteredEvals.length ? Math.round((count / filteredEvals.length) * 100) : 0 };
   });
-  const filtersActive = roleFilter !== 'all' || roundFilter !== 'all' || recommendationFilter !== 'all' || searchQuery.trim();
+  const activeFilterCount = [roleFilter !== 'all', roundFilter !== 'all', recommendationFilter !== 'all', Boolean(searchQuery.trim())].filter(Boolean).length;
+  const filtersActive = activeFilterCount > 0;
   const clearFilters = () => { setRoleFilter('all'); setRoundFilter('all'); setRecommendationFilter('all'); setSearchQuery(''); setCurrentPage(1); };
   const exportReport = () => {
     const rows = [['Candidate', 'Role', 'Round', 'Communication', 'Technical', 'Problem Solving', 'Teamwork', 'Overall', 'Recommendation'], ...filteredEvals.map((e) => [e.candidate, e.role, e.round, e.comm, e.tech, e.problem, e.teamwork, e.overall, e.recommendation])];
@@ -99,7 +156,11 @@ export default function AssessmentAnalytics() {
 
   return (
     <div className="create-vacancy app-analytics-shell">
-      <RecruiterSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <RecruiterSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem="Assessment Scores"
+      />
 
       <div className="create-vacancy__main">
         <TopBar
@@ -134,10 +195,16 @@ export default function AssessmentAnalytics() {
               <h1 className="an-page-title">Assessment Performance Analytics</h1>
               <p className="an-page-subtitle">Clean breakdown of assessment performance, score ranges &amp; panel feedback.</p>
             </div>
-            <button className="an-export-btn" type="button" onClick={exportReport}>
-              <Download size={16} />
-              Export Report
-            </button>
+            <div className="an-header-actions">
+              <button className="an-print-btn" type="button" onClick={() => window.print()} title="Print or save PDF report">
+                <Printer size={16} />
+                Print / Save PDF
+              </button>
+              <button className="an-export-btn" type="button" onClick={exportReport} title="Export CSV report">
+                <Download size={16} />
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* KPI Stat Cards */}
@@ -171,18 +238,25 @@ export default function AssessmentAnalytics() {
                 onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
               >
                 <option value="all">All Roles</option>
-                <option value="Software Engineer">Software Engineer</option>
-                <option value="UI/UX Designer">UI/UX Designer</option>
-                <option value="QA Automation Engineer">QA Automation Engineer</option>
-                <option value="Business Analyst">Business Analyst</option>
-                <option value="Product Manager">Product Manager</option>
-                <option value="DevOps Lead">DevOps Lead</option>
+                {[...new Set(allEvals.map((e) => e.role))].map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
               </select>
               <ChevronDown size={14} className="an-select-caret" />
             </div>
-            <div className="an-select-wrap"><select className="an-select" value={roundFilter} onChange={(e) => { setRoundFilter(e.target.value); setCurrentPage(1); }}><option value="all">All Rounds</option>{[...new Set(PANEL_EVALUATIONS.map((e) => e.round))].map((round) => <option key={round} value={round}>{round}</option>)}</select><ChevronDown size={14} className="an-select-caret" /></div>
+            <div className="an-select-wrap">
+              <select className="an-select" value={roundFilter} onChange={(e) => { setRoundFilter(e.target.value); setCurrentPage(1); }}>
+                <option value="all">All Rounds</option>
+                {[...new Set(allEvals.map((e) => e.round))].map((round) => <option key={round} value={round}>{round}</option>)}
+              </select>
+              <ChevronDown size={14} className="an-select-caret" />
+            </div>
             <div className="an-select-wrap"><select className="an-select" value={recommendationFilter} onChange={(e) => { setRecommendationFilter(e.target.value); setCurrentPage(1); }}><option value="all">All Recommendations</option><option value="Hire">Hire</option><option value="Hold">Hold</option><option value="Reject">Reject</option></select><ChevronDown size={14} className="an-select-caret" /></div>
-            {filtersActive && <button type="button" className="an-clear-filter" onClick={clearFilters}><RotateCcw size={14} /> Clear Filters</button>}
+            {filtersActive && (
+              <button type="button" className="an-clear-filter is-active" onClick={clearFilters}>
+                <RotateCcw size={14} /> Clear Filters ({activeFilterCount})
+              </button>
+            )}
           </div>
 
           {/* Clean Overview Card: Score Distribution Bars */}
@@ -220,9 +294,9 @@ export default function AssessmentAnalytics() {
                   <tr>
                     <th>CANDIDATE</th>
                     <th>ROLE</th>
-                    <th>ROUND</th>
-                    <th>SKILL RATINGS (C / T / P / W)</th>
-                    <th>OVERALL</th>
+                    <th>INTERVIEW ROUND</th>
+                    <th>SKILL EVALUATIONS (COMM / TECH / PROB / TEAM)</th>
+                    <th>OVERALL SCORE</th>
                     <th>RECOMMENDATION</th>
                   </tr>
                 </thead>
@@ -234,8 +308,20 @@ export default function AssessmentAnalytics() {
                         <td className="an-td-pos">{e.candidate}</td>
                         <td className="an-td-muted">{e.role}</td>
                         <td className="an-td-muted">{e.round}</td>
-                        <td><span className="an-skill-summary"><b>{e.comm}</b><b>{e.tech}</b><b>{e.problem}</b><b>{e.teamwork}</b></span></td>
-                        <td><span className="an-score-badge" style={{ color: '#F0B90B' }}>{e.overall}</span></td>
+                        <td>
+                          <div className="an-skill-tags-group">
+                            <span className="an-skill-tag" title="Communication Skills: 4/5"><small>Comm</small><b>{e.comm}</b></span>
+                            <span className="an-skill-tag" title="Technical Architecture: 5/5"><small>Tech</small><b>{e.tech}</b></span>
+                            <span className="an-skill-tag" title="Problem Solving: 4/5"><small>Prob</small><b>{e.problem}</b></span>
+                            <span className="an-skill-tag" title="Teamwork & Collaboration: 4/5"><small>Team</small><b>{e.teamwork}</b></span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="an-overall-badge">
+                            <Star size={13} fill="#F0B90B" color="#F0B90B" style={{ marginRight: 4 }} />
+                            {e.overall}
+                          </span>
+                        </td>
                         <td>
                           <span className="an-status-pill" style={{ background: `${recColor}20`, color: recColor }}>
                             {e.recommendation}
