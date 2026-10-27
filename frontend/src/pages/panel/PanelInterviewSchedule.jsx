@@ -69,6 +69,87 @@ export const formatTimingDisplay = (startTime, endTime) => {
   return s;
 };
 
+// Convert 12h or 24h string to HH:mm for <input type="time">
+export const toTimeInputValue = (timeValue) => {
+  if (!timeValue) return '10:00';
+  const clean = String(timeValue).trim();
+  if (/^\d{2}:\d{2}$/.test(clean)) return clean;
+  if (/^\d{1}:\d{2}$/.test(clean)) return `0${clean}`;
+  const match = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return '10:00';
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const period = match[3] ? match[3].toUpperCase() : '';
+  if (period === 'PM' && hours < 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+};
+
+// Convert HH:mm (24h) to 'hh:mm AM/PM'
+export const to12HourTime = (timeValue) => {
+  if (!timeValue) return '10:00 AM';
+  const clean = String(timeValue).trim();
+  if (clean.includes('AM') || clean.includes('PM')) {
+    const m = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (m) {
+      return `${String(parseInt(m[1], 10)).padStart(2, '0')}:${m[2]} ${m[3].toUpperCase()}`;
+    }
+    return clean;
+  }
+  const match = clean.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return clean;
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const period = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${String(hours).padStart(2, '0')}:${minutes} ${period}`;
+};
+
+// Calculate end time based on start time + minutes
+export const calculateEndTime = (start24or12, durationMinutes = 60) => {
+  const start24 = toTimeInputValue(start24or12);
+  const [h, m] = start24.split(':').map(Number);
+  const totalMins = (isNaN(h) ? 10 : h) * 60 + (isNaN(m) ? 0 : m) + Number(durationMinutes);
+  const endH = Math.floor(totalMins / 60) % 24;
+  const endM = totalMins % 60;
+  const end24 = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  return {
+    time24: end24,
+    time12: to12HourTime(end24),
+  };
+};
+
+// Calculate duration in minutes between start and end
+export const getDurationMinutes = (startTime, endTime) => {
+  try {
+    const s24 = toTimeInputValue(startTime);
+    const e24 = toTimeInputValue(endTime);
+    const [sh, sm] = s24.split(':').map(Number);
+    const [eh, em] = e24.split(':').map(Number);
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff <= 0) diff += 24 * 60;
+    return diff || 60;
+  } catch {
+    return 60;
+  }
+};
+
+// Format duration into readable string (e.g. "1 hr", "45 mins", "1 hr 30 mins")
+export const formatDurationDisplay = (minutes) => {
+  if (!minutes || minutes <= 0) return '1 hr';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0 && m > 0) return `${h} hr ${m} min`;
+  if (h > 0) return `${h} hr`;
+  return `${m} mins`;
+};
+
+const DURATION_PRESETS = [
+  { label: '30 mins', mins: 30 },
+  { label: '45 mins', mins: 45 },
+  { label: '1 hour (Standard)', mins: 60 },
+];
+
 const RESCHEDULE_REASONS = [
   'Schedule Conflict / Prior Meeting',
   'Emergency / Personal Leave',
@@ -195,17 +276,21 @@ export default function PanelInterviewSchedule() {
     setRescheduleReasonCategory(RESCHEDULE_REASONS[0]);
     setDetailedNotes('');
     
-    // Default proposed slot is 1 or 2 days later
+    // Default proposed slot is 2 days later
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 2);
     const dateStr = defaultDate.toISOString().split('T')[0];
+
+    const cleanStart = slot.startTime ? cleanSingleTime(splitTimeRange(slot.startTime).startTime) : '10:00 AM';
+    // Strictly enforce standard 1-hour session (60 minutes) instead of 2 hours
+    const { time12: cleanEnd } = calculateEndTime(cleanStart, 60);
 
     setProposedSlots([
       {
         id: 1,
         date: dateStr,
-        startTime: slot.startTime || '10:00 AM',
-        endTime: slot.endTime || '11:00 AM',
+        startTime: to12HourTime(cleanStart),
+        endTime: to12HourTime(cleanEnd),
       },
     ]);
     setModalOpen(true);
@@ -219,13 +304,17 @@ export default function PanelInterviewSchedule() {
     }
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + proposedSlots.length + 2);
+    const dateStr = defaultDate.toISOString().split('T')[0];
+    const defaultStart = proposedSlots.length === 1 ? '02:00 PM' : '04:00 PM';
+    const defaultEnd = proposedSlots.length === 1 ? '03:00 PM' : '05:00 PM';
+
     setProposedSlots([
       ...proposedSlots,
       {
         id: Date.now(),
-        date: defaultDate.toISOString().split('T')[0],
-        startTime: '02:00 PM',
-        endTime: '03:00 PM',
+        date: dateStr,
+        startTime: defaultStart,
+        endTime: defaultEnd,
       },
     ]);
   };
@@ -236,10 +325,50 @@ export default function PanelInterviewSchedule() {
     setProposedSlots(proposedSlots.filter((s) => s.id !== id));
   };
 
-  // Update proposed slot fields
+  // Update proposed slot fields (date, etc.)
   const handleUpdateProposedSlot = (id, field, value) => {
     setProposedSlots(
       proposedSlots.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
+  };
+
+  // Handle start/end time change from <input type="time">
+  const handleSlotTimeChange = (id, field, value24) => {
+    if (!value24) return;
+    setProposedSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        if (field === 'startTime') {
+          const newStart12 = to12HourTime(value24);
+          // Always calculate standard 60 minutes (1 hour) end time
+          const { time12: newEnd12 } = calculateEndTime(value24, 60);
+          return {
+            ...s,
+            startTime: newStart12,
+            endTime: newEnd12,
+          };
+        } else if (field === 'endTime') {
+          return {
+            ...s,
+            endTime: to12HourTime(value24),
+          };
+        }
+        return s;
+      })
+    );
+  };
+
+  // Quick duration preset click
+  const handleSetDuration = (id, durationMins) => {
+    setProposedSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const { time12: newEnd12 } = calculateEndTime(s.startTime, durationMins);
+        return {
+          ...s,
+          endTime: newEnd12,
+        };
+      })
     );
   };
 
@@ -252,17 +381,19 @@ export default function PanelInterviewSchedule() {
 
     const formattedProposed = proposedSlots.map((s, idx) => {
       const dateObj = new Date(s.date);
-      const displayDate = dateObj.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
+      const displayDate = isNaN(dateObj.getTime())
+        ? s.date
+        : dateObj.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          });
       return {
         id: `prop-${idx + 1}-${Date.now()}`,
         date: s.date,
         displayDate,
-        startTime: s.startTime,
-        endTime: s.endTime,
+        startTime: to12HourTime(s.startTime),
+        endTime: to12HourTime(s.endTime),
       };
     });
 
@@ -851,48 +982,181 @@ export default function PanelInterviewSchedule() {
 
                 {/* Proposed New Times */}
                 <div className="form-field-group">
-                  <label className="form-field-label">
-                    <Calendar className="w-4 h-4" />
-                    Propose Your Available Dates & Times (1 to 3 options) *
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2px' }}>
+                    <label className="form-field-label" style={{ marginBottom: 0 }}>
+                      <Calendar className="w-4 h-4 text-accent" style={{ color: 'var(--accent-dark)' }} />
+                      Propose Available Dates &amp; Times (1 to 3 options) *
+                    </label>
+                    <span style={{ fontSize: '11px', color: '#9599A6' }}>
+                      {proposedSlots.length} of 3 options added
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#858997', lineHeight: 1.4 }}>
+                    Specify your preferred alternative dates and start/end times. The recruiter will select and confirm one of these options.
+                  </p>
+
                   <div className="proposed-slots-container">
-                    {proposedSlots.map((propSlot, index) => (
-                      <div key={propSlot.id} className="proposed-slot-row">
-                        <input
-                          type="date"
-                          className="form-input"
-                          value={propSlot.date}
-                          onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'date', e.target.value)}
-                          required
-                        />
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="e.g. 10:00 AM"
-                          value={propSlot.startTime}
-                          onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'startTime', e.target.value)}
-                          required
-                        />
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="e.g. 11:00 AM"
-                          value={propSlot.endTime}
-                          onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'endTime', e.target.value)}
-                          required
-                        />
-                        {proposedSlots.length > 1 && (
-                          <button
-                            type="button"
-                            className="remove-slot-btn"
-                            onClick={() => handleRemoveProposedSlot(propSlot.id)}
-                            title="Remove this proposed slot"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                    {proposedSlots.map((propSlot, index) => {
+                      const duration = getDurationMinutes(propSlot.startTime, propSlot.endTime);
+                      const dateFormatted = (() => {
+                        try {
+                          if (!propSlot.date) return 'Select date';
+                          const dObj = new Date(propSlot.date);
+                          return isNaN(dObj.getTime())
+                            ? propSlot.date
+                            : dObj.toLocaleDateString('en-GB', {
+                                weekday: 'short',
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              });
+                        } catch {
+                          return propSlot.date;
+                        }
+                      })();
+
+                      return (
+                        <div key={propSlot.id} className="proposed-slot-card">
+                          {/* Card Header */}
+                          <div className="slot-card-header">
+                            <div className="slot-card-title">
+                              {proposedSlots.length > 1 && (
+                                <span className={`slot-option-badge option-${index + 1}`}>
+                                  Option {index + 1}
+                                </span>
+                              )}
+                              <span className="slot-duration-pill">
+                                <Clock size={11} /> {formatDurationDisplay(duration)}
+                              </span>
+                            </div>
+                            {proposedSlots.length > 1 && (
+                              <button
+                                type="button"
+                                className="remove-slot-btn-styled"
+                                onClick={() => handleRemoveProposedSlot(propSlot.id)}
+                                title="Remove this alternative option"
+                              >
+                                <Trash2 size={13} /> Remove
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Inputs Grid: 3 clearly labeled columns */}
+                          <div className="slot-inputs-grid">
+                            {/* Column 1: Date */}
+                            <div className="slot-input-col">
+                              <label className="slot-sublabel">
+                                <Calendar size={12} style={{ color: '#F0B90B' }} />
+                                <span>Interview Date *</span>
+                              </label>
+                              <div
+                                className="date-picker-input-container"
+                                onClick={(e) => {
+                                  const input = e.currentTarget.querySelector('input[type="date"]');
+                                  if (input && typeof input.showPicker === 'function') {
+                                    try { input.showPicker(); } catch (_) {}
+                                  }
+                                }}
+                              >
+                                <input
+                                  type="date"
+                                  className="form-input-styled date-picker-field"
+                                  value={propSlot.date}
+                                  min={new Date().toISOString().split('T')[0]}
+                                  onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'date', e.target.value)}
+                                  required
+                                />
+                                <button
+                                  type="button"
+                                  className="date-picker-icon-btn"
+                                  title="Open Calendar Date Picker"
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const container = e.currentTarget.closest('.date-picker-input-container');
+                                    const input = container?.querySelector('input[type="date"]');
+                                    if (input && typeof input.showPicker === 'function') {
+                                      try { input.showPicker(); } catch (_) {}
+                                    } else {
+                                      input?.focus();
+                                    }
+                                  }}
+                                >
+                                  <Calendar size={15} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Column 2: Start Time */}
+                            <div className="slot-input-col">
+                              <label className="slot-sublabel">
+                                <Clock size={12} style={{ color: '#60A5FA' }} />
+                                <span>Start Time *</span>
+                              </label>
+                              <input
+                                type="time"
+                                className="form-input-styled time-picker-input"
+                                value={toTimeInputValue(propSlot.startTime)}
+                                onChange={(e) => handleSlotTimeChange(propSlot.id, 'startTime', e.target.value)}
+                                required
+                              />
+                              <span className="time-preview-tag">
+                                ⏰ {to12HourTime(propSlot.startTime)}
+                              </span>
+                            </div>
+
+                            {/* Column 3: End Time */}
+                            <div className="slot-input-col">
+                              <label className="slot-sublabel">
+                                <Clock size={12} style={{ color: '#4ADE80' }} />
+                                <span>End Time *</span>
+                              </label>
+                              <input
+                                type="time"
+                                className="form-input-styled time-picker-input"
+                                value={toTimeInputValue(propSlot.endTime)}
+                                onChange={(e) => handleSlotTimeChange(propSlot.id, 'endTime', e.target.value)}
+                                required
+                              />
+                              <span className="time-preview-tag">
+                                🏁 {to12HourTime(propSlot.endTime)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Quick Duration Chips Bar */}
+                          <div className="slot-presets-bar">
+                            <span className="presets-label">Session Duration:</span>
+                            <div className="duration-chips">
+                              {DURATION_PRESETS.map((dp) => (
+                                <button
+                                  key={dp.mins}
+                                  type="button"
+                                  className={`duration-chip-btn ${duration === dp.mins ? 'active' : ''}`}
+                                  onClick={() => handleSetDuration(propSlot.id, dp.mins)}
+                                >
+                                  {dp.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Live Visual Summary Preview */}
+                          <div className="slot-summary-strip">
+                            <div className="summary-strip-left">
+                              <CheckCircle2 size={13} style={{ color: '#4ADE80' }} />
+                              <span className="summary-strip-text">
+                                <strong>{dateFormatted}</strong> &nbsp;·&nbsp;{' '}
+                                <span className="highlight-time">
+                                  {to12HourTime(propSlot.startTime)} – {to12HourTime(propSlot.endTime)}
+                                </span>{' '}
+                                <span className="summary-duration">({formatDurationDisplay(duration)} session)</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
 
                     {proposedSlots.length < 3 && (
                       <button
@@ -900,7 +1164,7 @@ export default function PanelInterviewSchedule() {
                         className="add-proposed-btn"
                         onClick={handleAddProposedSlot}
                       >
-                        <Plus className="w-4 h-4" /> Add Another Alternative Slot
+                        <Plus className="w-4 h-4" /> Add Another Alternative Slot ({proposedSlots.length} of 3 added)
                       </button>
                     )}
                   </div>
