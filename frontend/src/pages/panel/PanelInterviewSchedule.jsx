@@ -33,10 +33,41 @@ import {
   submitRescheduleRequest,
   generateGoogleCalendarLink,
   isPastOrToday,
+  splitTimeRange,
+  cleanSingleTime,
+  getEndTime,
 } from '../../services/interviewService';
 import TopBar from '../../components/TopBar/TopBar';
 import RecruiterSidebar from '../../components/common/RecruiterSidebar';
 import './PanelInterviewSchedule.css';
+
+// Helper: Format slot timing cleanly without duplicating end time
+export const formatTimingDisplay = (startTime, endTime) => {
+  if (!startTime) return '—';
+  const startRaw = String(startTime).trim();
+  const sParts = startRaw.split(/\s*(?:[\u2013\u2014–—-]|to)\s*/i).filter(Boolean);
+
+  // If startTime itself is already a range (e.g. "11:00 AM – 12:00 PM" or "11:00 AM – 12:00 PM – 12:00 PM")
+  if (sParts.length >= 2) {
+    const s = cleanSingleTime(sParts[0]);
+    const e = cleanSingleTime(sParts[sParts.length - 1]);
+    return s && e && s !== e ? `${s} – ${e}` : s;
+  }
+
+  const s = cleanSingleTime(sParts[0] || startRaw);
+  let e = '';
+  if (endTime) {
+    const eParts = String(endTime).split(/\s*(?:[\u2013\u2014–—-]|to)\s*/i).filter(Boolean);
+    e = cleanSingleTime(eParts[eParts.length - 1] || endTime);
+  } else {
+    e = getEndTime(s);
+  }
+
+  if (e && e.toLowerCase() !== s.toLowerCase()) {
+    return `${s} – ${e}`;
+  }
+  return s;
+};
 
 const RESCHEDULE_REASONS = [
   'Schedule Conflict / Prior Meeting',
@@ -244,7 +275,7 @@ export default function PanelInterviewSchedule() {
       round: selectedSlotForReschedule.round,
       currentDate: selectedSlotForReschedule.interviewDate,
       currentDisplayDate: selectedSlotForReschedule.displayDate || selectedSlotForReschedule.interviewDate,
-      currentTime: `${selectedSlotForReschedule.startTime} - ${selectedSlotForReschedule.endTime}`,
+      currentTime: formatTimingDisplay(selectedSlotForReschedule.startTime, selectedSlotForReschedule.endTime),
       reasonCategory: rescheduleReasonCategory,
       detailedReason: detailedNotes,
       proposedSlots: formattedProposed,
@@ -637,7 +668,7 @@ export default function PanelInterviewSchedule() {
                     </div>
                     <div className="timing-row time-row">
                       <Clock size={13} className="timing-icon text-muted" />
-                      <span className="timing-time-text">{slot.startTime} – {slot.endTime}</span>
+                      <span className="timing-time-text">{formatTimingDisplay(slot.startTime, slot.endTime)}</span>
                     </div>
                     <div className="timing-mode-row">
                       <span className={`timing-mode-pill ${slot.interviewType === 'Physical' ? 'mode-physical' : 'mode-online'}`}>
@@ -793,7 +824,7 @@ export default function PanelInterviewSchedule() {
                     </div>
                     <div className="summary-time">
                       <div className="date">{selectedSlotForReschedule.displayDate || selectedSlotForReschedule.interviewDate}</div>
-                      <div className="time">{selectedSlotForReschedule.startTime} - {selectedSlotForReschedule.endTime}</div>
+                      <div className="time">{formatTimingDisplay(selectedSlotForReschedule.startTime, selectedSlotForReschedule.endTime)}</div>
                     </div>
                   </div>
                 </div>
