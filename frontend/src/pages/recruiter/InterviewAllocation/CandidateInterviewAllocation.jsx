@@ -1598,7 +1598,24 @@ function isOutdatedPastDate(dateVal) {
                         </div>
                       </td>
                       <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.interviewDate}</td>
-                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.interviewType}</td>
+                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: item.interviewType === 'Physical' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                            color: item.interviewType === 'Physical' ? '#C084FC' : '#60A5FA',
+                            border: `1px solid ${item.interviewType === 'Physical' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
+                          }}
+                        >
+                          {item.interviewType === 'Physical' ? '🏢 Physical' : '🌐 Online'}
+                        </span>
+                      </td>
                       <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                         <span
                           className={`status-result-badge ${
@@ -1698,7 +1715,7 @@ function isOutdatedPastDate(dateVal) {
                     <div><dt>Panel</dt><dd>{formatPanelDisplayName(item.panelName || 'Panel A')}</dd></div>
                     <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
                     <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
-                    <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
+                    <div><dt>Type</dt><dd>{item.interviewType === 'Physical' ? '🏢 Physical' : '🌐 Online'}</dd></div>
                   </dl>
                   {item.status === 'ALLOCATED' && (
                     <div className="result-row-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
