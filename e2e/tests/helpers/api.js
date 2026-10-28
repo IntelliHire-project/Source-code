@@ -26,6 +26,10 @@ const ADMIN_PASSWORD = 'IntelliHire@2026';
 const DEMO_CANDIDATE_EMAIL = 'candidate@intellihire.com';
 const DEMO_CANDIDATE_PASSWORD = 'Candidate@2026';
 
+// Seeded recruiter account (guaranteed to exist after docker-compose up)
+const DEMO_RECRUITER_EMAIL = 'recruiter@intellihire.com';
+const DEMO_RECRUITER_PASSWORD = 'Recruiter@2026';
+
 /**
  * Makes a JSON POST request to the IntelliHire API.
  * Returns the parsed response body.
@@ -202,6 +206,8 @@ module.exports = {
   ADMIN_PASSWORD,
   DEMO_CANDIDATE_EMAIL,
   DEMO_CANDIDATE_PASSWORD,
+  DEMO_RECRUITER_EMAIL,
+  DEMO_RECRUITER_PASSWORD,
   generateTestEmail,
   registerTestRecruiter,
   approveRecruiter,

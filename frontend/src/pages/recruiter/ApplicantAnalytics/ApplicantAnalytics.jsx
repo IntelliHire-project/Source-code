@@ -13,6 +13,7 @@ import {
   Search,
   RotateCcw,
   Eye,
+  Printer,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -22,12 +23,12 @@ import './ApplicantAnalytics.css';
 // ─── KPI Stats ─────────────────────────────────────────────────────────────
 // ─── Clean Table Data ───────────────────────────────────────────────────────
 const APPLICANT_TABLE_DATA = [
-  { id: '1', position: 'Software Engineer', department: 'Engineering', total: 218, newApplicants: 44, shortlisted: 72, rejected: 58, pending: 88, avgScore: 84 },
+  { id: '1', position: 'Senior Software Engineer', department: 'Engineering', total: 218, newApplicants: 44, shortlisted: 72, rejected: 58, pending: 88, avgScore: 84 },
   { id: '2', position: 'UI/UX Designer', department: 'Design', total: 156, newApplicants: 32, shortlisted: 48, rejected: 42, pending: 66, avgScore: 79 },
-  { id: '3', position: 'QA Engineer', department: 'QA & Testing', total: 134, newApplicants: 28, shortlisted: 38, rejected: 36, pending: 60, avgScore: 76 },
+  { id: '3', position: 'QA Automation Engineer', department: 'QA & Testing', total: 134, newApplicants: 28, shortlisted: 38, rejected: 36, pending: 60, avgScore: 76 },
   { id: '4', position: 'Business Analyst', department: 'Operations', total: 192, newApplicants: 39, shortlisted: 66, rejected: 51, pending: 75, avgScore: 81 },
   { id: '5', position: 'Product Manager', department: 'Product', total: 141, newApplicants: 27, shortlisted: 44, rejected: 39, pending: 58, avgScore: 88 },
-  { id: '6', position: 'DevOps Engineer', department: 'Engineering', total: 117, newApplicants: 24, shortlisted: 36, rejected: 32, pending: 49, avgScore: 82 },
+  { id: '6', position: 'DevOps Lead', department: 'Engineering', total: 117, newApplicants: 24, shortlisted: 36, rejected: 32, pending: 49, avgScore: 82 },
   { id: '7', position: 'Data Scientist', department: 'Engineering', total: 98, newApplicants: 22, shortlisted: 28, rejected: 24, pending: 46, avgScore: 85 },
   { id: '8', position: 'Cloud Architect', department: 'Engineering', total: 87, newApplicants: 20, shortlisted: 22, rejected: 19, pending: 46, avgScore: 90 },
 ];
@@ -49,8 +50,8 @@ export default function ApplicantAnalytics() {
   const pageSize = 5;
 
   const filteredData = APPLICANT_TABLE_DATA.filter((item) => {
-    const matchPos = positionFilter === 'all' || item.position.toLowerCase().includes(positionFilter.toLowerCase());
-    const matchDept = departmentFilter === 'all' || item.department.toLowerCase().includes(departmentFilter.toLowerCase());
+    const matchPos = positionFilter === 'all' || item.position.toLowerCase() === positionFilter.toLowerCase() || item.position.toLowerCase().includes(positionFilter.toLowerCase());
+    const matchDept = departmentFilter === 'all' || item.department.toLowerCase() === departmentFilter.toLowerCase() || item.department.toLowerCase().includes(departmentFilter.toLowerCase());
     const query = searchQuery.trim().toLowerCase();
     const matchSearch = !query || item.position.toLowerCase().includes(query) || item.department.toLowerCase().includes(query);
     return matchPos && matchDept && matchSearch;
@@ -72,7 +73,12 @@ export default function ApplicantAnalytics() {
   ];
 
   const percentage = (value) => totals.total ? ((value / totals.total) * 100).toFixed(1) : '0.0';
-  const filtersActive = positionFilter !== 'all' || departmentFilter !== 'all' || searchQuery.trim();
+  const activeFilterCount = [
+    positionFilter !== 'all',
+    departmentFilter !== 'all',
+    Boolean(searchQuery.trim()),
+  ].filter(Boolean).length;
+  const filtersActive = activeFilterCount > 0;
 
   const clearFilters = () => {
     setPositionFilter('all');
@@ -99,7 +105,11 @@ export default function ApplicantAnalytics() {
 
   return (
     <div className="create-vacancy app-analytics-shell">
-      <RecruiterSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <RecruiterSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem="Applicant Stats"
+      />
 
       <div className="create-vacancy__main">
         <TopBar
@@ -134,10 +144,16 @@ export default function ApplicantAnalytics() {
               <h1 className="an-page-title">Applicant Analytics</h1>
               <p className="an-page-subtitle">Clean overview of candidate volumes and application statuses.</p>
             </div>
-            <button className="an-export-btn" type="button" onClick={exportReport}>
-              <Download size={16} />
-              Export Report
-            </button>
+            <div className="an-header-actions">
+              <button className="an-print-btn" type="button" onClick={() => window.print()} title="Print or save PDF dossier">
+                <Printer size={16} />
+                Print / Save PDF
+              </button>
+              <button className="an-export-btn" type="button" onClick={exportReport} title="Export CSV report">
+                <Download size={16} />
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* Clean KPI Stat Cards */}
@@ -178,12 +194,9 @@ export default function ApplicantAnalytics() {
                 onChange={(e) => { setPositionFilter(e.target.value); setCurrentPage(1); }}
               >
                 <option value="all">All Positions</option>
-                <option value="Software Engineer">Software Engineer</option>
-                <option value="UI/UX Designer">UI/UX Designer</option>
-                <option value="QA Engineer">QA Engineer</option>
-                <option value="Business Analyst">Business Analyst</option>
-                <option value="Product Manager">Product Manager</option>
-                <option value="DevOps Engineer">DevOps Engineer</option>
+                {[...new Set(APPLICANT_TABLE_DATA.map((item) => item.position))].map((pos) => (
+                  <option key={pos} value={pos}>{pos}</option>
+                ))}
               </select>
               <ChevronDown size={14} className="an-select-caret" />
             </div>
@@ -195,58 +208,130 @@ export default function ApplicantAnalytics() {
                 onChange={(e) => { setDepartmentFilter(e.target.value); setCurrentPage(1); }}
               >
                 <option value="all">All Departments</option>
-                <option value="Engineering">Engineering</option>
-                <option value="Design">Design</option>
-                <option value="QA & Testing">QA & Testing</option>
-                <option value="Operations">Operations</option>
-                <option value="Product">Product</option>
+                {[...new Set(APPLICANT_TABLE_DATA.map((item) => item.department))].map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
               </select>
               <ChevronDown size={14} className="an-select-caret" />
             </div>
             {filtersActive && (
-              <button type="button" className="an-clear-filter" onClick={clearFilters}>
-                <RotateCcw size={14} /> Clear Filters
+              <button type="button" className="an-clear-filter is-active" onClick={clearFilters}>
+                <RotateCcw size={14} /> Clear Filters ({activeFilterCount})
               </button>
             )}
           </div>
 
-          {/* Clean Overview Card */}
+          {/* Clean Overview Card with SVG Donut Chart & Distribution Bars */}
           <div className="an-overview-card">
             <div className="an-overview-header">
               <span className="an-chart-gold-bar" />
-              <span className="an-overview-title">APPLICATION STATUS SUMMARY</span>
+              <span className="an-overview-title">APPLICATION STATUS SUMMARY &amp; VISUAL DISTRIBUTION</span>
             </div>
-            <div className="an-dist-container">
-              <div className="an-dist-bar-item">
-                <div className="an-dist-bar-header">
-                  <span className="an-dist-dot" style={{ background: '#F0B90B' }} />
-                  <span className="an-dist-label">Shortlisted Candidates</span>
-                  <span className="an-dist-val">{totals.shortlisted.toLocaleString()} ({percentage(totals.shortlisted)}%)</span>
-                </div>
-                <div className="an-dist-track">
-                  <div className="an-dist-fill" style={{ width: `${percentage(totals.shortlisted)}%`, background: '#F0B90B' }} />
+            <div className="an-overview-grid">
+              {/* Circular SVG Donut Visualization */}
+              <div className="an-donut-chart-wrap">
+                {(() => {
+                  const circumference = 301.59; // 2 * Math.PI * 48
+                  const total = totals.total || 1;
+                  const pShort = (totals.shortlisted / total);
+                  const pPend = (totals.pending / total);
+                  const pRej = (totals.rejected / total);
+                  const shortStroke = pShort * circumference;
+                  const pendStroke = pPend * circumference;
+                  const rejStroke = pRej * circumference;
+                  const shortOffset = 0;
+                  const pendOffset = -shortStroke;
+                  const rejOffset = -(shortStroke + pendStroke);
+
+                  return (
+                    <svg className="an-donut-svg" viewBox="0 0 130 130">
+                      <circle cx="65" cy="65" r="48" fill="none" stroke="#2A2C38" strokeWidth="12" />
+                      {/* Shortlisted segment */}
+                      <circle
+                        cx="65"
+                        cy="65"
+                        r="48"
+                        fill="none"
+                        stroke="#F0B90B"
+                        strokeWidth="12"
+                        strokeDasharray={`${shortStroke} ${circumference}`}
+                        strokeDashoffset={shortOffset}
+                        transform="rotate(-90 65 65)"
+                        strokeLinecap="round"
+                      />
+                      {/* Pending segment */}
+                      <circle
+                        cx="65"
+                        cy="65"
+                        r="48"
+                        fill="none"
+                        stroke="#6B8CFF"
+                        strokeWidth="12"
+                        strokeDasharray={`${pendStroke} ${circumference}`}
+                        strokeDashoffset={pendOffset}
+                        transform="rotate(-90 65 65)"
+                      />
+                      {/* Rejected segment */}
+                      <circle
+                        cx="65"
+                        cy="65"
+                        r="48"
+                        fill="none"
+                        stroke="#E63946"
+                        strokeWidth="12"
+                        strokeDasharray={`${rejStroke} ${circumference}`}
+                        strokeDashoffset={rejOffset}
+                        transform="rotate(-90 65 65)"
+                      />
+                      <text x="65" y="61" textAnchor="middle" fill="#FFFFFF" fontSize="16" fontWeight="800">
+                        {totals.total.toLocaleString()}
+                      </text>
+                      <text x="65" y="76" textAnchor="middle" fill="#9599A6" fontSize="9" fontWeight="700" letterSpacing="0.8">
+                        TOTAL APPS
+                      </text>
+                    </svg>
+                  );
+                })()}
+                <div className="an-donut-legend">
+                  <span className="an-donut-badge"><b style={{ background: '#F0B90B' }} /> Shortlisted ({percentage(totals.shortlisted)}%)</span>
+                  <span className="an-donut-badge"><b style={{ background: '#6B8CFF' }} /> Pending ({percentage(totals.pending)}%)</span>
+                  <span className="an-donut-badge"><b style={{ background: '#E63946' }} /> Rejected ({percentage(totals.rejected)}%)</span>
                 </div>
               </div>
 
-              <div className="an-dist-bar-item">
-                <div className="an-dist-bar-header">
-                  <span className="an-dist-dot" style={{ background: '#6B8CFF' }} />
-                  <span className="an-dist-label">Pending Review</span>
-                  <span className="an-dist-val">{totals.pending.toLocaleString()} ({percentage(totals.pending)}%)</span>
+              {/* Progress Distribution Bars */}
+              <div className="an-dist-container">
+                <div className="an-dist-bar-item">
+                  <div className="an-dist-bar-header">
+                    <span className="an-dist-dot" style={{ background: '#F0B90B' }} />
+                    <span className="an-dist-label">Shortlisted Candidates</span>
+                    <span className="an-dist-val">{totals.shortlisted.toLocaleString()} ({percentage(totals.shortlisted)}%)</span>
+                  </div>
+                  <div className="an-dist-track">
+                    <div className="an-dist-fill" style={{ width: `${percentage(totals.shortlisted)}%`, background: '#F0B90B' }} />
+                  </div>
                 </div>
-                <div className="an-dist-track">
-                  <div className="an-dist-fill" style={{ width: `${percentage(totals.pending)}%`, background: '#7F8FB8' }} />
-                </div>
-              </div>
 
-              <div className="an-dist-bar-item">
-                <div className="an-dist-bar-header">
-                  <span className="an-dist-dot" style={{ background: '#E63946' }} />
-                  <span className="an-dist-label">Rejected Applications</span>
-                  <span className="an-dist-val">{totals.rejected.toLocaleString()} ({percentage(totals.rejected)}%)</span>
+                <div className="an-dist-bar-item">
+                  <div className="an-dist-bar-header">
+                    <span className="an-dist-dot" style={{ background: '#6B8CFF' }} />
+                    <span className="an-dist-label">Pending Review</span>
+                    <span className="an-dist-val">{totals.pending.toLocaleString()} ({percentage(totals.pending)}%)</span>
+                  </div>
+                  <div className="an-dist-track">
+                    <div className="an-dist-fill" style={{ width: `${percentage(totals.pending)}%`, background: '#7F8FB8' }} />
+                  </div>
                 </div>
-                <div className="an-dist-track">
-                  <div className="an-dist-fill" style={{ width: `${percentage(totals.rejected)}%`, background: '#A96369' }} />
+
+                <div className="an-dist-bar-item">
+                  <div className="an-dist-bar-header">
+                    <span className="an-dist-dot" style={{ background: '#E63946' }} />
+                    <span className="an-dist-label">Rejected Applications</span>
+                    <span className="an-dist-val">{totals.rejected.toLocaleString()} ({percentage(totals.rejected)}%)</span>
+                  </div>
+                  <div className="an-dist-track">
+                    <div className="an-dist-fill" style={{ width: `${percentage(totals.rejected)}%`, background: '#A96369' }} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -288,7 +373,7 @@ export default function ApplicantAnalytics() {
                         </span>
                       </td>
                       <td>
-                        <button className="an-row-action" type="button" title={`View ${row.position} vacancy`} aria-label={`View ${row.position} vacancy`} onClick={() => navigate('/recruiter/vacancies')}>
+                        <button className="an-row-action" type="button" title={`View active vacancies`} aria-label={`View active vacancies`} onClick={() => navigate('/recruiter/vacancies')}>
                           <Eye size={16} />
                         </button>
                       </td>
