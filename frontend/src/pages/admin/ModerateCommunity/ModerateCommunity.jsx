@@ -47,7 +47,7 @@ import {
 } from '../../../services/adminStorage';
 import './ModerateCommunity.css';
 
-// Initial Mock Reports matching mockup layout & fields
+// Initial Mock Reports matching mockup layout & fields (2 clean default items)
 const INITIAL_REPORTS = [
   {
     id: 88291,
@@ -58,74 +58,12 @@ const INITIAL_REPORTS = [
     category: 'Hate Speech',
     reportedBy: 'bot_hunter',
     author: 'PoliticalVoice',
-    date: '2026-10-09 06:50',
+    date: '2026-10-27 18:20',
     severity: 'High',
     source: 'Web',
     authorTrust: 15,
     violations: '12 Warnings / 2 Temporaries',
     flagMessage: 'Automated Flag: Potential incitement of violence detected in Paragraph 2.'
-  },
-  {
-    id: 88290,
-    targetPostId: 'post-iphone-spam',
-    title: 'Free iPhone giveaway - Click link to claim now',
-    snippet: 'Hey everyone! I just got a free iPhone 15 by clicking this link, it actually works! Try it...',
-    content: 'Hey everyone! I just got a free iPhone 15 by clicking this link, it actually works! Try it out before it gets taken down. No credit card required, just enter your email address and verify. http://freeiphones.spam.net',
-    category: 'Spam',
-    reportedBy: 'system_ai',
-    author: 'crypto_giveaways',
-    date: '2026-10-09 06:50',
-    severity: 'Medium',
-    source: 'Mobile App',
-    authorTrust: 45,
-    violations: '2 Warnings / 0 Temporaries',
-    flagMessage: 'Automated Flag: Known spam link pattern detected.'
-  },
-  {
-    id: 88289,
-    targetPostId: 'post-lag-inapp',
-    title: 'Is it just me or is the site laggy',
-    snippet: 'Every time I try to upload my portfolio or search for candidates, the loader spins for...',
-    content: 'Every time I try to upload my portfolio or search for candidates, the loader spins for ages and then crashes. Anyone else having this issue today? It makes it impossible to complete recruiter assessments.',
-    category: 'Inappropriate',
-    reportedBy: 'sara_smith',
-    author: 'DevUser99',
-    date: '2026-10-09 06:10',
-    severity: 'Low',
-    source: 'API',
-    authorTrust: 95,
-    violations: '0 Warnings / 0 Temporaries'
-  },
-  {
-    id: 88288,
-    targetPostId: 'post-earn5000',
-    title: 'Earn $5000/week from home working 1 hour a day!',
-    snippet: 'Simple tasks, no experience required. We train you. Just need an internet connection...',
-    content: 'Simple tasks, no experience required. We train you. Just need an internet connection. Start earning immediately. Click here to sign up: http://getrichquick.spam',
-    category: 'Spam',
-    reportedBy: 'system_ai',
-    author: 'quick_cash_biz',
-    date: '2026-10-09 05:40',
-    severity: 'Medium',
-    source: 'Web',
-    authorTrust: 30,
-    violations: '5 Warnings / 1 Temporary',
-    flagMessage: 'Automated Flag: High volume posting pattern.'
-  },
-  {
-    id: 88287,
-    targetPostId: 'post-unprofessional-rec',
-    title: 'Unprofessional recruiter experience at Apex Corp',
-    snippet: 'The recruiter showed up 20 minutes late to my interview and started eating during...',
-    content: "The recruiter showed up 20 minutes late to my interview and started eating during the call. Absolutely unprofessional behavior. I asked them questions and they didn't even respond. Has anyone had similar experiences?",
-    category: 'Inappropriate',
-    reportedBy: 'candidate_anon',
-    author: 'Anonymous_Candidate',
-    date: '2026-10-09 04:30',
-    severity: 'Low',
-    source: 'Web',
-    authorTrust: 80,
-    violations: '1 Warning / 0 Temporaries'
   },
   {
     id: 88286,
@@ -136,7 +74,7 @@ const INITIAL_REPORTS = [
     category: 'Spam',
     reportedBy: 'phish_hunter',
     author: 'SecurityDesk_Fake',
-    date: '2026-10-09 03:15',
+    date: '2026-10-27 15:45',
     severity: 'High',
     source: 'API',
     authorTrust: 10,
@@ -157,18 +95,6 @@ const INITIAL_COMMENTS = [
     author: 'crypto_guy',
     category: 'SPAM',
     text: '"Buy $GOLDEN tokens now! 🚀"'
-  },
-  {
-    id: 3,
-    author: 'angry_user9',
-    category: 'HATE SPEECH',
-    text: '"This community is rubbish, go away..."'
-  },
-  {
-    id: 4,
-    author: 'spambot_300',
-    category: 'SPAM',
-    text: '"Get cheap designer replicas at replicaStore.io"'
   }
 ];
 
@@ -237,6 +163,8 @@ function ModerateContent() {
   const filterBarRef = useRef(null);
 
   useEffect(() => {
+    setReports(getReports(INITIAL_REPORTS));
+    setComments(getComments(INITIAL_COMMENTS));
     setRemovedList(getRemovedPostsList());
     setWarningsList(getUserWarnings());
     setModerationLogs(getModerationLogs());
