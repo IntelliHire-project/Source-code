@@ -47,14 +47,20 @@ def train_model(epochs: int = 35, output_dir: str = MODEL_OUTPUT_DIR):
     for text, annotations in raw_data:
         doc = nlp.make_doc(text)
         aligned_ents = []
+        occupied_tokens = []
         for start, end, label in annotations.get("entities", []):
             span = doc.char_span(start, end, label=label, alignment_mode="contract")
             if span is None:
                 span = doc.char_span(start, end, label=label, alignment_mode="expand")
             if span is not None:
-                aligned_ents.append((span.start_char, span.end_char, span.label_))
-        example = Example.from_dict(doc, {"entities": aligned_ents})
-        train_examples.append(example)
+                if not any(span.start < o_end and span.end > o_start for o_start, o_end in occupied_tokens):
+                    aligned_ents.append((span.start_char, span.end_char, span.label_))
+                    occupied_tokens.append((span.start, span.end))
+        try:
+            example = Example.from_dict(doc, {"entities": aligned_ents})
+            train_examples.append(example)
+        except Exception:
+            continue
 
     # Disable all other pipeline components during training to freeze them
     other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
