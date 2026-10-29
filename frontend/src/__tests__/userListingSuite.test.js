@@ -112,8 +112,8 @@ describe('User Listing API & Data Management Suite [SCRUM-707 / SCRUM-716]', () 
             ? u.recruiter_status === 'approved'
               ? 'Active'
               : u.recruiter_status === 'rejected'
-              ? 'Inactive'
-              : 'Pending'
+                ? 'Inactive'
+                : 'Pending'
             : 'Active',
         createdDate: u.created_at ? String(u.created_at).slice(0, 10) : '',
         avatarColor: colors[i % colors.length]
