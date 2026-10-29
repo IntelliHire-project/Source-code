@@ -731,6 +731,10 @@ def identify_section(line: str) -> Optional[str]:
     cleaned = re.sub(r'^[#*_\-•–—~|\[\]\(\)\s]+', '', cleaned)
     cleaned = re.sub(r'^(?:section\s*\d+|part\s*\d+|[ivx]+\b|\d+)[\.\):\s-]*', '', cleaned, flags=re.IGNORECASE)
 
+    # An itemized project entry (e.g. "Project 1:", "Project - XYZ", "Project Name:") is not a section header
+    if re.match(r'^project\s*(?:[:#\-\d]|name\b|title\b|description\b|details\b|role\b)', cleaned, re.IGNORECASE):
+        return None
+
     # Check prefix before colon if line begins with a section label (e.g. "Skills: Python, Docker")
     prefix = cleaned.split(':')[0].strip() if ':' in cleaned else cleaned
     prefix = re.sub(r'[:|\-–—~#*_\s]+$', '', prefix).strip()
@@ -755,8 +759,7 @@ def identify_section(line: str) -> Optional[str]:
         r'previous\s*employment|past\s*experience|technical\s*experience|'
         r'engineering\s*experience|job\s*history|work\s*summary|'
         r'career\s*summary|positions?\s*held|professional\s*appointments?|'
-        r'work\s*record|freelance\s*experience|consulting\s*experience|'
-        r'experience\s*(?:and|&)\s*projects'
+        r'work\s*record|freelance\s*experience|consulting\s*experience'
         r')\b',
         target
     ):
@@ -773,8 +776,17 @@ def identify_section(line: str) -> Optional[str]:
     # Certifications / Courses
     if re.search(r'^(certifications?|certificates?|licenses?\s*&\s*certifications?|licenses?|credentials|courses|trainings?)\b', target):
         return "certifications"
-    # Projects
-    if re.search(r'^(projects?|personal\s*projects?|academic\s*projects?|key\s*projects?|portfolio)\b', target):
+    # Projects (Academic, Personal, Coursework, Capstone, Independent, Portfolio, etc.)
+    if re.search(
+        r'^(?:'
+        r'projects?|personal\s*projects?|academic\s*projects?|key\s*projects?|'
+        r'major\s*projects?|mini\s*projects?|capstone(?:\s*projects?)?|coursework(?:\s*projects?)?|'
+        r'selected\s*projects?|notable\s*projects?|independent\s*projects?|'
+        r'technical\s*projects?|software\s*projects?|engineering\s*projects?|'
+        r'portfolio|client\s*projects?|experience\s*(?:and|&)\s*projects|projects\s*(?:and|&)\s*experience'
+        r')\b',
+        target
+    ):
         return "projects"
     # Publications / Research
     if re.search(r'^(publications?|research|papers?)\b', target):
@@ -982,6 +994,8 @@ def is_role_line(text: str) -> bool:
         return False
     if re.search(r'\b(reported\s+to|responsible\s+for|working\s+with|worked\s+on)\b', t, re.IGNORECASE):
         return False
+    if re.search(r'\b(personal\s+projects?|academic\s+projects?|college\s+projects?|final\s+year\s+project|fyp|capstone)\b', t, re.IGNORECASE):
+        return False
     return bool(ROLE_KEYWORDS_PATTERN.search(t))
 
 def is_company_line(text: str) -> bool:
@@ -1110,6 +1124,64 @@ def parse_single_line_job(line: str):
 
     return None
 
+PROJECT_DISQUALIFIER_PATTERN = re.compile(
+    r'\b(?:'
+    r'projects?|personal\s+projects?|academic\s+projects?|college\s+projects?|'
+    r'final\s+year\s+projects?|fyp|capstone(?:\s+projects?)?|coursework(?:\s+projects?)?|'
+    r'mini\s+projects?|major\s+projects?|independent\s+projects?|self\s*[- ]projects?|'
+    r'hobby\s+projects?|side\s+projects?|portfolio\s+projects?|class\s+projects?|'
+    r'school\s+projects?|student\s+projects?|open\s+source\s+projects?|'
+    r'group\s+projects?|team\s+projects?|research\s+projects?'
+    r')\b',
+    re.IGNORECASE
+)
+
+def is_project_entry(title: str, company: str, description: str = "") -> bool:
+    """
+    Returns True if an entry represents an academic, personal, or standalone project
+    rather than genuine working experience employed at a company.
+    """
+    t_clean = (title or "").strip().lower()
+    c_clean = (company or "").strip().lower()
+
+    # Company is empty or default placeholder
+    if c_clean in ["company", "none", "n/a", "unknown", ""]:
+        return True
+
+    # Company name clearly denotes a project or portfolio
+    if c_clean in [
+        "project", "projects", "personal project", "academic project", "college project",
+        "personal", "portfolio", "self", "independent", "github", "capstone", "fyp",
+        "freelance project", "university project", "coursework", "independent project",
+        "project work", "project details", "projects undertaken"
+    ]:
+        return True
+
+    if PROJECT_DISQUALIFIER_PATTERN.search(c_clean):
+        # Allow only if it is a real registered company name (e.g. "Project Syndicate Inc")
+        if not re.search(r'\b(inc|corp|corporation|ltd|limited|llc|technologies|solutions|systems|software)\b', c_clean):
+            return True
+
+    # Title explicitly denotes a project
+    if t_clean.startswith("project:") or t_clean.startswith("project name:") or t_clean.startswith("projects:") or t_clean.startswith("project -"):
+        return True
+
+    if re.match(r'^(?:academic|personal|college|university|final\s+year|capstone|coursework|mini|major|independent|side|hobby|school)\s+projects?\b', t_clean):
+        return True
+
+    if re.match(r'^project\s*(?:[:#\-\d]|name\b)', t_clean):
+        return True
+
+    if re.match(r'^projects?(?:\s*(?:work|undertaken|details|experience|portfolio|contributions))?$', t_clean):
+        return True
+
+    # Disqualify if description references academic/final-year project and company is not a verified business
+    if re.search(r'\b(?:academic\s+project|final\s+year\s+project|coursework\s+project|capstone\s+project)\b', description or "", re.IGNORECASE):
+        if not is_company_line(company):
+            return True
+
+    return False
+
 def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
     """
     Extracts structured job entries (title, company, period, description).
@@ -1133,6 +1205,20 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
             if current_job and (current_job["title"] != "Professional Role" or current_job["company"] != "Company" or current_job["description"]):
                 jobs.append(current_job)
                 current_job = None
+            continue
+
+        # Absorb project subsection headers and project entries into current company job description
+        # (Projects are NEVER separate company working experience entries)
+        if re.match(r'^(?:projects?|key\s*projects?|academic\s*projects?|personal\s*projects?|project\s*work|client\s*projects?|notable\s*projects?|selected\s*projects?|major\s*projects?|mini\s*projects?)\s*[:|\-–—]?$', line_clean, re.IGNORECASE):
+            if current_job and current_job["title"] != "Professional Role":
+                clean_header = BULLET_PREFIX_PATTERN.sub('', line_clean).strip()
+                current_job["description"] = f"{current_job['description']}\n{clean_header}" if current_job["description"] else clean_header
+            continue
+
+        if re.match(r'^(?:project\s*[:#\-\d]|academic\s+project|personal\s+project|final\s+year\s+project|capstone)\b', line_clean, re.IGNORECASE):
+            if current_job and current_job["title"] != "Professional Role":
+                clean_proj = BULLET_PREFIX_PATTERN.sub('', line_clean).strip()
+                current_job["description"] = f"{current_job['description']}\n{clean_proj}" if current_job["description"] else clean_proj
             continue
 
         is_bullet = bool(BULLET_PREFIX_PATTERN.match(line_clean))
@@ -1258,12 +1344,16 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 c = sub[1]
 
         has_real_title = t != "Professional Role"
-        has_real_comp = c != "Company"
+        has_real_comp = c != "Company" and not is_project_entry(t, c, d)
         has_real_period = p != "Unknown"
         has_real_desc = bool(d)
 
-        # Require meaningful job: (title + company) OR (title/company + period/description)
-        if (has_real_title and has_real_comp) or ((has_real_title or has_real_comp) and (has_real_period or has_real_desc)):
+        # Disqualify projects: only genuine working experience in a company is accepted
+        if is_project_entry(t, c, d):
+            continue
+
+        # Must have a verified company to qualify as company working experience
+        if has_real_comp and (has_real_title or has_real_period or has_real_desc):
             clean_jobs.append({
                 "title": t,
                 "company": c,
@@ -1771,12 +1861,8 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
 
     skills = sorted(list(skills_set))
 
-    # 5. Parse Work Experience and Education
+    # 5. Parse Work Experience and Education (Only genuine company working experience, never projects)
     experience = parse_experience_section(section_lines["experience"])
-    if not experience and section_lines.get("projects"):
-        proj_exp = parse_experience_section(section_lines["projects"])
-        if proj_exp:
-            experience = proj_exp
 
     # Global document fallback for experience if headers weren't identified
     if not experience:
@@ -1788,7 +1874,7 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
                 continue
             sec = identify_section(line_str)
             if sec:
-                if sec in ["education", "skills", "language", "bio", "references", "awards", "publications", "volunteering"]:
+                if sec in ["education", "skills", "language", "bio", "references", "awards", "publications", "volunteering", "projects"]:
                     in_excluded_sec = True
                     continue
                 else:
