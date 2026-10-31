@@ -114,6 +114,15 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
 
     // Security: sensitive field must NOT be present
     expect(first.password_hash).toBeUndefined();
+
+    // ── Print actual result to terminal so you can fill the spreadsheet ──
+    console.log('\n========== TC-USM-001 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} OK`);
+    console.log(`Total Users  : ${users.length}`);
+    console.log(`Fields returned: ${Object.keys(first).join(', ')}`);
+    console.log(`password_hash present: ${first.password_hash !== undefined}`);
+    console.log('Sample user  :', JSON.stringify({ id: first.id, full_name: first.full_name, email: first.email, role: first.role, status: first.status }, null, 2));
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
