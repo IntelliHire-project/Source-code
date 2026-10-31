@@ -136,6 +136,14 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     const body = await res.json();
     expect(body.working).toBe(false);
     expect(body.message).toMatch(/no authentication token/i);
+
+    // ── Print actual result to terminal so you can fill the spreadsheet ──
+    console.log('\n========== TC-USM-002 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} Unauthorized`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log(`JWT issued   : false (no token in response)`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
