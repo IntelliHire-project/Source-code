@@ -69,7 +69,14 @@ export function saveRecruiters(recruiters) {
 
 export function getReports(initialData) {
   const stored = safeGet(KEYS.REPORTS);
-  if (stored !== null) return stored;
+  if (stored !== null && Array.isArray(stored)) {
+    if (stored.length > 2 && stored.some(r => r.id === 88291 || r.id === 88290)) {
+      const trimmed = stored.slice(0, 2);
+      safeSet(KEYS.REPORTS, trimmed);
+      return trimmed;
+    }
+    return stored;
+  }
   if (initialData) safeSet(KEYS.REPORTS, initialData);
   return initialData || [];
 }
@@ -80,7 +87,14 @@ export function saveReports(reports) {
 
 export function getComments(initialData) {
   const stored = safeGet(KEYS.COMMENTS);
-  if (stored !== null) return stored;
+  if (stored !== null && Array.isArray(stored)) {
+    if (stored.length > 2 && stored.some(c => c.id === 1 || c.id === 2)) {
+      const trimmed = stored.slice(0, 2);
+      safeSet(KEYS.COMMENTS, trimmed);
+      return trimmed;
+    }
+    return stored;
+  }
   if (initialData) safeSet(KEYS.COMMENTS, initialData);
   return initialData || [];
 }
@@ -208,12 +222,42 @@ export function submitCommunityReport({
 
 // ── Removed Posts / Moderation Enforcement ────────────────────────────
 
+export const INITIAL_REMOVED_POSTS = [
+  {
+    id: 'arch-101',
+    title: 'Free iPhone giveaway - Click link to claim now',
+    snippet: 'Hey everyone! I just got a free iPhone 15 by clicking this link, it actually works! Try it...',
+    category: 'Spam',
+    author: 'crypto_giveaways',
+    removedAt: '2026-10-27 14:20',
+    removedBy: 'Head Moderator (Arthur V. Gold)',
+    reason: 'Automated phishing domain signature matched and verified by moderator.'
+  },
+  {
+    id: 'arch-102',
+    title: 'Earn $5000/week from home working 1 hour a day!',
+    snippet: 'Simple tasks, no experience required. We train you. Just need an internet connection...',
+    category: 'Spam',
+    author: 'quick_cash_biz',
+    removedAt: '2026-10-26 18:45',
+    removedBy: 'Head Moderator (Arthur V. Gold)',
+    reason: 'Unverified multi-level marketing link & unsolicited financial promotion.'
+  }
+];
+
 export function getRemovedPostIds() {
-  return safeGet(KEYS.REMOVED_POSTS) || [];
+  const stored = safeGet(KEYS.REMOVED_POSTS);
+  if (stored !== null && Array.isArray(stored)) return stored;
+  const initialIds = INITIAL_REMOVED_POSTS.map(p => String(p.id));
+  safeSet(KEYS.REMOVED_POSTS, initialIds);
+  return initialIds;
 }
 
 export function getRemovedPostsList() {
-  return safeGet(KEYS.REMOVED_POSTS_DATA) || [];
+  const stored = safeGet(KEYS.REMOVED_POSTS_DATA);
+  if (stored !== null && Array.isArray(stored)) return stored;
+  safeSet(KEYS.REMOVED_POSTS_DATA, INITIAL_REMOVED_POSTS);
+  return INITIAL_REMOVED_POSTS;
 }
 
 export function recordRemovedPost(postId, postTitle = '', postData = {}) {
@@ -246,6 +290,13 @@ export function recordRemovedPost(postId, postTitle = '', postData = {}) {
     module: 'COMMUNITY_MOD',
     status: 'success'
   });
+
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('ih_community_updated', { detail: { action: 'remove', postId: stringId } }));
+      window.dispatchEvent(new Event('storage'));
+    } catch (_) {}
+  }
 }
 
 export function restoreRemovedPost(postId) {
@@ -265,6 +316,13 @@ export function restoreRemovedPost(postId) {
     status: 'success'
   });
 
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('ih_community_updated', { detail: { action: 'restore', postId: stringId } }));
+      window.dispatchEvent(new Event('storage'));
+    } catch (_) {}
+  }
+
   return target;
 }
 
@@ -276,8 +334,35 @@ export function isPostRemoved(postId) {
 
 // ── User Warnings Management ──────────────────────────────────────────
 
+export const INITIAL_USER_WARNINGS = [
+  {
+    id: 'warn-101',
+    author: 'PoliticalVoice',
+    postTitle: 'Why the current political climate is failing...',
+    category: 'Hate Speech',
+    warningLevel: 'Level 2: Severe Community Standards Breach',
+    message: 'Repeated incitement and derogatory language against specific groups in career forum.',
+    date: '2026-10-27 16:30',
+    issuedBy: 'Admin Moderator (Arthur V. Gold)'
+  },
+  {
+    id: 'warn-102',
+    author: 'DevUser99',
+    postTitle: 'Is it just me or is the site laggy',
+    category: 'Inappropriate',
+    warningLevel: 'Level 1: General Policy Notice',
+    message: 'Constructive feedback welcomed, but please use dedicated bug report channels instead of spamming public threads.',
+    date: '2026-10-26 11:15',
+    issuedBy: 'Admin Moderator (Arthur V. Gold)'
+  }
+];
+
 export function getUserWarnings(author = '') {
-  const allWarnings = safeGet(KEYS.USER_WARNINGS) || [];
+  let allWarnings = safeGet(KEYS.USER_WARNINGS);
+  if (allWarnings === null || !Array.isArray(allWarnings)) {
+    allWarnings = INITIAL_USER_WARNINGS;
+    safeSet(KEYS.USER_WARNINGS, INITIAL_USER_WARNINGS);
+  }
   if (!author) return allWarnings;
   return allWarnings.filter(w => w.author?.toLowerCase() === author.toLowerCase());
 }
