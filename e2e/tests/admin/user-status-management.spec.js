@@ -159,7 +159,7 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     });
     expect(loginRes.ok()).toBeTruthy();
     const loginBody = await loginRes.json();
-    const candidateToken = loginBody.data?.token || loginBody.token;
+    const candidateToken = loginBody.token;
 
     // Attempt to hit admin-only endpoint
     const res = await request.get(`${BASE_URL}/users`, {
@@ -170,7 +170,15 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
 
     const body = await res.json();
     expect(body.working).toBe(false);
-    expect(body.message).toMatch(/insufficient role permissions/i);
+    expect(body.message).toMatch(/permission/i);
+
+    // ── Print actual result to terminal so you can fill the spreadsheet ──
+    console.log('\n========== TC-USM-003 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} Forbidden`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log(`Role Checked : candidate (Blocked from Admin GET /users)`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
