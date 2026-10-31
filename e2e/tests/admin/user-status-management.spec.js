@@ -40,7 +40,8 @@ async function getAdminToken(request) {
   });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
-  return body.data?.token || body.token;
+  // API returns { working: true, token: '...', user: {...} }
+  return body.token;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,7 +61,8 @@ async function registerTestCandidate(request) {
   });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
-  const userId = body.data?.user?.id || body.user?.id;
+  // API returns { working: true, user: { id, ... } }
+  const userId = body.user?.id;
   return { userId, email, password };
 }
 
@@ -94,9 +96,10 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(200);
 
     const body = await res.json();
-    expect(body.success).toBe(true);
+    // API uses { working: true, message, users: [...] }
+    expect(body.working).toBe(true);
 
-    const users = body.data?.users;
+    const users = body.users;
     expect(Array.isArray(users)).toBe(true);
     expect(users.length).toBeGreaterThan(0);
 
@@ -121,7 +124,7 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(401);
 
     const body = await res.json();
-    expect(body.success).toBe(false);
+    expect(body.working).toBe(false);
     expect(body.message).toMatch(/no authentication token/i);
   });
 
@@ -148,7 +151,7 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(403);
 
     const body = await res.json();
-    expect(body.success).toBe(false);
+    expect(body.working).toBe(false);
     expect(body.message).toMatch(/insufficient role permissions/i);
   });
 
@@ -173,9 +176,10 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(200);
 
     const body = await res.json();
-    expect(body.success).toBe(true);
-    expect(body.data?.user?.full_name).toBe('USM Updated Name');
-    expect(body.data?.user?.role).toBe('candidate');
+    // API uses { working: true, message, user: {...} }
+    expect(body.working).toBe(true);
+    expect(body.user?.full_name).toBe('USM Updated Name');
+    expect(body.user?.role).toBe('candidate');
   });
 
   // -------------------------------------------------------------------------
@@ -184,12 +188,12 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
   test('TC-USM-005: PUT /users/:id — Empty body returns 400 Bad Request', async ({ request }) => {
     const adminToken = await getAdminToken(request);
 
-    // Use any real user id (admin itself)
+    // Use any real user id
     const usersRes = await request.get(`${BASE_URL}/users`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     });
-    const { data: { users } } = await usersRes.json();
-    const targetId = users[0].id;
+    const usersBody = await usersRes.json();
+    const targetId = usersBody.users[0].id;
 
     const res = await request.put(`${BASE_URL}/users/${targetId}`, {
       headers: { Authorization: `Bearer ${adminToken}` },
@@ -199,7 +203,7 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(400);
 
     const body = await res.json();
-    expect(body.success).toBe(false);
+    expect(body.working).toBe(false);
     expect(body.message).toMatch(/at least one field/i);
   });
 
@@ -217,7 +221,7 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(404);
 
     const body = await res.json();
-    expect(body.success).toBe(false);
+    expect(body.working).toBe(false);
     expect(body.message).toMatch(/user not found/i);
   });
 
@@ -236,9 +240,9 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(200);
 
     const body = await res.json();
-    expect(body.success).toBe(true);
+    expect(body.working).toBe(true);
     expect(body.message).toMatch(/user status updated to inactive/i);
-    expect(body.data?.user?.status).toBe('inactive');
+    expect(body.user?.status).toBe('inactive');
 
     // Cleanup: restore to active
     await restoreUserToActive(request, userId, adminToken);
@@ -266,9 +270,9 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(200);
 
     const body = await res.json();
-    expect(body.success).toBe(true);
+    expect(body.working).toBe(true);
     expect(body.message).toMatch(/user status updated to active/i);
-    expect(body.data?.user?.status).toBe('active');
+    expect(body.user?.status).toBe('active');
   });
 
   // -------------------------------------------------------------------------
@@ -281,8 +285,8 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     const usersRes = await request.get(`${BASE_URL}/users`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     });
-    const { data: { users } } = await usersRes.json();
-    const targetId = users[0].id;
+    const usersBody = await usersRes.json();
+    const targetId = usersBody.users[0].id;
 
     const res = await request.patch(`${BASE_URL}/users/${targetId}/status`, {
       headers: { Authorization: `Bearer ${adminToken}` },
@@ -292,7 +296,7 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(res.status()).toBe(400);
 
     const body = await res.json();
-    expect(body.success).toBe(false);
+    expect(body.working).toBe(false);
     expect(body.message).toMatch(/invalid status/i);
     expect(body.message).toMatch(/active.*inactive.*pending/i);
   });
@@ -318,7 +322,7 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(loginRes.status()).toBe(403);
 
     const loginBody = await loginRes.json();
-    expect(loginBody.success).toBe(false);
+    expect(loginBody.working).toBe(false);
     expect(loginBody.message).toMatch(/account has been deactivated/i);
 
     // Cleanup
@@ -339,9 +343,9 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(loginRes.status()).toBe(200);
 
     const body = await loginRes.json();
-    expect(body.success).toBe(true);
+    expect(body.working).toBe(true);
 
-    const token = body.data?.token || body.token;
+    const token = body.token;
     expect(token).toBeTruthy();
     expect(typeof token).toBe('string');
     expect(token.split('.').length).toBe(3); // Valid JWT has 3 parts
@@ -354,15 +358,15 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     const adminToken = await getAdminToken(request);
     const { userId } = await registerTestCandidate(request);
 
-    // Fetch the user via admin endpoint and verify the default status
+    // Fetch all users via admin endpoint and find the new one
     const usersRes = await request.get(`${BASE_URL}/users`, {
       headers: { Authorization: `Bearer ${adminToken}` },
     });
 
     expect(usersRes.status()).toBe(200);
 
-    const { data: { users } } = await usersRes.json();
-    const newUser = users.find(u => u.id === userId);
+    const usersBody = await usersRes.json();
+    const newUser = usersBody.users.find(u => u.id === userId);
 
     expect(newUser).toBeDefined();
     expect(newUser.status).toBe('active');
