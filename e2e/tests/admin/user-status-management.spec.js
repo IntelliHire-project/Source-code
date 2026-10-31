@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/admin/user-status-management.spec.js
  *
@@ -69,8 +70,8 @@ async function registerTestCandidate(request) {
 // ---------------------------------------------------------------------------
 // Helper: Restore a test user back to 'active' after a deactivation test
 // ---------------------------------------------------------------------------
-async function restoreUserToActive(request, userId, adminToken) {
-  await request.patch(`${BASE_URL}/users/${userId}/status`, {
+async function restoreUserToActive(request, targetUserId, adminToken) {
+  await request.patch(`${BASE_URL}/users/${targetUserId}/status`, {
     headers: { Authorization: `Bearer ${adminToken}` },
     data: { status: 'active' },
   });
