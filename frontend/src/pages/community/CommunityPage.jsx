@@ -320,8 +320,18 @@ export function CommunityPage({ roleOverride }) {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    const loaded = getCommunityPosts(INITIAL_POSTS);
-    setPosts(loaded.filter(p => !isPostRemoved(p.id)));
+    const syncPosts = () => {
+      const loaded = getCommunityPosts(INITIAL_POSTS);
+      setPosts(loaded.filter(p => !isPostRemoved(p.id)));
+    };
+    syncPosts();
+
+    window.addEventListener('storage', syncPosts);
+    window.addEventListener('ih_community_updated', syncPosts);
+    return () => {
+      window.removeEventListener('storage', syncPosts);
+      window.removeEventListener('ih_community_updated', syncPosts);
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -651,7 +661,17 @@ export function DiscussionPage({ roleOverride }) {
   const { postId } = useParams();
   const allPosts = getCommunityPosts(INITIAL_POSTS);
   const post = allPosts.find((item) => item.id === postId) || INITIAL_POSTS[1];
-  const isDeleted = isPostRemoved(postId);
+  const [isDeleted, setIsDeleted] = useState(() => isPostRemoved(postId));
+
+  useEffect(() => {
+    const handleUpdate = () => setIsDeleted(isPostRemoved(postId));
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('ih_community_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('ih_community_updated', handleUpdate);
+    };
+  }, [postId]);
 
   const [comment, setComment] = useState('');
   const [savedDiscussion, setSavedDiscussion] = useState(false);

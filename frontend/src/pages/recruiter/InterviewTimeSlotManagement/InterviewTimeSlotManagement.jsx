@@ -705,14 +705,15 @@ function RecruiterInterviewTimeSlotManagementPage() {
         selectedDate: defaultDate,
         slots: [
           { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
-          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Physical', assignedCandidate: null },
+          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Online', assignedCandidate: null },
         ],
       },
     ];
   });
 
-  const syncCandidateAllocations = (updatedPanels) => {
+  const syncCandidateAllocations = (updatedPanels, explicitType = null) => {
     try {
+      const currentActiveType = explicitType || formData.interviewType || (activeZohoType === 'In-Person' || formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online');
       const getStoredAlloc = () => {
         try {
           const raw = localStorage.getItem('intellihire_allocations');
@@ -774,7 +775,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
           slotId: `SLOT-${panel.id}-${slot.id}`,
           assignedTime: timeRange,
           interviewDate: formatDate(slotRawDate),
-          interviewType: slot.type || (activeZohoType === 'In-Person' ? 'Physical' : 'Online'),
+          interviewType: slot.type || currentActiveType,
           panelName: panel.name || 'Panel A (Technical Leads)',
           interviewRound: formData.interviewRound || 'Technical Interview',
           jobPosition: candidate.jobPosition || candidate.role || formData.jobPosition || 'Senior Software Engineer',
@@ -817,7 +818,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             end: displayEnd,
             startTime: displayTime,
             endTime: displayEnd,
-            type: s.type || (p.id === 1 ? 'Online' : 'Physical'),
+            type: s.type || currentActiveType,
             cap: 1,
             capacity: 1,
             rem: s.assignedCandidate ? 0 : 1,
@@ -1081,8 +1082,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
         const [h, m] = nextTime.split(':').map(Number);
         const nextEndTime = `${String((h + 1) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         const nextId = p.slots.length ? Math.max(...p.slots.map(s => s.id)) + 1 : 1;
-        const slotType = existingOnDate.length % 2 === 0 ? 'Online' : 'Physical';
-        const newSlots = [...p.slots, { id: nextId, date: d, startTime: nextTime, endTime: nextEndTime, type: slotType, assignedCandidate: null }];
+        const currentSlotType = formData.interviewType || (activeZohoType === 'In-Person' || formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online');
+        const newSlots = [...p.slots, { id: nextId, date: d, startTime: nextTime, endTime: nextEndTime, type: currentSlotType, assignedCandidate: null }];
         return {
           ...p,
           selectedDate: d,
@@ -1137,7 +1138,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
         selectedDate: defaultDate,
         slots: [
           { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
-          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Physical', assignedCandidate: null },
+          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Online', assignedCandidate: null },
         ],
       },
     ];
@@ -1288,23 +1289,36 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setActiveZohoType(type);
     let selectedMedia = 'Google Meet';
     let isOnline = true;
-    if (type === 'In-Person') {
+    if (type === 'In-Person' || type === 'Physical') {
       selectedMedia = 'In-Person';
       isOnline = false;
     } else if (type === 'Log') {
       selectedMedia = 'Log';
       isOnline = false;
     }
+    const resolvedType = isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical');
     const initialDate = panels[0]?.selectedDate || new Date().toISOString().split('T')[0];
     setFormData({
       ...emptyForm,
       jobPosition: positionFilter,
       interviewMedia: selectedMedia,
-      interviewType: isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical'),
+      interviewType: resolvedType,
       interviewDate: initialDate,
-      meetingLocation: type === 'In-Person' 
+      meetingLocation: !isOnline 
         ? 'Executive Boardroom 3B, 2nd Floor, HQ Tower' 
-        : (type === 'Google Meet' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Past Session Evaluation Log'),
+        : (type === 'Google Meet' || isOnline ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Past Session Evaluation Log'),
+    });
+    // Immediately synchronize all panel slots with the chosen interview type
+    setPanels(prevPanels => {
+      const updated = prevPanels.map(p => ({
+        ...p,
+        slots: (p.slots || []).map(s => ({
+          ...s,
+          type: resolvedType,
+        })),
+      }));
+      syncCandidateAllocations(updated, resolvedType);
+      return updated;
     });
     setEditingSlotId(null);
     setShowInlineForm(true);
@@ -1330,12 +1344,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleMediaSelect = (media) => {
+    const isOnline = media !== 'In-Person';
+    const newType = isOnline ? 'Online' : 'Physical';
+    setActiveZohoType(media === 'In-Person' ? 'In-Person' : 'Google Meet');
     setFormData(current => {
-      const isOnline = media !== 'In-Person';
       let autoLocation = current.meetingLocation;
-      if (media === 'Google Meet' && (!autoLocation || autoLocation.includes('teams'))) {
+      if (media === 'Google Meet' && (!autoLocation || autoLocation.includes('teams') || !autoLocation.includes('http'))) {
         autoLocation = `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}`;
-      } else if (media === 'MS Teams' && (!autoLocation || autoLocation.includes('meet'))) {
+      } else if (media === 'MS Teams' && (!autoLocation || autoLocation.includes('meet') || !autoLocation.includes('http'))) {
         autoLocation = `https://teams.microsoft.com/l/meetup-join/intelli-${Math.random().toString(36).substring(2, 7)}`;
       } else if (media === 'In-Person' && (autoLocation.includes('http') || !autoLocation)) {
         autoLocation = 'Main Engineering Conference Room, 2nd Floor';
@@ -1343,9 +1359,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
       return {
         ...current,
         interviewMedia: media,
-        interviewType: isOnline ? 'Online' : 'Physical',
+        interviewType: newType,
         meetingLocation: autoLocation,
       };
+    });
+    // Synchronize all panel slots when media type changes
+    setPanels(prevPanels => {
+      const updated = prevPanels.map(p => ({
+        ...p,
+        slots: (p.slots || []).map(s => ({
+          ...s,
+          type: newType,
+        })),
+      }));
+      syncCandidateAllocations(updated, newType);
+      return updated;
     });
   };
 
@@ -1399,6 +1427,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
     const formattedDate = formatDate(effectiveDate);
     const roundSummary = roundTypes.join(', ');
 
+    const currentSlotInterviewType = formData.interviewType || (formData.interviewMedia === 'In-Person' || activeZohoType === 'In-Person' ? 'Physical' : 'Online');
+
     if (editingSlotId) {
       setSlots(current =>
         current.map(slot => {
@@ -1409,7 +1439,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               round: roundSummary,
               interviewMedia: formData.interviewMedia,
               interviewDate: formattedDate,
-              interviewType: formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online',
+              interviewType: currentSlotInterviewType,
               panelName: panels[0]?.name || 'Panel A (Technical Leads)',
               panelEmails: panels[0]?.emails || 'techlead@company.com, hr@company.com',
               meetingLocation: formData.meetingLocation,
@@ -1447,7 +1477,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             interviewDate: formatDate(slotRawDate),
             startTime: formatTime(sRow.startTime || '09:00'),
             endTime: formatTime(sRow.endTime || '10:00'),
-            interviewType: formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online',
+            interviewType: currentSlotInterviewType,
             capacity: p.capacity || 1,
             status: 'AVAILABLE',
             panelName: p.name,
@@ -1483,7 +1513,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             end: s.endTime,
             startTime: s.startTime,
             endTime: s.endTime,
-            type: s.interviewType,
+            type: s.interviewType || currentSlotInterviewType,
             cap: s.capacity,
             capacity: s.capacity,
             rem: s.assignedCandidate ? Math.max(0, s.capacity - 1) : s.capacity,
@@ -1530,7 +1560,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               slotId: `SLOT-${s.id}`,
               assignedTime: timeRange,
               interviewDate: s.interviewDate,
-              interviewType: s.interviewType,
+              interviewType: s.interviewType || currentSlotInterviewType,
               panelName: s.panelName || 'Panel A (Technical Leads)',
               interviewRound: s.round || formData.interviewRound || 'Technical Interview',
               jobPosition: cand.jobPosition || cand.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
@@ -3064,6 +3094,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             
                             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                               {(() => {
+                                const currentSlotType = formData.interviewType || (activeZohoType === 'In-Person' || formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online');
                                 const availableSlots = panels.flatMap((p, pIdx) =>
                                   p.slots
                                     .filter(slot => !slot.assignedCandidate)
@@ -3072,7 +3103,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                       panelId: p.id,
                                       panelNo: pIdx + 1,
                                       panelActualName: p.name,
-                                      type: slot.type || (p.id === 1 ? (slot.id % 2 === 0 ? 'Physical' : 'Online') : (slot.id % 2 === 0 ? 'Online' : 'Physical'))
+                                      type: slot.type || currentSlotType
                                     }))
                                 );
 
@@ -3568,47 +3599,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             </div>
 
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Choice 1: In-person Interview */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('In-Person')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid #2A2C38',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
-                    color: '#F0B90B',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Building size={24} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                    In-person Interview
-                  </h4>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct Interviews with Candidates, Interviewers, Recruiters and Contacts.
-                  </p>
-                </div>
-              </div>
-
-              {/* Choice 2: Video Interview */}
+              {/* Choice 1: Video Interview (Online) */}
               <div
                 className="zoho-modal-choice-card"
                 onClick={() => handleChooseZohoType('Google Meet')}
@@ -3618,7 +3609,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   gap: '18px',
                   padding: '18px 20px',
                   backgroundColor: '#1E222D',
-                  border: '1px solid #2A2C38',
+                  border: '1px solid rgba(66, 133, 244, 0.35)',
                   borderRadius: '14px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -3629,8 +3620,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     width: '46px',
                     height: '46px',
                     borderRadius: '12px',
-                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
-                    color: '#F0B90B',
+                    backgroundColor: 'rgba(66, 133, 244, 0.15)',
+                    color: '#60A5FA',
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,
@@ -3638,12 +3629,62 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 >
                   <Video size={24} />
                 </div>
-                <div>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                    Video Interview
-                  </h4>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                      Video Interview
+                    </h4>
+                    <span style={{ backgroundColor: 'rgba(66, 133, 244, 0.15)', color: '#60A5FA', border: '1px solid rgba(66, 133, 244, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                      🌐 Online
+                    </span>
+                  </div>
                   <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct both recorded and live video Interviews with Candidates, Recruiters and Interviewers.
+                    Schedule and conduct online video interviews via Google Meet or Microsoft Teams with panel calendar sync.
+                  </p>
+                </div>
+              </div>
+
+              {/* Choice 2: In-person Interview (Physical) */}
+              <div
+                className="zoho-modal-choice-card"
+                onClick={() => handleChooseZohoType('In-Person')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '18px',
+                  padding: '18px 20px',
+                  backgroundColor: '#1E222D',
+                  border: '1px solid rgba(168, 85, 247, 0.35)',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                    color: '#C084FC',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Building size={24} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                      In-person Interview
+                    </h4>
+                    <span style={{ backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#C084FC', border: '1px solid rgba(168, 85, 247, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                      🏢 Physical
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
+                    Schedule and conduct on-site physical office interviews with room location and panel members.
                   </p>
                 </div>
               </div>
