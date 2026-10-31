@@ -773,8 +773,15 @@ def identify_section(line: str) -> Optional[str]:
     # Languages
     if re.search(r'^(languages?|language\s*proficiency|spoken\s*languages?|language\s*skills?)\b', target):
         return "language"
-    # Certifications / Courses
-    if re.search(r'^(certifications?|certificates?|licenses?\s*&\s*certifications?|licenses?|credentials|courses|trainings?)\b', target):
+    # Certifications / Courses / Licenses
+    if re.search(
+        r'^(?:'
+        r'(?:professional|industry|technical|online|key|relevant|verified|it)?\s*(?:certifications?|certificates?|licenses?(?:\s*&\s*certifications?)?|credentials|courses|trainings?|accreditations?)|'
+        r'licenses?\s*(?:and|&)\s*certifications?|certifications?\s*(?:and|&)\s*(?:courses|licenses?|trainings?)|'
+        r'courses\s*(?:and|&)\s*certifications?'
+        r')\b',
+        target
+    ):
         return "certifications"
     # Projects (Academic, Personal, Coursework, Capstone, Independent, Portfolio, etc.)
     if re.search(
@@ -996,6 +1003,8 @@ def is_role_line(text: str) -> bool:
         return False
     if re.search(r'\b(personal\s+projects?|academic\s+projects?|college\s+projects?|final\s+year\s+project|fyp|capstone)\b', t, re.IGNORECASE):
         return False
+    if re.search(r'\b(certified|certifications?|certificates?|credentials?|licenses?|licence|coursera|udemy|edx|udacity|accredited)\b', t, re.IGNORECASE):
+        return False
     return bool(ROLE_KEYWORDS_PATTERN.search(t))
 
 def is_company_line(text: str) -> bool:
@@ -1011,6 +1020,8 @@ def is_company_line(text: str) -> bool:
     if ACTION_VERB_PATTERN.search(t):
         return False
     if re.search(r'\b(reported\s+to|responsible\s+for|working\s+with|worked\s+on)\b', t, re.IGNORECASE):
+        return False
+    if CERT_ISSUER_OR_PLATFORM_PATTERN.search(t):
         return False
     if COMPANY_KEYWORDS_PATTERN.search(t):
         return True
@@ -1182,11 +1193,93 @@ def is_project_entry(title: str, company: str, description: str = "") -> bool:
 
     return False
 
+CERTIFICATION_DISQUALIFIER_PATTERN = re.compile(
+    r'\b(?:'
+    r'certifications?|certificates?|certified|licences?|licenses?|credentials?|'
+    r'accreditations?|accredited|courses?|trainings?|coursework|exam|badge|'
+    r'aws\s+certified|azure\s+certified|gcp\s+certified|google\s+cloud\s+certified|'
+    r'aws\s+(?:solutions?\s*architect|developer\s*associate|sysops|cloud\s*practitioner|devops\s*engineer|security\s*specialty)|'
+    r'azure\s+(?:fundamentals|administrator|developer|solutions?\s*architect|devops\s*engineer)|'
+    r'gcp\s+(?:cloud\s*digital\s*leader|associate\s*cloud\s*engineer|professional\s*cloud\s*architect|data\s*engineer)|'
+    r'cisco\s+certified|ccna|ccnp|ccie|comptia(?:\s+[a-z0-9+]+)?|'
+    r'certified\s+scrum\s*(?:master|developer|product\s*owner)|csm|psm|cspo|'
+    r'pmp\b|project\s+management\s+professional|prince2|itil(?:\s+foundation)?|'
+    r'certified\s+kubernetes(?:\s+administrator|\s+application\s+developer)?|cka\b|ckad\b|cks\b|'
+    r'certified\s+ethical\s+hacker|ceh\b|cissp\b|cism\b|cisa\b|crisc\b|'
+    r'oracle\s+certified|red\s+hat\s+certified|rhcsa|rhce|'
+    r'salesforce\s+certified|hashicorp\s+certified|istqb(?:\s+certified)?|'
+    r'diploma\s+in|advanced\s+diploma|post\s+graduate\s+diploma|pg\s+diploma|pgdac|'
+    r'bootcamp|specialization|nanodegree|professional\s+certificate'
+    r')\b',
+    re.IGNORECASE
+)
+
+CERT_ISSUER_OR_PLATFORM_PATTERN = re.compile(
+    r'\b(?:'
+    r'coursera|udemy|edx|udacity|linkedin\s+learning|datacamp|codecademy|'
+    r'freecodecamp|scrum\s+alliance|scrum\.org|pmi\b|project\s+management\s+institute|'
+    r'comptia|linux\s+foundation|cloud\s+native\s+computing\s+foundation|cncf|'
+    r'istqb|hackerrank|leetcode|credly|badgr|simplilearn|great\s+learning|'
+    r'upgrad|scaler|alison|futurelearn|skillshare|kaggle|pluralsight|'
+    r'amazon\s+web\s+services\s+training|aws\s+training|cisco\s+networking\s+academy|'
+    r'microsoft\s+learn|google\s+cloud\s+skills\s+boost|qwiklabs'
+    r')\b',
+    re.IGNORECASE
+)
+
+def is_project_line(text: str) -> bool:
+    if not text:
+        return False
+    t_clean = text.strip().lower()
+    if re.match(r'^(?:projects?|key\s*projects?|academic\s*projects?|personal\s*projects?|project\s*work|client\s*projects?|notable\s*projects?|selected\s*projects?|major\s*projects?|mini\s*projects?)\s*[:|\-–—]?$', t_clean):
+        return True
+    if re.match(r'^(?:project\s*[:#\-\d]|academic\s+project|personal\s+project|final\s+year\s+project|capstone)\b', t_clean):
+        return True
+    if t_clean.startswith("project:") or t_clean.startswith("project name:") or t_clean.startswith("projects:"):
+        return True
+    return False
+
+def is_certification_line(text: str) -> bool:
+    if not text:
+        return False
+    t_clean = text.strip().lower()
+    if re.match(r'^(?:certifications?|certificates?|licenses?(?:\s*&\s*certifications?)?|credentials|courses|trainings?|accreditations?)\s*[:|\-–—]?$', t_clean):
+        return True
+    if re.search(r'\b(?:credential\s*id|license\s*(?:no|number|#)|certificate\s*(?:no|number|id|#)|issued\s+[a-z]{3,9}\s+\d{4}|expires\s+[a-z]{3,9}\s+\d{4}|credential\s*url)\b', t_clean):
+        return True
+    if CERTIFICATION_DISQUALIFIER_PATTERN.search(t_clean):
+        return True
+    if re.match(r'^(?:certificate|certification|certified|license|licence|credential|course|training|accredited)\b', t_clean):
+        return True
+    if CERT_ISSUER_OR_PLATFORM_PATTERN.search(t_clean):
+        return True
+    return False
+
+def is_certification_entry(title: str, company: str, description: str = "") -> bool:
+    """
+    Returns True if an entry represents a certification, license, course, or credential
+    rather than genuine working experience employed at a company.
+    """
+    t_clean = (title or "").strip().lower()
+    c_clean = (company or "").strip().lower()
+    d_clean = (description or "").strip().lower()
+
+    if is_certification_line(t_clean) or is_certification_line(c_clean) or is_certification_line(d_clean):
+        return True
+
+    # If title is placeholder/empty and company or description has certification keywords
+    if t_clean in ["professional role", "", "none"] and (CERTIFICATION_DISQUALIFIER_PATTERN.search(c_clean) or CERTIFICATION_DISQUALIFIER_PATTERN.search(d_clean)):
+        return True
+
+    return False
+
 def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
     """
     Extracts structured job entries (title, company, period, description).
     Handles Company-first, Role-first, inline dates, single-line entries,
     and bullet/bulletless job descriptions with high accuracy.
+    Strictly extracts ONLY company working experience; completely excludes
+    certifications, credentials, courses, and projects.
     """
     if not exp_lines:
         return []
@@ -1194,6 +1287,8 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
     jobs = []
     current_job = None
     pending_date = None
+    in_cert_block = False
+    in_project_block = False
 
     for raw_line in exp_lines:
         line_clean = raw_line.strip()
@@ -1202,41 +1297,39 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
 
         # Skip section horizontal dividers
         if re.match(r'^[-=*_•~]{3,}$', line_clean):
-            if current_job and (current_job["title"] != "Professional Role" or current_job["company"] != "Company" or current_job["description"]):
+            if current_job and (current_job["title"] != "Professional Role" and current_job["company"] != "Company"):
                 jobs.append(current_job)
                 current_job = None
+            in_cert_block = False
+            in_project_block = False
             continue
 
-        # Absorb project subsection headers and project entries into current company job description
-        # (Projects are NEVER separate company working experience entries)
-        if re.match(r'^(?:projects?|key\s*projects?|academic\s*projects?|personal\s*projects?|project\s*work|client\s*projects?|notable\s*projects?|selected\s*projects?|major\s*projects?|mini\s*projects?)\s*[:|\-–—]?$', line_clean, re.IGNORECASE):
-            if current_job and current_job["title"] != "Professional Role":
-                clean_header = BULLET_PREFIX_PATTERN.sub('', line_clean).strip()
-                current_job["description"] = f"{current_job['description']}\n{clean_header}" if current_job["description"] else clean_header
+        # Project subsection headers or standalone project entries
+        if is_project_line(line_clean):
+            if current_job and current_job["title"] != "Professional Role" and current_job["company"] != "Company":
+                jobs.append(current_job)
+                current_job = None
+            pending_date = None
+            in_project_block = True
+            in_cert_block = False
             continue
 
-        if re.match(r'^(?:project\s*[:#\-\d]|academic\s+project|personal\s+project|final\s+year\s+project|capstone)\b', line_clean, re.IGNORECASE):
-            if current_job and current_job["title"] != "Professional Role":
-                clean_proj = BULLET_PREFIX_PATTERN.sub('', line_clean).strip()
-                current_job["description"] = f"{current_job['description']}\n{clean_proj}" if current_job["description"] else clean_proj
+        # Certification subsection headers or standalone certification entries
+        if is_certification_line(line_clean):
+            if current_job and current_job["title"] != "Professional Role" and current_job["company"] != "Company":
+                jobs.append(current_job)
+                current_job = None
+            pending_date = None
+            in_cert_block = True
+            in_project_block = False
             continue
 
-        is_bullet = bool(BULLET_PREFIX_PATTERN.match(line_clean))
-        clean_text = BULLET_PREFIX_PATTERN.sub('', line_clean).strip()
-        is_action_verb = bool(ACTION_VERB_PATTERN.search(clean_text))
-
-        # 1. Bullet points always belong to current job's description
-        if is_bullet and current_job:
-            if current_job["description"]:
-                current_job["description"] += "\n" + clean_text
-            else:
-                current_job["description"] = clean_text
-            continue
-
-        # 2. Check for combined single-line entry (e.g. "Software Engineer at Google | 2021 - Present")
+        # Check for combined single-line job entry (e.g. "Software Engineer at Google | 2021 - Present")
         single_res = parse_single_line_job(line_clean)
-        if single_res:
-            if current_job and (current_job["title"] != "Professional Role" or current_job["company"] != "Company" or current_job["description"]):
+        if single_res and not is_certification_entry(single_res["title"], single_res["company"]) and not is_project_entry(single_res["title"], single_res["company"]):
+            in_cert_block = False
+            in_project_block = False
+            if current_job and (current_job["title"] != "Professional Role" and current_job["company"] != "Company"):
                 jobs.append(current_job)
                 current_job = None
             if pending_date and single_res["period"] == "Unknown":
@@ -1246,8 +1339,32 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
             continue
 
         line_no_date, extracted_date = extract_dates(line_clean)
+        target_content = line_no_date if line_no_date else line_clean
+        has_role = is_role_line(target_content) and not is_certification_entry(target_content, "")
+        has_comp = is_company_line(target_content) and not is_certification_entry("", target_content)
 
-        # 3. Date-only line (e.g. "Jan 2021 - Present" on its own line)
+        # If we are currently inside a certification or project block, check if a genuine job role breaks out
+        if in_cert_block or in_project_block:
+            if has_role:
+                in_cert_block = False
+                in_project_block = False
+            else:
+                # Still inside certification or project content; skip to avoid polluting experience
+                continue
+
+        is_bullet = bool(BULLET_PREFIX_PATTERN.match(line_clean))
+        clean_text = BULLET_PREFIX_PATTERN.sub('', line_clean).strip()
+        is_action_verb = bool(ACTION_VERB_PATTERN.search(clean_text))
+
+        # 1. Bullet points belong to current job's description
+        if is_bullet and current_job:
+            if current_job["description"]:
+                current_job["description"] += "\n" + clean_text
+            else:
+                current_job["description"] = clean_text
+            continue
+
+        # 2. Date-only line (e.g. "Jan 2021 - Present" on its own line)
         if extracted_date and not line_no_date:
             if current_job and current_job["period"] == "Unknown":
                 current_job["period"] = clean_period(extracted_date)
@@ -1255,11 +1372,7 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 pending_date = extracted_date
             continue
 
-        target_content = line_no_date if line_no_date else line_clean
-        has_role = is_role_line(target_content)
-        has_comp = is_company_line(target_content)
-
-        # 4. Long descriptive lines or action-verb lines belong to description
+        # 3. Long descriptive lines or action-verb lines belong to description
         if current_job and (is_action_verb or len(line_clean) > 85 or (line_clean.endswith('.') and not has_role and not has_comp)):
             if current_job["description"]:
                 current_job["description"] += "\n" + clean_text
@@ -1267,7 +1380,7 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 current_job["description"] = clean_text
             continue
 
-        # 5. Check if this line starts a NEW job entry
+        # 4. Check if this line starts a NEW job entry
         is_new_job = False
         if current_job:
             has_title_filled = current_job["title"] != "Professional Role"
@@ -1280,7 +1393,8 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 is_new_job = True
 
         if is_new_job:
-            jobs.append(current_job)
+            if current_job["title"] != "Professional Role" and current_job["company"] != "Company":
+                jobs.append(current_job)
             current_job = None
 
         if not current_job:
@@ -1310,9 +1424,12 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
             elif current_job["title"] == "Professional Role":
                 current_job["company"] = clean_company(target_content)
         elif current_job["title"] == "Professional Role" and len(line_clean) < 65 and not extracted_date:
-            current_job["title"] = clean_title(target_content)
+            # Only assign if not a certification line
+            if not is_certification_entry(target_content, ""):
+                current_job["title"] = clean_title(target_content)
         elif current_job["company"] == "Company" and current_job["title"] != "Professional Role" and not current_job["description"] and len(line_clean) < 65:
-            current_job["company"] = clean_company(target_content)
+            if not is_certification_entry("", target_content):
+                current_job["company"] = clean_company(target_content)
         else:
             # Descriptive text
             if current_job["description"]:
@@ -1320,10 +1437,10 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
             else:
                 current_job["description"] = clean_text
 
-    if current_job and (current_job["title"] != "Professional Role" or current_job["company"] != "Company" or current_job["description"]):
+    if current_job and (current_job["title"] != "Professional Role" and current_job["company"] != "Company"):
         jobs.append(current_job)
 
-    # Post-process: clean up defaults and format fields
+    # Post-process: strictly require genuine company working experience
     clean_jobs = []
     for j in jobs:
         t = clean_title(j["title"])
@@ -1344,22 +1461,22 @@ def parse_experience_section(exp_lines: List[str]) -> List[Dict[str, str]]:
                 c = sub[1]
 
         has_real_title = t != "Professional Role"
-        has_real_comp = c != "Company" and not is_project_entry(t, c, d)
-        has_real_period = p != "Unknown"
-        has_real_desc = bool(d)
+        has_real_comp = c != "Company" and not is_project_entry(t, c, d) and not is_certification_entry(t, c, d)
 
-        # Disqualify projects: only genuine working experience in a company is accepted
-        if is_project_entry(t, c, d):
+        # Disqualify projects and certifications: only genuine working experience in a company is accepted
+        if is_project_entry(t, c, d) or is_certification_entry(t, c, d):
             continue
 
-        # Must have a verified company to qualify as company working experience
-        if has_real_comp and (has_real_title or has_real_period or has_real_desc):
-            clean_jobs.append({
-                "title": t,
-                "company": c,
-                "period": p,
-                "description": d
-            })
+        # Genuine company working experience requires BOTH a real role/title and a real company
+        if not (has_real_title and has_real_comp):
+            continue
+
+        clean_jobs.append({
+            "title": t,
+            "company": c,
+            "period": p,
+            "description": d
+        })
 
     return clean_jobs[:10]
 
@@ -1874,7 +1991,7 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
                 continue
             sec = identify_section(line_str)
             if sec:
-                if sec in ["education", "skills", "language", "bio", "references", "awards", "publications", "volunteering", "projects"]:
+                if sec in ["education", "skills", "language", "bio", "references", "awards", "publications", "volunteering", "projects", "certifications"]:
                     in_excluded_sec = True
                     continue
                 else:
