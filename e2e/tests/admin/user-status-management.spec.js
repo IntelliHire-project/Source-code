@@ -189,12 +189,13 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
 
     // Create a fresh test user to edit
     const { userId } = await registerTestCandidate(request);
+    const newEmail = generateTestEmail('usm-updated');
 
     const res = await request.put(`${BASE_URL}/users/${userId}`, {
       headers: { Authorization: `Bearer ${adminToken}` },
       data: {
         name: 'USM Updated Name',
-        email: generateTestEmail('usm-updated'),
+        email: newEmail,
         role: 'candidate',
       },
     });
@@ -205,7 +206,16 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     // API uses { working: true, message, user: {...} }
     expect(body.working).toBe(true);
     expect(body.user?.full_name).toBe('USM Updated Name');
+    expect(body.user?.email).toBe(newEmail.toLowerCase());
     expect(body.user?.role).toBe('candidate');
+
+    // ── Print actual result to terminal so you can fill the spreadsheet ──
+    console.log('\n========== TC-USM-004 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} OK`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log(`Updated User : ID=${body.user?.id}, Name=${body.user?.full_name}, Email=${body.user?.email}, Role=${body.user?.role}`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
@@ -231,6 +241,12 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     const body = await res.json();
     expect(body.working).toBe(false);
     expect(body.message).toMatch(/at least one field/i);
+
+    console.log('\n========== TC-USM-005 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} Bad Request`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
@@ -249,6 +265,12 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     const body = await res.json();
     expect(body.working).toBe(false);
     expect(body.message).toMatch(/user not found/i);
+
+    console.log('\n========== TC-USM-006 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} Not Found`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
@@ -269,6 +291,13 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(body.working).toBe(true);
     expect(body.message).toMatch(/user status updated to inactive/i);
     expect(body.user?.status).toBe('inactive');
+
+    console.log('\n========== TC-USM-007 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} OK`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log(`Updated User : ID=${body.user?.id}, Status=${body.user?.status}`);
+    console.log('==============================================\n');
 
     // Cleanup: restore to active
     await restoreUserToActive(request, userId, adminToken);
@@ -299,6 +328,13 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(body.working).toBe(true);
     expect(body.message).toMatch(/user status updated to active/i);
     expect(body.user?.status).toBe('active');
+
+    console.log('\n========== TC-USM-008 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} OK`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log(`Updated User : ID=${body.user?.id}, Status=${body.user?.status}`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
@@ -325,6 +361,12 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(body.working).toBe(false);
     expect(body.message).toMatch(/invalid status/i);
     expect(body.message).toMatch(/active.*inactive.*pending/i);
+
+    console.log('\n========== TC-USM-009 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${res.status()} Bad Request`);
+    console.log(`working      : ${body.working}`);
+    console.log(`Message      : ${body.message}`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
@@ -351,6 +393,13 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(loginBody.working).toBe(false);
     expect(loginBody.message).toMatch(/account has been deactivated/i);
 
+    console.log('\n========== TC-USM-010 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${loginRes.status()} Forbidden`);
+    console.log(`working      : ${loginBody.working}`);
+    console.log(`Message      : ${loginBody.message}`);
+    console.log(`Login Block  : Verified (deactivated user blocked with 403)`);
+    console.log('==============================================\n');
+
     // Cleanup
     await restoreUserToActive(request, userId, adminToken);
   });
@@ -375,6 +424,12 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
     expect(token).toBeTruthy();
     expect(typeof token).toBe('string');
     expect(token.split('.').length).toBe(3); // Valid JWT has 3 parts
+
+    console.log('\n========== TC-USM-011 ACTUAL RESULT ==========');
+    console.log(`HTTP Status  : ${loginRes.status()} OK`);
+    console.log(`working      : ${body.working}`);
+    console.log(`JWT Token    : Issued (${token.slice(0, 15)}... valid JWT)`);
+    console.log('==============================================\n');
   });
 
   // -------------------------------------------------------------------------
@@ -396,6 +451,11 @@ test.describe('TC-USM: User Status Management Suite [SCRUM-709]', () => {
 
     expect(newUser).toBeDefined();
     expect(newUser.status).toBe('active');
+
+    console.log('\n========== TC-USM-012 ACTUAL RESULT ==========');
+    console.log(`User ID      : ${newUser.id}`);
+    console.log(`Default status: ${newUser.status} (active)`);
+    console.log('==============================================\n');
   });
 
 });
