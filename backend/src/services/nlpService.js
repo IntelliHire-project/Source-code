@@ -188,19 +188,22 @@ const localExtractFallback = (text, filename = "") => {
   const actionVerbRegex = /^(?:developed|engineered|implemented|built|designed|led|architected|created|maintained|collaborated|managed|automated|optimized|resolved|contributed|responsible|assisted|conducted|facilitated|spearheaded|delivered|configured|deployed|integrated|researched|analyzed|tested|documented|reported|mentored|supervised|trained|performed|monitored|established|improved|executed|prepared|provided|participated|supported|coordinated|handled|worked|guided|oversaw|ensured|drove|partnered|authored|reviewed|streamlined|achieved|utilized|used)\b/i;
   const expTargetLines = expLines;
   const projectDisqualifierRegex = /\b(?:projects?|personal\s+projects?|academic\s+projects?|college\s+projects?|final\s+year|capstone|coursework|mini\s+projects?|major\s+projects?|independent\s+projects?|github|portfolio)\b/i;
+  const certDisqualifierRegex = /\b(?:certifications?|certificates?|certified|credentials?|licenses?|licence|coursera|udemy|edx|udacity|linkedin\s+learning|scrum\s+alliance|pmi|comptia|ccna|ccnp|cka|ckad|pmp|csm|psm|aws\s+certified|azure\s+certified|gcp\s+certified|credential\s*id|license\s*(?:no|number|#)|issued\s+[a-z]{3,9}\s+\d{4}|expires\s+[a-z]{3,9}\s+\d{4})\b/i;
 
   const isValidJob = (exp) => {
     if (!exp) return false;
     const titleClean = (exp.title || "").trim();
     const compClean = (exp.company || "").trim();
-    if (projectDisqualifierRegex.test(titleClean) || projectDisqualifierRegex.test(compClean)) return false;
+    const descClean = (exp.description || "").trim();
+    if (projectDisqualifierRegex.test(titleClean) || projectDisqualifierRegex.test(compClean) || projectDisqualifierRegex.test(descClean)) return false;
+    if (certDisqualifierRegex.test(titleClean) || certDisqualifierRegex.test(compClean) || certDisqualifierRegex.test(descClean)) return false;
     if (titleClean.toLowerCase().startsWith("project:") || titleClean.toLowerCase().startsWith("project name:")) return false;
+    if (/^(?:certificate|certification|certified|license|licence|credential|course)\b/i.test(titleClean)) return false;
+    if (/^(?:certificate|certification|certified|license|licence|credential|online\s+course)\b/i.test(compClean)) return false;
 
     const hasRealTitle = titleClean && titleClean !== "Professional Role";
     const hasRealComp = compClean && compClean !== "Company";
-    const hasRealPeriod = exp.period && exp.period !== "Unknown";
-    const hasRealDesc = Boolean(exp.description && exp.description.trim());
-    return hasRealComp && (hasRealTitle || hasRealPeriod || hasRealDesc);
+    return Boolean(hasRealTitle && hasRealComp);
   };
 
   let currentExp = null;
@@ -210,6 +213,12 @@ const localExtractFallback = (text, filename = "") => {
 
     const isBullet = /^(?:[•\-\*–—\>·◦\u2022\u25cf\u25cb\u25aa\u25ab]+|\d{1,2}[\.\)]\s+)\s*/.test(l);
     const cleanL = l.replace(/^(?:[•\-\*–—\>·◦\u2022\u25cf\u25cb\u25aa\u25ab]+|\d{1,2}[\.\)]\s+)\s*/, '').trim();
+
+    // Skip certifications, licenses, and projects inside experience
+    if (certDisqualifierRegex.test(cleanL) || projectDisqualifierRegex.test(cleanL) || /^(?:credential\s*id|license\s*(?:no|number|#)|issued\s+[a-z]{3,9}\s+\d{4}|expires\s+[a-z]{3,9}\s+\d{4})/i.test(cleanL)) {
+      continue;
+    }
+
     const dtMatch = l.match(dateRegex);
     const extractedDate = dtMatch ? dtMatch[0].trim() : null;
     let lineNoDate = extractedDate ? l.replace(dtMatch[0], '') : l;

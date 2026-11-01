@@ -20,6 +20,22 @@ LABEL_MAP = {
     "Years of Experience": "EXPERIENCE",
 }
 
+SKILL_CATEGORY_PREFIXES = [
+    "language", "languages", "framework", "frameworks", "technology", "technologies",
+    "database", "databases", "tool", "tools", "platform", "platforms", "cloud", "devops",
+    "concept", "concepts", "backend", "frontend", "mobile", "networking", "security",
+    "operating system", "operating systems", "system", "systems", "software engineering",
+    "architecture", "skills", "web", "methodologies", "environment", "roles"
+]
+
+SKILL_BLACKLIST = {
+    "skill", "skills", "technical skills", "soft skills", "key skills", "core skills",
+    "technologies", "tools", "platforms", "languages", "programming", "databases", "cloud", "devops",
+    "frameworks", "libraries", "operating systems", "other", "etc", "none", "n/a", "na",
+    "experience", "years", "months", "working", "knowledge", "proficient", "familiar", "strong", "good",
+    "concepts", "concepts:", "terns", "ologies", "pat", "tems", "cepts", "responsibilities"
+}
+
 def load_external_dataset_file(file_path: str) -> List[Tuple[str, Dict[str, Any]]]:
     """
     Loads, realigns, and cleans external annotated resume datasets (e.g. DataTurks / Kaggle JSONL format).
@@ -58,23 +74,48 @@ def load_external_dataset_file(file_path: str) -> List[Tuple[str, Dict[str, Any]
                         raw_text = pt.get("text", "")
                         hint_start = pt.get("start", 0)
 
-                        # If multi-skill string with commas or newlines, split into clean individual skills
-                        if mapped_label == "SKILLS" and ("\n" in raw_text or "," in raw_text):
-                            sub_terms = [s.strip() for s in re.split(r"[\n,•·\t]+", raw_text) if s.strip()]
+                        if mapped_label == "SKILLS":
+                            cleaned = raw_text.strip()
+                            if ":" in cleaned:
+                                parts = cleaned.split(":", 1)
+                                prefix_lower = parts[0].strip().lower()
+                                if any(cat in prefix_lower for cat in SKILL_CATEGORY_PREFIXES):
+                                    cleaned = parts[1].strip()
+                                elif parts[1].strip():
+                                    cleaned = parts[1].strip()
+
+                            # Protect compound tokens with slashes
+                            protected = re.sub(r"\bci/cd\b", "CI_CD_TOKEN", cleaned, flags=re.IGNORECASE)
+                            protected = re.sub(r"\bc/c\+\+\b", "C_CPP_TOKEN", protected, flags=re.IGNORECASE)
+                            protected = re.sub(r"\btcp/ip\b", "TCP_IP_TOKEN", protected, flags=re.IGNORECASE)
+
+                            sub_terms = []
+                            for rt in re.split(r"[\n,•·;\t|]+", protected):
+                                tok = rt.replace("CI_CD_TOKEN", "CI/CD").replace("C_CPP_TOKEN", "C/C++").replace("TCP_IP_TOKEN", "TCP/IP").strip()
+                                if tok:
+                                    sub_terms.append(tok)
                         else:
                             sub_terms = [raw_text.strip()]
 
                         for term in sub_terms:
-                            # Strip leading/trailing non-alphanumeric punctuation
-                            clean_term = re.sub(r"^[^\w]+|[^\w]+$", "", term)
-                            if not clean_term or len(clean_term) < 2 or len(clean_term) > 60:
+                            # Strip leading/trailing non-alphanumeric punctuation (keep trailing + or #)
+                            clean_term = re.sub(r"^[^\w]+", "", term)
+                            clean_term = re.sub(r"[^\w+#]+$", "", clean_term).strip()
+
+                            if not clean_term or len(clean_term) < 2 or len(clean_term) > 50:
                                 continue
-                            if "\n" in clean_term or "\r" in clean_term:
+                            if "\n" in clean_term or "\r" in clean_term or ":" in clean_term:
                                 continue
+
+                            if mapped_label == "SKILLS":
+                                if clean_term.lower() in SKILL_BLACKLIST:
+                                    continue
+                                if len(clean_term.split()) > 4:
+                                    continue
 
                             # Search within window of hint_start first to mitigate offset drift
                             search_min = max(0, hint_start - 80)
-                            search_max = min(len(content), hint_start + 80 + len(clean_term))
+                            search_max = min(len(content), hint_start + 120 + len(clean_term))
                             idx = content.find(clean_term, search_min, search_max)
                             if idx == -1:
                                 # Fallback to search within entire document
