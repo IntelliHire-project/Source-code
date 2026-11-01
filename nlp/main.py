@@ -210,8 +210,113 @@ SKILL_BLACKLIST = {
     "technologies", "tools", "platforms", "languages", "programming", "databases", "cloud", "devops",
     "frameworks", "libraries", "operating systems", "other", "ci", "cd", "etc", "none", "n/a", "na",
     "experience", "years", "months", "working", "knowledge", "proficient", "familiar", "strong", "good",
-    "level", "intermediate level", "advanced level", "beginner", "basic"
+    "level", "intermediate level", "advanced level", "beginner", "basic",
+    "concepts", "concepts:", "terns", "ologies", "pat", "tems", "cepts", "design pat-", "design pat",
+    "mini language lexer", "software design pattern", "software engineering", "computer science",
+    "computer", "development", "architecture", "notifications", "sensors", "service",
+    "contributed to ui", "integrating open-source techn", "collaborative development",
+    "attention to detail", "adaptability", "leadership", "communication", "secure system design",
+    "server-side development", "real-time data synchronization", "real-time data processing",
+    "crud operations", "code reviews", "clean code", "circuit breaker pattern", "saga pattern",
+    "command line tools", "software testing", "test", "testing"
 }
+
+ADDRESS_WORDS = {
+    "pedesa", "street", "road", "rd", "st", "lane", "avenue", "ave", "colombo", "kandy",
+    "galle", "matara", "jaffna", "moratuwa", "kelaniya", "malabe", "sri lanka", "india",
+    "bengaluru", "bangalore", "hyderabad", "chennai", "mumbai", "pune", "delhi", "california",
+    "texas", "new york", "usa", "uk", "pvt", "ltd", "house", "residence", "address",
+    "postal", "zip", "province", "district"
+}
+
+def clean_and_normalize_skill_terms(raw_skill: str, canonical_map: Dict[str, str]) -> List[str]:
+    """
+    Cleans raw skill candidates from NER or resume sections:
+    - Strips category headers with colons (e.g. 'Backend Development: Spring Boot' -> 'Spring Boot')
+    - Eliminates address fragments, trailing punctuation, and broken hyphenation
+    - Maps recognized skills to canonical display names
+    - Rejects long sentences, soft skills, and junk tokens
+    """
+    if not raw_skill:
+        return []
+
+    cleaned = raw_skill.strip()
+
+    # If line has category prefix with colon, extract what follows
+    if ':' in cleaned:
+        parts = cleaned.split(':', 1)
+        prefix_lower = parts[0].strip().lower()
+        if any(cat in prefix_lower for cat in [
+            "language", "framework", "technology", "technologies", "database", "databases",
+            "tool", "tools", "platform", "platforms", "cloud", "devops", "concept", "concepts",
+            "backend", "frontend", "mobile", "networking", "security", "operating system",
+            "system", "software engineering", "architecture", "skills", "web"
+        ]):
+            cleaned = parts[1].strip()
+        else:
+            if parts[1].strip():
+                cleaned = parts[1].strip()
+
+    # Temporarily protect compound tokens with slashes
+    protected = re.sub(r'\bci/cd\b', 'CI_CD_TOKEN', cleaned, flags=re.IGNORECASE)
+    protected = re.sub(r'\bc/c\+\+\b', 'C_CPP_TOKEN', protected, flags=re.IGNORECASE)
+    protected = re.sub(r'\btcp/ip\b', 'TCP_IP_TOKEN', protected, flags=re.IGNORECASE)
+
+    raw_tokens = re.split(r'[,|•·;\t\n]+', protected)
+    tokens = []
+    for rt in raw_tokens:
+        tok = rt.replace('CI_CD_TOKEN', 'CI/CD').replace('C_CPP_TOKEN', 'C/C++').replace('TCP_IP_TOKEN', 'TCP/IP').strip()
+        if tok:
+            tokens.append(tok)
+
+    results = []
+    for t in tokens:
+        # Strip leading/trailing bullets, colons, dashes, brackets
+        t_clean = re.sub(r'^[•\-\*–—\>·◦\u2022\u25cf\u25cb\u25aa\u25ab\d\.\:\(\[\{,\s]+', '', t)
+        t_clean = re.sub(r'[:|\-–—~#*_\(\)\[\]\{\}\s,\.]+$', '', t_clean).strip()
+
+        # Handle unclosed parentheses like "Linux (Ubuntu" -> split into "Linux", "Ubuntu"
+        if '(' in t_clean and ')' not in t_clean:
+            sub_p = [p.strip(' ()[]') for p in re.split(r'[\(]', t_clean) if p.strip(' ()[]')]
+            candidates = sub_p
+        else:
+            candidates = [t_clean]
+
+        for cand in candidates:
+            c = cand.strip()
+            if not c or len(c) < 2 or len(c) > 35:
+                continue
+
+            c_lower = c.lower()
+
+            if c_lower in SKILL_BLACKLIST:
+                continue
+
+            if any(c_lower.startswith(b + " ") for b in ["verify", "coursera", "intro to", "getting started", "advanced", "intermediate", "contributed", "integrating", "attention", "collaborative"]):
+                continue
+
+            # Check address tokens
+            words = set(re.findall(r'\b[a-z]{3,}\b', c_lower))
+            if words & ADDRESS_WORDS:
+                continue
+
+            # If term matches canonical skills
+            if c_lower in canonical_map:
+                results.append(canonical_map[c_lower])
+            elif c_lower in COMMON_SKILLS:
+                results.append(c.title())
+            else:
+                # Discard unknown phrases that contain colons, action verbs, or > 3 words
+                if ':' in c or '@' in c or len(c.split()) > 3:
+                    continue
+                # Discard if ends in dash (e.g. "Pat-")
+                if c.endswith('-'):
+                    continue
+                # Format nicely
+                formatted = " ".join([w.capitalize() if w.lower() not in ["and", "or", "of", "in"] else w.lower() for w in c.split()])
+                results.append(formatted)
+
+    return results
 
 NAME_BLACKLIST = {
     "curriculum", "vitae", "resume", "cv", "profile", "summary", "contact",
@@ -1825,6 +1930,10 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
             "experience": []
         }
 
+    # De-hyphenate line-wrapped words (e.g. "Design Pat-\nterns" -> "Design Patterns", "techn-\nologies" -> "technologies")
+    text = re.sub(r'(\b[a-zA-Z]+)-\s*\n\s*([a-zA-Z]+\b)', r'\1\2', text)
+    text = re.sub(r'(\b[a-zA-Z]+)-\s+([a-zA-Z]+\b)', r'\1\2', text)
+
     try:
         doc = nlp(text)
     except Exception:
@@ -1940,41 +2049,16 @@ def parse_cv_text(text: str, json_data: Optional[Union[Dict[str, Any], str]] = N
         s_line_clean = s_line.strip()
         if not s_line_clean:
             continue
-
-        s_line_clean = re.sub(
-            r'^(?:programming\s*languages?|languages?|frameworks?(?:\s*&\s*libraries)?|technologies|tools(?:\s*&\s*platforms)?|tools|platforms|databases?|cloud(?:\s*&\s*devops)?|devops|operating\s*systems?|other|methodologies|web\s*technologies)\s*[:|\-–]\s*',
-            '',
-            s_line_clean,
-            flags=re.IGNORECASE
-        )
-
-        s_parts = re.split(r'[,|•/;\t]+', s_line_clean)
-        for p in s_parts:
-            clean_p = p.strip().strip('.').strip()
-            if not clean_p or len(clean_p) < 2 or len(clean_p) > 35:
-                continue
-            if re.search(r'[\d@:/\\]', clean_p):
-                continue
-            clean_p_lower = clean_p.lower()
-            if clean_p_lower in SKILL_BLACKLIST:
-                continue
-            if any(clean_p_lower.startswith(b + " ") for b in ["verify", "coursera", "intro to", "getting started", "advanced", "intermediate"]):
-                continue
-
-            if clean_p_lower in canonical_skills:
-                skills_set.add(canonical_skills[clean_p_lower])
-            else:
-                formatted = " ".join([w.capitalize() if w.lower() not in ["and", "or", "of", "in"] else w.lower() for w in clean_p.split()])
-                skills_set.add(formatted)
+        for clean_skill in clean_and_normalize_skill_terms(s_line_clean, canonical_skills):
+            skills_set.add(clean_skill)
 
     # ML / Trained spaCy NER Skill Extraction
     if doc:
         for ent in doc.ents:
             if ent.label_ == "SKILLS":
                 clean_ent = ent.text.strip().strip('.').strip()
-                if clean_ent and len(clean_ent) >= 2 and clean_ent.lower() not in SKILL_BLACKLIST:
-                    display_name = canonical_skills.get(clean_ent.lower(), clean_ent)
-                    skills_set.add(display_name)
+                for clean_skill in clean_and_normalize_skill_terms(clean_ent, canonical_skills):
+                    skills_set.add(clean_skill)
 
     skills = sorted(list(skills_set))
 
