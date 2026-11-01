@@ -25,6 +25,7 @@ logs.txt
 .DS_Store
 Thumbs.db
 
+# Python bytecode & cache
 # Python bytecode & caches
 __pycache__/
 *.py[cod]
