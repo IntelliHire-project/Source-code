@@ -186,15 +186,24 @@ const localExtractFallback = (text, filename = "") => {
   const roleRegex = /\b(software\s+engineer|software\s+developer|engineer(?:ing)?|developer|designer|manager|architect|analyst|lead|intern|internship|specialist|consultant|administrator|officer|director|associate|scientist|programmer|technician|trainee|full\s*stack|frontend|front-end|backend|back-end|devops|devsecops|sre|qa|tester|automation|scrum\s*master|product\s*owner|cto|ceo|cio|coo|cfo|vp|head\s+of|sysadmin|coordinator|solutions?\s*architect)\b/i;
   const companyRegex = /\b(inc\.?|llc|ltd\.?|\(pvt\)\s*ltd\.?|pvt\.?\s*ltd\.?|private\s+limited|technologies|technology|solutions|systems|system|labs?|software|innovations?|studios?|agency|digital|ventures?|consulting|analytics|networks?|media|partners?|holdings?|services?|group|enterprises?|global|interactive|security|cloud|fintech|bank|corporation|corp|google|microsoft|amazon|aws|meta|facebook|apple|netflix|uber|airbnb|wso2|sysco|virtusa|ifs|dialog|millenniumit|codegen|99x|pearson|zone24x7|mitra|octave|lseg|accenture|cognizant|infosys|tcs|deloitte|pwc|ey|kpmg|atlassian|shopify|calcey|rootcode)\b/i;
   const actionVerbRegex = /^(?:developed|engineered|implemented|built|designed|led|architected|created|maintained|collaborated|managed|automated|optimized|resolved|contributed|responsible|assisted|conducted|facilitated|spearheaded|delivered|configured|deployed|integrated|researched|analyzed|tested|documented|reported|mentored|supervised|trained|performed|monitored|established|improved|executed|prepared|provided|participated|supported|coordinated|handled|worked|guided|oversaw|ensured|drove|partnered|authored|reviewed|streamlined|achieved|utilized|used)\b/i;
-  const expTargetLines = expLines.length > 0 ? expLines : lines;
+  const expTargetLines = expLines;
+  const projectDisqualifierRegex = /\b(?:projects?|personal\s+projects?|academic\s+projects?|college\s+projects?|final\s+year|capstone|coursework|mini\s+projects?|major\s+projects?|independent\s+projects?|github|portfolio)\b/i;
+  const certDisqualifierRegex = /\b(?:certifications?|certificates?|certified|credentials?|licenses?|licence|coursera|udemy|edx|udacity|linkedin\s+learning|scrum\s+alliance|pmi|comptia|ccna|ccnp|cka|ckad|pmp|csm|psm|aws\s+certified|azure\s+certified|gcp\s+certified|credential\s*id|license\s*(?:no|number|#)|issued\s+[a-z]{3,9}\s+\d{4}|expires\s+[a-z]{3,9}\s+\d{4})\b/i;
 
   const isValidJob = (exp) => {
     if (!exp) return false;
-    const hasRealTitle = exp.title && exp.title !== "Professional Role";
-    const hasRealComp = exp.company && exp.company !== "Company";
-    const hasRealPeriod = exp.period && exp.period !== "Unknown";
-    const hasRealDesc = Boolean(exp.description && exp.description.trim());
-    return (hasRealTitle && hasRealComp) || ((hasRealTitle || hasRealComp) && (hasRealPeriod || hasRealDesc));
+    const titleClean = (exp.title || "").trim();
+    const compClean = (exp.company || "").trim();
+    const descClean = (exp.description || "").trim();
+    if (projectDisqualifierRegex.test(titleClean) || projectDisqualifierRegex.test(compClean) || projectDisqualifierRegex.test(descClean)) return false;
+    if (certDisqualifierRegex.test(titleClean) || certDisqualifierRegex.test(compClean) || certDisqualifierRegex.test(descClean)) return false;
+    if (titleClean.toLowerCase().startsWith("project:") || titleClean.toLowerCase().startsWith("project name:")) return false;
+    if (/^(?:certificate|certification|certified|license|licence|credential|course)\b/i.test(titleClean)) return false;
+    if (/^(?:certificate|certification|certified|license|licence|credential|online\s+course)\b/i.test(compClean)) return false;
+
+    const hasRealTitle = titleClean && titleClean !== "Professional Role";
+    const hasRealComp = compClean && compClean !== "Company";
+    return Boolean(hasRealTitle && hasRealComp);
   };
 
   let currentExp = null;
@@ -204,6 +213,12 @@ const localExtractFallback = (text, filename = "") => {
 
     const isBullet = /^(?:[•\-\*–—\>·◦\u2022\u25cf\u25cb\u25aa\u25ab]+|\d{1,2}[\.\)]\s+)\s*/.test(l);
     const cleanL = l.replace(/^(?:[•\-\*–—\>·◦\u2022\u25cf\u25cb\u25aa\u25ab]+|\d{1,2}[\.\)]\s+)\s*/, '').trim();
+
+    // Skip certifications, licenses, and projects inside experience
+    if (certDisqualifierRegex.test(cleanL) || projectDisqualifierRegex.test(cleanL) || /^(?:credential\s*id|license\s*(?:no|number|#)|issued\s+[a-z]{3,9}\s+\d{4}|expires\s+[a-z]{3,9}\s+\d{4})/i.test(cleanL)) {
+      continue;
+    }
+
     const dtMatch = l.match(dateRegex);
     const extractedDate = dtMatch ? dtMatch[0].trim() : null;
     let lineNoDate = extractedDate ? l.replace(dtMatch[0], '') : l;
