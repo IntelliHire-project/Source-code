@@ -330,7 +330,7 @@ function SignupPage() {
               <Link to="/recruiter/signup" className="auth-role-tab">Recruiter</Link>
             </div>
 
-            <form className="auth-form" onSubmit={handleSubmit}>
+            <form className="auth-form" onSubmit={handleSubmit} noValidate>
 
               {/* Row 1: Name and Email */}
               <div className="auth-row">
@@ -539,7 +539,6 @@ function SignupPage() {
                   onChange={handleChange}
                   className="auth-checkbox-input"
                   onClick={e => e.stopPropagation()} // Prevent double toggle
-                  required
                 />
                 <span className="auth-checkbox-label">
                   I agree to the <Link to="/terms" className="auth-link" onClick={e => e.stopPropagation()}>Terms &amp; Conditions</Link> and <Link to="/privacy" className="auth-link" onClick={e => e.stopPropagation()}>Privacy Policy</Link>.
