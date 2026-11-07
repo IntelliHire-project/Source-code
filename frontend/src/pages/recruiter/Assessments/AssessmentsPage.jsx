@@ -160,6 +160,61 @@ function SectionBadge({ section }) {
   return <span className={`am-sec-badge ${cls}`} title={section}>{label}</span>;
 }
 
+function ConfirmDeleteModal({
+  isOpen,
+  title = "Delete Question",
+  subtitle = "Are you sure you want to delete this question? This action cannot be undone.",
+  itemName,
+  itemCode,
+  isDeleting = false,
+  onConfirm,
+  onClose
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="am-overlay am-overlay--center" onMouseDown={e => e.target === e.currentTarget && !isDeleting && onClose()}>
+      <div className="am-modal am-modal--confirm">
+        <div className="am-confirm-body">
+          <div className="am-confirm-icon">
+            <Trash2 size={24} />
+          </div>
+
+          <h2 className="am-confirm-title">{title}</h2>
+          <p className="am-confirm-desc">{subtitle}</p>
+
+          {(itemCode || itemName) && (
+            <div className="am-confirm-item-box">
+              {itemCode && <div className="am-confirm-item-id">{itemCode}</div>}
+              {itemName && <div className="am-confirm-item-name">{itemName}</div>}
+            </div>
+          )}
+
+          <div className="am-confirm-actions">
+            <button
+              type="button"
+              className="am-btn am-btn--ghost"
+              onClick={onClose}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="am-btn am-btn--danger"
+              onClick={onConfirm}
+              disabled={isDeleting}
+            >
+              <Trash2 size={15} />
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────────
    TAB 1 — QUESTION BANK
 ───────────────────────────────────────────────────────────────── */
@@ -177,6 +232,8 @@ function QuestionBankTab() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [previewQ, setPreviewQ] = useState(null);
   const [notice, setNotice] = useState('');
+  const [questionToDelete, setQuestionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const normalizeQuestion = (q) => ({
     id: q.id || q.questionCode,
@@ -275,18 +332,22 @@ function QuestionBankTab() {
     }
   };
 
-  const deleteQ = async (id) => {
-    if (!window.confirm('Delete this question?')) return;
+  const confirmDeleteQuestion = async () => {
+    if (!questionToDelete) return;
+    setIsDeleting(true);
     try {
-      await deleteQuestion(id);
-      setQuestions(prev => prev.filter(q => q.id !== id));
-      setNotice('Question deleted.');
+      await deleteQuestion(questionToDelete.id);
+      setQuestions(prev => prev.filter(q => q.id !== questionToDelete.id));
+      setNotice('Question deleted successfully.');
       setTimeout(() => setNotice(''), 3000);
     } catch (err) {
       console.error('Failed to delete question:', err);
-      setQuestions(prev => prev.filter(q => q.id !== id));
+      setQuestions(prev => prev.filter(q => q.id !== questionToDelete.id));
       setNotice('Question deleted.');
       setTimeout(() => setNotice(''), 3000);
+    } finally {
+      setIsDeleting(false);
+      setQuestionToDelete(null);
     }
   };
 
@@ -418,7 +479,7 @@ function QuestionBankTab() {
                     <button title="Preview question" onClick={() => setPreviewQ(q)}><Eye size={15} /></button>
                     <button title="Edit question" onClick={() => openEdit(q)}><Edit3 size={15} /></button>
                     <button title="Duplicate question" onClick={() => duplicate(q)}><Copy size={15} /></button>
-                    <button title="Delete question" className="danger" onClick={() => deleteQ(q.id)}><Trash2 size={15} /></button>
+                    <button title="Delete question" className="danger" onClick={() => setQuestionToDelete(q)}><Trash2 size={15} /></button>
                   </div>
                 </td>
               </tr>
@@ -495,6 +556,16 @@ function QuestionBankTab() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={Boolean(questionToDelete)}
+        title="Delete Question"
+        subtitle="Are you sure you want to permanently delete this question from your Question Bank? This action cannot be undone."
+        itemName={questionToDelete?.title || questionToDelete?.snippet}
+        itemCode={questionToDelete?.id}
+        isDeleting={isDeleting}
+        onConfirm={confirmDeleteQuestion}
+        onClose={() => !isDeleting && setQuestionToDelete(null)}
+      />
     </div>
   );
 }
@@ -512,6 +583,7 @@ function AssessmentsTab() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedQs, setSelectedQs] = useState([]);
   const [notice, setNotice] = useState('');
+  const [assessmentToDelete, setAssessmentToDelete] = useState(null);
 
   const [customVacancy, setCustomVacancy] = useState('');
 
@@ -607,7 +679,7 @@ function AssessmentsTab() {
                     <button title="Preview assessment" onClick={() => navigate(`/recruiter/assessments/${a.id}`)}><Eye size={15} /></button>
                     <button title="Edit assessment" onClick={() => navigate(`/recruiter/assessments/${a.id}/edit`)}><Edit3 size={15} /></button>
                     <button title="Duplicate assessment" onClick={() => { setAssessments([{ ...a, id: `A-${String(Date.now()).slice(-3)}`, name: `${a.name} (Copy)`, status: 'Draft', invited: 0 }, ...assessments]); setNotice('Assessment duplicated.'); setTimeout(() => setNotice(''), 3000); }}><Copy size={15} /></button>
-                    <button title="Delete assessment" className="danger" onClick={() => { if (window.confirm(`Delete "${a.name}"?`)) setAssessments(assessments.filter(x => x.id !== a.id)); }}><Trash2 size={15} /></button>
+                    <button title="Delete assessment" className="danger" onClick={() => setAssessmentToDelete(a)}><Trash2 size={15} /></button>
                   </div>
                 </td>
               </tr>
@@ -932,6 +1004,20 @@ function AssessmentsTab() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={Boolean(assessmentToDelete)}
+        title="Delete Assessment"
+        subtitle="Are you sure you want to delete this assessment package?"
+        itemName={assessmentToDelete?.name}
+        itemCode={assessmentToDelete?.id}
+        onConfirm={() => {
+          setAssessments(prev => prev.filter(x => x.id !== assessmentToDelete.id));
+          setNotice("Assessment deleted.");
+          setTimeout(() => setNotice(""), 3000);
+          setAssessmentToDelete(null);
+        }}
+        onClose={() => setAssessmentToDelete(null)}
+      />
     </div>
   );
 }
