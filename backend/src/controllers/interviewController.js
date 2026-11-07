@@ -7,6 +7,8 @@ const {
   deleteInterviewSlot,
   allocateCandidateToSlot,
   getAllAllocations,
+  deleteAllocation,
+  resetAllAllocations,
   autoAllocateCandidates,
   getAllRescheduleRequests,
   createRescheduleRequest,
@@ -151,6 +153,33 @@ const getAllocationsHandler = async (req, res) => {
   } catch (error) {
     console.error('Error fetching allocations:', error);
     return errorResponse(res, 'Failed to fetch allocations.', 500);
+  }
+};
+
+/**
+ * Delete / unassign a candidate allocation
+ */
+const deleteAllocationHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await deleteAllocation(id);
+    return successResponse(res, 'Allocation removed successfully.', deleted);
+  } catch (error) {
+    console.error('Error removing allocation:', error);
+    return errorResponse(res, 'Failed to remove allocation.', 500);
+  }
+};
+
+/**
+ * Reset all candidate allocations
+ */
+const resetAllocationsHandler = async (req, res) => {
+  try {
+    await resetAllAllocations();
+    return successResponse(res, 'All allocations reset successfully.');
+  } catch (error) {
+    console.error('Error resetting allocations:', error);
+    return errorResponse(res, 'Failed to reset allocations.', 500);
   }
 };
 
@@ -311,6 +340,8 @@ module.exports = {
   deleteSlotHandler,
   allocateCandidateHandler,
   getAllocationsHandler,
+  deleteAllocationHandler,
+  resetAllocationsHandler,
   autoAllocateHandler,
   getRescheduleRequestsHandler,
   createRescheduleRequestHandler,

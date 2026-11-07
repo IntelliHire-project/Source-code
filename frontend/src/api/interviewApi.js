@@ -92,6 +92,25 @@ export const autoAllocateCandidates = async (candidates) => {
 };
 
 /**
+ * Delete / remove a candidate allocation
+ * @param {string|number} candidateId
+ * @returns {Promise<object>}
+ */
+export const deleteAllocation = async (candidateId) => {
+  const response = await apiInstance.delete(`/interviews/allocations/${candidateId}`);
+  return response.data;
+};
+
+/**
+ * Reset all interview allocations
+ * @returns {Promise<object>}
+ */
+export const resetAllocations = async () => {
+  const response = await apiInstance.delete('/interviews/allocations-reset');
+  return response.data;
+};
+
+/**
  * Fetch all interview reschedule requests
  * @returns {Promise<object>}
  */

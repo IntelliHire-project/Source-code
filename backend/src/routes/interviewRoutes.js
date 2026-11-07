@@ -9,6 +9,8 @@ const {
   deleteSlotHandler,
   allocateCandidateHandler,
   getAllocationsHandler,
+  deleteAllocationHandler,
+  resetAllocationsHandler,
   autoAllocateHandler,
   getRescheduleRequestsHandler,
   createRescheduleRequestHandler,
@@ -63,6 +65,8 @@ router.get('/allocations', optionalAuth, getAllocationsHandler);
 router.post('/allocate', optionalAuth, allocateCandidateHandler);
 router.post('/slots/:slotId/allocate', optionalAuth, allocateCandidateHandler);
 router.post('/auto-allocate', optionalAuth, autoAllocateHandler);
+router.delete('/allocations-reset', optionalAuth, resetAllocationsHandler);
+router.delete('/allocations/:id', optionalAuth, deleteAllocationHandler);
 
 // Reschedule Requests
 router.get('/reschedule-requests', optionalAuth, getRescheduleRequestsHandler);

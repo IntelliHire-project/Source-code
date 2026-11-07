@@ -512,6 +512,12 @@ const allocateCandidateToSlot = async (slotId, candidateData) => {
     matchScore,
   };
 
+  // Remove existing allocation for this candidate if they were previously allocated elsewhere
+  await db.query(
+    'DELETE FROM interview_allocations WHERE candidate_app_id = $1 OR (candidate_name = $2 AND candidate_name IS NOT NULL)',
+    [candidateAppId, candidateName]
+  );
+
   // Insert into interview_allocations
   const allocRes = await db.query(
     `INSERT INTO interview_allocations (
@@ -569,6 +575,48 @@ const getAllAllocations = async () => {
     status: r.status,
     allocatedAt: r.allocated_at,
   }));
+};
+
+/**
+ * Delete / unassign a candidate allocation
+ */
+const deleteAllocation = async (identifier) => {
+  const { rows } = await db.query(
+    `DELETE FROM interview_allocations
+     WHERE id::text = $1 OR candidate_app_id = $1 OR candidate_name ILIKE $1
+     RETURNING slot_id`,
+    [String(identifier)]
+  );
+  if (rows.length > 0 && rows[0].slot_id) {
+    const allocCount = await db.query(
+      'SELECT COUNT(*) FROM interview_allocations WHERE slot_id = $1',
+      [rows[0].slot_id]
+    );
+    const count = parseInt(allocCount.rows[0].count, 10);
+    if (count === 0) {
+      await db.query(
+        `UPDATE interview_slots
+         SET candidate = NULL, booked_count = 0, status = 'AVAILABLE', updated_at = NOW()
+         WHERE id = $1 AND status != 'COMPLETED'`,
+        [rows[0].slot_id]
+      );
+    }
+  }
+  return rows[0] || null;
+};
+
+/**
+ * Reset all allocations
+ */
+const resetAllAllocations = async () => {
+  await db.query('DELETE FROM interview_allocations');
+  await db.query('ALTER SEQUENCE IF EXISTS interview_allocations_id_seq RESTART WITH 1');
+  await db.query(`
+    UPDATE interview_slots
+    SET candidate = NULL, booked_count = 0, status = 'AVAILABLE', updated_at = NOW()
+    WHERE status != 'COMPLETED'
+  `);
+  return { success: true };
 };
 
 /**
@@ -888,6 +936,8 @@ module.exports = {
   deleteInterviewSlot,
   allocateCandidateToSlot,
   getAllAllocations,
+  deleteAllocation,
+  resetAllAllocations,
   autoAllocateCandidates,
   getAllRescheduleRequests,
   createRescheduleRequest,
