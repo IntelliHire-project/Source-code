@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { fetchQuestions, deleteQuestion, createQuestion } from '../../../api/questionApi';
 import { useNavigate } from 'react-router-dom';
 import {
   Braces, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Copy,
@@ -124,7 +125,77 @@ const SECTION_OPTIONS = [
 
 function QuestionBankPage() {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState(INITIAL_QUESTIONS);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadQuestions = useCallback(async () => {
+    try {
+      const data = await fetchQuestions();
+      if (data && Array.isArray(data.questions)) {
+        if (data.questions.length > 0) {
+          setQuestions(data.questions);
+        } else {
+          setQuestions(INITIAL_QUESTIONS);
+        }
+      }
+    } catch (err) {
+      console.warn('Backend questions API unavailable, showing initial library:', err.message);
+      setQuestions(INITIAL_QUESTIONS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
+
+  const handleDelete = async (q) => {
+    if (window.confirm(`Delete "${q.title}"?`)) {
+      try {
+        await deleteQuestion(q.id);
+        setQuestions(prev => prev.filter(item => item.id !== q.id));
+        setNotice('Question deleted successfully from database.');
+      } catch (err) {
+        console.error('Failed to delete question:', err);
+        setNotice('Failed to delete question: ' + (err.response?.data?.message || err.message));
+      }
+    }
+  };
+
+  const handleDuplicate = async (q) => {
+    try {
+      const duplicated = {
+        title: `${q.title} (Copy)`,
+        prompt: q.prompt || q.questionText || q.title,
+        category: q.category || 'General',
+        section: q.section,
+        jobRole: q.role || q.jobRole,
+        skills: q.skills || [],
+        difficulty: q.difficulty || 'Medium',
+        type: q.type || 'Multiple Choice',
+        status: 'Draft',
+        points: q.points || 10,
+        evalMode: q.evalMode || 'Automatic',
+        options: q.options || [],
+        correctIndex: q.correctIndex,
+        explanation: q.explanation,
+        modelAnswer: q.modelAnswer,
+        rubric: q.rubric || [],
+        language: q.language,
+        boilerplate: q.boilerplate,
+        testCases: q.testCases || [],
+      };
+      const res = await createQuestion(duplicated);
+      if (res?.question) {
+        setQuestions(prev => [res.question, ...prev]);
+        setNotice('Question duplicated as draft in database.');
+      }
+    } catch (err) {
+      console.error('Failed to duplicate question:', err);
+      setNotice('Failed to duplicate question: ' + (err.response?.data?.message || err.message));
+    }
+  };
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeSection, setActiveSection] = useState('All');
@@ -306,16 +377,8 @@ function QuestionBankPage() {
 
               <div className="qb-actions" onClick={(e) => e.stopPropagation()}>
                 <button title="Edit question" onClick={() => openEdit(q)}><Edit3 size={16} /></button>
-                <button title="Duplicate question" onClick={() => {
-                  setQuestions([...questions, { ...q, id: `${q.id}-COPY-${Date.now()}`, title: `${q.title} (Copy)`, status: 'Draft', usage: 0 }]);
-                  setNotice('Question duplicated as draft.');
-                }}><Copy size={16} /></button>
-                <button title="Delete question" onClick={() => {
-                  if (window.confirm(`Delete "${q.title}"?`)) {
-                    setQuestions(questions.filter((item) => item.id !== q.id));
-                    setNotice('Question deleted.');
-                  }
-                }}><Trash2 size={16} /></button>
+                <button title="Duplicate question" onClick={() => handleDuplicate(q)}><Copy size={16} /></button>
+                <button title="Delete question" onClick={() => handleDelete(q)}><Trash2 size={16} /></button>
               </div>
             </article>
           ))}
