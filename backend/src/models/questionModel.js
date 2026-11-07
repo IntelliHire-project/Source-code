@@ -297,7 +297,8 @@ const findAllQuestions = async (filters = {}) => {
       LOWER(q.prompt) LIKE $${values.length} OR 
       LOWER(q.category) LIKE $${values.length} OR 
       LOWER(q.question_code) LIKE $${values.length} OR
-      LOWER(COALESCE(q.job_role, '')) LIKE $${values.length}
+      LOWER(COALESCE(q.job_role, '')) LIKE $${values.length} OR
+      LOWER(COALESCE(q.skills::text, '')) LIKE $${values.length}
     )`);
   }
 

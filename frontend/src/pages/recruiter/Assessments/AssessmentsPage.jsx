@@ -226,6 +226,7 @@ function QuestionBankTab() {
   const [query, setQuery] = useState('');
   const [sectionFilter, setSectionFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [skillFilter, setSkillFilter] = useState('All');
   const [diffFilter, setDiffFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
   const [evalFilter, setEvalFilter] = useState('All');
@@ -282,6 +283,16 @@ function QuestionBankTab() {
     { id: 'Section 3: Coding & Problem Solving', label: 'Section 3: Coding' },
   ];
 
+  const availableSkills = useMemo(() => {
+    const set = new Set();
+    questions.forEach(q => {
+      if (Array.isArray(q.skills)) {
+        q.skills.forEach(s => s && set.add(s.trim()));
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [questions]);
+
   const openCreate = () => {
     navigate('/recruiter/question-bank/add');
   };
@@ -291,14 +302,16 @@ function QuestionBankTab() {
   };
 
   const filtered = useMemo(() => questions.filter(q => {
-    const text = `${q.snippet} ${q.role} ${q.type} ${q.difficulty} ${q.evalMode} ${q.section || ''}`.toLowerCase();
+    const skillsText = Array.isArray(q.skills) ? q.skills.join(' ') : (q.skills || '');
+    const text = `${q.snippet} ${q.title || ''} ${q.role} ${skillsText} ${q.type} ${q.difficulty} ${q.evalMode} ${q.section || ''} ${q.id || ''}`.toLowerCase();
     return text.includes(query.toLowerCase())
       && (sectionFilter === 'All' || q.section === sectionFilter)
       && (roleFilter === 'All' || q.role === roleFilter)
+      && (skillFilter === 'All' || (Array.isArray(q.skills) && q.skills.some(s => s.toLowerCase() === skillFilter.toLowerCase())))
       && (diffFilter === 'All' || q.difficulty === diffFilter)
       && (typeFilter === 'All' || q.type === typeFilter)
       && (evalFilter === 'All' || q.evalMode === evalFilter);
-  }), [questions, query, sectionFilter, roleFilter, diffFilter, typeFilter, evalFilter]);
+  }), [questions, query, sectionFilter, roleFilter, skillFilter, diffFilter, typeFilter, evalFilter]);
 
   const duplicate = async (q) => {
     try {
@@ -374,17 +387,17 @@ function QuestionBankTab() {
       <div className="am-toolbar">
         <label className="am-search">
           <Search size={16} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search questions by keyword, role, or type..." />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search questions by keyword, skill, role, or type..." />
         </label>
         <div className="am-filter-wrap">
           <button className={`am-btn am-btn--ghost ${filtersOpen ? 'is-active' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)}>
-            <Filter size={15} /> Filters {(sectionFilter !== 'All' || roleFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
+            <Filter size={15} /> Filters {(sectionFilter !== 'All' || roleFilter !== 'All' || skillFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
           </button>
           {filtersOpen && (
             <div className="am-filter-panel">
               <div className="am-filter-panel__header">
                 <span>Filters</span>
-                <button onClick={() => { setSectionFilter('All'); setRoleFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
+                <button onClick={() => { setSectionFilter('All'); setRoleFilter('All'); setSkillFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
               </div>
               <label className="am-filter-label">Section
                 <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
@@ -400,6 +413,12 @@ function QuestionBankTab() {
                   <option>Software Engineer</option>
                   <option>QA Engineer</option>
                   <option>Business Analyst</option>
+                </select>
+              </label>
+              <label className="am-filter-label">Skill Tag
+                <select value={skillFilter} onChange={e => setSkillFilter(e.target.value)}>
+                  <option value="All">All Skills</option>
+                  {availableSkills.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </label>
               <label className="am-filter-label">Difficulty
@@ -468,7 +487,20 @@ function QuestionBankTab() {
                 <td>
                   <div className="am-skill-wrap">
                     <span className="am-role-pill">{q.role}</span>
-                    {q.skills.map(s => <span key={s} className="am-skill-pill">{s}</span>)}
+                    {q.skills.map(s => (
+                      <span
+                        key={s}
+                        className="am-skill-pill"
+                        style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                        title={`Click to filter by skill "${s}"`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuery(s);
+                        }}
+                      >
+                        {s}
+                      </span>
+                    ))}
                   </div>
                 </td>
                 <td><TypeBadge type={q.type} /></td>
