@@ -110,13 +110,26 @@ const formatSlotRow = (row) => {
   };
 };
 
+let isSeeding = false;
+
 /**
  * Seed initial interview slots if database table is empty
  */
 const seedInitialSlotsIfEmpty = async () => {
+  if (isSeeding) return;
+  isSeeding = true;
   try {
     const { rows } = await db.query('SELECT COUNT(*) AS count FROM interview_slots');
-    if (parseInt(rows[0].count, 10) > 0) return;
+    if (parseInt(rows[0].count, 10) > 0) {
+      isSeeding = false;
+      return;
+    }
+
+    // Reset sequences to start cleanly from 1
+    await db.query('ALTER SEQUENCE IF EXISTS interview_slots_id_seq RESTART WITH 1');
+    await db.query('ALTER SEQUENCE IF EXISTS interview_allocations_id_seq RESTART WITH 1');
+    await db.query('ALTER SEQUENCE IF EXISTS interview_reschedule_requests_id_seq RESTART WITH 1');
+    await db.query('ALTER SEQUENCE IF EXISTS interview_evaluations_id_seq RESTART WITH 1');
 
     const initialSlots = [
       {
@@ -246,15 +259,18 @@ const seedInitialSlotsIfEmpty = async () => {
       },
     ];
 
-    for (const slot of initialSlots) {
+    for (let i = 0; i < initialSlots.length; i++) {
+      const slot = initialSlots[i];
+      const targetId = i + 1;
       const res = await db.query(
         `INSERT INTO interview_slots (
-          job_position, round, interview_date, start_time, end_time,
+          id, job_position, round, interview_date, start_time, end_time,
           interview_type, status, meeting_location, capacity, booked_count,
           panel_name, panel_emails, panel_member, candidate, evaluation, additional_notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         RETURNING id`,
         [
+          targetId,
           slot.job_position, slot.round, slot.interview_date, slot.start_time, slot.end_time,
           slot.interview_type, slot.status, slot.meeting_location, slot.capacity, slot.booked_count,
           slot.panel_name, slot.panel_emails, slot.panel_member, slot.candidate || null,
@@ -267,11 +283,11 @@ const seedInitialSlotsIfEmpty = async () => {
         const c = JSON.parse(slot.candidate);
         await db.query(
           `INSERT INTO interview_allocations (
-            slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
+            id, slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
             match_score, job_position, round, status
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
-            slotId, c.id, c.name, c.email, c.avatar || null,
+            targetId, slotId, c.id, c.name, c.email, c.avatar || null,
             c.matchScore || 0, slot.job_position, slot.round, 'ALLOCATED',
           ]
         );
@@ -281,11 +297,12 @@ const seedInitialSlotsIfEmpty = async () => {
         const c = JSON.parse(slot.candidate);
         await db.query(
           `INSERT INTO interview_reschedule_requests (
-            slot_id, requested_by, panel_member, candidate_name, candidate_email,
+            id, slot_id, requested_by, panel_member, candidate_name, candidate_email,
             job_position, round, current_interview_date, current_interview_time, reason_category,
             detailed_reason, proposed_slots, status
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
           [
+            1,
             slotId,
             'PANEL_MEMBER',
             slot.panel_member,
@@ -306,8 +323,15 @@ const seedInitialSlotsIfEmpty = async () => {
         );
       }
     }
+
+    // Set sequence values to max ID so subsequent inserts start cleanly at 7, 8, 9...
+    await db.query(`SELECT setval('interview_slots_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_slots))`);
+    await db.query(`SELECT setval('interview_allocations_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_allocations))`);
+    await db.query(`SELECT setval('interview_reschedule_requests_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_reschedule_requests))`);
   } catch (err) {
     console.error('Error seeding initial interview slots:', err.message);
+  } finally {
+    isSeeding = false;
   }
 };
 
@@ -846,6 +870,14 @@ const getPanelMemberList = async () => {
   return DEFAULT_PANEL_MEMBERS;
 };
 
+/**
+ * Truncate / clean all interview tables
+ */
+const clearAllInterviewData = async () => {
+  await db.query('TRUNCATE TABLE interview_slots, interview_allocations, interview_evaluations, interview_reschedule_requests RESTART IDENTITY CASCADE');
+  return { success: true, message: 'All interview data cleared successfully.' };
+};
+
 module.exports = {
   DEFAULT_PANEL_MEMBERS,
   getAllInterviewSlots,
@@ -865,5 +897,6 @@ module.exports = {
   submitInterviewEvaluation,
   getAllEvaluations,
   getPanelMemberList,
+  clearAllInterviewData,
 };
 

@@ -471,9 +471,6 @@ export const getInterviewSlots = () => {
 export const saveInterviewSlots = (slots) => {
   try {
     localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(slots));
-    if (Array.isArray(slots) && slots.length > 0) {
-      interviewApi.bulkCreateInterviewSlots(slots).catch(() => {});
-    }
   } catch (err) {
     console.error('Failed to save slots to localStorage:', err);
   }

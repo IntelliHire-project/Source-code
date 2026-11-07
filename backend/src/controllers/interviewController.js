@@ -16,6 +16,7 @@ const {
   submitInterviewEvaluation,
   getAllEvaluations,
   getPanelMemberList,
+  clearAllInterviewData,
 } = require('../models/interviewModel');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -288,6 +289,19 @@ const getPanelMembersHandler = async (req, res) => {
   }
 };
 
+/**
+ * Clear all interview tables (reset)
+ */
+const clearAllSlotsHandler = async (req, res) => {
+  try {
+    const result = await clearAllInterviewData();
+    return successResponse(res, result.message, result);
+  } catch (error) {
+    console.error('Error clearing interview tables:', error);
+    return errorResponse(res, 'Failed to clear interview tables.', 500);
+  }
+};
+
 module.exports = {
   getSlotsHandler,
   getSlotByIdHandler,
@@ -306,5 +320,6 @@ module.exports = {
   submitEvaluationHandler,
   getEvaluationsHandler,
   getPanelMembersHandler,
+  clearAllSlotsHandler,
 };
 

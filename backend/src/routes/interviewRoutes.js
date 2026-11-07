@@ -18,6 +18,7 @@ const {
   submitEvaluationHandler,
   getEvaluationsHandler,
   getPanelMembersHandler,
+  clearAllSlotsHandler,
 } = require('../controllers/interviewController');
 
 const router = express.Router();
@@ -49,6 +50,7 @@ const optionalAuth = (req, res, next) => {
 router.get('/panel-members', optionalAuth, getPanelMembersHandler);
 
 // Interview Slots
+router.delete('/slots-clear-all', optionalAuth, clearAllSlotsHandler);
 router.get('/slots', optionalAuth, getSlotsHandler);
 router.get('/slots/:id', optionalAuth, getSlotByIdHandler);
 router.post('/slots', optionalAuth, createSlotHandler);
