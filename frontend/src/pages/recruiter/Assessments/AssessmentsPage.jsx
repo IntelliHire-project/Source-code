@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { fetchQuestions, deleteQuestion, createQuestion } from '../../../api/questionApi';
 import {
   AlertCircle,
   Award,
@@ -166,6 +167,7 @@ function SectionBadge({ section }) {
 function QuestionBankTab() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState(QUESTIONS);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [sectionFilter, setSectionFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -175,6 +177,46 @@ function QuestionBankTab() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [previewQ, setPreviewQ] = useState(null);
   const [notice, setNotice] = useState('');
+
+  const normalizeQuestion = (q) => ({
+    id: q.id || q.questionCode,
+    numericId: q.numericId,
+    snippet: q.prompt || q.questionText || q.title || q.snippet,
+    title: q.title || q.prompt || q.snippet,
+    prompt: q.prompt || q.questionText || q.snippet,
+    role: q.role || q.jobRole || 'Software Engineer',
+    skills: Array.isArray(q.skills) ? q.skills : [],
+    type: q.type === 'Multiple Choice' ? 'MCQ' : (q.type === 'Open Ended' ? 'Short Answer' : (q.type || 'MCQ')),
+    rawType: q.type,
+    difficulty: q.difficulty || 'Medium',
+    evalMode: (q.evalMode === 'Automatic' || q.evalMode === 'Auto-graded') ? 'Auto-graded' : 'Manual Review',
+    points: q.points || 10,
+    section: q.section || 'Section 2: Technical Concepts',
+    options: q.options || q.details?.options || [],
+    correct: q.correctIndex != null ? q.correctIndex : (q.details?.correctIndex ?? 0),
+    details: q.details || {},
+    status: q.status || 'Published',
+  });
+
+  const loadQuestions = useCallback(async () => {
+    try {
+      const data = await fetchQuestions();
+      if (data && Array.isArray(data.questions) && data.questions.length > 0) {
+        setQuestions(data.questions.map(normalizeQuestion));
+      } else {
+        setQuestions(QUESTIONS);
+      }
+    } catch (err) {
+      console.warn('Backend questions API unavailable, showing fallback questions:', err.message);
+      setQuestions(QUESTIONS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
 
   const SECTION_TABS = [
     { id: 'All', label: 'All Sections' },
@@ -201,17 +243,51 @@ function QuestionBankTab() {
       && (evalFilter === 'All' || q.evalMode === evalFilter);
   }), [questions, query, sectionFilter, roleFilter, diffFilter, typeFilter, evalFilter]);
 
-  const duplicate = (q) => {
-    setQuestions([{ ...q, id: `Q-${String(Date.now()).slice(-3)}`, snippet: `${q.snippet} (Copy)` }, ...questions]);
-    setNotice('Question duplicated.');
-    setTimeout(() => setNotice(''), 3000);
+  const duplicate = async (q) => {
+    try {
+      const payload = {
+        title: `${q.title || q.snippet} (Copy)`,
+        prompt: q.prompt || q.snippet,
+        questionText: q.prompt || q.snippet,
+        category: q.category || 'General',
+        section: q.section,
+        jobRole: q.role,
+        role: q.role,
+        skills: q.skills,
+        difficulty: q.difficulty,
+        type: q.rawType || q.type,
+        status: 'Draft',
+        points: q.points,
+        evalMode: q.evalMode === 'Auto-graded' ? 'Automatic' : 'Manual',
+        options: q.options,
+        correctIndex: q.correct,
+        details: q.details,
+      };
+      const res = await createQuestion(payload);
+      if (res?.question) {
+        setQuestions(prev => [normalizeQuestion(res.question), ...prev]);
+        setNotice('Question duplicated as draft.');
+        setTimeout(() => setNotice(''), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to duplicate question:', err);
+      setNotice('Failed to duplicate question.');
+    }
   };
 
-  const deleteQ = (id) => {
+  const deleteQ = async (id) => {
     if (!window.confirm('Delete this question?')) return;
-    setQuestions(questions.filter(q => q.id !== id));
-    setNotice('Question deleted.');
-    setTimeout(() => setNotice(''), 3000);
+    try {
+      await deleteQuestion(id);
+      setQuestions(prev => prev.filter(q => q.id !== id));
+      setNotice('Question deleted.');
+      setTimeout(() => setNotice(''), 3000);
+    } catch (err) {
+      console.error('Failed to delete question:', err);
+      setQuestions(prev => prev.filter(q => q.id !== id));
+      setNotice('Question deleted.');
+      setTimeout(() => setNotice(''), 3000);
+    }
   };
 
   return (
@@ -1350,9 +1426,10 @@ const TABS = [
   { id: 'candidate-results', label: 'Candidate Results', icon: BarChart3 },
 ];
 
-function AssessmentsPage() {
+function AssessmentsPage({ defaultTab = 'question-bank' }) {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('question-bank');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || defaultTab);
 
   return (
     <div className="am-shell">

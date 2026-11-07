@@ -783,7 +783,7 @@ export default function AddQuestionPage() {
           setTestCases([{ input: '', expected: '' }]);
           setErrors({});
         } else {
-          navigate('/recruiter/question-bank');
+          navigate('/recruiter/assessments', { state: { tab: 'question-bank' } });
         }
       }, 1000);
     } catch (err) {
@@ -827,7 +827,7 @@ export default function AddQuestionPage() {
           {/* ── Page Header ── */}
           <div className="aq-page__header">
             <div className="aq-page__header-left">
-              <button className="aq-back-btn" onClick={() => navigate('/recruiter/question-bank')}>
+              <button className="aq-back-btn" onClick={() => navigate('/recruiter/assessments', { state: { tab: 'question-bank' } })}>
                 <ChevronLeft size={16} /> Back to Question Bank
               </button>
               <div>
@@ -1097,7 +1097,7 @@ export default function AddQuestionPage() {
           <div className="aq-footer">
             <button
               className="aq-btn aq-btn--ghost"
-              onClick={() => navigate('/recruiter/question-bank')}
+              onClick={() => navigate('/recruiter/assessments', { state: { tab: 'question-bank' } })}
             >
               <X size={15} /> Cancel
             </button>
