@@ -9,6 +9,7 @@ const cvRoutes = require("./routes/cvRoutes");
 const candidateRoutes = require("./routes/candidateRoutes");
 const vacancyRoutes = require("./routes/vacancyRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const questionRoutes = require("./routes/questionRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
@@ -27,6 +28,7 @@ app.use("/cv", cvRoutes);
 app.use("/candidate", candidateRoutes);
 app.use("/vacancies", vacancyRoutes);
 app.use("/payments", paymentRoutes);
+app.use("/questions", questionRoutes);
 
 // Global Error Handler Middleware (must be registered last)
 app.use(errorHandler);
