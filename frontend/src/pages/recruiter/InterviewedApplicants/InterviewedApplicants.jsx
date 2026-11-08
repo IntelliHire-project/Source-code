@@ -27,7 +27,7 @@ import './InterviewedApplicants.css';
 // Mock Vacancies
 const VACANCIES = [
   { id: 'all', title: 'All Opportunities' },
-  { id: 1, title: 'Software Engineer' },
+  { id: 1, title: 'Senior Software Engineer' },
   { id: 2, title: 'Product Manager' },
   { id: 3, title: 'UX Designer' }
 ];
@@ -35,7 +35,7 @@ const VACANCIES = [
 // Mock Interview Rounds
 const ROUNDS = [
   'All Rounds',
-  'Technical',
+  'Technical Interview',
   'HR Portfolio Review',
   'Final Cultural Fit',
   'Technical Case Study',
@@ -46,13 +46,10 @@ const ROUNDS = [
 // Mock Panel Members
 const PANEL_MEMBERS = [
   'All Interviewers',
-  'J. Silva (Tech Lead)',
-  'K. Perera (Senior Dev)',
-  'M. Dias (HR Manager)',
-  'R. Fernando (Engineering VP)',
-  'T. Kumara (Senior QA)',
-  'S. Ali (Product Director)',
-  'N. Gupta (HR Lead)'
+  'Saman Tech (Tech Lead)',
+  'Nirosha HR (HR Manager)',
+  'Ruwan Bandara (Principal Engineer)',
+  'Dilhani Wickramasinghe (Talent Acquisition)'
 ];
 
 // Rich Mock Data for Interviewed Candidates
@@ -60,14 +57,14 @@ const MOCK_INTERVIEWED = [
   {
     id: 'INT-001',
     name: 'Alice Fernando',
-    role: 'Senior Fullstack Engineer',
+    role: 'Senior Software Engineer',
     vacancyId: 1,
-    vacancyTitle: 'Software Engineer',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+    vacancyTitle: 'Senior Software Engineer',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
     email: 'alice.fernando@example.com',
-    interviewRound: 'Technical',
-    interviewDate: '25 Jul 2026',
-    panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
+    interviewRound: 'Technical Interview',
+    interviewDate: '22 Oct 2026',
+    panel: ['Saman Tech (Tech Lead)'],
     scores: {
       commSkills: 4,
       techSkills: 5,
@@ -75,19 +72,19 @@ const MOCK_INTERVIEWED = [
       teamwork: 4,
       overallRating: 4.5
     },
-    remarks: 'Excellent knowledge of React, Node.js microservices, and system design. Communicates clearly under pressure and explains complex technical architectures step-by-step.',
+    remarks: 'Demonstrated exceptional understanding of React performance optimization, state management, and clean architecture principles.',
     recommendation: 'Hire',
     status: 'Completed'
   },
   {
     id: 'INT-002',
-    name: 'Kamal Perera',
+    name: 'Kavinda Perera',
     role: 'UI/UX Designer',
     vacancyId: 3,
     vacancyTitle: 'UX Designer',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    email: 'kamal.perera@example.com',
-    interviewRound: 'HR Portfolio Review',
+    email: 'kavinda.perera@example.com',
+    interviewRound: 'Design Portfolio Review',
     interviewDate: '25 Jul 2026',
     panel: ['M. Dias (HR Manager)', 'R. Fernando (Engineering VP)', 'S. Ali (Product Director)'],
     scores: {
@@ -103,12 +100,12 @@ const MOCK_INTERVIEWED = [
   },
   {
     id: 'INT-003',
-    name: 'Nimal Silva',
+    name: 'Nuwan Senanayake',
     role: 'QA Automation Engineer',
     vacancyId: 1,
     vacancyTitle: 'Software Engineer',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    email: 'nimal.silva@example.com',
+    email: 'nuwan.s@example.com',
     interviewRound: 'Final Cultural Fit',
     interviewDate: '26 Jul 2026',
     panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
@@ -147,12 +144,12 @@ const MOCK_INTERVIEWED = [
   },
   {
     id: 'INT-005',
-    name: 'Ruwan Bandara',
+    name: 'Rohan Gunawardena',
     role: 'Product Manager',
     vacancyId: 2,
     vacancyTitle: 'Product Manager',
     avatar: null,
-    email: 'ruwan.bandara@example.com',
+    email: 'rohan.g@example.com',
     interviewRound: 'HR Screening',
     interviewDate: '28 Jul 2026',
     panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
@@ -169,12 +166,12 @@ const MOCK_INTERVIEWED = [
   },
   {
     id: 'INT-006',
-    name: 'Dilhani Wickramasinghe',
+    name: 'Devinda Silva',
     role: 'DevOps Lead',
     vacancyId: 1,
     vacancyTitle: 'Software Engineer',
     avatar: null,
-    email: 'dilhani.w@example.com',
+    email: 'devinda.s@example.com',
     interviewRound: 'Architecture Final',
     interviewDate: '29 Jul 2026',
     panel: ['J. Silva (Tech Lead)', 'K. Perera (Senior Dev)', 'N. Gupta (HR Lead)'],
@@ -256,10 +253,10 @@ function InterviewedApplicants() {
             name: ev.candidate_name || 'Candidate',
             role: ev.job_position || 'Senior Software Engineer',
             vacancyId: 1,
-            vacancyTitle: ev.job_position || 'Software Engineer',
+            vacancyTitle: ev.job_position || 'Senior Software Engineer',
             avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-            email: ev.candidate_email || 'candidate@example.com',
-            interviewRound: ev.round || 'Technical',
+            email: ev.candidate_email || 'alice.fernando@example.com',
+            interviewRound: ev.round || 'Technical Interview',
             interviewDate: ev.submitted_at
               ? new Date(ev.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
               : '22 Oct 2026',
