@@ -309,7 +309,7 @@ const initializeDatabase = async () => {
     // Interview Management Tables (SCRUM-71)
     // ----------------------------------------------------
 
-    // 1. Interview Slots table
+    // 1. Interview Slots table (Clean 3NF Normalized)
     await client.query(`
       CREATE TABLE IF NOT EXISTS interview_slots (
         id SERIAL PRIMARY KEY,
@@ -325,17 +325,13 @@ const initializeDatabase = async () => {
         capacity INTEGER NOT NULL DEFAULT 1,
         booked_count INTEGER NOT NULL DEFAULT 0,
         panel_name TEXT,
-        panel_emails TEXT,
-        panel_member JSONB DEFAULT '{}'::jsonb,
-        candidate JSONB,
-        evaluation JSONB,
         additional_notes TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
-    // 2. Candidate Interview Allocations table
+    // 2. Candidate Interview Allocations table (Clean 3NF Normalized)
     await client.query(`
       CREATE TABLE IF NOT EXISTS interview_allocations (
         id SERIAL PRIMARY KEY,
@@ -346,23 +342,17 @@ const initializeDatabase = async () => {
         candidate_email TEXT,
         candidate_avatar TEXT,
         match_score NUMERIC(5, 2) DEFAULT 0,
-        job_position TEXT,
-        round TEXT,
         status TEXT NOT NULL DEFAULT 'ALLOCATED',
         allocated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
-    // 3. Interview Evaluations table
+    // 3. Interview Evaluations table (Clean 3NF Normalized)
     await client.query(`
       CREATE TABLE IF NOT EXISTS interview_evaluations (
         id SERIAL PRIMARY KEY,
         slot_id INTEGER NOT NULL REFERENCES interview_slots(id) ON DELETE CASCADE,
-        allocation_id INTEGER REFERENCES interview_allocations(id) ON DELETE SET NULL,
-        candidate_id INTEGER REFERENCES candidates(id) ON DELETE SET NULL,
-        candidate_name TEXT,
-        candidate_email TEXT,
         score INTEGER NOT NULL DEFAULT 3,
         tech_skills INTEGER DEFAULT 0,
         comm_skills INTEGER DEFAULT 0,
@@ -378,20 +368,12 @@ const initializeDatabase = async () => {
       );
     `);
 
-    // 4. Interview Reschedule Requests table
+    // 4. Interview Reschedule Requests table (Clean 3NF Normalized)
     await client.query(`
       CREATE TABLE IF NOT EXISTS interview_reschedule_requests (
         id SERIAL PRIMARY KEY,
         slot_id INTEGER NOT NULL REFERENCES interview_slots(id) ON DELETE CASCADE,
-        allocation_id INTEGER REFERENCES interview_allocations(id) ON DELETE SET NULL,
         requested_by TEXT NOT NULL DEFAULT 'PANEL_MEMBER',
-        panel_member JSONB DEFAULT '{}'::jsonb,
-        candidate_name TEXT,
-        candidate_email TEXT,
-        job_position TEXT,
-        round TEXT,
-        current_interview_date DATE,
-        current_interview_time TEXT,
         reason_category TEXT NOT NULL,
         detailed_reason TEXT,
         proposed_slots JSONB DEFAULT '[]'::jsonb,

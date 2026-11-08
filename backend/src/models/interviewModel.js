@@ -73,16 +73,60 @@ const formatSlotRow = (row) => {
   const isoDate = toIsoDateString(row.interview_date);
   const displayDate = toDisplayDateString(row.interview_date);
 
-  let panelMember = row.panel_member;
-  if (!panelMember || Object.keys(panelMember).length === 0) {
-    if (row.panel_name) {
+  // Derive panelMember object from panel_name or defaults
+  let panelMember = DEFAULT_PANEL_MEMBERS[0];
+  if (row.panel_name) {
+    const pNameLower = row.panel_name.toLowerCase();
+    const matched = DEFAULT_PANEL_MEMBERS.find((p) =>
+      pNameLower.includes(p.name.toLowerCase()) ||
+      (pNameLower.includes('hr') && p.role.toLowerCase().includes('hr')) ||
+      (pNameLower.includes('tech') && p.role.toLowerCase().includes('tech')) ||
+      (pNameLower.includes('design') && (p.department.toLowerCase().includes('talent') || p.role.toLowerCase().includes('design'))) ||
+      (pNameLower.includes('architect') && p.role.toLowerCase().includes('architect'))
+    );
+    if (matched) {
+      panelMember = matched;
+    } else {
       panelMember = {
+        id: `pm-${row.id || 1}`,
         name: row.panel_name,
-        email: row.panel_emails || '',
+        email: 'interviews@company.com',
         role: 'Panel Interviewer',
         department: 'Hiring Team',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
       };
     }
+  }
+
+  // Construct candidate object from joined interview_allocations columns (if allocated)
+  let candidate = null;
+  if (row.candidate_name || row.candidate_app_id) {
+    candidate = {
+      id: row.candidate_app_id || `APP-${row.allocation_id || row.id}`,
+      name: row.candidate_name,
+      email: row.candidate_email || '',
+      avatar: row.candidate_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      matchScore: row.match_score ? parseFloat(row.match_score) : 80,
+    };
+  }
+
+  // Construct evaluation object from joined interview_evaluations columns (if evaluated)
+  let evaluation = null;
+  if (row.eval_recommendation || row.eval_score) {
+    evaluation = {
+      id: row.eval_id,
+      score: row.eval_score || 4,
+      techSkills: row.tech_skills || 0,
+      commSkills: row.comm_skills || 0,
+      problemSolving: row.problem_solving || 0,
+      teamwork: row.teamwork || 0,
+      overallRating: row.overall_rating ? parseFloat(row.overall_rating) : (row.eval_score || 4.0),
+      strengths: row.eval_strengths || '',
+      improvements: row.eval_improvements || '',
+      recommendation: row.eval_recommendation || 'HIRE',
+      evaluatedBy: row.evaluated_by || panelMember.name || 'Saman Tech',
+      submittedAt: row.eval_submitted_at ? toDisplayDateString(row.eval_submitted_at) : '22 Oct 2026',
+    };
   }
 
   return {
@@ -98,12 +142,12 @@ const formatSlotRow = (row) => {
     status: row.status || 'AVAILABLE',
     meetingLocation: row.meeting_location || 'https://meet.google.com/intelli-tech-round',
     capacity: row.capacity || 1,
-    bookedCount: row.booked_count || 0,
-    panelName: row.panel_name || (panelMember ? panelMember.name : 'Panel A'),
-    panelEmails: row.panel_emails || (panelMember ? panelMember.email : ''),
-    panelMember: panelMember || DEFAULT_PANEL_MEMBERS[0],
-    candidate: row.candidate || null,
-    evaluation: row.evaluation || null,
+    bookedCount: candidate ? 1 : (row.booked_count || 0),
+    panelName: row.panel_name || panelMember.name,
+    panelEmails: panelMember.email || '',
+    panelMember,
+    candidate,
+    evaluation,
     additionalNotes: row.additional_notes || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -266,52 +310,41 @@ const seedInitialSlotsIfEmpty = async () => {
         `INSERT INTO interview_slots (
           id, job_position, round, interview_date, start_time, end_time,
           interview_type, status, meeting_location, capacity, booked_count,
-          panel_name, panel_emails, panel_member, candidate, evaluation, additional_notes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+          panel_name, additional_notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING id`,
         [
           targetId,
           slot.job_position, slot.round, slot.interview_date, slot.start_time, slot.end_time,
           slot.interview_type, slot.status, slot.meeting_location, slot.capacity, slot.booked_count,
-          slot.panel_name, slot.panel_emails, slot.panel_member, slot.candidate || null,
-          slot.evaluation || null, slot.additional_notes,
+          slot.panel_name, slot.additional_notes,
         ]
       );
 
       const slotId = res.rows[0].id;
       if (slot.candidate) {
-        const c = JSON.parse(slot.candidate);
+        const c = typeof slot.candidate === 'string' ? JSON.parse(slot.candidate) : slot.candidate;
         await db.query(
           `INSERT INTO interview_allocations (
             id, slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
-            match_score, job_position, round, status
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+            match_score, status
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'ALLOCATED')`,
           [
             targetId, slotId, c.id, c.name, c.email, c.avatar || null,
-            c.matchScore || 0, slot.job_position, slot.round, 'ALLOCATED',
+            c.matchScore || 0,
           ]
         );
       }
 
       if (slot.status === 'RESCHEDULE_REQUESTED') {
-        const c = JSON.parse(slot.candidate);
         await db.query(
           `INSERT INTO interview_reschedule_requests (
-            id, slot_id, requested_by, panel_member, candidate_name, candidate_email,
-            job_position, round, current_interview_date, current_interview_time, reason_category,
-            detailed_reason, proposed_slots, status
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+            id, slot_id, requested_by, reason_category, detailed_reason, proposed_slots, status
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             1,
             slotId,
             'PANEL_MEMBER',
-            slot.panel_member,
-            c.name,
-            c.email,
-            slot.job_position,
-            slot.round,
-            slot.interview_date,
-            `${slot.start_time} - ${slot.end_time}`,
             'Schedule Conflict / Urgent Meeting',
             'Prior urgent leadership sync scheduled at this time. Requesting to reschedule to an alternative slot.',
             JSON.stringify([
@@ -324,15 +357,13 @@ const seedInitialSlotsIfEmpty = async () => {
       }
 
       if (slot.evaluation) {
-        const ev = JSON.parse(slot.evaluation);
-        const c = slot.candidate ? JSON.parse(slot.candidate) : {};
+        const ev = typeof slot.evaluation === 'string' ? JSON.parse(slot.evaluation) : slot.evaluation;
         await db.query(
           `INSERT INTO interview_evaluations (
-            id, slot_id, candidate_name, candidate_email, score,
-            strengths, improvements, recommendation, evaluated_by
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            id, slot_id, score, strengths, improvements, recommendation, evaluated_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
-            1, slotId, c.name || 'Alice Fernando', c.email || 'alice.fernando@example.com', ev.score || 4,
+            1, slotId, ev.score || 4,
             ev.strengths || '', ev.improvements || '', ev.recommendation || 'HIRE', ev.evaluatedBy || 'Saman Tech',
           ]
         );
@@ -357,35 +388,48 @@ const seedInitialSlotsIfEmpty = async () => {
 const getAllInterviewSlots = async (filters = {}) => {
   await seedInitialSlotsIfEmpty();
 
-  let query = 'SELECT * FROM interview_slots';
+  let query = `
+    SELECT 
+      s.id, s.vacancy_id, s.job_position, s.round, s.interview_date, 
+      s.start_time, s.end_time, s.interview_type, s.status, 
+      s.meeting_location, s.capacity, s.booked_count, s.panel_name, 
+      s.additional_notes, s.created_at, s.updated_at,
+      a.id AS allocation_id, a.candidate_app_id, a.candidate_name, a.candidate_email, a.candidate_avatar, a.match_score,
+      e.id AS eval_id, e.score AS eval_score, e.tech_skills, e.comm_skills, e.problem_solving, e.teamwork, 
+      e.overall_rating, e.recommendation AS eval_recommendation, e.strengths AS eval_strengths, 
+      e.improvements AS eval_improvements, e.evaluated_by, e.submitted_at AS eval_submitted_at
+    FROM interview_slots s
+    LEFT JOIN interview_allocations a ON a.slot_id = s.id
+    LEFT JOIN interview_evaluations e ON e.slot_id = s.id
+  `;
   const conditions = [];
   const values = [];
 
   if (filters.vacancyId) {
     values.push(filters.vacancyId);
-    conditions.push(`vacancy_id = $${values.length}`);
+    conditions.push(`s.vacancy_id = $${values.length}`);
   }
 
   if (filters.status) {
     values.push(filters.status);
-    conditions.push(`status = $${values.length}`);
+    conditions.push(`s.status = $${values.length}`);
   }
 
   if (filters.round) {
     values.push(filters.round);
-    conditions.push(`round = $${values.length}`);
+    conditions.push(`s.round = $${values.length}`);
   }
 
   if (filters.date) {
     values.push(filters.date);
-    conditions.push(`interview_date = $${values.length}`);
+    conditions.push(`s.interview_date = $${values.length}`);
   }
 
   if (conditions.length > 0) {
     query += ` WHERE ${conditions.join(' AND ')}`;
   }
 
-  query += ' ORDER BY interview_date ASC, start_time ASC';
+  query += ' ORDER BY s.interview_date ASC, s.start_time ASC';
 
   const { rows } = await db.query(query, values);
   return rows.map(formatSlotRow);
@@ -395,7 +439,22 @@ const getAllInterviewSlots = async (filters = {}) => {
  * Fetch single interview slot by ID
  */
 const getInterviewSlotById = async (id) => {
-  const { rows } = await db.query('SELECT * FROM interview_slots WHERE id = $1', [id]);
+  const query = `
+    SELECT 
+      s.id, s.vacancy_id, s.job_position, s.round, s.interview_date, 
+      s.start_time, s.end_time, s.interview_type, s.status, 
+      s.meeting_location, s.capacity, s.booked_count, s.panel_name, 
+      s.additional_notes, s.created_at, s.updated_at,
+      a.id AS allocation_id, a.candidate_app_id, a.candidate_name, a.candidate_email, a.candidate_avatar, a.match_score,
+      e.id AS eval_id, e.score AS eval_score, e.tech_skills, e.comm_skills, e.problem_solving, e.teamwork, 
+      e.overall_rating, e.recommendation AS eval_recommendation, e.strengths AS eval_strengths, 
+      e.improvements AS eval_improvements, e.evaluated_by, e.submitted_at AS eval_submitted_at
+    FROM interview_slots s
+    LEFT JOIN interview_allocations a ON a.slot_id = s.id
+    LEFT JOIN interview_evaluations e ON e.slot_id = s.id
+    WHERE s.id = $1
+  `;
+  const { rows } = await db.query(query, [id]);
   if (rows.length === 0) return null;
   return formatSlotRow(rows[0]);
 };
@@ -416,32 +475,29 @@ const createInterviewSlot = async (slotData) => {
     meetingLocation = 'https://meet.google.com/intelli-tech-round',
     capacity = 1,
     panelName = 'Panel A (Technical Leads)',
-    panelEmails = 'techlead@company.com',
-    panelMember = null,
     candidate = null,
     additionalNotes = '',
   } = slotData;
 
   const isoDate = toIsoDateString(interviewDate);
-  const panelMemberJson = JSON.stringify(panelMember || DEFAULT_PANEL_MEMBERS[0]);
-  const candidateJson = candidate ? JSON.stringify(candidate) : null;
+  const initialStatus = candidate ? 'SCHEDULED' : status;
   const bookedCount = candidate ? 1 : 0;
 
   const { rows } = await db.query(
     `INSERT INTO interview_slots (
       vacancy_id, job_position, round, interview_date, start_time, end_time,
       interview_type, status, meeting_location, capacity, booked_count,
-      panel_name, panel_emails, panel_member, candidate, additional_notes
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-    RETURNING *`,
+      panel_name, additional_notes
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    RETURNING id`,
     [
       vacancyId, jobPosition, round, isoDate, startTime, endTime,
-      interviewType, status, meetingLocation, capacity, bookedCount,
-      panelName, panelEmails, panelMemberJson, candidateJson, additionalNotes,
+      interviewType, initialStatus, meetingLocation, capacity, bookedCount,
+      panelName, additionalNotes,
     ]
   );
 
-  const createdSlot = formatSlotRow(rows[0]);
+  const slotId = rows[0].id;
 
   // If a candidate was assigned during slot creation (e.g. from Auto-Allocate or matching in Time Slot modal)
   if (candidate) {
@@ -460,16 +516,16 @@ const createInterviewSlot = async (slotData) => {
     await db.query(
       `INSERT INTO interview_allocations (
         slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
-        match_score, job_position, round, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ALLOCATED')`,
+        match_score, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'ALLOCATED')`,
       [
-        createdSlot.id, candidateAppId, candidateName, candidateEmail, candidateAvatar,
-        matchScore, createdSlot.jobPosition, createdSlot.round,
+        slotId, candidateAppId, candidateName, candidateEmail, candidateAvatar,
+        matchScore,
       ]
     );
   }
 
-  return createdSlot;
+  return getInterviewSlotById(slotId);
 };
 
 /**
@@ -500,31 +556,21 @@ const updateInterviewSlot = async (id, slotData) => {
   const status = slotData.status !== undefined ? slotData.status : existing.status;
   const meetingLocation = slotData.meetingLocation !== undefined ? slotData.meetingLocation : existing.meetingLocation;
   const capacity = slotData.capacity !== undefined ? slotData.capacity : existing.capacity;
-  const bookedCount = slotData.bookedCount !== undefined ? slotData.bookedCount : existing.bookedCount;
   const panelName = slotData.panelName !== undefined ? slotData.panelName : existing.panelName;
-  const panelEmails = slotData.panelEmails !== undefined ? slotData.panelEmails : existing.panelEmails;
-  const panelMember = slotData.panelMember !== undefined ? JSON.stringify(slotData.panelMember) : JSON.stringify(existing.panelMember);
-  const candidate = slotData.candidate !== undefined ? (slotData.candidate ? JSON.stringify(slotData.candidate) : null) : (existing.candidate ? JSON.stringify(existing.candidate) : null);
-  const evaluation = slotData.evaluation !== undefined ? (slotData.evaluation ? JSON.stringify(slotData.evaluation) : null) : (existing.evaluation ? JSON.stringify(existing.evaluation) : null);
   const additionalNotes = slotData.additionalNotes !== undefined ? slotData.additionalNotes : existing.additionalNotes;
 
-  const { rows } = await db.query(
+  await db.query(
     `UPDATE interview_slots SET
       job_position = $1, round = $2, interview_date = $3, start_time = $4, end_time = $5,
-      interview_type = $6, status = $7, meeting_location = $8, capacity = $9, booked_count = $10,
-      panel_name = $11, panel_emails = $12, panel_member = $13, candidate = $14,
-      evaluation = $15, additional_notes = $16, updated_at = NOW()
-    WHERE id = $17
-    RETURNING *`,
+      interview_type = $6, status = $7, meeting_location = $8, capacity = $9,
+      panel_name = $10, additional_notes = $11, updated_at = NOW()
+    WHERE id = $12`,
     [
       jobPosition, round, interviewDate, startTime, endTime,
-      interviewType, status, meetingLocation, capacity, bookedCount,
-      panelName, panelEmails, panelMember, candidate,
-      evaluation, additionalNotes, id,
+      interviewType, status, meetingLocation, capacity,
+      panelName, additionalNotes, id,
     ]
   );
-
-  const updatedSlot = formatSlotRow(rows[0]);
 
   if (slotData.candidate !== undefined) {
     if (slotData.candidate) {
@@ -543,19 +589,18 @@ const updateInterviewSlot = async (id, slotData) => {
       await db.query(
         `INSERT INTO interview_allocations (
           slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
-          match_score, job_position, round, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ALLOCATED')`,
-        [
-          id, candidateAppId, candidateName, candidateEmail, candidateAvatar,
-          matchScore, updatedSlot.jobPosition, updatedSlot.round,
-        ]
+          match_score, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'ALLOCATED')`,
+        [id, candidateAppId, candidateName, candidateEmail, candidateAvatar, matchScore]
       );
+      await db.query("UPDATE interview_slots SET booked_count = 1, status = 'SCHEDULED' WHERE id = $1", [id]);
     } else {
       await db.query('DELETE FROM interview_allocations WHERE slot_id = $1', [id]);
+      await db.query("UPDATE interview_slots SET booked_count = 0, status = 'AVAILABLE' WHERE id = $1 AND status != 'COMPLETED'", [id]);
     }
   }
 
-  return updatedSlot;
+  return getInterviewSlotById(id);
 };
 
 /**
@@ -579,39 +624,32 @@ const allocateCandidateToSlot = async (slotId, candidateData) => {
   const candidateAvatar = candidateData.avatar || '';
   const matchScore = candidateData.matchScore || candidateData.score || 0;
 
-  const candidatePayload = {
-    id: candidateAppId,
-    name: candidateName,
-    email: candidateEmail,
-    avatar: candidateAvatar,
-    matchScore,
-  };
-
   // Remove existing allocation for this candidate if they were previously allocated elsewhere
   await db.query(
     'DELETE FROM interview_allocations WHERE candidate_app_id = $1 OR (candidate_name = $2 AND candidate_name IS NOT NULL)',
     [candidateAppId, candidateName]
   );
 
-  // Insert into interview_allocations
+  // Insert into interview_allocations (Clean 3NF: candidate info + slot_id)
   const allocRes = await db.query(
     `INSERT INTO interview_allocations (
       slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
-      match_score, job_position, round, status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ALLOCATED')
+      match_score, status
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'ALLOCATED')
     RETURNING *`,
     [
       slotId, candidateAppId, candidateName, candidateEmail, candidateAvatar,
-      matchScore, slot.jobPosition, slot.round,
+      matchScore,
     ]
   );
 
   // Update interview slot
-  const updatedSlot = await updateInterviewSlot(slotId, {
-    candidate: candidatePayload,
-    bookedCount: (slot.bookedCount || 0) + 1,
-    status: 'SCHEDULED',
-  });
+  await db.query(
+    "UPDATE interview_slots SET booked_count = booked_count + 1, status = 'SCHEDULED', updated_at = NOW() WHERE id = $1",
+    [slotId]
+  );
+
+  const updatedSlot = await getInterviewSlotById(slotId);
 
   return {
     allocation: allocRes.rows[0],
@@ -625,7 +663,7 @@ const allocateCandidateToSlot = async (slotId, candidateData) => {
 const getAllAllocations = async () => {
   await seedInitialSlotsIfEmpty();
   const { rows } = await db.query(`
-    SELECT a.*, s.interview_date, s.start_time, s.end_time, s.interview_type, s.panel_name, s.meeting_location
+    SELECT a.*, s.job_position, s.round, s.interview_date, s.start_time, s.end_time, s.interview_type, s.panel_name, s.meeting_location
     FROM interview_allocations a
     JOIN interview_slots s ON a.slot_id = s.id
     ORDER BY s.interview_date ASC, s.start_time ASC
@@ -671,7 +709,7 @@ const deleteAllocation = async (identifier) => {
     if (count === 0) {
       await db.query(
         `UPDATE interview_slots
-         SET candidate = NULL, booked_count = 0, status = 'AVAILABLE', updated_at = NOW()
+         SET booked_count = 0, status = 'AVAILABLE', updated_at = NOW()
          WHERE id = $1 AND status != 'COMPLETED'`,
         [rows[0].slot_id]
       );
@@ -688,7 +726,7 @@ const resetAllAllocations = async () => {
   await db.query('ALTER SEQUENCE IF EXISTS interview_allocations_id_seq RESTART WITH 1');
   await db.query(`
     UPDATE interview_slots
-    SET candidate = NULL, booked_count = 0, status = 'AVAILABLE', updated_at = NOW()
+    SET booked_count = 0, status = 'AVAILABLE', updated_at = NOW()
     WHERE status != 'COMPLETED'
   `);
   return { success: true };
@@ -717,33 +755,47 @@ const autoAllocateCandidates = async (candidatesList) => {
 const getAllRescheduleRequests = async () => {
   await seedInitialSlotsIfEmpty();
   const { rows } = await db.query(`
-    SELECT r.*, s.meeting_location
+    SELECT 
+      r.id, r.slot_id, r.requested_by, r.reason_category, r.detailed_reason, 
+      r.proposed_slots, r.status, r.resolution_notes, r.created_at, r.resolved_at,
+      s.job_position, s.round, s.interview_date AS current_interview_date, 
+      s.start_time || ' - ' || s.end_time AS current_interview_time,
+      s.meeting_location, s.panel_name,
+      a.candidate_name, a.candidate_email
     FROM interview_reschedule_requests r
     LEFT JOIN interview_slots s ON r.slot_id = s.id
+    LEFT JOIN interview_allocations a ON a.slot_id = s.id
     ORDER BY r.created_at DESC
   `);
 
-  return rows.map((r) => ({
-    id: r.id,
-    slotId: r.slot_id,
-    requestedBy: r.requested_by,
-    panelMember: r.panel_member,
-    candidateName: r.candidate_name,
-    candidateEmail: r.candidate_email,
-    jobPosition: r.job_position,
-    round: r.round,
-    currentDate: toIsoDateString(r.current_interview_date || r.current_date),
-    currentDisplayDate: toDisplayDateString(r.current_interview_date || r.current_date),
-    currentTime: r.current_interview_time || r.current_time,
-    reasonCategory: r.reason_category,
-    detailedReason: r.detailed_reason,
-    proposedSlots: r.proposed_slots || [],
-    status: r.status,
-    resolutionNotes: r.resolution_notes || '',
-    createdAt: r.created_at,
-    resolvedAt: r.resolved_at,
-    meetingLocation: r.meeting_location,
-  }));
+  return rows.map((r) => {
+    let pm = DEFAULT_PANEL_MEMBERS[0];
+    if (r.panel_name) {
+      const match = DEFAULT_PANEL_MEMBERS.find((p) => r.panel_name.toLowerCase().includes(p.name.toLowerCase()));
+      if (match) pm = match;
+    }
+    return {
+      id: r.id,
+      slotId: r.slot_id,
+      requestedBy: r.requested_by,
+      panelMember: pm,
+      candidateName: r.candidate_name || '',
+      candidateEmail: r.candidate_email || '',
+      jobPosition: r.job_position || 'Senior Software Engineer',
+      round: r.round || 'Technical Interview',
+      currentDate: toIsoDateString(r.current_interview_date),
+      currentDisplayDate: toDisplayDateString(r.current_interview_date),
+      currentTime: r.current_interview_time || '',
+      reasonCategory: r.reason_category,
+      detailedReason: r.detailed_reason,
+      proposedSlots: r.proposed_slots || [],
+      status: r.status,
+      resolutionNotes: r.resolution_notes || '',
+      createdAt: r.created_at,
+      resolvedAt: r.resolved_at,
+      meetingLocation: r.meeting_location,
+    };
+  });
 };
 
 /**
@@ -753,39 +805,17 @@ const createRescheduleRequest = async (reqData) => {
   const {
     slotId,
     requestedBy = 'PANEL_MEMBER',
-    panelMember = null,
-    candidateName = '',
-    candidateEmail = '',
-    jobPosition = '',
-    round = '',
-    currentDate = null,
-    currentTime = '',
     reasonCategory,
     detailedReason = '',
     proposedSlots = [],
   } = reqData;
 
-  const slot = await getInterviewSlotById(slotId);
-  const curDate = currentDate ? toIsoDateString(currentDate) : (slot ? slot.interviewDate : toIsoDateString(new Date()));
-  const curTime = currentTime || (slot ? `${slot.startTime} - ${slot.endTime}` : '');
-  const jobPos = jobPosition || (slot ? slot.jobPosition : 'Senior Software Engineer');
-  const rnd = round || (slot ? slot.round : 'Technical Interview');
-  const candName = candidateName || (slot && slot.candidate ? slot.candidate.name : '');
-  const candEmail = candidateEmail || (slot && slot.candidate ? slot.candidate.email : '');
-  const pMember = panelMember || (slot ? slot.panelMember : DEFAULT_PANEL_MEMBERS[0]);
-
   const { rows } = await db.query(
     `INSERT INTO interview_reschedule_requests (
-      slot_id, requested_by, panel_member, candidate_name, candidate_email,
-      job_position, round, current_interview_date, current_interview_time, reason_category,
-      detailed_reason, proposed_slots, status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'PENDING')
+      slot_id, requested_by, reason_category, detailed_reason, proposed_slots, status
+    ) VALUES ($1, $2, $3, $4, $5, 'PENDING')
     RETURNING *`,
-    [
-      slotId, requestedBy, JSON.stringify(pMember), candName, candEmail,
-      jobPos, rnd, curDate, curTime, reasonCategory,
-      detailedReason, JSON.stringify(proposedSlots),
-    ]
+    [slotId, requestedBy, reasonCategory, detailedReason, JSON.stringify(proposedSlots)]
   );
 
   // Update interview slot status
@@ -901,9 +931,6 @@ const customRescheduleSlot = async (requestId, customSlotData, notes = '') => {
 const submitInterviewEvaluation = async (evalData) => {
   const {
     slotId,
-    candidateId = null,
-    candidateName = '',
-    candidateEmail = '',
     score = 4,
     techSkills = 4,
     commSkills = 4,
@@ -919,33 +946,20 @@ const submitInterviewEvaluation = async (evalData) => {
 
   const { rows } = await db.query(
     `INSERT INTO interview_evaluations (
-      slot_id, candidate_id, candidate_name, candidate_email, score,
-      tech_skills, comm_skills, problem_solving, teamwork, overall_rating,
-      strengths, improvements, recommendation, feedback_notes, evaluated_by
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      slot_id, score, tech_skills, comm_skills, problem_solving, teamwork,
+      overall_rating, strengths, improvements, recommendation, feedback_notes, evaluated_by
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING *`,
     [
-      slotId, candidateId, candidateName, candidateEmail, score,
-      techSkills, commSkills, problemSolving, teamwork, overallRating,
-      strengths, improvements, recommendation, feedbackNotes, evaluatedBy,
+      slotId, score, techSkills, commSkills, problemSolving, teamwork,
+      overallRating, strengths, improvements, recommendation, feedbackNotes, evaluatedBy,
     ]
   );
 
-  // Also update slot with evaluation JSON and mark status as COMPLETED
-  const evalPayload = {
-    score,
-    strengths,
-    improvements,
-    recommendation,
-    evaluatedBy,
-    submittedAt: toDisplayDateString(new Date()),
-  };
-
+  // Mark status as COMPLETED in interview_slots
   await db.query(
-    `UPDATE interview_slots SET
-      evaluation = $1, status = 'COMPLETED', updated_at = NOW()
-    WHERE id = $2`,
-    [JSON.stringify(evalPayload), slotId]
+    "UPDATE interview_slots SET status = 'COMPLETED', updated_at = NOW() WHERE id = $1",
+    [slotId]
   );
 
   return rows[0];
@@ -956,18 +970,21 @@ const submitInterviewEvaluation = async (evalData) => {
  */
 const getAllEvaluations = async () => {
   const { rows } = await db.query(`
-    SELECT e.*, s.round, s.job_position, s.interview_date
+    SELECT 
+      e.*, s.round, s.job_position, s.interview_date,
+      a.candidate_app_id, a.candidate_name, a.candidate_email
     FROM interview_evaluations e
     JOIN interview_slots s ON e.slot_id = s.id
+    LEFT JOIN interview_allocations a ON a.slot_id = s.id
     ORDER BY e.submitted_at DESC
   `);
 
   return rows.map((r) => ({
     id: r.id,
     slotId: r.slot_id,
-    candidateId: r.candidate_id,
-    candidateName: r.candidate_name,
-    candidateEmail: r.candidate_email,
+    candidateId: r.candidate_app_id,
+    candidateName: r.candidate_name || 'Candidate',
+    candidateEmail: r.candidate_email || '',
     score: r.score,
     techSkills: r.tech_skills,
     commSkills: r.comm_skills,
