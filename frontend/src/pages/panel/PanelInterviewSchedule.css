@@ -393,6 +393,40 @@
   border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
+.status-tag-open {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.panel-interview-card.status-available {
+  border-left: 3px solid #64748B;
+  opacity: 0.96;
+}
+
+.open-slot-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(240, 185, 11, 0.08);
+  border: 2px dashed rgba(240, 185, 11, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #F0B90B;
+}
+
+.btn-primary-action-cta.allocate-btn {
+  background: linear-gradient(135deg, rgba(240, 185, 11, 0.15) 0%, rgba(240, 185, 11, 0.25) 100%);
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.45);
+}
+
+.btn-primary-action-cta.allocate-btn:hover {
+  background: #F0B90B;
+  color: #000000;
+}
+
 .candidate-notes {
   font-size: 12px;
   color: #9599A6;

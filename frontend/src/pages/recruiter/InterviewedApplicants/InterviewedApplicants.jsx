@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchEvaluations } from '../../../api/interviewApi';
 import {
   Briefcase,
   Users,
@@ -243,6 +244,47 @@ function InterviewedApplicants() {
   const [selectedPanel, setSelectedPanel] = useState('All Interviewers');
   const [selectedRecFilter, setSelectedRecFilter] = useState('All'); // 'All', 'Hire', 'Hold', 'Reject'
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [candidatesList, setCandidatesList] = useState(MOCK_INTERVIEWED);
+
+  // Live load evaluations from PostgreSQL backend API
+  useEffect(() => {
+    fetchEvaluations()
+      .then((res) => {
+        if (res && res.evaluations && Array.isArray(res.evaluations) && res.evaluations.length > 0) {
+          const liveMapped = res.evaluations.map((ev, idx) => ({
+            id: `INT-LIVE-${ev.id || idx}`,
+            name: ev.candidate_name || 'Candidate',
+            role: ev.job_position || 'Senior Software Engineer',
+            vacancyId: 1,
+            vacancyTitle: ev.job_position || 'Software Engineer',
+            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+            email: ev.candidate_email || 'candidate@example.com',
+            interviewRound: ev.round || 'Technical',
+            interviewDate: ev.submitted_at
+              ? new Date(ev.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+              : '22 Oct 2026',
+            panel: [ev.evaluated_by || 'Saman Tech (Tech Lead)'],
+            scores: {
+              commSkills: ev.comm_skills || 4,
+              techSkills: ev.tech_skills || 5,
+              problemSolving: ev.problem_solving || 4,
+              teamwork: ev.teamwork || 4,
+              overallRating: parseFloat(ev.overall_rating) || (ev.score ? parseFloat(ev.score) : 4.5),
+            },
+            remarks: ev.strengths || ev.improvements || 'Strong technical and architectural evaluation completed.',
+            recommendation: ev.recommendation === 'HIRE' ? 'Hire' : (ev.recommendation === 'NO_HIRE' ? 'Reject' : 'Hold'),
+            status: 'Completed',
+          }));
+
+          const liveNames = new Set(liveMapped.map((c) => c.name.toLowerCase()));
+          const remainingMock = MOCK_INTERVIEWED.filter((c) => !liveNames.has(c.name.toLowerCase()));
+          setCandidatesList([...liveMapped, ...remainingMock]);
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend fetchEvaluations fallback:', err.message);
+      });
+  }, []);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -250,16 +292,16 @@ function InterviewedApplicants() {
 
   // Derive stats
   const stats = useMemo(() => {
-    const total = MOCK_INTERVIEWED.length;
-    const hires = MOCK_INTERVIEWED.filter(c => c.recommendation === 'Hire').length;
-    const holds = MOCK_INTERVIEWED.filter(c => c.recommendation === 'Hold').length;
-    const reviews = MOCK_INTERVIEWED.filter(c => c.status === 'In Review').length;
+    const total = candidatesList.length;
+    const hires = candidatesList.filter(c => c.recommendation === 'Hire').length;
+    const holds = candidatesList.filter(c => c.recommendation === 'Hold').length;
+    const reviews = candidatesList.filter(c => c.status === 'In Review').length;
     return { total, hires, holds, reviews };
-  }, []);
+  }, [candidatesList]);
 
   // Filter logic
   const filteredCandidates = useMemo(() => {
-    return MOCK_INTERVIEWED.filter(candidate => {
+    return candidatesList.filter(candidate => {
       // Search text
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();

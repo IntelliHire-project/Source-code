@@ -322,12 +322,28 @@ const seedInitialSlotsIfEmpty = async () => {
           ]
         );
       }
+
+      if (slot.evaluation) {
+        const ev = JSON.parse(slot.evaluation);
+        const c = slot.candidate ? JSON.parse(slot.candidate) : {};
+        await db.query(
+          `INSERT INTO interview_evaluations (
+            id, slot_id, candidate_name, candidate_email, score,
+            strengths, improvements, recommendation, evaluated_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            1, slotId, c.name || 'Alice Fernando', c.email || 'alice.fernando@example.com', ev.score || 4,
+            ev.strengths || '', ev.improvements || '', ev.recommendation || 'HIRE', ev.evaluatedBy || 'Saman Tech',
+          ]
+        );
+      }
     }
 
     // Set sequence values to max ID so subsequent inserts start cleanly at 7, 8, 9...
     await db.query(`SELECT setval('interview_slots_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_slots))`);
     await db.query(`SELECT setval('interview_allocations_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_allocations))`);
     await db.query(`SELECT setval('interview_reschedule_requests_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_reschedule_requests))`);
+    await db.query(`SELECT setval('interview_evaluations_id_seq', (SELECT COALESCE(MAX(id), 1) FROM interview_evaluations))`);
   } catch (err) {
     console.error('Error seeding initial interview slots:', err.message);
   } finally {
@@ -425,7 +441,35 @@ const createInterviewSlot = async (slotData) => {
     ]
   );
 
-  return formatSlotRow(rows[0]);
+  const createdSlot = formatSlotRow(rows[0]);
+
+  // If a candidate was assigned during slot creation (e.g. from Auto-Allocate or matching in Time Slot modal)
+  if (candidate) {
+    const candObj = typeof candidate === 'string' ? JSON.parse(candidate) : candidate;
+    const candidateAppId = candObj.id || candObj.candidateId || `APP-${Date.now().toString().slice(-4)}`;
+    const candidateName = candObj.name || candObj.candidateName;
+    const candidateEmail = candObj.email || candObj.candidateEmail || '';
+    const candidateAvatar = candObj.avatar || '';
+    const matchScore = candObj.matchScore || candObj.score || 0;
+
+    await db.query(
+      'DELETE FROM interview_allocations WHERE candidate_app_id = $1 OR (candidate_name = $2 AND candidate_name IS NOT NULL)',
+      [candidateAppId, candidateName]
+    );
+
+    await db.query(
+      `INSERT INTO interview_allocations (
+        slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
+        match_score, job_position, round, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ALLOCATED')`,
+      [
+        createdSlot.id, candidateAppId, candidateName, candidateEmail, candidateAvatar,
+        matchScore, createdSlot.jobPosition, createdSlot.round,
+      ]
+    );
+  }
+
+  return createdSlot;
 };
 
 /**
@@ -480,7 +524,38 @@ const updateInterviewSlot = async (id, slotData) => {
     ]
   );
 
-  return formatSlotRow(rows[0]);
+  const updatedSlot = formatSlotRow(rows[0]);
+
+  if (slotData.candidate !== undefined) {
+    if (slotData.candidate) {
+      const candObj = typeof slotData.candidate === 'string' ? JSON.parse(slotData.candidate) : slotData.candidate;
+      const candidateAppId = candObj.id || candObj.candidateId || `APP-${Date.now().toString().slice(-4)}`;
+      const candidateName = candObj.name || candObj.candidateName;
+      const candidateEmail = candObj.email || candObj.candidateEmail || '';
+      const candidateAvatar = candObj.avatar || '';
+      const matchScore = candObj.matchScore || candObj.score || 0;
+
+      await db.query(
+        'DELETE FROM interview_allocations WHERE candidate_app_id = $1 OR (candidate_name = $2 AND candidate_name IS NOT NULL)',
+        [candidateAppId, candidateName]
+      );
+
+      await db.query(
+        `INSERT INTO interview_allocations (
+          slot_id, candidate_app_id, candidate_name, candidate_email, candidate_avatar,
+          match_score, job_position, round, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'ALLOCATED')`,
+        [
+          id, candidateAppId, candidateName, candidateEmail, candidateAvatar,
+          matchScore, updatedSlot.jobPosition, updatedSlot.round,
+        ]
+      );
+    } else {
+      await db.query('DELETE FROM interview_allocations WHERE slot_id = $1', [id]);
+    }
+  }
+
+  return updatedSlot;
 };
 
 /**

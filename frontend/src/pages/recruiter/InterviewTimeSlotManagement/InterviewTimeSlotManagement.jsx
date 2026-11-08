@@ -1529,6 +1529,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
       // Send to backend PostgreSQL API
       createdSlots.forEach(s => {
+        const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
+          id: s.assignedCandidate.id,
+          name: s.assignedCandidate.name,
+          email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+          score: s.assignedCandidate.score || 85,
+          avatar: s.assignedCandidate.avatar || '',
+        } : null;
+
         createInterviewSlot({
           jobPosition: s.jobPosition,
           round: s.round,
@@ -1541,6 +1549,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
           panelName: s.panelName,
           panelEmails: s.panelEmails,
           additionalNotes: s.additionalNotes,
+          candidate: candidatePayload,
+          status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
+          bookedCount: candidatePayload ? 1 : 0,
         }).catch(err => console.error('Error saving slot to database:', err));
       });
 
