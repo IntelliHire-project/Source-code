@@ -25,6 +25,7 @@ import {
   ClipboardCheck,
   Lock,
   Building2,
+  UserPlus,
 } from 'lucide-react';
 import {
   getInterviewSlots,
@@ -37,6 +38,7 @@ import {
   cleanSingleTime,
   getEndTime,
 } from '../../services/interviewService';
+import { fetchInterviewSlots, submitEvaluationApi } from '../../api/interviewApi';
 import TopBar from '../../components/TopBar/TopBar';
 import RecruiterSidebar from '../../components/common/RecruiterSidebar';
 import './PanelInterviewSchedule.css';
@@ -214,8 +216,18 @@ export default function PanelInterviewSchedule() {
   }, []);
 
   const refreshSlots = () => {
-    const allSlots = getInterviewSlots();
-    setSlots(allSlots);
+    fetchInterviewSlots()
+      .then((res) => {
+        if (res && res.slots && Array.isArray(res.slots) && res.slots.length > 0) {
+          setSlots(res.slots);
+          saveInterviewSlots(res.slots);
+        } else {
+          setSlots(getInterviewSlots());
+        }
+      })
+      .catch(() => {
+        setSlots(getInterviewSlots());
+      });
   };
 
   const isAllView = selectedPanelistId === 'ALL';
@@ -237,13 +249,31 @@ export default function PanelInterviewSchedule() {
   const panelistSlots = useMemo(() => {
     if (isAllView) return slots;
     if (!currentPanelist) return [];
-    return slots.filter((slot) => slot.panelMember?.id === currentPanelist.id || slot.panelMember?.email === currentPanelist.email);
+    const pId = String(currentPanelist.id || '').toLowerCase();
+    const pEmail = String(currentPanelist.email || '').toLowerCase();
+    const pName = String(currentPanelist.name || '').toLowerCase();
+
+    return slots.filter((slot) => {
+      const slotMemberId = String(slot.panelMember?.id || '').toLowerCase();
+      const slotMemberEmail = String(slot.panelMember?.email || slot.panelEmails || '').toLowerCase();
+      const slotMemberName = String(slot.panelMember?.name || slot.panelName || '').toLowerCase();
+
+      return (
+        (pId && slotMemberId === pId) ||
+        (pEmail && slotMemberEmail.includes(pEmail)) ||
+        (pName && (slotMemberName.includes(pName) || pName.includes(slotMemberName))) ||
+        (pName.includes('saman') && slotMemberName.includes('technical')) ||
+        (pName.includes('nirosha') && slotMemberName.includes('hr')) ||
+        (pName.includes('dilhani') && (slotMemberName.includes('design') || slotMemberName.includes('product'))) ||
+        (pName.includes('ruwan') && (slotMemberName.includes('architect') || slotMemberName.includes('backend')))
+      );
+    });
   }, [slots, currentPanelist, isAllView]);
 
   // Sub-filter tabs
   const filteredSlots = useMemo(() => {
     if (activeFilter === 'UPCOMING') {
-      return panelistSlots.filter((s) => s.status === 'SCHEDULED' || s.status === 'RESCHEDULED');
+      return panelistSlots.filter((s) => (s.status === 'SCHEDULED' || s.status === 'RESCHEDULED') && s.candidate);
     }
     if (activeFilter === 'COMPLETED') {
       return panelistSlots.filter((s) => s.status === 'COMPLETED');
@@ -251,16 +281,20 @@ export default function PanelInterviewSchedule() {
     if (activeFilter === 'PENDING_RESCHEDULE') {
       return panelistSlots.filter((s) => s.status === 'RESCHEDULE_REQUESTED');
     }
+    if (activeFilter === 'AVAILABLE') {
+      return panelistSlots.filter((s) => s.status === 'AVAILABLE' || !s.candidate);
+    }
     return panelistSlots;
   }, [panelistSlots, activeFilter]);
 
   // Statistics
   const stats = useMemo(() => {
     const total = panelistSlots.length;
-    const upcoming = panelistSlots.filter((s) => s.status === 'SCHEDULED' || s.status === 'RESCHEDULED').length;
+    const upcoming = panelistSlots.filter((s) => (s.status === 'SCHEDULED' || s.status === 'RESCHEDULED') && s.candidate).length;
     const completed = panelistSlots.filter((s) => s.status === 'COMPLETED').length;
     const pendingReschedules = panelistSlots.filter((s) => s.status === 'RESCHEDULE_REQUESTED').length;
-    return { total, upcoming, completed, pendingReschedules };
+    const openSlots = panelistSlots.filter((s) => s.status === 'AVAILABLE' || !s.candidate).length;
+    return { total, upcoming, completed, pendingReschedules, openSlots };
   }, [panelistSlots]);
 
   const showToast = (msg) => {
@@ -472,6 +506,21 @@ export default function PanelInterviewSchedule() {
 
     setSlots(updatedSlots);
     saveInterviewSlots(updatedSlots);
+
+    // Persist evaluation to backend PostgreSQL API
+    const rawSlotId = String(evalSlot.id).replace('SLOT-', '');
+    submitEvaluationApi({
+      slotId: rawSlotId,
+      candidateId: evalSlot.candidate?.id || null,
+      candidateName: evalSlot.candidate?.name || 'Candidate',
+      candidateEmail: evalSlot.candidate?.email || '',
+      score: evalScore,
+      strengths: evalStrengths,
+      improvements: evalImprovements,
+      recommendation: evalRecommendation,
+      evaluatedBy: currentPanelist?.name || 'Panel Member',
+    }).catch((err) => console.error('Error submitting evaluation to backend PostgreSQL:', err));
+
     setEvalModalOpen(false);
     showToast(`Evaluation recorded successfully for ${evalSlot.candidate?.name}!`);
   };
@@ -666,6 +715,12 @@ export default function PanelInterviewSchedule() {
             >
               Reschedule Requested <span className="tab-badge">{stats.pendingReschedules}</span>
             </button>
+            <button
+              className={`panel-tab-btn ${activeFilter === 'AVAILABLE' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('AVAILABLE')}
+            >
+              Open Slots <span className="tab-badge">{stats.openSlots}</span>
+            </button>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -727,10 +782,11 @@ export default function PanelInterviewSchedule() {
             {filteredSlots.map((slot) => {
               const isPendingReschedule = slot.status === 'RESCHEDULE_REQUESTED';
               const isRescheduled = slot.status === 'RESCHEDULED';
+              const isAvailable = slot.status === 'AVAILABLE' || !slot.candidate;
 
               const gcalUrl = generateGoogleCalendarLink({
-                title: `${slot.jobPosition} - ${slot.round} Interview (${slot.candidate?.name})`,
-                description: `Candidate: ${slot.candidate?.name}\nEmail: ${slot.candidate?.email}\nRound: ${slot.round}\nNotes: ${slot.additionalNotes || 'N/A'}`,
+                title: `${slot.jobPosition} - ${slot.round} Interview (${slot.candidate?.name || 'Open Slot'})`,
+                description: `Candidate: ${slot.candidate?.name || 'Awaiting candidate allocation'}\nRound: ${slot.round}\nNotes: ${slot.additionalNotes || 'N/A'}`,
                 date: slot.interviewDate,
                 startTime: slot.startTime,
                 endTime: slot.endTime,
@@ -741,6 +797,8 @@ export default function PanelInterviewSchedule() {
                 ? 'status-completed'
                 : isPendingReschedule
                 ? 'status-reschedule-requested'
+                : isAvailable
+                ? 'status-available'
                 : 'status-scheduled';
 
               return (
@@ -750,24 +808,32 @@ export default function PanelInterviewSchedule() {
                 >
                   {/* Left: Candidate & Position */}
                   <div className="card-left">
-                    <div className="candidate-avatar-wrap">
-                      <img
-                        src={slot.candidate?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                        alt={slot.candidate?.name}
-                        className="candidate-avatar"
-                      />
-                      {slot.candidate?.matchScore && (
-                        <div className="match-badge">{slot.candidate.matchScore}%</div>
-                      )}
-                    </div>
+                    {isAvailable ? (
+                      <div className="candidate-avatar-wrap">
+                        <div className="open-slot-avatar">
+                          <UserPlus size={22} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="candidate-avatar-wrap">
+                        <img
+                          src={slot.candidate?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                          alt={slot.candidate?.name || 'Candidate'}
+                          className="candidate-avatar"
+                        />
+                        {slot.candidate?.matchScore && (
+                          <div className="match-badge">{slot.candidate.matchScore}%</div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="candidate-info">
                       <div className="role-tag-row">
                         <span className="role-badge">{slot.jobPosition}</span>
                         <span className="round-badge">{slot.round}</span>
-                        {isAllView && slot.panelMember && (
+                        {isAllView && (slot.panelMember?.name || slot.panelName) && (
                           <span className="panelist-chip">
-                            <User size={12} /> {slot.panelMember.name}
+                            <User size={12} /> {slot.panelMember?.name || slot.panelName}
                           </span>
                         )}
                         {slot.status === 'COMPLETED' ? (
@@ -778,15 +844,21 @@ export default function PanelInterviewSchedule() {
                           <span className="status-tag status-tag-pending">
                             <Clock size={12} /> Reschedule Pending
                           </span>
+                        ) : isAvailable ? (
+                          <span className="status-tag status-tag-open">
+                            <Clock size={12} /> Open Time Slot
+                          </span>
                         ) : (
                           <span className="status-tag status-tag-confirmed">
                             <CheckCircle2 size={12} /> Confirmed
                           </span>
                         )}
                       </div>
-                      <h3>{slot.candidate?.name}</h3>
+                      <h3>{isAvailable ? 'Open Slot — Awaiting Allocation' : slot.candidate?.name}</h3>
                       <p className="candidate-notes">
-                        {slot.additionalNotes || 'Technical evaluation session.'}
+                        {isAvailable
+                          ? (slot.additionalNotes || 'Available time slot ready for candidate scheduling in Recruiter Hub.')
+                          : (slot.additionalNotes || 'Technical evaluation session.')}
                       </p>
                     </div>
                   </div>
@@ -843,6 +915,32 @@ export default function PanelInterviewSchedule() {
                             <RefreshCw size={12} />
                             <span>Review / Approve in Recruiter Hub</span>
                           </button>
+                        </div>
+                      </>
+                    ) : isAvailable ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-primary-action-cta allocate-btn"
+                          onClick={() => navigate('/recruiter/interviews/allocation')}
+                        >
+                          <UserPlus size={15} />
+                          <span>Allocate Candidate</span>
+                        </button>
+                        <div className="card-actions-subrow">
+                          <button
+                            type="button"
+                            className="subrow-action-btn"
+                            onClick={() => navigate('/recruiter/interviews')}
+                            title="Manage in Recruiter Hub"
+                            style={{ width: '100%' }}
+                          >
+                            <Calendar size={13} /> Manage Slots
+                          </button>
+                        </div>
+                        <div className="actions-footnote">
+                          <Lock size={11} />
+                          <span>Available for candidate allocation</span>
                         </div>
                       </>
                     ) : isPastOrToday(slot.interviewDate) ? (

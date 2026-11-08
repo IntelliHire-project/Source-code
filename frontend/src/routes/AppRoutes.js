@@ -177,6 +177,7 @@ function AppRoutes() {
         <Route path="/recruiter/interviews/allocation" element={<RecruiterProtected><CandidateInterviewAllocation /></RecruiterProtected>} />
         <Route path="/recruiter/interviews/invitations" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
         <Route path="/recruiter/interviews/communication" element={<Navigate to="/recruiter/interviews/allocation" replace />} />
+        <Route path="/recruiter/interviews/evaluation" element={<Navigate to="/panel/interviews" replace />} />
 
         <Route path="/recruiter/signin" element={<Navigate to="/signin" replace />} />
         <Route path="/admin/signin" element={<Navigate to="/signin" replace />} />
@@ -354,6 +355,10 @@ function AppRoutes() {
         <Route
           path="/recruiter/panel-schedule"
           element={<RecruiterProtected><PanelInterviewSchedule /></RecruiterProtected>}
+        />
+        <Route
+          path="/recruiter/interviews/evaluation"
+          element={<Navigate to="/panel/interviews" replace />}
         />
         <Route
           path="/panel/interviews"
