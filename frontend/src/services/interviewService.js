@@ -4,6 +4,8 @@
  * of interview rescheduling requests.
  */
 
+import * as interviewApi from '../api/interviewApi';
+
 const STORAGE_KEYS = {
   SLOTS: 'intellihire_interview_slots',
   RESCHEDULE_REQUESTS: 'intellihire_reschedule_requests',
@@ -573,6 +575,23 @@ export const submitRescheduleRequest = ({
   });
   saveInterviewSlots(updatedSlots);
 
+  try {
+    interviewApi.createRescheduleRequest({
+      slotId,
+      requestedBy: 'PANEL_MEMBER',
+      panelMember,
+      candidateName,
+      candidateEmail,
+      jobPosition,
+      round,
+      currentDate,
+      currentTime,
+      reasonCategory,
+      detailedReason,
+      proposedSlots,
+    }).catch(() => {});
+  } catch (_) {}
+
   return { success: true, request: newRequest };
 };
 
@@ -726,6 +745,13 @@ export const approveRescheduleRequest = (requestId, selectedProposedSlot, recrui
     newEndTime: selectedProposedSlot.endTime,
   });
 
+  try {
+    interviewApi.approveRescheduleRequestApi(requestId, {
+      selectedProposedSlot,
+      recruiterNotes,
+    }).catch(() => {});
+  } catch (_) {}
+
   return { success: true, updatedRequest: updatedRequests.find((r) => r.id === requestId) };
 };
 
@@ -764,6 +790,12 @@ export const rejectRescheduleRequest = (requestId, rejectionReason = '') => {
     return slot;
   });
   saveInterviewSlots(updatedSlots);
+
+  try {
+    interviewApi.rejectRescheduleRequestApi(requestId, {
+      rejectionReason,
+    }).catch(() => {});
+  } catch (_) {}
 
   return { success: true };
 };
@@ -822,5 +854,14 @@ export const customRescheduleSlot = (requestId, customSlotData, notes = '') => {
     newEndTime: customSlotData.endTime,
   });
 
+  try {
+    interviewApi.customRescheduleSlotApi(requestId, {
+      customSlotData,
+      notes,
+    }).catch(() => {});
+  } catch (_) {}
+
   return { success: true };
 };
+
+export { interviewApi };

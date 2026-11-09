@@ -37,12 +37,7 @@ const SCORE_DISTRIBUTION = [
 ];
 
 const PANEL_EVALUATIONS = [
-  { id: 'E-1', candidate: 'Alice Fernando', role: 'Senior Software Engineer', round: 'Technical Interview', comm: 4, tech: 5, problem: 4, teamwork: 4, overall: '4.5 / 5', recommendation: 'Hire' },
-  { id: 'E-2', candidate: 'Kamal Perera', role: 'Senior Software Engineer', round: 'HR Portfolio Review', comm: 4, tech: 3, problem: 4, teamwork: 5, overall: '4.0 / 5', recommendation: 'Hold' },
-  { id: 'E-3', candidate: 'Nimal Silva', role: 'Senior Software Engineer', round: 'System Architecture', comm: 3, tech: 4, problem: 3, teamwork: 4, overall: '3.5 / 5', recommendation: 'Reject' },
-  { id: 'E-4', candidate: 'Dinesh Mendis', role: 'Senior Software Engineer', round: 'Technical Interview', comm: 4, tech: 4, problem: 4, teamwork: 4, overall: '4.0 / 5', recommendation: 'Hire' },
-  { id: 'E-5', candidate: 'Sanduni Wickramasinghe', role: 'Senior Software Engineer', round: 'HR Screening', comm: 4, tech: 3, problem: 4, teamwork: 4, overall: '3.8 / 5', recommendation: 'Hold' },
-  { id: 'E-6', candidate: 'Malith Senanayake', role: 'UI/UX Designer', round: 'Design Portfolio Review', comm: 5, tech: 4, problem: 4, teamwork: 5, overall: '4.5 / 5', recommendation: 'Hire' },
+  { id: 'E-1', candidate: 'Alice Fernando', role: 'Senior Software Engineer', round: 'Technical Interview', comm: 4, tech: 5, problem: 4, teamwork: 4, overall: '4.5 / 5', recommendation: 'Hire', evaluatedBy: 'Saman Tech' },
 ];
 
 const TABS = [
@@ -76,9 +71,7 @@ const loadPanelEvaluations = () => {
         });
 
       if (liveEvaluations.length > 0) {
-        const liveNames = new Set(liveEvaluations.map((e) => e.candidate.toLowerCase()));
-        const remaining = PANEL_EVALUATIONS.filter((p) => !liveNames.has(p.candidate.toLowerCase()));
-        return [...liveEvaluations, ...remaining];
+        return liveEvaluations;
       }
     }
   } catch (err) {

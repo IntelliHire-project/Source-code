@@ -325,8 +325,82 @@ const initializeDatabase = async () => {
         eval_mode TEXT DEFAULT 'Automatic',
         usage_count INTEGER DEFAULT 0,
         details JSONB DEFAULT '{}'::jsonb,
+    // ----------------------------------------------------
+    // Interview Management Tables (SCRUM-71)
+    // ----------------------------------------------------
+
+    // 1. Interview Slots table (Clean 3NF Normalized)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS interview_slots (
+        id SERIAL PRIMARY KEY,
+        vacancy_id INTEGER REFERENCES vacancies(id) ON DELETE SET NULL,
+        job_position TEXT NOT NULL DEFAULT 'Senior Software Engineer',
+        round TEXT NOT NULL DEFAULT 'Technical Interview',
+        interview_date DATE NOT NULL,
+        start_time TEXT NOT NULL DEFAULT '09:30 AM',
+        end_time TEXT NOT NULL DEFAULT '10:30 AM',
+        interview_type TEXT NOT NULL DEFAULT 'Online',
+        status TEXT NOT NULL DEFAULT 'AVAILABLE',
+        meeting_location TEXT DEFAULT 'https://meet.google.com/intelli-tech-round',
+        capacity INTEGER NOT NULL DEFAULT 1,
+        booked_count INTEGER NOT NULL DEFAULT 0,
+        panel_name TEXT,
+        additional_notes TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // 2. Candidate Interview Allocations table (Clean 3NF Normalized)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS interview_allocations (
+        id SERIAL PRIMARY KEY,
+        slot_id INTEGER NOT NULL REFERENCES interview_slots(id) ON DELETE CASCADE,
+        candidate_id INTEGER REFERENCES candidates(id) ON DELETE CASCADE,
+        candidate_app_id TEXT,
+        candidate_name TEXT NOT NULL,
+        candidate_email TEXT,
+        candidate_avatar TEXT,
+        match_score NUMERIC(5, 2) DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'ALLOCATED',
+        allocated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // 3. Interview Evaluations table (Clean 3NF Normalized)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS interview_evaluations (
+        id SERIAL PRIMARY KEY,
+        slot_id INTEGER NOT NULL REFERENCES interview_slots(id) ON DELETE CASCADE,
+        score INTEGER NOT NULL DEFAULT 3,
+        tech_skills INTEGER DEFAULT 0,
+        comm_skills INTEGER DEFAULT 0,
+        problem_solving INTEGER DEFAULT 0,
+        teamwork INTEGER DEFAULT 0,
+        overall_rating NUMERIC(3, 1) DEFAULT 3.0,
+        strengths TEXT,
+        improvements TEXT,
+        recommendation TEXT NOT NULL DEFAULT 'HIRE',
+        feedback_notes TEXT,
+        evaluated_by TEXT NOT NULL DEFAULT 'Interview Panel',
+        submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // 4. Interview Reschedule Requests table (Clean 3NF Normalized)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS interview_reschedule_requests (
+        id SERIAL PRIMARY KEY,
+        slot_id INTEGER NOT NULL REFERENCES interview_slots(id) ON DELETE CASCADE,
+        requested_by TEXT NOT NULL DEFAULT 'PANEL_MEMBER',
+        reason_category TEXT NOT NULL,
+        detailed_reason TEXT,
+        proposed_slots JSONB DEFAULT '[]'::jsonb,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        resolution_notes TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        resolved_at TIMESTAMPTZ
       );
     `);
 
@@ -348,6 +422,14 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
       CREATE INDEX IF NOT EXISTS idx_questions_user_id ON questions(user_id);
       CREATE INDEX IF NOT EXISTS idx_questions_recruiter_id ON questions(recruiter_id);
+      CREATE INDEX IF NOT EXISTS idx_interview_slots_vacancy_id ON interview_slots(vacancy_id);
+      CREATE INDEX IF NOT EXISTS idx_interview_slots_status ON interview_slots(status);
+      CREATE INDEX IF NOT EXISTS idx_interview_slots_date ON interview_slots(interview_date);
+      CREATE INDEX IF NOT EXISTS idx_interview_allocations_slot_id ON interview_allocations(slot_id);
+      CREATE INDEX IF NOT EXISTS idx_interview_allocations_candidate_id ON interview_allocations(candidate_id);
+      CREATE INDEX IF NOT EXISTS idx_interview_evaluations_slot_id ON interview_evaluations(slot_id);
+      CREATE INDEX IF NOT EXISTS idx_interview_reschedule_requests_slot_id ON interview_reschedule_requests(slot_id);
+      CREATE INDEX IF NOT EXISTS idx_interview_reschedule_requests_status ON interview_reschedule_requests(status);
     `);
   } finally {
     client.release();
@@ -363,8 +445,9 @@ const waitForDatabase = async () => {
       await initializeDatabase();
       return;
     } catch (error) {
-      lastError = error;
       console.log(`PG ERROR: database not ready on attempt ${attempt}`);
+      console.log(error.message);
+      lastError = error;
 
       if (attempt < maxAttempts) {
         await sleep(1000);
