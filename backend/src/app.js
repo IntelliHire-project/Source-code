@@ -10,6 +10,7 @@ const candidateRoutes = require("./routes/candidateRoutes");
 const vacancyRoutes = require("./routes/vacancyRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const interviewRoutes = require("./routes/interviewRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
@@ -32,6 +33,10 @@ app.use("/payments", paymentRoutes);
 // Interview Management Routes (Supports both direct and Nginx-proxied paths)
 app.use("/interviews", interviewRoutes);
 app.use("/api/interviews", interviewRoutes);
+
+// Recruiter Analytics Routes (Supports both direct and Nginx-proxied paths)
+app.use("/analytics", analyticsRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // Global Error Handler Middleware (must be registered last)
 app.use(errorHandler);

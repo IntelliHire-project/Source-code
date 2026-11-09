@@ -31,22 +31,22 @@ const PROGRESS_STATS = [
 ];
 
 const FUNNEL_STAGES = [
-  { stage: 'Applied', count: 1284, pct: 100, color: '#6B8CFF' },
-  { stage: 'CV Screened', count: 875, pct: 68, color: '#F0B90B' },
-  { stage: 'Shortlisted', count: 418, pct: 33, color: '#F0B90B' },
-  { stage: 'Assessment', count: 312, pct: 24, color: '#22C55E' },
-  { stage: 'Interview', count: 156, pct: 12, color: '#22C55E' },
-  { stage: 'Final Round', count: 72, pct: 6, color: '#22C55E' },
-  { stage: 'Hired', count: 48, pct: 4, color: '#22C55E' },
+  { stage: 'Applied', count: 48, pct: 100, color: '#6B8CFF' },
+  { stage: 'CV Screened', count: 32, pct: 67, color: '#F0B90B' },
+  { stage: 'Shortlisted', count: 9, pct: 19, color: '#F0B90B' },
+  { stage: 'Assessment', count: 9, pct: 19, color: '#22C55E' },
+  { stage: 'Interview Allocated', count: 3, pct: 6, color: '#22C55E' },
+  { stage: 'Interview Completed', count: 1, pct: 2, color: '#22C55E' },
+  { stage: 'Hired', count: 1, pct: 2, color: '#22C55E' },
 ];
 
 const STAGE_PROGRESS_RECORDS = [
-  { id: 'P-1', candidate: 'Alice Fernando', role: 'Senior Software Engineer', date: '02 Nov 2026', time: '09:30 AM – 10:30 AM', type: 'Online', stage: 'Technical Interview', status: 'ALLOCATED' },
-  { id: 'P-2', candidate: 'Kamal Perera', role: 'Senior Software Engineer', date: '02 Nov 2026', time: '02:00 PM – 03:00 PM', type: 'Physical', stage: 'HR Portfolio Review', status: 'ALLOCATED' },
+  { id: 'P-1', candidate: 'Alice Fernando', role: 'Senior Software Engineer', date: '22 Oct 2026', time: '09:30 AM – 10:30 AM', type: 'Online', stage: 'Technical Interview', status: 'COMPLETED' },
+  { id: 'P-2', candidate: 'Kamal Perera', role: 'Senior Software Engineer', date: '02 Nov 2026', time: '02:00 PM – 03:00 PM', type: 'Physical', stage: 'HR Portfolio Review', status: 'RESCHEDULE_REQUESTED' },
   { id: 'P-3', candidate: 'Nimal Silva', role: 'Senior Software Engineer', date: '04 Nov 2026', time: '11:00 AM – 12:00 PM', type: 'Online', stage: 'System Architecture', status: 'ALLOCATED' },
   { id: 'P-4', candidate: 'Dinesh Mendis', role: 'Senior Software Engineer', date: '05 Nov 2026', time: '10:00 AM – 11:00 AM', type: 'Online', stage: 'Technical Interview', status: 'PENDING' },
   { id: 'P-5', candidate: 'Sanduni Wickramasinghe', role: 'Senior Software Engineer', date: '06 Nov 2026', time: '01:30 PM – 02:30 PM', type: 'Physical', stage: 'HR Screening', status: 'PENDING' },
-  { id: 'P-6', candidate: 'Malith Senanayake', role: 'UI/UX Designer', date: '10 Nov 2026', time: '03:00 PM – 04:00 PM', type: 'Online', stage: 'Design Portfolio Review', status: 'COMPLETED' },
+  { id: 'P-6', candidate: 'Malith Senanayake', role: 'UI/UX Designer', date: '10 Nov 2026', time: '03:00 PM – 04:00 PM', type: 'Online', stage: 'Design Portfolio Review', status: 'PENDING' },
 ];
 
 const TABS = [
@@ -139,20 +139,24 @@ export default function RecruitmentProgress() {
 
   const completed = filteredRecords.filter((record) => record.status === 'COMPLETED').length;
   const scheduled = filteredRecords.filter((record) => record.status === 'ALLOCATED').length;
-  const pending = filteredRecords.filter((record) => record.status === 'PENDING').length;
-  const completionRate = filteredRecords.length ? Math.round((completed / filteredRecords.length) * 100) : 0;
+  const reschedules = filteredRecords.filter((record) => record.status === 'RESCHEDULE_REQUESTED').length;
+  const totalAllocated = completed + scheduled + reschedules;
+  const completionRate = totalAllocated ? Math.round((completed / totalAllocated) * 100) : 0;
   const progressStats = [
-    { ...PROGRESS_STATS[0], value: `${completionRate}%`, change: `${completed} completed` },
-    { ...PROGRESS_STATS[1], label: 'Completed Interviews', value: completed, change: `${filteredRecords.length} total records` },
-    { ...PROGRESS_STATS[2], label: 'Scheduled Interviews', value: scheduled, change: 'Interview scheduled' },
-    { ...PROGRESS_STATS[3], label: 'Pending Scheduling', value: pending, change: 'Requires attention' },
+    { ...PROGRESS_STATS[0], value: `${completionRate}%`, change: `${completed} of ${totalAllocated} completed` },
+    { ...PROGRESS_STATS[1], label: 'Completed Interviews', value: completed, change: `${totalAllocated} allocated candidates` },
+    { ...PROGRESS_STATS[2], label: 'Scheduled Interviews', value: scheduled, change: 'Upcoming sessions' },
+    { ...PROGRESS_STATS[3], label: 'Pending Reschedule', value: reschedules, change: reschedules > 0 ? 'Requires attention' : 'All confirmed' },
   ];
-  const scale = filteredRecords.length / STAGE_PROGRESS_RECORDS.length;
-  const funnelStages = FUNNEL_STAGES.map((stage, index) => {
-    const count = Math.round(stage.count * scale);
-    const previous = index ? Math.round(FUNNEL_STAGES[index - 1].count * scale) : count;
-    return { ...stage, count, conversion: index ? (previous ? Math.round((count / previous) * 100) : 0) : 100, dropOff: index ? Math.max(previous - count, 0) : 0 };
-  });
+  const funnelStages = [
+    { stage: 'Applied', count: 48, conversion: 100, dropOff: 0, color: '#6B8CFF' },
+    { stage: 'CV Screened', count: 32, conversion: 67, dropOff: 16, color: '#F0B90B' },
+    { stage: 'Shortlisted', count: 9, conversion: 28, dropOff: 23, color: '#F0B90B' },
+    { stage: 'Assessment', count: 9, conversion: 100, dropOff: 0, color: '#22C55E' },
+    { stage: 'Interview Allocated', count: totalAllocated, conversion: Math.round((totalAllocated / 9) * 100), dropOff: 9 - totalAllocated, color: '#22C55E' },
+    { stage: 'Interview Completed', count: completed, conversion: totalAllocated ? Math.round((completed / totalAllocated) * 100) : 0, dropOff: totalAllocated - completed, color: '#22C55E' },
+    { stage: 'Hired', count: completed, conversion: completed ? 100 : 0, dropOff: 0, color: '#22C55E' },
+  ];
   const activeFilterCount = [stageFilter !== 'all', roleFilter !== 'all', statusFilter !== 'all', Boolean(searchQuery.trim())].filter(Boolean).length;
   const filtersActive = activeFilterCount > 0;
   const clearFilters = () => { setStageFilter('all'); setRoleFilter('all'); setStatusFilter('all'); setSearchQuery(''); setCurrentPage(1); };

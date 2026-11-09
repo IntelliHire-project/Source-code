@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getShortlistingAnalytics } from '../../../services/analyticsService';
 import '../../../style.css';
 import './ShortlistingAnalytics.css';
 
@@ -48,9 +49,22 @@ export default function ShortlistingAnalytics() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [candidatesList, setCandidatesList] = useState(SHORTLISTED_CANDIDATES);
   const pageSize = 5;
 
-  const filteredCandidates = SHORTLISTED_CANDIDATES.filter((c) => {
+  useEffect(() => {
+    let isMounted = true;
+    getShortlistingAnalytics().then((res) => {
+      if (isMounted && res && Array.isArray(res.candidates) && res.candidates.length > 0) {
+        setCandidatesList(res.candidates);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredCandidates = candidatesList.filter((c) => {
     const query = searchQuery.trim().toLowerCase();
     const matchRole = roleFilter === 'all' || c.role.toLowerCase() === roleFilter.toLowerCase() || c.role.toLowerCase().includes(roleFilter.toLowerCase());
     const matchStatus = statusFilter === 'all' || c.status.toLowerCase() === statusFilter.toLowerCase();
@@ -58,14 +72,15 @@ export default function ShortlistingAnalytics() {
     return matchRole && matchStatus && matchSearch;
   });
 
-  const shortlistedCount = filteredCandidates.filter((c) => c.status === 'SHORTLISTED').length;
-  const reviewCount = filteredCandidates.filter((c) => c.status === 'UNDER REVIEW').length;
-  const rate = filteredCandidates.length ? Math.round((shortlistedCount / filteredCandidates.length) * 100) : 0;
+  const totalInPipeline = filteredCandidates.length;
+  const allocatedCount = filteredCandidates.filter((c) => c.status === 'ALLOCATED' || c.status === 'INTERVIEWED').length;
+  const pendingAllocation = filteredCandidates.filter((c) => c.status === 'SHORTLISTED' || c.status === 'UNDER REVIEW').length;
+  const rate = Math.round((totalInPipeline / 48) * 100);
   const shortlistStats = [
-    { label: 'Total Shortlisted', value: shortlistedCount, icon: Star, color: '#D7B85B', bg: 'rgba(240,185,11,0.10)' },
+    { label: 'Total Shortlisted', value: totalInPipeline, icon: Star, color: '#D7B85B', bg: 'rgba(240,185,11,0.10)' },
     { label: 'Shortlist Rate', value: `${rate}%`, icon: Target, color: '#78B98B', bg: 'rgba(120,185,139,0.10)' },
-    { label: 'Avg Time to Shortlist', value: '3.2d', icon: Clock, color: '#8FA7E8', bg: 'rgba(143,167,232,0.10)' },
-    { label: 'Pending Review', value: reviewCount, icon: AlertCircle, color: '#B7A46A', bg: 'rgba(183,164,106,0.10)' },
+    { label: 'Allocated to Slot', value: allocatedCount, icon: Clock, color: '#8FA7E8', bg: 'rgba(143,167,232,0.10)' },
+    { label: 'Pending Slot Allocation', value: pendingAllocation, icon: AlertCircle, color: '#B7A46A', bg: 'rgba(183,164,106,0.10)' },
   ];
   const criteriaDefinitions = [
     ['Technical Skills Match', (c) => c.score >= 80],
