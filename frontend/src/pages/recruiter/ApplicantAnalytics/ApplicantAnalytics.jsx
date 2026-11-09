@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getApplicantAnalytics } from '../../../services/analyticsService';
 import '../../../style.css';
 import './ApplicantAnalytics.css';
 
@@ -47,9 +48,22 @@ export default function ApplicantAnalytics() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [tableData, setTableData] = useState(APPLICANT_TABLE_DATA);
   const pageSize = 5;
 
-  const filteredData = APPLICANT_TABLE_DATA.filter((item) => {
+  useEffect(() => {
+    let isMounted = true;
+    getApplicantAnalytics().then((res) => {
+      if (isMounted && res && Array.isArray(res.tableData) && res.tableData.length > 0) {
+        setTableData(res.tableData);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredData = tableData.filter((item) => {
     const matchPos = positionFilter === 'all' || item.position.toLowerCase() === positionFilter.toLowerCase() || item.position.toLowerCase().includes(positionFilter.toLowerCase());
     const matchDept = departmentFilter === 'all' || item.department.toLowerCase() === departmentFilter.toLowerCase() || item.department.toLowerCase().includes(departmentFilter.toLowerCase());
     const query = searchQuery.trim().toLowerCase();

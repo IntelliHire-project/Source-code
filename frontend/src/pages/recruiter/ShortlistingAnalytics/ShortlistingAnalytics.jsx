@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getShortlistingAnalytics } from '../../../services/analyticsService';
 import '../../../style.css';
 import './ShortlistingAnalytics.css';
 
@@ -48,9 +49,22 @@ export default function ShortlistingAnalytics() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [candidatesList, setCandidatesList] = useState(SHORTLISTED_CANDIDATES);
   const pageSize = 5;
 
-  const filteredCandidates = SHORTLISTED_CANDIDATES.filter((c) => {
+  useEffect(() => {
+    let isMounted = true;
+    getShortlistingAnalytics().then((res) => {
+      if (isMounted && res && Array.isArray(res.candidates) && res.candidates.length > 0) {
+        setCandidatesList(res.candidates);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredCandidates = candidatesList.filter((c) => {
     const query = searchQuery.trim().toLowerCase();
     const matchRole = roleFilter === 'all' || c.role.toLowerCase() === roleFilter.toLowerCase() || c.role.toLowerCase().includes(roleFilter.toLowerCase());
     const matchStatus = statusFilter === 'all' || c.status.toLowerCase() === statusFilter.toLowerCase();
