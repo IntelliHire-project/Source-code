@@ -24,14 +24,12 @@ import './ApplicantAnalytics.css';
 // ─── KPI Stats ─────────────────────────────────────────────────────────────
 // ─── Clean Table Data ───────────────────────────────────────────────────────
 const APPLICANT_TABLE_DATA = [
-  { id: '1', position: 'Senior Software Engineer', department: 'Engineering', total: 218, newApplicants: 44, shortlisted: 72, rejected: 58, pending: 88, avgScore: 84 },
-  { id: '2', position: 'UI/UX Designer', department: 'Design', total: 156, newApplicants: 32, shortlisted: 48, rejected: 42, pending: 66, avgScore: 79 },
-  { id: '3', position: 'QA Automation Engineer', department: 'QA & Testing', total: 134, newApplicants: 28, shortlisted: 38, rejected: 36, pending: 60, avgScore: 76 },
-  { id: '4', position: 'Business Analyst', department: 'Operations', total: 192, newApplicants: 39, shortlisted: 66, rejected: 51, pending: 75, avgScore: 81 },
-  { id: '5', position: 'Product Manager', department: 'Product', total: 141, newApplicants: 27, shortlisted: 44, rejected: 39, pending: 58, avgScore: 88 },
-  { id: '6', position: 'DevOps Lead', department: 'Engineering', total: 117, newApplicants: 24, shortlisted: 36, rejected: 32, pending: 49, avgScore: 82 },
-  { id: '7', position: 'Data Scientist', department: 'Engineering', total: 98, newApplicants: 22, shortlisted: 28, rejected: 24, pending: 46, avgScore: 85 },
-  { id: '8', position: 'Cloud Architect', department: 'Engineering', total: 87, newApplicants: 20, shortlisted: 22, rejected: 19, pending: 46, avgScore: 90 },
+  { id: '1', position: 'Senior Software Engineer', department: 'Engineering', total: 48, newApplicants: 12, shortlisted: 9, rejected: 15, pending: 24, avgScore: 84 },
+  { id: '2', position: 'UI/UX Designer', department: 'Design', total: 35, newApplicants: 8, shortlisted: 6, rejected: 12, pending: 17, avgScore: 79 },
+  { id: '3', position: 'Product Manager', department: 'Product', total: 28, newApplicants: 6, shortlisted: 5, rejected: 9, pending: 14, avgScore: 82 },
+  { id: '4', position: 'Backend Engineer', department: 'Engineering', total: 24, newApplicants: 5, shortlisted: 4, rejected: 8, pending: 12, avgScore: 81 },
+  { id: '5', position: 'QA Automation Engineer', department: 'QA & Testing', total: 18, newApplicants: 4, shortlisted: 3, rejected: 6, pending: 9, avgScore: 76 },
+  { id: '6', position: 'DevOps Engineer', department: 'Engineering', total: 14, newApplicants: 3, shortlisted: 2, rejected: 5, pending: 7, avgScore: 85 },
 ];
 
 const TABS = [
