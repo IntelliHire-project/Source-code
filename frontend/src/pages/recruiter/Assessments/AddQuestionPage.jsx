@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { createQuestion, updateQuestion, getQuestionById } from '../../../api/questionApi';
 import {
   AlertCircle,
   Award,
@@ -37,6 +38,15 @@ import './AddQuestionPage.css';
 /* ─────────────────────────────────────────────────────────────────
    CONSTANTS
 ───────────────────────────────────────────────────────────────── */
+const CATEGORY_OPTIONS = [
+  'Frontend Core',
+  'Backend Engineering',
+  'Algorithms & Data Structures',
+  'System Architecture',
+  'Aptitude & Reasoning',
+  'Soft Skills',
+];
+
 const JOB_ROLES = [
   'Software Engineer',
   'Senior Software Engineer',
@@ -587,16 +597,20 @@ function PreviewPanel({ form, options, correctIdx, rubricItems, testCases, lang 
 export default function AddQuestionPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isEdit = location.state?.editMode;
+  const { questionId } = useParams();
+  const isEdit = location.state?.editMode || Boolean(questionId);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
   const [errors, setErrors] = useState({});
 
   // ── Form State ──
   const [form, setForm] = useState({
     role: '',
+    category: 'Frontend Core',
     skills: [],
     difficulty: 'Medium',
     points: 10,
@@ -619,6 +633,69 @@ export default function AddQuestionPage() {
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
+  const populateFromQuestion = (q) => {
+    let qType = 'MCQ';
+    if (q.type === 'Coding' || q.questionType === 'Coding') qType = 'Coding';
+    else if (q.type === 'Open Ended' || q.type === 'Short Answer' || q.questionType === 'Short Answer') qType = 'Short Answer';
+
+    setForm({
+      role: q.role || q.jobRole || '',
+      category: q.category || 'Frontend Core',
+      skills: Array.isArray(q.skills) ? q.skills : [],
+      difficulty: q.difficulty || 'Medium',
+      points: q.points || 10,
+      questionType: qType,
+      questionText: q.prompt || q.questionText || q.title || '',
+      evalMode: q.evalMode || 'Automatic',
+      explanation: q.explanation || q.details?.explanation || '',
+      modelAnswer: q.modelAnswer || q.details?.modelAnswer || '',
+      boilerplate: q.boilerplate || q.details?.boilerplate || BOILERPLATE['JavaScript'],
+      language: q.language || q.details?.language || 'JavaScript',
+    });
+
+    if (q.options?.length) {
+      setOptions(q.options);
+    } else if (q.details?.options?.length) {
+      setOptions(q.details.options);
+    }
+
+    if (q.correctIndex != null) {
+      setCorrectIdx(q.correctIndex);
+    } else if (q.details?.correctIndex != null) {
+      setCorrectIdx(q.details.correctIndex);
+    }
+
+    if (q.rubric?.length) {
+      setRubricItems(q.rubric);
+    } else if (q.details?.rubric?.length) {
+      setRubricItems(q.details.rubric);
+    }
+
+    if (q.testCases?.length) {
+      setTestCases(q.testCases);
+    } else if (q.details?.testCases?.length) {
+      setTestCases(q.details.testCases);
+    }
+  };
+
+  useEffect(() => {
+    if (isEdit) {
+      const q = location.state?.question;
+      if (q) {
+        populateFromQuestion(q);
+      } else if (questionId) {
+        getQuestionById(questionId)
+          .then(res => {
+            if (res?.question) populateFromQuestion(res.question);
+          })
+          .catch(err => {
+            console.error('Failed to load question details:', err);
+            setApiError('Failed to load question data.');
+          });
+      }
+    }
+  }, [isEdit, questionId]);
+
   // ── Validation ──
   const validate = () => {
     const e = {};
@@ -626,30 +703,96 @@ export default function AddQuestionPage() {
     if (form.skills.length === 0) e.skills = 'Add at least one skill tag.';
     if (!form.questionText.trim()) e.questionText = 'Question text is required.';
     if (form.questionType === 'MCQ') {
-      const filled = options.filter(o => o.trim());
+      const filled = options.filter(o => o && o.trim());
       if (filled.length < 2) e.options = 'Add at least 2 answer options.';
     }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = (addAnother = false) => {
+  const handleSave = async (addAnother = false) => {
     if (!validate()) return;
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      if (addAnother) {
-        // Reset form for another question
-        setForm({ role: form.role, skills: [], difficulty: 'Medium', points: 10, questionType: 'MCQ', questionText: '', evalMode: 'Automatic', explanation: '', modelAnswer: '', boilerplate: BOILERPLATE['JavaScript'], language: 'JavaScript' });
-        setOptions(['', '', '', '']);
-        setCorrectIdx(0);
-        setRubricItems([]);
-        setTestCases([{ input: '', expected: '' }]);
-        setErrors({});
-      } else {
-        navigate('/recruiter/assessments');
+    setSubmitting(true);
+    setApiError('');
+
+    try {
+      let resolvedType = 'Multiple Choice';
+      if (form.questionType === 'Short Answer') resolvedType = 'Open Ended';
+      else if (form.questionType === 'Coding') resolvedType = 'Coding';
+
+      let section = 'Section 2: Technical Concepts';
+      if (resolvedType === 'Coding') {
+        section = 'Section 3: Coding & Problem Solving';
+      } else if (form.category === 'Soft Skills' || form.category === 'Aptitude & Reasoning') {
+        section = 'Section 1: General & Aptitude';
       }
-    }, 1200);
+
+      const payload = {
+        title: form.questionText.trim().split('\n')[0].slice(0, 90),
+        prompt: form.questionText.trim(),
+        questionText: form.questionText.trim(),
+        category: form.category || 'Frontend Core',
+        section,
+        jobRole: form.role,
+        role: form.role,
+        skills: form.skills,
+        difficulty: form.difficulty,
+        points: form.points,
+        type: resolvedType,
+        questionType: resolvedType,
+        evalMode: form.evalMode,
+        status: 'Published',
+        options: options.filter(o => o && o.trim()),
+        correctIndex: correctIdx,
+        explanation: form.explanation,
+        modelAnswer: form.modelAnswer,
+        rubric: rubricItems,
+        language: form.language,
+        boilerplate: form.boilerplate,
+        testCases: testCases.filter(tc => (tc.input && tc.input.trim()) || (tc.expected && tc.expected.trim())),
+      };
+
+      const targetId = questionId || location.state?.question?.id || location.state?.question?.questionCode;
+      if (isEdit && targetId) {
+        await updateQuestion(targetId, payload);
+      } else {
+        await createQuestion(payload);
+      }
+
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        if (addAnother) {
+          setForm({
+            role: form.role,
+            category: form.category,
+            skills: [],
+            difficulty: 'Medium',
+            points: 10,
+            questionType: 'MCQ',
+            questionText: '',
+            evalMode: 'Automatic',
+            explanation: '',
+            modelAnswer: '',
+            boilerplate: BOILERPLATE['JavaScript'],
+            language: 'JavaScript',
+          });
+          setOptions(['', '', '', '']);
+          setCorrectIdx(0);
+          setRubricItems([]);
+          setTestCases([{ input: '', expected: '' }]);
+          setErrors({});
+        } else {
+          navigate('/recruiter/assessments', { state: { tab: 'question-bank' } });
+        }
+      }, 1000);
+    } catch (err) {
+      console.error('Error saving question:', err);
+      const msg = err.response?.data?.message || err.message || 'Failed to save question to database.';
+      setApiError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const QUESTION_TYPES = [
@@ -684,7 +827,7 @@ export default function AddQuestionPage() {
           {/* ── Page Header ── */}
           <div className="aq-page__header">
             <div className="aq-page__header-left">
-              <button className="aq-back-btn" onClick={() => navigate('/recruiter/assessments')}>
+              <button className="aq-back-btn" onClick={() => navigate('/recruiter/assessments', { state: { tab: 'question-bank' } })}>
                 <ChevronLeft size={16} /> Back to Question Bank
               </button>
               <div>
@@ -715,6 +858,12 @@ export default function AddQuestionPage() {
             </div>
           )}
 
+          {apiError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: '8px', color: '#fca5a5', marginBottom: '16px', fontSize: '13px' }}>
+              <AlertCircle size={16} /> {apiError}
+            </div>
+          )}
+
           {/* ── Content Grid ── */}
           <div className={`aq-content-grid ${showPreview ? 'with-preview' : ''}`}>
             <div className="aq-form-col">
@@ -739,6 +888,20 @@ export default function AddQuestionPage() {
                     </div>
                   </FormField>
 
+                  <FormField label="Question Category" required>
+                    <div className="aq-select-wrap">
+                      <select
+                        className="aq-select"
+                        value={form.category}
+                        onChange={e => set('category', e.target.value)}
+                      >
+                        {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </FormField>
+                </div>
+
+                <div style={{ marginTop: '12px' }}>
                   <FormField
                     label="Point Value"
                     hint="Total marks for this question"
@@ -934,7 +1097,7 @@ export default function AddQuestionPage() {
           <div className="aq-footer">
             <button
               className="aq-btn aq-btn--ghost"
-              onClick={() => navigate('/recruiter/assessments')}
+              onClick={() => navigate('/recruiter/assessments', { state: { tab: 'question-bank' } })}
             >
               <X size={15} /> Cancel
             </button>
@@ -943,13 +1106,13 @@ export default function AddQuestionPage() {
                 className="aq-btn aq-btn--outline"
                 onClick={() => handleSave(true)}
               >
-                <Plus size={15} /> Save &amp; Add Another
+                <Plus size={15} /> {submitting ? 'Saving...' : 'Save & Add Another'}
               </button>
               <button
                 className="aq-btn aq-btn--primary"
                 onClick={() => handleSave(false)}
               >
-                <Save size={15} /> Save Question
+                <Save size={15} /> {submitting ? 'Saving...' : (isEdit ? 'Update Question' : 'Save Question')}
                 <ChevronRight size={15} />
               </button>
             </div>

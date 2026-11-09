@@ -308,7 +308,7 @@ function AppRoutes() {
           path="/recruiter/assessments"
           element={<RecruiterProtected><AssessmentsPage /></RecruiterProtected>}
         />
-        <Route path="/recruiter/question-bank" element={<RecruiterProtected><QuestionBankPage /></RecruiterProtected>} />
+        <Route path="/recruiter/question-bank" element={<RecruiterProtected><AssessmentsPage defaultTab="question-bank" /></RecruiterProtected>} />
         <Route path="/recruiter/question-bank/add" element={<RecruiterProtected><AddQuestionPage /></RecruiterProtected>} />
         <Route path="/recruiter/question-bank/edit/:questionId" element={<RecruiterProtected><AddQuestionPage /></RecruiterProtected>} />
         <Route path="/recruiter/assessments/new" element={<RecruiterProtected><CreateAssessmentPage /></RecruiterProtected>} />

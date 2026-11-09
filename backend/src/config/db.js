@@ -305,6 +305,26 @@ const initializeDatabase = async () => {
         ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
     `);
 
+    // Create questions table for Question Bank
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS questions (
+        id SERIAL PRIMARY KEY,
+        question_code TEXT UNIQUE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        recruiter_id INTEGER REFERENCES recruiters(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        category TEXT NOT NULL,
+        section TEXT DEFAULT 'Section 2: Technical Concepts',
+        job_role TEXT,
+        skills JSONB DEFAULT '[]'::jsonb,
+        difficulty TEXT NOT NULL DEFAULT 'Medium',
+        type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'Published',
+        points INTEGER DEFAULT 10,
+        eval_mode TEXT DEFAULT 'Automatic',
+        usage_count INTEGER DEFAULT 0,
+        details JSONB DEFAULT '{}'::jsonb,
     // ----------------------------------------------------
     // Interview Management Tables (SCRUM-71)
     // ----------------------------------------------------
@@ -395,6 +415,13 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_vacancies_status ON vacancies(status);
       CREATE INDEX IF NOT EXISTS idx_payment_transactions_user_id ON payment_transactions(user_id);
       CREATE INDEX IF NOT EXISTS idx_payment_transactions_status ON payment_transactions(status);
+      CREATE INDEX IF NOT EXISTS idx_questions_question_code ON questions(question_code);
+      CREATE INDEX IF NOT EXISTS idx_questions_category ON questions(category);
+      CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type);
+      CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
+      CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
+      CREATE INDEX IF NOT EXISTS idx_questions_user_id ON questions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_questions_recruiter_id ON questions(recruiter_id);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_vacancy_id ON interview_slots(vacancy_id);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_status ON interview_slots(status);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_date ON interview_slots(interview_date);

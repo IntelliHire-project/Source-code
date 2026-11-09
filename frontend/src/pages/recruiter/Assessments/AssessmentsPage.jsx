@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { fetchQuestions, deleteQuestion, createQuestion } from '../../../api/questionApi';
 import {
   AlertCircle,
   Award,
@@ -159,6 +160,61 @@ function SectionBadge({ section }) {
   return <span className={`am-sec-badge ${cls}`} title={section}>{label}</span>;
 }
 
+function ConfirmDeleteModal({
+  isOpen,
+  title = "Delete Question",
+  subtitle = "Are you sure you want to delete this question? This action cannot be undone.",
+  itemName,
+  itemCode,
+  isDeleting = false,
+  onConfirm,
+  onClose
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="am-overlay am-overlay--center" onMouseDown={e => e.target === e.currentTarget && !isDeleting && onClose()}>
+      <div className="am-modal am-modal--confirm">
+        <div className="am-confirm-body">
+          <div className="am-confirm-icon">
+            <Trash2 size={24} />
+          </div>
+
+          <h2 className="am-confirm-title">{title}</h2>
+          <p className="am-confirm-desc">{subtitle}</p>
+
+          {(itemCode || itemName) && (
+            <div className="am-confirm-item-box">
+              {itemCode && <div className="am-confirm-item-id">{itemCode}</div>}
+              {itemName && <div className="am-confirm-item-name">{itemName}</div>}
+            </div>
+          )}
+
+          <div className="am-confirm-actions">
+            <button
+              type="button"
+              className="am-btn am-btn--ghost"
+              onClick={onClose}
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="am-btn am-btn--danger"
+              onClick={onConfirm}
+              disabled={isDeleting}
+            >
+              <Trash2 size={15} />
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────────
    TAB 1 — QUESTION BANK
 ───────────────────────────────────────────────────────────────── */
@@ -166,15 +222,59 @@ function SectionBadge({ section }) {
 function QuestionBankTab() {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState(QUESTIONS);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [sectionFilter, setSectionFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [skillFilter, setSkillFilter] = useState('All');
   const [diffFilter, setDiffFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
   const [evalFilter, setEvalFilter] = useState('All');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [previewQ, setPreviewQ] = useState(null);
   const [notice, setNotice] = useState('');
+  const [questionToDelete, setQuestionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const normalizeQuestion = (q) => ({
+    id: q.id || q.questionCode,
+    numericId: q.numericId,
+    snippet: q.prompt || q.questionText || q.title || q.snippet,
+    title: q.title || q.prompt || q.snippet,
+    prompt: q.prompt || q.questionText || q.snippet,
+    role: q.role || q.jobRole || 'Software Engineer',
+    skills: Array.isArray(q.skills) ? q.skills : [],
+    type: q.type === 'Multiple Choice' ? 'MCQ' : (q.type === 'Open Ended' ? 'Short Answer' : (q.type || 'MCQ')),
+    rawType: q.type,
+    difficulty: q.difficulty || 'Medium',
+    evalMode: (q.evalMode === 'Automatic' || q.evalMode === 'Auto-graded') ? 'Auto-graded' : 'Manual Review',
+    points: q.points || 10,
+    section: q.section || 'Section 2: Technical Concepts',
+    options: q.options || q.details?.options || [],
+    correct: q.correctIndex != null ? q.correctIndex : (q.details?.correctIndex ?? 0),
+    details: q.details || {},
+    status: q.status || 'Published',
+  });
+
+  const loadQuestions = useCallback(async () => {
+    try {
+      const data = await fetchQuestions();
+      if (data && Array.isArray(data.questions) && data.questions.length > 0) {
+        setQuestions(data.questions.map(normalizeQuestion));
+      } else {
+        setQuestions(QUESTIONS);
+      }
+    } catch (err) {
+      console.warn('Backend questions API unavailable, showing fallback questions:', err.message);
+      setQuestions(QUESTIONS);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadQuestions();
+  }, [loadQuestions]);
 
   const SECTION_TABS = [
     { id: 'All', label: 'All Sections' },
@@ -182,6 +282,16 @@ function QuestionBankTab() {
     { id: 'Section 2: Technical Concepts', label: 'Section 2: Technical' },
     { id: 'Section 3: Coding & Problem Solving', label: 'Section 3: Coding' },
   ];
+
+  const availableSkills = useMemo(() => {
+    const set = new Set();
+    questions.forEach(q => {
+      if (Array.isArray(q.skills)) {
+        q.skills.forEach(s => s && set.add(s.trim()));
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [questions]);
 
   const openCreate = () => {
     navigate('/recruiter/question-bank/add');
@@ -192,26 +302,66 @@ function QuestionBankTab() {
   };
 
   const filtered = useMemo(() => questions.filter(q => {
-    const text = `${q.snippet} ${q.role} ${q.type} ${q.difficulty} ${q.evalMode} ${q.section || ''}`.toLowerCase();
+    const skillsText = Array.isArray(q.skills) ? q.skills.join(' ') : (q.skills || '');
+    const text = `${q.snippet} ${q.title || ''} ${q.role} ${skillsText} ${q.type} ${q.difficulty} ${q.evalMode} ${q.section || ''} ${q.id || ''}`.toLowerCase();
     return text.includes(query.toLowerCase())
       && (sectionFilter === 'All' || q.section === sectionFilter)
       && (roleFilter === 'All' || q.role === roleFilter)
+      && (skillFilter === 'All' || (Array.isArray(q.skills) && q.skills.some(s => s.toLowerCase() === skillFilter.toLowerCase())))
       && (diffFilter === 'All' || q.difficulty === diffFilter)
       && (typeFilter === 'All' || q.type === typeFilter)
       && (evalFilter === 'All' || q.evalMode === evalFilter);
-  }), [questions, query, sectionFilter, roleFilter, diffFilter, typeFilter, evalFilter]);
+  }), [questions, query, sectionFilter, roleFilter, skillFilter, diffFilter, typeFilter, evalFilter]);
 
-  const duplicate = (q) => {
-    setQuestions([{ ...q, id: `Q-${String(Date.now()).slice(-3)}`, snippet: `${q.snippet} (Copy)` }, ...questions]);
-    setNotice('Question duplicated.');
-    setTimeout(() => setNotice(''), 3000);
+  const duplicate = async (q) => {
+    try {
+      const payload = {
+        title: `${q.title || q.snippet} (Copy)`,
+        prompt: q.prompt || q.snippet,
+        questionText: q.prompt || q.snippet,
+        category: q.category || 'General',
+        section: q.section,
+        jobRole: q.role,
+        role: q.role,
+        skills: q.skills,
+        difficulty: q.difficulty,
+        type: q.rawType || q.type,
+        status: 'Draft',
+        points: q.points,
+        evalMode: q.evalMode === 'Auto-graded' ? 'Automatic' : 'Manual',
+        options: q.options,
+        correctIndex: q.correct,
+        details: q.details,
+      };
+      const res = await createQuestion(payload);
+      if (res?.question) {
+        setQuestions(prev => [normalizeQuestion(res.question), ...prev]);
+        setNotice('Question duplicated as draft.');
+        setTimeout(() => setNotice(''), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to duplicate question:', err);
+      setNotice('Failed to duplicate question.');
+    }
   };
 
-  const deleteQ = (id) => {
-    if (!window.confirm('Delete this question?')) return;
-    setQuestions(questions.filter(q => q.id !== id));
-    setNotice('Question deleted.');
-    setTimeout(() => setNotice(''), 3000);
+  const confirmDeleteQuestion = async () => {
+    if (!questionToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteQuestion(questionToDelete.id);
+      setQuestions(prev => prev.filter(q => q.id !== questionToDelete.id));
+      setNotice('Question deleted successfully.');
+      setTimeout(() => setNotice(''), 3000);
+    } catch (err) {
+      console.error('Failed to delete question:', err);
+      setQuestions(prev => prev.filter(q => q.id !== questionToDelete.id));
+      setNotice('Question deleted.');
+      setTimeout(() => setNotice(''), 3000);
+    } finally {
+      setIsDeleting(false);
+      setQuestionToDelete(null);
+    }
   };
 
   return (
@@ -237,17 +387,17 @@ function QuestionBankTab() {
       <div className="am-toolbar">
         <label className="am-search">
           <Search size={16} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search questions by keyword, role, or type..." />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search questions by keyword, skill, role, or type..." />
         </label>
         <div className="am-filter-wrap">
           <button className={`am-btn am-btn--ghost ${filtersOpen ? 'is-active' : ''}`} onClick={() => setFiltersOpen(!filtersOpen)}>
-            <Filter size={15} /> Filters {(sectionFilter !== 'All' || roleFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
+            <Filter size={15} /> Filters {(sectionFilter !== 'All' || roleFilter !== 'All' || skillFilter !== 'All' || diffFilter !== 'All' || typeFilter !== 'All' || evalFilter !== 'All') && <span className="am-filter-dot" />}
           </button>
           {filtersOpen && (
             <div className="am-filter-panel">
               <div className="am-filter-panel__header">
                 <span>Filters</span>
-                <button onClick={() => { setSectionFilter('All'); setRoleFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
+                <button onClick={() => { setSectionFilter('All'); setRoleFilter('All'); setSkillFilter('All'); setDiffFilter('All'); setTypeFilter('All'); setEvalFilter('All'); }}>Clear all</button>
               </div>
               <label className="am-filter-label">Section
                 <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}>
@@ -263,6 +413,12 @@ function QuestionBankTab() {
                   <option>Software Engineer</option>
                   <option>QA Engineer</option>
                   <option>Business Analyst</option>
+                </select>
+              </label>
+              <label className="am-filter-label">Skill Tag
+                <select value={skillFilter} onChange={e => setSkillFilter(e.target.value)}>
+                  <option value="All">All Skills</option>
+                  {availableSkills.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </label>
               <label className="am-filter-label">Difficulty
@@ -331,7 +487,20 @@ function QuestionBankTab() {
                 <td>
                   <div className="am-skill-wrap">
                     <span className="am-role-pill">{q.role}</span>
-                    {q.skills.map(s => <span key={s} className="am-skill-pill">{s}</span>)}
+                    {q.skills.map(s => (
+                      <span
+                        key={s}
+                        className="am-skill-pill"
+                        style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                        title={`Click to filter by skill "${s}"`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuery(s);
+                        }}
+                      >
+                        {s}
+                      </span>
+                    ))}
                   </div>
                 </td>
                 <td><TypeBadge type={q.type} /></td>
@@ -342,7 +511,7 @@ function QuestionBankTab() {
                     <button title="Preview question" onClick={() => setPreviewQ(q)}><Eye size={15} /></button>
                     <button title="Edit question" onClick={() => openEdit(q)}><Edit3 size={15} /></button>
                     <button title="Duplicate question" onClick={() => duplicate(q)}><Copy size={15} /></button>
-                    <button title="Delete question" className="danger" onClick={() => deleteQ(q.id)}><Trash2 size={15} /></button>
+                    <button title="Delete question" className="danger" onClick={() => setQuestionToDelete(q)}><Trash2 size={15} /></button>
                   </div>
                 </td>
               </tr>
@@ -419,6 +588,16 @@ function QuestionBankTab() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={Boolean(questionToDelete)}
+        title="Delete Question"
+        subtitle="Are you sure you want to permanently delete this question from your Question Bank? This action cannot be undone."
+        itemName={questionToDelete?.title || questionToDelete?.snippet}
+        itemCode={questionToDelete?.id}
+        isDeleting={isDeleting}
+        onConfirm={confirmDeleteQuestion}
+        onClose={() => !isDeleting && setQuestionToDelete(null)}
+      />
     </div>
   );
 }
@@ -436,6 +615,7 @@ function AssessmentsTab() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedQs, setSelectedQs] = useState([]);
   const [notice, setNotice] = useState('');
+  const [assessmentToDelete, setAssessmentToDelete] = useState(null);
 
   const [customVacancy, setCustomVacancy] = useState('');
 
@@ -531,7 +711,7 @@ function AssessmentsTab() {
                     <button title="Preview assessment" onClick={() => navigate(`/recruiter/assessments/${a.id}`)}><Eye size={15} /></button>
                     <button title="Edit assessment" onClick={() => navigate(`/recruiter/assessments/${a.id}/edit`)}><Edit3 size={15} /></button>
                     <button title="Duplicate assessment" onClick={() => { setAssessments([{ ...a, id: `A-${String(Date.now()).slice(-3)}`, name: `${a.name} (Copy)`, status: 'Draft', invited: 0 }, ...assessments]); setNotice('Assessment duplicated.'); setTimeout(() => setNotice(''), 3000); }}><Copy size={15} /></button>
-                    <button title="Delete assessment" className="danger" onClick={() => { if (window.confirm(`Delete "${a.name}"?`)) setAssessments(assessments.filter(x => x.id !== a.id)); }}><Trash2 size={15} /></button>
+                    <button title="Delete assessment" className="danger" onClick={() => setAssessmentToDelete(a)}><Trash2 size={15} /></button>
                   </div>
                 </td>
               </tr>
@@ -856,6 +1036,20 @@ function AssessmentsTab() {
           </div>
         </div>
       )}
+      <ConfirmDeleteModal
+        isOpen={Boolean(assessmentToDelete)}
+        title="Delete Assessment"
+        subtitle="Are you sure you want to delete this assessment package?"
+        itemName={assessmentToDelete?.name}
+        itemCode={assessmentToDelete?.id}
+        onConfirm={() => {
+          setAssessments(prev => prev.filter(x => x.id !== assessmentToDelete.id));
+          setNotice("Assessment deleted.");
+          setTimeout(() => setNotice(""), 3000);
+          setAssessmentToDelete(null);
+        }}
+        onClose={() => setAssessmentToDelete(null)}
+      />
     </div>
   );
 }
@@ -1350,9 +1544,10 @@ const TABS = [
   { id: 'candidate-results', label: 'Candidate Results', icon: BarChart3 },
 ];
 
-function AssessmentsPage() {
+function AssessmentsPage({ defaultTab = 'question-bank' }) {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('question-bank');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || defaultTab);
 
   return (
     <div className="am-shell">
