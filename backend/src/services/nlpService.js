@@ -444,6 +444,21 @@ const extractCVDataFromPdf = async (pdfBuffer, filename = "") => {
 
   // Fallback: convert to JSON then extract
   const json = await convertPdfToJson(pdfBuffer);
+  if (!json || (!json.pages?.length && !json.text_blocks)) {
+    try {
+      const { parsePdfText } = require('../utils/pdfParser');
+      const text = await parsePdfText(pdfBuffer);
+      if (text && text.trim().length > 0) {
+        return {
+          ...localExtractFallback(text, filename),
+          json: null
+        };
+      }
+    } catch (parseErr) {
+      console.warn("[nlpService] PDF text parse fallback warning:", parseErr.message);
+    }
+  }
+
   const data = await extractCVDataFromJson(json, filename);
   return { ...data, json };
 };

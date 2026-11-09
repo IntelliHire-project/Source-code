@@ -42,6 +42,7 @@ services:
       PGHOST: postgres
     depends_on:
       - postgres
+      - nlp
     volumes:
       - /app/node_modules
       - ./backend:/app
