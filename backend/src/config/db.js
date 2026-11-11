@@ -325,11 +325,6 @@ const initializeDatabase = async () => {
         eval_mode TEXT DEFAULT 'Automatic',
         usage_count INTEGER DEFAULT 0,
         details JSONB DEFAULT '{}'::jsonb,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-
     // ----------------------------------------------------
     // Interview Management Tables (SCRUM-71)
     // ----------------------------------------------------
@@ -409,37 +404,6 @@ const initializeDatabase = async () => {
       );
     `);
 
-    // ----------------------------------------------------
-    // Mock Interview Tables (SCRUM-72)
-    // ----------------------------------------------------
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS mock_interview_roles (
-        id SERIAL PRIMARY KEY,
-        role_id TEXT UNIQUE NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT,
-        category TEXT NOT NULL DEFAULT 'engineering',
-        icon TEXT DEFAULT 'Sparkles',
-        is_custom BOOLEAN NOT NULL DEFAULT false,
-        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-        skills JSONB DEFAULT '[]'::jsonb,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-
-    // Seed default roles if not existing
-    await client.query(`
-      INSERT INTO mock_interview_roles (role_id, title, description, category, icon, is_custom, skills)
-      VALUES
-        ('backend', 'Backend Developer', 'System architecture, API design, database management, and server-side logic scaling.', 'engineering', 'Database', false, '["Node.js", "Express", "SQL", "System Design", "REST APIs", "PostgreSQL"]'::jsonb),
-        ('frontend', 'Frontend Developer', 'Building responsive user interfaces, state management, and seamless UX implementation.', 'engineering', 'MonitorPlay', false, '["React", "JavaScript", "CSS", "HTML", "State Management", "Web Performance"]'::jsonb),
-        ('uiux', 'UI/UX Designer', 'Visual storytelling, user research, wireframing, and creating high-fidelity prototypes.', 'design', 'Palette', false, '["Figma", "User Research", "Wireframing", "Prototyping", "Design Systems"]'::jsonb),
-        ('qa', 'QA Engineer', 'Automated testing, quality assurance frameworks, and ensuring bug-free product delivery.', 'qa', 'ShieldCheck', false, '["Automated Testing", "Jest", "Cypress", "Playwright", "Test Planning", "API Testing"]'::jsonb),
-        ('data', 'Data Analyst', 'Statistical modeling, data visualization, and extracting actionable business insights.', 'data', 'BarChart3', false, '["SQL", "Python", "Data Visualization", "Tableau", "Statistical Modeling"]'::jsonb)
-      ON CONFLICT (role_id) DO NOTHING;
-    `);
-
     // Create indices for fast lookups
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_candidates_user_id ON candidates(user_id);
@@ -466,10 +430,6 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_interview_evaluations_slot_id ON interview_evaluations(slot_id);
       CREATE INDEX IF NOT EXISTS idx_interview_reschedule_requests_slot_id ON interview_reschedule_requests(slot_id);
       CREATE INDEX IF NOT EXISTS idx_interview_reschedule_requests_status ON interview_reschedule_requests(status);
-      CREATE INDEX IF NOT EXISTS idx_mock_roles_role_id ON mock_interview_roles(role_id);
-      CREATE INDEX IF NOT EXISTS idx_mock_roles_category ON mock_interview_roles(category);
-      CREATE INDEX IF NOT EXISTS idx_mock_roles_user_id ON mock_interview_roles(user_id);
-      CREATE INDEX IF NOT EXISTS idx_mock_roles_is_custom ON mock_interview_roles(is_custom);
     `);
   } finally {
     client.release();
