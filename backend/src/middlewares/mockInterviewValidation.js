@@ -1,0 +1,221 @@
+const { errorResponse } = require('../utils/response');
+
+const ALLOWED_CATEGORIES = ['engineering', 'design', 'data', 'qa'];
+
+/**
+ * Validates the payload for creating a new job role.
+ */
+const validateCreateRole = (req, res, next) => {
+  const { title, category, description, skills, icon } = req.body || {};
+
+  // 1. Role Title Validation
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    return errorResponse(res, 'Role title is required and must be a non-empty string.', 400);
+  }
+
+  const trimmedTitle = title.trim();
+  if (trimmedTitle.length < 2) {
+    return errorResponse(res, 'Role title must be at least 2 characters long.', 400);
+  }
+  if (trimmedTitle.length > 100) {
+    return errorResponse(res, 'Role title must not exceed 100 characters.', 400);
+  }
+  if (!/[a-zA-Z]/.test(trimmedTitle)) {
+    return errorResponse(res, 'Role title must contain at least one alphabetic character.', 400);
+  }
+
+  // 2. Category Validation
+  if (category !== undefined) {
+    if (typeof category !== 'string' || !category.trim()) {
+      return errorResponse(res, 'Category must be a non-empty string.', 400);
+    }
+    const normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory === 'all') {
+      return errorResponse(
+        res,
+        "Category cannot be 'all'. Allowed categories are: " + ALLOWED_CATEGORIES.join(', '),
+        400
+      );
+    }
+    if (!ALLOWED_CATEGORIES.includes(normalizedCategory)) {
+      return errorResponse(
+        res,
+        `Invalid category '${category}'. Allowed categories are: ${ALLOWED_CATEGORIES.join(', ')}`,
+        400
+      );
+    }
+    req.body.category = normalizedCategory;
+  }
+
+  // 3. Description Validation
+  if (description !== undefined && description !== null) {
+    if (typeof description !== 'string') {
+      return errorResponse(res, 'Description must be a string.', 400);
+    }
+    if (description.trim().length > 1000) {
+      return errorResponse(res, 'Description cannot exceed 1000 characters.', 400);
+    }
+  }
+
+  // 4. Skills Validation
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(parsedSkills)) {
+      return errorResponse(res, 'Skills must be an array of strings or a comma-separated string.', 400);
+    }
+    if (parsedSkills.length > 30) {
+      return errorResponse(res, 'Cannot specify more than 30 skills for a single job role.', 400);
+    }
+    for (const skill of parsedSkills) {
+      if (typeof skill !== 'string') {
+        return errorResponse(res, 'Each skill must be a string.', 400);
+      }
+      if (skill.trim().length > 50) {
+        return errorResponse(res, `Skill '${skill.slice(0, 25)}...' exceeds maximum length of 50 characters.`, 400);
+      }
+    }
+    req.body.skills = parsedSkills.map((s) => s.trim()).filter(Boolean);
+  }
+
+  // 5. Icon Validation
+  if (icon !== undefined && icon !== null) {
+    if (typeof icon !== 'string' || !icon.trim()) {
+      return errorResponse(res, 'Icon must be a valid string identifier.', 400);
+    }
+    if (icon.trim().length > 50) {
+      return errorResponse(res, 'Icon identifier cannot exceed 50 characters.', 400);
+    }
+    req.body.icon = icon.trim();
+  }
+
+  req.body.title = trimmedTitle;
+  return next();
+};
+
+/**
+ * Validates the payload for updating an existing job role.
+ */
+const validateUpdateRole = (req, res, next) => {
+  const { title, category, description, skills, icon } = req.body || {};
+
+  if (!title && !category && description === undefined && skills === undefined && icon === undefined) {
+    return errorResponse(res, 'At least one field to update must be provided.', 400);
+  }
+
+  // Validate title if present
+  if (title !== undefined) {
+    if (typeof title !== 'string' || !title.trim()) {
+      return errorResponse(res, 'Role title cannot be empty.', 400);
+    }
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length < 2) {
+      return errorResponse(res, 'Role title must be at least 2 characters long.', 400);
+    }
+    if (trimmedTitle.length > 100) {
+      return errorResponse(res, 'Role title must not exceed 100 characters.', 400);
+    }
+    if (!/[a-zA-Z]/.test(trimmedTitle)) {
+      return errorResponse(res, 'Role title must contain at least one alphabetic character.', 400);
+    }
+    req.body.title = trimmedTitle;
+  }
+
+  // Validate category if present
+  if (category !== undefined) {
+    if (typeof category !== 'string' || !category.trim()) {
+      return errorResponse(res, 'Category must be a non-empty string.', 400);
+    }
+    const normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory === 'all') {
+      return errorResponse(
+        res,
+        "Category cannot be 'all'. Allowed categories are: " + ALLOWED_CATEGORIES.join(', '),
+        400
+      );
+    }
+    if (!ALLOWED_CATEGORIES.includes(normalizedCategory)) {
+      return errorResponse(
+        res,
+        `Invalid category '${category}'. Allowed categories are: ${ALLOWED_CATEGORIES.join(', ')}`,
+        400
+      );
+    }
+    req.body.category = normalizedCategory;
+  }
+
+  // Validate description if present
+  if (description !== undefined && description !== null) {
+    if (typeof description !== 'string') {
+      return errorResponse(res, 'Description must be a string.', 400);
+    }
+    if (description.trim().length > 1000) {
+      return errorResponse(res, 'Description cannot exceed 1000 characters.', 400);
+    }
+    req.body.description = description.trim();
+  }
+
+  // Validate skills if present
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(parsedSkills)) {
+      return errorResponse(res, 'Skills must be an array of strings or a comma-separated string.', 400);
+    }
+    if (parsedSkills.length > 30) {
+      return errorResponse(res, 'Cannot specify more than 30 skills for a single job role.', 400);
+    }
+    for (const skill of parsedSkills) {
+      if (typeof skill !== 'string') {
+        return errorResponse(res, 'Each skill must be a string.', 400);
+      }
+      if (skill.trim().length > 50) {
+        return errorResponse(res, `Skill '${skill.slice(0, 25)}...' exceeds maximum length of 50 characters.`, 400);
+      }
+    }
+    req.body.skills = parsedSkills.map((s) => s.trim()).filter(Boolean);
+  }
+
+  // Validate icon if present
+  if (icon !== undefined && icon !== null) {
+    if (typeof icon !== 'string' || !icon.trim()) {
+      return errorResponse(res, 'Icon must be a valid string identifier.', 400);
+    }
+    if (icon.trim().length > 50) {
+      return errorResponse(res, 'Icon identifier cannot exceed 50 characters.', 400);
+    }
+    req.body.icon = icon.trim();
+  }
+
+  return next();
+};
+
+/**
+ * Validates role-based access for mock interview operations.
+ * Allows 'candidate', 'recruiter', and 'admin'. Rejects other unauthorized roles.
+ */
+const validateUserRoleAccess = (req, res, next) => {
+  if (req.user && req.user.role) {
+    const allowedRoles = ['candidate', 'recruiter', 'admin'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return errorResponse(
+        res,
+        'Access denied. Your user role does not have permission to manage mock interview roles.',
+        403
+      );
+    }
+  }
+  return next();
+};
+
+module.exports = {
+  ALLOWED_CATEGORIES,
+  validateCreateRole,
+  validateUpdateRole,
+  validateUserRoleAccess,
+};
+

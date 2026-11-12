@@ -12,6 +12,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const questionRoutes = require("./routes/questionRoutes");
 const interviewRoutes = require("./routes/interviewRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const mockInterviewRoutes = require("./routes/mockInterviewRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
@@ -39,6 +40,14 @@ app.use("/api/interviews", interviewRoutes);
 // Recruiter Analytics Routes (Supports both direct and Nginx-proxied paths)
 app.use("/analytics", analyticsRoutes);
 app.use("/api/analytics", analyticsRoutes);
+
+// Mock Interview Routes (Supports both direct and Nginx-proxied paths)
+app.use("/mock-interviews", mockInterviewRoutes);
+app.use("/api/mock-interviews", mockInterviewRoutes);
+app.use("/mock-interview", mockInterviewRoutes);
+app.use("/api/mock-interview", mockInterviewRoutes);
+app.use("/job-roles", mockInterviewRoutes);
+app.use("/api/job-roles", mockInterviewRoutes);
 
 // Global Error Handler Middleware (must be registered last)
 app.use(errorHandler);
