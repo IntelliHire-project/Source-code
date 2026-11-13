@@ -542,6 +542,14 @@ const getJobRoleCategories = async (executor = db) => {
   }
 };
 
+/**
+ * Fetches all available job roles for candidate mock interview preparation.
+ * Returns default system roles plus any custom roles belonging to the current user or shared.
+ */
+const findAvailableJobRoles = async (filters = {}, executor = db) => {
+  return findAllJobRoles({ ...filters, includeShared: true }, executor);
+};
+
 module.exports = {
   DEFAULT_ROLES,
   DEFAULT_CATEGORIES,
@@ -551,6 +559,7 @@ module.exports = {
   findJobRoleByTitle,
   createJobRole,
   findAllJobRoles,
+  findAvailableJobRoles,
   findJobRoleById,
   updateJobRole,
   deleteJobRole,

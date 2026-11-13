@@ -1,6 +1,7 @@
 const {
   createJobRole,
   findAllJobRoles,
+  findAvailableJobRoles,
   findJobRoleById,
   updateJobRole,
   deleteJobRole,
@@ -26,6 +27,51 @@ const createJobRoleHandler = async (req, res) => {
     console.error('Error creating job role:', error);
     const statusCode = error.statusCode || 500;
     return errorResponse(res, error.message || 'Failed to create job role.', statusCode);
+  }
+};
+
+/**
+ * Handles fetching available job roles for candidate mock interviews.
+ * GET /api/mock-interviews/roles/available, GET /api/mock-interviews/available, or GET /api/mock-interviews/available-roles
+ */
+const getAvailableRolesHandler = async (req, res) => {
+  try {
+    const {
+      search,
+      q,
+      category,
+      sortBy = 'default',
+      page,
+      limit,
+    } = req.query;
+
+    const userId = req.user ? req.user.id : null;
+
+    const filters = {
+      search: search || q,
+      category,
+      userId,
+      sortBy,
+      page,
+      limit,
+      includeShared: true,
+    };
+
+    const [roles, categories] = await Promise.all([
+      findAvailableJobRoles(filters),
+      getJobRoleCategories().catch(() => []),
+    ]);
+
+    return successResponse(res, 'Available job roles retrieved successfully.', {
+      roles,
+      total: roles.length,
+      availableCount: roles.length,
+      categories,
+    });
+  } catch (error) {
+    console.error('Error fetching available job roles:', error);
+    const statusCode = error.statusCode || 500;
+    return errorResponse(res, error.message || 'Failed to retrieve available job roles.', statusCode);
   }
 };
 
@@ -154,6 +200,7 @@ const deleteJobRoleHandler = async (req, res) => {
 module.exports = {
   createJobRoleHandler,
   getJobRolesHandler,
+  getAvailableRolesHandler,
   getJobRoleByIdHandler,
   getJobRoleCategoriesHandler,
   updateJobRoleHandler,
