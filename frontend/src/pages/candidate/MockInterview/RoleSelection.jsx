@@ -2,7 +2,17 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Check, Plus, X, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, Sparkles } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
+import { fetchAvailableRoles, createCustomJobRole } from '../../../api/mockInterviewApi';
 import './RoleSelection.css';
+
+const ICON_MAP = {
+  Database,
+  MonitorPlay,
+  Palette,
+  ShieldCheck,
+  BarChart3,
+  Sparkles,
+};
 
 const CATEGORIES = [
   { id: 'all',       label: 'All Categories' },
@@ -64,6 +74,9 @@ export default function MockInterviewRoleSelection() {
   }, [pageCtx]);
 
   const [selectedRole, setSelectedRole] = useState('frontend');
+  const [availableRoles, setAvailableRoles] = useState(ROLES);
+  const [categories, setCategories] = useState(CATEGORIES);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [customRoles, setCustomRoles] = useState([]);
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -75,6 +88,38 @@ export default function MockInterviewRoleSelection() {
   const [step, setStep] = useState(1);
   const [jobDescription, setJobDescription] = useState('');
 
+  // Fetch available roles from backend on mount
+  useEffect(() => {
+    let isMounted = true;
+    const loadAvailableRoles = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetchAvailableRoles();
+        if (isMounted && res && Array.isArray(res.roles) && res.roles.length > 0) {
+          const mapped = res.roles.map((r) => {
+            const IconComp = typeof r.icon === 'string' ? (ICON_MAP[r.icon] || Sparkles) : (r.icon || Sparkles);
+            return {
+              ...r,
+              icon: IconComp,
+            };
+          });
+          setAvailableRoles(mapped);
+          if (res.categories && Array.isArray(res.categories) && res.categories.length > 0) {
+            setCategories(res.categories);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load available roles from API, using default roles:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    loadAvailableRoles();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
@@ -85,7 +130,7 @@ export default function MockInterviewRoleSelection() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const allRoles = [...ROLES, ...customRoles];
+  const allRoles = [...availableRoles, ...customRoles];
 
   const filteredRoles = allRoles.filter((role) => {
     const matchesSearch =
@@ -94,26 +139,40 @@ export default function MockInterviewRoleSelection() {
     const matchesCategory =
       selectedCategory === 'all' ||
       role.isCustom ||
+      role.category === selectedCategory ||
       ROLE_CATEGORY_MAP[role.id] === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   const currentRole = allRoles.find(r => r.id === selectedRole);
-  const activeCategoryLabel = CATEGORIES.find(c => c.id === selectedCategory)?.label || 'All Categories';
+  const activeCategoryLabel = categories.find(c => c.id === selectedCategory)?.label || 'All Categories';
 
-  const handleAddCustomRole = () => {
+  const handleAddCustomRole = async () => {
     if (!customInput.trim()) return;
-    const id = `custom-${Date.now()}`;
-    setCustomRoles(prev => [...prev, {
-      id,
-      title: customInput.trim(),
+    const title = customInput.trim();
+    const tempId = `custom-${Date.now()}`;
+    const newRole = {
+      id: tempId,
+      title,
       description: 'Custom role defined by you for a personalised mock interview experience.',
       icon: Sparkles,
       isCustom: true,
-    }]);
-    setSelectedRole(id);
+    };
+    setCustomRoles(prev => [...prev, newRole]);
+    setSelectedRole(tempId);
     setCustomInput('');
     setShowCustomModal(false);
+
+    try {
+      const res = await createCustomJobRole({ title });
+      if (res && res.role) {
+        const persistedId = res.role.id || res.role.roleId;
+        setSelectedRole(persistedId);
+        setCustomRoles(prev => prev.map(r => r.id === tempId ? { ...res.role, icon: Sparkles } : r));
+      }
+    } catch (err) {
+      console.warn('Could not persist custom role to backend:', err.message);
+    }
   };
 
   const handleContinue = () => {
@@ -168,7 +227,7 @@ export default function MockInterviewRoleSelection() {
             </div>
             {showCategoryDropdown && (
               <ul className="category-dropdown-menu">
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <li
                     key={cat.id}
                     className={`category-option ${selectedCategory === cat.id ? 'active' : ''}`}
@@ -189,7 +248,7 @@ export default function MockInterviewRoleSelection() {
         <div className="popular-roles-header">
           <div className="roles-title-group">
             <h2>Popular Roles</h2>
-            <span className="available-badge">5 Available</span>
+            <span className="available-badge">{filteredRoles.length} Available</span>
           </div>
           <button className="browse-all-btn">Browse all roles &gt;</button>
         </div>

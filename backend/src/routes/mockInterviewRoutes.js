@@ -8,6 +8,7 @@ const {
 const {
   createJobRoleHandler,
   getJobRolesHandler,
+  getAvailableRolesHandler,
   getJobRoleByIdHandler,
   getJobRoleCategoriesHandler,
   updateJobRoleHandler,
@@ -43,7 +44,12 @@ const optionalAuth = (req, res, next) => {
 router.get('/categories', optionalAuth, getJobRoleCategoriesHandler);
 router.get('/roles/categories', optionalAuth, getJobRoleCategoriesHandler);
 
-// 2. Roles subpath endpoints (e.g. /mock-interviews/roles)
+// 2. Available Roles endpoints (Must precede parameterized /:id routes)
+router.get('/roles/available', optionalAuth, getAvailableRolesHandler);
+router.get('/available', optionalAuth, getAvailableRolesHandler);
+router.get('/available-roles', optionalAuth, getAvailableRolesHandler);
+
+// 3. Roles subpath endpoints (e.g. /mock-interviews/roles)
 router.post('/roles', optionalAuth, validateUserRoleAccess, validateCreateRole, createJobRoleHandler);
 router.get('/roles', optionalAuth, getJobRolesHandler);
 router.get('/roles/:id', optionalAuth, getJobRoleByIdHandler);
