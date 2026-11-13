@@ -325,6 +325,11 @@ const initializeDatabase = async () => {
         eval_mode TEXT DEFAULT 'Automatic',
         usage_count INTEGER DEFAULT 0,
         details JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // ----------------------------------------------------
     // Interview Management Tables (SCRUM-71)
     // ----------------------------------------------------
