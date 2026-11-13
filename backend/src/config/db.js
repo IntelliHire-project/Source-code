@@ -428,6 +428,21 @@ const initializeDatabase = async () => {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_interview_selected_roles (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        role_id TEXT NOT NULL,
+        role_title TEXT NOT NULL,
+        category TEXT DEFAULT 'engineering',
+        job_description TEXT,
+        interview_mode TEXT DEFAULT 'text',
+        status TEXT DEFAULT 'selected',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // Seed default roles if not existing
     await client.query(`
       INSERT INTO mock_interview_roles (role_id, title, description, category, icon, is_custom, skills)
@@ -470,6 +485,8 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_mock_roles_category ON mock_interview_roles(category);
       CREATE INDEX IF NOT EXISTS idx_mock_roles_user_id ON mock_interview_roles(user_id);
       CREATE INDEX IF NOT EXISTS idx_mock_roles_is_custom ON mock_interview_roles(is_custom);
+      CREATE INDEX IF NOT EXISTS idx_mock_selected_user_id ON mock_interview_selected_roles(user_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_selected_role_id ON mock_interview_selected_roles(role_id);
     `);
   } finally {
     client.release();

@@ -55,3 +55,22 @@ export const createCustomJobRole = async (roleData) => {
   return response.data;
 };
 
+/**
+ * Stores the candidate's selected job role for the mock interview session.
+ * @param {object} selectionData - { roleId, roleTitle, jobDescription, interviewMode }
+ * @returns {Promise<object>}
+ */
+export const storeSelectedRole = async (selectionData) => {
+  const response = await apiInstance.post('/mock-interviews/roles/selected', selectionData);
+  return response.data;
+};
+
+/**
+ * Retrieves the candidate's currently selected job role.
+ * @returns {Promise<object>}
+ */
+export const fetchSelectedRole = async () => {
+  const response = await apiInstance.get('/mock-interviews/roles/selected');
+  return response.data;
+};
+

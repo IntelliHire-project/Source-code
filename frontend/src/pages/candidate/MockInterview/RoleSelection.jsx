@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Check, Plus, X, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, Sparkles } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
-import { fetchAvailableRoles, createCustomJobRole } from '../../../api/mockInterviewApi';
+import { fetchAvailableRoles, createCustomJobRole, storeSelectedRole } from '../../../api/mockInterviewApi';
 import './RoleSelection.css';
 
 const ICON_MAP = {
@@ -175,10 +175,29 @@ export default function MockInterviewRoleSelection() {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (step === 1) {
+      try {
+        storeSelectedRole({
+          roleId: selectedRole,
+          roleTitle: currentRole?.title,
+          category: currentRole?.category,
+        }).catch(() => {});
+      } catch (err) {
+        // Continue even if network is offline
+      }
       setStep(2);
     } else {
+      try {
+        await storeSelectedRole({
+          roleId: selectedRole,
+          roleTitle: currentRole?.title,
+          category: currentRole?.category,
+          jobDescription,
+        });
+      } catch (err) {
+        console.warn('Could not store selected role in backend:', err.message);
+      }
       navigate('/candidate/mock-interviews/questions', {
         state: { 
           roleId: selectedRole, 
