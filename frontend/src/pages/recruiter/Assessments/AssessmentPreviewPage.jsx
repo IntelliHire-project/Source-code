@@ -6,9 +6,11 @@ import {
   ChevronDown,
   ChevronUp,
   Clock3,
+  Code2,
   Copy,
   Edit3,
   FileQuestion,
+  FileText,
   Loader2,
   PlayCircle,
   Share2,
@@ -20,10 +22,61 @@ import AssessmentShell from './AssessmentShell';
 import './AssessmentFlow.css';
 
 const DEFAULT_QUESTIONS = [
-  { title: 'JavaScript event loop and asynchronous execution', type: 'Multiple Choice', points: 10, detail: 'Explain how microtasks and macrotasks are ordered in the JavaScript event loop.' },
-  { title: 'Build a reusable React data-fetching hook', type: 'Coding', points: 25, detail: 'Create a reusable hook with loading, error, caching, and cancellation support.' },
-  { title: 'Frontend system design and scalability', type: 'Long Answer', points: 20, detail: 'Describe how you would structure and scale a large frontend application.' },
-  { title: 'Testing strategy and quality assurance', type: 'Multiple Choice', points: 10, detail: 'Choose the most appropriate testing strategy for the presented scenario.' },
+  {
+    id: 'Q-001',
+    title: 'JavaScript Event Loop & Asynchronous Execution',
+    prompt: 'Explain how microtasks and macrotasks are ordered in the JavaScript event loop, and predict the output sequence for mixed Promise and setTimeout operations.',
+    type: 'Short Answer',
+    points: 10,
+    difficulty: 'Medium',
+    skills: ['JavaScript', 'Async', 'Event Loop'],
+    evalMode: 'Manual Review',
+  },
+  {
+    id: 'Q-002',
+    title: 'JavaScript Data Types & Type Coercion',
+    prompt: 'Which of the following is NOT a primitive data type in modern JavaScript? Select the best answer.',
+    type: 'MCQ',
+    points: 5,
+    difficulty: 'Easy',
+    options: ['undefined', 'boolean', 'float', 'symbol'],
+    correct: 2,
+    skills: ['JavaScript', 'Core JS'],
+    evalMode: 'Auto-graded',
+  },
+  {
+    id: 'Q-003',
+    title: 'Longest Substring Without Repeating Characters',
+    prompt: 'Implement an optimal sliding-window function to find the length of the longest substring without duplicate characters.',
+    type: 'Coding',
+    points: 20,
+    difficulty: 'Hard',
+    skills: ['Algorithms', 'Data Structures'],
+    evalMode: 'Manual Review',
+    boilerplate: 'function lengthOfLongestSubstring(s) {\n  // Implement sliding window approach O(n)\n}',
+  },
+  {
+    id: 'Q-004',
+    title: 'Frontend System Design & Architecture',
+    prompt: 'Describe how you would architect real-time state management, optimistic UI updates, and caching for a high-traffic collaborative dashboard.',
+    type: 'Long Answer',
+    points: 20,
+    difficulty: 'Hard',
+    skills: ['System Design', 'React', 'Architecture'],
+    evalMode: 'Manual Review',
+  },
+  {
+    id: 'Q-005',
+    title: 'HTTP Status Codes & REST Conventions',
+    prompt: 'Which HTTP status code represents a successful resource creation where a new entity has been persisted?',
+    type: 'MCQ',
+    points: 5,
+    difficulty: 'Easy',
+    options: ['200 OK', '201 Created', '204 No Content', '301 Redirect'],
+    correct: 1,
+    skills: ['REST APIs', 'HTTP'],
+    evalMode: 'Auto-graded',
+  },
 ];
 
 function AssessmentPreviewPage() {
@@ -31,10 +84,12 @@ function AssessmentPreviewPage() {
   const { assessmentId } = useParams();
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(Boolean(assessmentId));
-  const [openQuestion, setOpenQuestion] = useState(0);
   const [copied, setCopied] = useState(false);
   const [inviteMode, setInviteMode] = useState('Optional');
   const [inviteSent, setInviteSent] = useState(false);
+
+  // Default to all questions open directly; keys set to true represent collapsed questions
+  const [collapsedQuestions, setCollapsedQuestions] = useState({});
 
   useEffect(() => {
     if (assessmentId) {
@@ -62,26 +117,92 @@ function AssessmentPreviewPage() {
     if (inviteMode !== 'Skip') {
       navigator.clipboard?.writeText(candidateLink);
       setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     }
   };
 
-  const questions = (assessment?.questions && assessment.questions.length > 0)
-    ? assessment.questions.map((q) => ({
-      title: q.title || q.prompt || q.text || 'Question',
-      type: q.type || 'Question',
-      points: q.points || 10,
-      detail: q.text || q.prompt || q.title || '',
-    }))
-    : DEFAULT_QUESTIONS;
+  // Helper to parse question items from either database, question bank, or starter sets
+  const parseQuestion = (q, idx) => {
+    const prompt = q.prompt || q.snippet || q.text || q.question || q.title || `Question ${idx + 1}`;
+
+    let title = q.title;
+    if (!title || title.trim().toLowerCase() === 'question') {
+      title = prompt.length > 75 ? `${prompt.slice(0, 72)}...` : prompt;
+    }
+
+    let options = [];
+    if (Array.isArray(q.options)) {
+      options = q.options;
+    } else if (typeof q.options === 'string') {
+      try {
+        options = JSON.parse(q.options);
+      } catch {
+        options = [];
+      }
+    }
+
+    let skills = [];
+    if (Array.isArray(q.skills)) {
+      skills = q.skills;
+    } else if (typeof q.skills === 'string') {
+      skills = q.skills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+
+    return {
+      id: q.id || q.code || `Q-${String(idx + 1).padStart(3, '0')}`,
+      title,
+      prompt,
+      detail: q.detail || q.description || prompt,
+      type: q.type || (options.length > 0 ? 'MCQ' : 'Short Answer'),
+      points: q.points != null ? Number(q.points) : 10,
+      difficulty: q.difficulty || assessment?.difficulty || 'Medium',
+      evalMode: q.evalMode || (options.length > 0 ? 'Auto-graded' : 'Manual Review'),
+      options,
+      correct: q.correct != null ? Number(q.correct) : null,
+      skills,
+      section: q.section || '',
+      boilerplate: q.boilerplate || q.starterCode || '',
+    };
+  };
+
+  const rawQuestions =
+    assessment?.questions && assessment.questions.length > 0
+      ? assessment.questions
+      : DEFAULT_QUESTIONS;
+
+  const questions = rawQuestions.map(parseQuestion);
 
   const totalPoints = questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0);
   const duration = assessment?.duration || 90;
   const title = assessment?.title || assessment?.name || 'Technical Assessment Preview';
-  const jobRole = assessment?.jobRole || assessment?.vacancy || 'Technical Role';
-  const difficulty = assessment?.difficulty || 'Senior';
+  const jobRole = assessment?.jobRole || assessment?.vacancy || 'Senior Software Engineer — React';
+  const difficulty = assessment?.difficulty || 'Mid-level';
   const passingScore = assessment?.passingScore || assessment?.passing || 70;
   const status = assessment?.status || 'Active';
   const invitedCount = assessment?.invited != null ? assessment.invited : 0;
+
+  const isQuestionOpen = (index) => !collapsedQuestions[index];
+
+  const toggleQuestion = (index) => {
+    setCollapsedQuestions((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const areAllOpen = questions.every((_, i) => !collapsedQuestions[i]);
+
+  const toggleAllQuestions = () => {
+    if (areAllOpen) {
+      const allCollapsed = {};
+      questions.forEach((_, i) => {
+        allCollapsed[i] = true;
+      });
+      setCollapsedQuestions(allCollapsed);
+    } else {
+      setCollapsedQuestions({});
+    }
+  };
 
   return (
     <AssessmentShell currentPage="Assessment Preview">
@@ -159,45 +280,168 @@ function AssessmentPreviewPage() {
               </article>
             </section>
 
-            <div className="ap-layout">
+            <div className="ap-preview-layout ap-layout">
               <section className="ap-main">
                 <div className="ap-section-title">
                   <div>
                     <h2>Assessment Questions</h2>
-                    <p>Preview the questions candidates will receive.</p>
+                    <p>
+                      Preview the questions candidates will receive ({questions.length} total •{' '}
+                      {assessment?.totalPoints || totalPoints} points)
+                    </p>
                   </div>
-                  <button
-                    className="af-secondary"
-                    onClick={() => navigate('/recruiter/question-bank')}
-                  >
-                    <FileQuestion size={16} /> Open Question Bank
-                  </button>
+                  <div className="ap-title-buttons">
+                    <button
+                      type="button"
+                      className="af-secondary"
+                      onClick={toggleAllQuestions}
+                      title={areAllOpen ? 'Collapse all questions' : 'Expand all questions'}
+                    >
+                      {areAllOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {areAllOpen ? 'Collapse All' : 'Expand All'}
+                    </button>
+                    <button
+                      type="button"
+                      className="af-secondary"
+                      onClick={() => navigate('/recruiter/question-bank')}
+                    >
+                      <FileQuestion size={16} /> Open Question Bank
+                    </button>
+                  </div>
                 </div>
+
                 <div className="ap-question-list">
-                  {questions.map((question, index) => (
-                    <article key={question.title + index}>
-                      <header
-                        onClick={() => setOpenQuestion(openQuestion === index ? null : index)}
+                  {questions.map((question, index) => {
+                    const isOpen = isQuestionOpen(index);
+                    const isMcq = question.type === 'MCQ' || question.type === 'Multiple Choice';
+                    const isCoding = question.type === 'Coding';
+                    const isShort = question.type === 'Short Answer';
+
+                    const typePillClass = isMcq
+                      ? 'ap-type-pill--mcq'
+                      : isCoding
+                        ? 'ap-type-pill--coding'
+                        : isShort
+                          ? 'ap-type-pill--short'
+                          : 'ap-type-pill--default';
+
+                    const diffClass =
+                      question.difficulty?.toLowerCase() === 'easy'
+                        ? 'diff-easy'
+                        : question.difficulty?.toLowerCase() === 'hard'
+                          ? 'diff-hard'
+                          : 'diff-medium';
+
+                    return (
+                      <article
+                        key={question.id + index}
+                        className={`ap-question-card ${isOpen ? 'is-open' : ''}`}
                       >
-                        <span>{index + 1}</span>
-                        <div>
-                          <strong>{question.title}</strong>
-                          <small>{question.type}</small>
-                        </div>
-                        <b>{question.points} pts</b>
-                        {openQuestion === index ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                      </header>
-                      {openQuestion === index && (
-                        <div className="ap-question-detail">
-                          <p>{question.detail}</p>
-                          <div>
-                            <span>Difficulty: {difficulty}</span>
-                            <span>Required</span>
+                        <header
+                          className="ap-question-header"
+                          onClick={() => toggleQuestion(index)}
+                        >
+                          <span className="ap-q-num">{index + 1}</span>
+                          <div className="ap-q-head-content">
+                            <h3 className="ap-q-title">{question.title}</h3>
+                            <div className="ap-q-meta-inline">
+                              <span className={`ap-type-pill ${typePillClass}`}>
+                                {isMcq ? (
+                                  <CheckCircle2 size={11} />
+                                ) : isCoding ? (
+                                  <Code2 size={11} />
+                                ) : (
+                                  <FileText size={11} />
+                                )}
+                                {question.type}
+                              </span>
+                              {question.section && (
+                                <span className="ap-chip-tag">{question.section}</span>
+                              )}
+                              <span className={`ap-chip-tag ${diffClass}`}>
+                                {question.difficulty}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </article>
-                  ))}
+                          <div className="ap-q-head-right">
+                            <span className="ap-points-badge">{question.points} pts</span>
+                            <div className="ap-chevron-btn">
+                              {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                            </div>
+                          </div>
+                        </header>
+
+                        {isOpen && (
+                          <div className="ap-question-body">
+                            <div className="ap-prompt-box">
+                              <p>{question.prompt}</p>
+                            </div>
+
+                            {isMcq && question.options && question.options.length > 0 && (
+                              <div className="ap-options-wrap">
+                                <div className="ap-options-label">Multiple Choice Options:</div>
+                                <div className="ap-options-list">
+                                  {question.options.map((opt, optIdx) => {
+                                    const letter = String.fromCharCode(65 + optIdx);
+                                    const isCorrect = question.correct === optIdx;
+                                    return (
+                                      <div
+                                        key={optIdx}
+                                        className={`ap-option-row ${isCorrect ? 'is-correct' : ''}`}
+                                      >
+                                        <span className="ap-option-letter">{letter}</span>
+                                        <span className="ap-option-text">{opt}</span>
+                                        {isCorrect && (
+                                          <span className="ap-option-badge">
+                                            <CheckCircle2 size={13} /> Correct Answer
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {isCoding && (
+                              <div className="ap-coding-preview">
+                                <div className="ap-code-editor-hint">
+                                  <Code2 size={13} />
+                                  <span>Candidate Coding Sandbox Preview</span>
+                                </div>
+                                {question.boilerplate ? (
+                                  <pre>{question.boilerplate}</pre>
+                                ) : (
+                                  <pre>{`// Interactive coding challenge\nfunction solution() {\n  // Implementation here\n}`}</pre>
+                                )}
+                              </div>
+                            )}
+
+                            <footer className="ap-question-footer">
+                              <div className="ap-chips-group">
+                                <span className={`ap-chip-tag ${diffClass}`}>
+                                  Difficulty: <b>{question.difficulty}</b>
+                                </span>
+                                <span className="ap-chip-tag">
+                                  Evaluation: <b>{question.evalMode}</b>
+                                </span>
+                                <span className="ap-chip-tag required-badge">Required</span>
+                              </div>
+                              {question.skills && question.skills.length > 0 && (
+                                <div className="ap-chips-group">
+                                  {question.skills.map((skill) => (
+                                    <span key={skill} className="ap-skill-chip">
+                                      {skill}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </footer>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
                 </div>
               </section>
 
