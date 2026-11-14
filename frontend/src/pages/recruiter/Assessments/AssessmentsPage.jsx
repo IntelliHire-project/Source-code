@@ -874,10 +874,70 @@ function AssessmentsTab() {
                     />
                   </label>
                   <label className="am-form-label">Time Limit (minutes)
-                    <input className="am-form-input" type="number" min={10} max={300} value={form.duration} onChange={e => setForm({ ...form, duration: +e.target.value })} />
+                    <div className="am-stepper-wrap">
+                      <Clock3 size={15} className="am-stepper-icon" />
+                      <input
+                        className="am-form-input am-stepper-input"
+                        type="number"
+                        min={10}
+                        max={300}
+                        value={form.duration}
+                        onChange={e => setForm({ ...form, duration: Math.max(0, +e.target.value) })}
+                      />
+                      <div className="am-stepper-controls">
+                        <button
+                          type="button"
+                          className="am-stepper-btn"
+                          tabIndex={-1}
+                          onClick={() => setForm(f => ({ ...f, duration: Math.min(300, (Number(f.duration) || 0) + 5) }))}
+                          aria-label="Increase time limit"
+                        >
+                          <ChevronUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          className="am-stepper-btn"
+                          tabIndex={-1}
+                          onClick={() => setForm(f => ({ ...f, duration: Math.max(10, (Number(f.duration) || 0) - 5) }))}
+                          aria-label="Decrease time limit"
+                        >
+                          <ChevronDown size={12} />
+                        </button>
+                      </div>
+                    </div>
                   </label>
                   <label className="am-form-label">Passing Threshold (%)
-                    <input className="am-form-input" type="number" min={1} max={100} value={form.passing} onChange={e => setForm({ ...form, passing: +e.target.value })} />
+                    <div className="am-stepper-wrap">
+                      <TrendingUp size={15} className="am-stepper-icon" />
+                      <input
+                        className="am-form-input am-stepper-input"
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={form.passing}
+                        onChange={e => setForm({ ...form, passing: Math.max(0, Math.min(100, +e.target.value)) })}
+                      />
+                      <div className="am-stepper-controls">
+                        <button
+                          type="button"
+                          className="am-stepper-btn"
+                          tabIndex={-1}
+                          onClick={() => setForm(f => ({ ...f, passing: Math.min(100, (Number(f.passing) || 0) + 5) }))}
+                          aria-label="Increase passing threshold"
+                        >
+                          <ChevronUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          className="am-stepper-btn"
+                          tabIndex={-1}
+                          onClick={() => setForm(f => ({ ...f, passing: Math.max(1, (Number(f.passing) || 0) - 5) }))}
+                          aria-label="Decrease passing threshold"
+                        >
+                          <ChevronDown size={12} />
+                        </button>
+                      </div>
+                    </div>
                   </label>
                 </div>
               )}

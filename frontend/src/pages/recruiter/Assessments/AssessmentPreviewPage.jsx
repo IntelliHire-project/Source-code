@@ -67,11 +67,11 @@ function AssessmentPreviewPage() {
 
   const questions = (assessment?.questions && assessment.questions.length > 0)
     ? assessment.questions.map((q) => ({
-        title: q.title || q.prompt || q.text || 'Question',
-        type: q.type || 'Question',
-        points: q.points || 10,
-        detail: q.text || q.prompt || q.title || '',
-      }))
+      title: q.title || q.prompt || q.text || 'Question',
+      type: q.type || 'Question',
+      points: q.points || 10,
+      detail: q.text || q.prompt || q.title || '',
+    }))
     : DEFAULT_QUESTIONS;
 
   const totalPoints = questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0);
@@ -276,8 +276,8 @@ function AssessmentPreviewPage() {
                         ? 'Marked as Skipped'
                         : 'Invitation Sent'
                       : inviteMode === 'Skip'
-                      ? 'Skip Assessment'
-                      : `Send ${inviteMode} Invite`}
+                        ? 'Skip Assessment'
+                        : `Send ${inviteMode} Invite`}
                   </button>
                   {inviteSent && (
                     <div className="af-success ap-success">
