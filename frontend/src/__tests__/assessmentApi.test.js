@@ -8,7 +8,7 @@ import {
   fetchAssessmentStats,
 } from '../api/assessmentApi';
 
-jest.mock('./apiInstance', () => ({
+jest.mock('../api/apiInstance', () => ({
   __esModule: true,
   default: {
     get: jest.fn(),

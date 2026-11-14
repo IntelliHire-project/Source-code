@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchQuestions, deleteQuestion, createQuestion } from '../../../api/questionApi';
+import { fetchAssessments, deleteAssessment, createAssessment } from '../../../api/assessmentApi';
 import {
   AlertCircle,
   Award,
@@ -23,6 +24,7 @@ import {
   GripVertical,
   HelpCircle,
   Link2,
+  Loader2,
   Lock,
   MessageSquare,
   Plus,
@@ -608,7 +610,8 @@ function QuestionBankTab() {
 
 function AssessmentsTab() {
   const navigate = useNavigate();
-  const [assessments, setAssessments] = useState(ASSESSMENTS);
+  const [assessments, setAssessments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [query, setQuery] = useState('');
@@ -629,7 +632,27 @@ function AssessmentsTab() {
     ],
   });
 
-  const filtered = assessments.filter(a => `${a.name} ${a.vacancy} ${a.status}`.toLowerCase().includes(query.toLowerCase()));
+  const loadAssessments = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetchAssessments();
+      if (res?.assessments) {
+        setAssessments(res.assessments);
+      }
+    } catch (err) {
+      console.error('Failed to load assessments:', err);
+      setNotice(err.response?.data?.message || 'Failed to load assessments from server.');
+      setTimeout(() => setNotice(''), 4000);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAssessments();
+  }, [loadAssessments]);
+
+  const filtered = assessments.filter(a => `${a.name || a.title || ''} ${a.vacancy || ''} ${a.status || ''}`.toLowerCase().includes(query.toLowerCase()));
 
   const openWizard = () => {
     setWizardStep(1);
@@ -647,16 +670,39 @@ function AssessmentsTab() {
     setWizardOpen(true);
   };
 
-  const publishAssessment = () => {
+  const publishAssessment = async () => {
     if (!form.title.trim()) return;
     const resolvedVacancy = form.vacancy === 'Other' ? (customVacancy.trim() || 'Custom Vacancy') : (form.vacancy || 'Not linked');
-    setAssessments([{
-      id: `A-${String(Date.now()).slice(-3)}`, name: form.title, vacancy: resolvedVacancy,
-      duration: form.duration, passing: form.passing, totalQ: selectedQs.length, invited: 0, status: 'Draft',
-    }, ...assessments]);
-    setWizardOpen(false);
-    setNotice('Assessment created and saved as draft.');
-    setTimeout(() => setNotice(''), 4000);
+    try {
+      const payload = {
+        title: form.title.trim(),
+        jobRole: resolvedVacancy,
+        role: resolvedVacancy,
+        duration: Number(form.duration) || 90,
+        passingScore: Number(form.passing) || 70,
+        status: 'Draft',
+        questions: selectedQs,
+        settings: {
+          autoSend: form.autoSend,
+          randomize: form.randomize,
+          blockCopyPaste: form.blockCopyPaste,
+          sections: form.sections,
+        },
+      };
+      const res = await createAssessment(payload);
+      if (res?.assessment) {
+        setAssessments((prev) => [res.assessment, ...prev]);
+      } else {
+        loadAssessments();
+      }
+      setWizardOpen(false);
+      setNotice('Assessment created and saved as draft.');
+      setTimeout(() => setNotice(''), 4000);
+    } catch (err) {
+      console.error('Failed to create assessment from wizard:', err);
+      setNotice(err.response?.data?.message || 'Failed to create assessment.');
+      setTimeout(() => setNotice(''), 4000);
+    }
   };
 
   return (
@@ -716,7 +762,13 @@ function AssessmentsTab() {
                 </td>
               </tr>
             ))}
-            {!filtered.length && (
+            {loading && (
+              <tr><td colSpan={8} className="am-table-empty">
+                <Loader2 size={28} className="spin" style={{ margin: '0 auto 8px' }} />
+                <span>Loading assessments from server...</span>
+              </td></tr>
+            )}
+            {!loading && !filtered.length && (
               <tr><td colSpan={8} className="am-table-empty">
                 <ClipboardList size={32} />
                 <strong>No assessments found</strong>
@@ -1042,11 +1094,20 @@ function AssessmentsTab() {
         subtitle="Are you sure you want to delete this assessment package?"
         itemName={assessmentToDelete?.name}
         itemCode={assessmentToDelete?.id}
-        onConfirm={() => {
-          setAssessments(prev => prev.filter(x => x.id !== assessmentToDelete.id));
-          setNotice("Assessment deleted.");
-          setTimeout(() => setNotice(""), 3000);
-          setAssessmentToDelete(null);
+        onConfirm={async () => {
+          if (!assessmentToDelete) return;
+          try {
+            const targetId = assessmentToDelete.numericId || assessmentToDelete.id;
+            await deleteAssessment(targetId);
+            setAssessments((prev) => prev.filter((x) => x.id !== assessmentToDelete.id));
+            setNotice("Assessment deleted successfully.");
+          } catch (err) {
+            console.error("Failed to delete assessment:", err);
+            setNotice(err.response?.data?.message || "Failed to delete assessment.");
+          } finally {
+            setTimeout(() => setNotice(""), 3000);
+            setAssessmentToDelete(null);
+          }
         }}
         onClose={() => setAssessmentToDelete(null)}
       />
