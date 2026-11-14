@@ -10,6 +10,7 @@ const candidateRoutes = require("./routes/candidateRoutes");
 const vacancyRoutes = require("./routes/vacancyRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const questionRoutes = require("./routes/questionRoutes");
+const assessmentRoutes = require("./routes/assessmentRoutes");
 const interviewRoutes = require("./routes/interviewRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const mockInterviewRoutes = require("./routes/mockInterviewRoutes");
@@ -32,6 +33,10 @@ app.use("/candidate", candidateRoutes);
 app.use("/vacancies", vacancyRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/questions", questionRoutes);
+
+// Assessment Management Routes (Supports both direct and Nginx-proxied paths)
+app.use("/assessments", assessmentRoutes);
+app.use("/api/assessments", assessmentRoutes);
 
 // Interview Management Routes (Supports both direct and Nginx-proxied paths)
 app.use("/interviews", interviewRoutes);
