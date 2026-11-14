@@ -193,8 +193,8 @@ function CreateAssessmentPage() {
               {submitting
                 ? 'Saving...'
                 : isEditing
-                ? 'Update Assessment'
-                : 'Publish Assessment'}
+                  ? 'Update Assessment'
+                  : 'Publish Assessment'}
             </button>
           </div>
         </div>
