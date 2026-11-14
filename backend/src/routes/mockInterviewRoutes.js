@@ -8,10 +8,14 @@ const {
 const {
   createJobRoleHandler,
   getJobRolesHandler,
+  getAvailableRolesHandler,
   getJobRoleByIdHandler,
   getJobRoleCategoriesHandler,
   updateJobRoleHandler,
   deleteJobRoleHandler,
+  storeSelectedRoleHandler,
+  getSelectedRoleHandler,
+  clearSelectedRoleHandler,
 } = require('../controllers/mockInterviewRoleController');
 
 const router = express.Router();
@@ -43,7 +47,20 @@ const optionalAuth = (req, res, next) => {
 router.get('/categories', optionalAuth, getJobRoleCategoriesHandler);
 router.get('/roles/categories', optionalAuth, getJobRoleCategoriesHandler);
 
-// 2. Roles subpath endpoints (e.g. /mock-interviews/roles)
+// 2. Available Roles endpoints (Must precede parameterized /:id routes)
+router.get('/roles/available', optionalAuth, getAvailableRolesHandler);
+router.get('/available', optionalAuth, getAvailableRolesHandler);
+router.get('/available-roles', optionalAuth, getAvailableRolesHandler);
+
+// 3. Selected Role endpoints (Must precede parameterized /:id routes)
+router.post('/roles/selected', optionalAuth, storeSelectedRoleHandler);
+router.get('/roles/selected', optionalAuth, getSelectedRoleHandler);
+router.delete('/roles/selected', optionalAuth, clearSelectedRoleHandler);
+router.post('/selected-role', optionalAuth, storeSelectedRoleHandler);
+router.get('/selected-role', optionalAuth, getSelectedRoleHandler);
+router.post('/select-role', optionalAuth, storeSelectedRoleHandler);
+
+// 4. Roles subpath endpoints (e.g. /mock-interviews/roles)
 router.post('/roles', optionalAuth, validateUserRoleAccess, validateCreateRole, createJobRoleHandler);
 router.get('/roles', optionalAuth, getJobRolesHandler);
 router.get('/roles/:id', optionalAuth, getJobRoleByIdHandler);

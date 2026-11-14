@@ -1,10 +1,14 @@
 const {
   createJobRole,
   findAllJobRoles,
+  findAvailableJobRoles,
   findJobRoleById,
   updateJobRole,
   deleteJobRole,
   getJobRoleCategories,
+  storeSelectedRole,
+  getSelectedRole,
+  clearSelectedRole,
 } = require('../models/mockInterviewRoleModel');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -26,6 +30,51 @@ const createJobRoleHandler = async (req, res) => {
     console.error('Error creating job role:', error);
     const statusCode = error.statusCode || 500;
     return errorResponse(res, error.message || 'Failed to create job role.', statusCode);
+  }
+};
+
+/**
+ * Handles fetching available job roles for candidate mock interviews.
+ * GET /api/mock-interviews/roles/available, GET /api/mock-interviews/available, or GET /api/mock-interviews/available-roles
+ */
+const getAvailableRolesHandler = async (req, res) => {
+  try {
+    const {
+      search,
+      q,
+      category,
+      sortBy = 'default',
+      page,
+      limit,
+    } = req.query;
+
+    const userId = req.user ? req.user.id : null;
+
+    const filters = {
+      search: search || q,
+      category,
+      userId,
+      sortBy,
+      page,
+      limit,
+      includeShared: true,
+    };
+
+    const [roles, categories] = await Promise.all([
+      findAvailableJobRoles(filters),
+      getJobRoleCategories().catch(() => []),
+    ]);
+
+    return successResponse(res, 'Available job roles retrieved successfully.', {
+      roles,
+      total: roles.length,
+      availableCount: roles.length,
+      categories,
+    });
+  } catch (error) {
+    console.error('Error fetching available job roles:', error);
+    const statusCode = error.statusCode || 500;
+    return errorResponse(res, error.message || 'Failed to retrieve available job roles.', statusCode);
   }
 };
 
@@ -151,11 +200,76 @@ const deleteJobRoleHandler = async (req, res) => {
   }
 };
 
+/**
+ * Stores the selected job role for a candidate's mock interview session.
+ * POST /api/mock-interviews/roles/selected or POST /api/mock-interviews/selected-role
+ */
+const storeSelectedRoleHandler = async (req, res) => {
+  try {
+    const { roleId, id } = req.body || {};
+    const targetRoleId = roleId || id;
+
+    if (!targetRoleId || !String(targetRoleId).trim()) {
+      return errorResponse(res, 'Role identifier (roleId) is required to store selection.', 400);
+    }
+
+    const userId = req.user ? req.user.id : null;
+    const selectedRole = await storeSelectedRole(req.body, userId);
+
+    return successResponse(res, 'Selected job role stored successfully.', { selectedRole }, 201);
+  } catch (error) {
+    console.error('Error storing selected job role:', error);
+    const statusCode = error.statusCode || 500;
+    return errorResponse(res, error.message || 'Failed to store selected job role.', statusCode);
+  }
+};
+
+/**
+ * Retrieves the candidate's currently selected job role.
+ * GET /api/mock-interviews/roles/selected or GET /api/mock-interviews/selected-role
+ */
+const getSelectedRoleHandler = async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    const selectedRole = await getSelectedRole(userId);
+
+    if (!selectedRole) {
+      return successResponse(res, 'No selected role found.', { selectedRole: null });
+    }
+
+    return successResponse(res, 'Selected job role retrieved successfully.', { selectedRole });
+  } catch (error) {
+    console.error('Error fetching selected job role:', error);
+    const statusCode = error.statusCode || 500;
+    return errorResponse(res, error.message || 'Failed to retrieve selected job role.', statusCode);
+  }
+};
+
+/**
+ * Clears the candidate's currently selected job role.
+ * DELETE /api/mock-interviews/roles/selected or DELETE /api/mock-interviews/selected-role
+ */
+const clearSelectedRoleHandler = async (req, res) => {
+  try {
+    const userId = req.user ? req.user.id : null;
+    await clearSelectedRole(userId);
+    return successResponse(res, 'Selected job role cleared successfully.');
+  } catch (error) {
+    console.error('Error clearing selected job role:', error);
+    const statusCode = error.statusCode || 500;
+    return errorResponse(res, error.message || 'Failed to clear selected job role.', statusCode);
+  }
+};
+
 module.exports = {
   createJobRoleHandler,
   getJobRolesHandler,
+  getAvailableRolesHandler,
   getJobRoleByIdHandler,
   getJobRoleCategoriesHandler,
   updateJobRoleHandler,
   deleteJobRoleHandler,
+  storeSelectedRoleHandler,
+  getSelectedRoleHandler,
+  clearSelectedRoleHandler,
 };

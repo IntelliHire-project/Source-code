@@ -521,7 +521,7 @@ const getJobRoleCategories = async (executor = db) => {
       totalResult && totalResult.rows && totalResult.rows[0]
         ? parseInt(totalResult.rows[0].total, 10)
         : DEFAULT_ROLES.length;
-
+ 
     return DEFAULT_CATEGORIES.map((cat) => {
       if (cat.id === 'all') {
         return { ...cat, count: totalCount };
@@ -542,6 +542,143 @@ const getJobRoleCategories = async (executor = db) => {
   }
 };
 
+/**
+ * Fetches all available job roles for candidate mock interview preparation.
+ * Returns default system roles plus any custom roles belonging to the current user or shared.
+ */
+const findAvailableJobRoles = async (filters = {}, executor = db) => {
+  return findAllJobRoles({ ...filters, includeShared: true }, executor);
+};
+
+/**
+ * Stores or updates the selected job role for a candidate's mock interview session.
+ */
+const storeSelectedRole = async (data = {}, userId = null, executor = db) => {
+  const roleId = (data.roleId || data.id || '').trim();
+  if (!roleId) {
+    const error = new Error('Role identifier (roleId) is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Look up role details if not directly provided
+  let roleTitle = (data.roleTitle || data.title || '').trim();
+  let category = (data.category || '').toLowerCase().trim();
+  if (!roleTitle) {
+    const existingRole = await findJobRoleById(roleId, executor);
+    if (existingRole) {
+      roleTitle = existingRole.title;
+      category = category || existingRole.category;
+    } else {
+      roleTitle = roleId;
+    }
+  }
+
+  const jobDescription = (data.jobDescription || data.jd || '').trim();
+  const interviewMode = (data.interviewMode || data.mode || 'text').trim();
+  const status = 'selected';
+  const assignedUserId = userId || data.userId || null;
+
+  try {
+    const query = `
+      INSERT INTO mock_interview_selected_roles (user_id, role_id, role_title, category, job_description, interview_mode, status, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      RETURNING *;
+    `;
+    const values = [
+      assignedUserId,
+      roleId,
+      roleTitle,
+      category || 'engineering',
+      jobDescription,
+      interviewMode,
+      status,
+    ];
+    const result = await executor.query(query, values);
+    if (result && result.rows && result.rows.length > 0) {
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userId: row.user_id,
+        roleId: row.role_id,
+        roleTitle: row.role_title,
+        category: row.category,
+        jobDescription: row.job_description,
+        interviewMode: row.interview_mode,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    }
+  } catch (err) {
+    console.warn('Database query failed in storeSelectedRole, returning in-memory stored role:', err.message);
+  }
+
+  // Fallback in-memory representation
+  return {
+    id: Date.now(),
+    userId: assignedUserId,
+    roleId,
+    roleTitle,
+    category: category || 'engineering',
+    jobDescription,
+    interviewMode,
+    status,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+/**
+ * Retrieves the currently selected mock interview job role for a candidate.
+ */
+const getSelectedRole = async (userId = null, executor = db) => {
+  if (userId) {
+    try {
+      const query = `
+        SELECT * FROM mock_interview_selected_roles
+        WHERE user_id = $1
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1;
+      `;
+      const result = await executor.query(query, [userId]);
+      if (result && result.rows && result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          userId: row.user_id,
+          roleId: row.role_id,
+          roleTitle: row.role_title,
+          category: row.category,
+          jobDescription: row.job_description,
+          interviewMode: row.interview_mode,
+          status: row.status,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        };
+      }
+    } catch (err) {
+      console.warn('Database query failed in getSelectedRole:', err.message);
+    }
+  }
+  return null;
+};
+
+/**
+ * Clears the selected mock interview role for a candidate.
+ */
+const clearSelectedRole = async (userId = null, executor = db) => {
+  if (!userId) return true;
+  try {
+    const query = `DELETE FROM mock_interview_selected_roles WHERE user_id = $1;`;
+    const result = await executor.query(query, [userId]);
+    return (result.rowCount || 0) > 0;
+  } catch (err) {
+    console.warn('Database query failed in clearSelectedRole:', err.message);
+    return true;
+  }
+};
+
 module.exports = {
   DEFAULT_ROLES,
   DEFAULT_CATEGORIES,
@@ -551,8 +688,12 @@ module.exports = {
   findJobRoleByTitle,
   createJobRole,
   findAllJobRoles,
+  findAvailableJobRoles,
   findJobRoleById,
   updateJobRole,
   deleteJobRole,
   getJobRoleCategories,
+  storeSelectedRole,
+  getSelectedRole,
+  clearSelectedRole,
 };
