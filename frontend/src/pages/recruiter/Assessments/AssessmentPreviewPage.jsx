@@ -320,17 +320,17 @@ function AssessmentPreviewPage() {
                     const typePillClass = isMcq
                       ? 'ap-type-pill--mcq'
                       : isCoding
-                        ? 'ap-type-pill--coding'
-                        : isShort
-                          ? 'ap-type-pill--short'
-                          : 'ap-type-pill--default';
+                      ? 'ap-type-pill--coding'
+                      : isShort
+                      ? 'ap-type-pill--short'
+                      : 'ap-type-pill--default';
 
                     const diffClass =
                       question.difficulty?.toLowerCase() === 'easy'
                         ? 'diff-easy'
                         : question.difficulty?.toLowerCase() === 'hard'
-                          ? 'diff-hard'
-                          : 'diff-medium';
+                        ? 'diff-hard'
+                        : 'diff-medium';
 
                     return (
                       <article
