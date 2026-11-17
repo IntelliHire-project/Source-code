@@ -213,11 +213,11 @@ export default function RecruitmentProgress() {
             </div>
             <div className="an-header-actions">
               <button className="an-print-btn" type="button" onClick={() => window.print()} title="Print or save PDF report">
-                <Printer size={16} />
+                <Printer size={14} />
                 Print / Save PDF
               </button>
               <button className="an-export-btn" type="button" onClick={exportReport} title="Export CSV report">
-                <Download size={16} />
+                <Download size={14} />
                 Export CSV
               </button>
             </div>
