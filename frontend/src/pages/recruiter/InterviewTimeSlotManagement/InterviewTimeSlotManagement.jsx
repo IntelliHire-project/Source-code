@@ -2624,21 +2624,134 @@ function RecruiterInterviewTimeSlotManagementPage() {
                       </>
                     ) : (
                       <div className="form-group">
+                        {/* Interview Platform Selector */}
+                        <div style={{ marginBottom: '10px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                            SELECT INTERVIEW PLATFORM
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const chars = 'abcdefghijklmnopqrstuvwxyz';
+                                const rL = Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                                const rD = Math.floor(100 + Math.random() * 900);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Google Meet',
+                                  meetingLocation: `https://meet.google.com/intelli-${rL}-${rD}`
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Google Meet' });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '8px 10px',
+                                borderRadius: '8px',
+                                border: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? '1px solid #4285F4' : '1px solid #2A2C38',
+                                backgroundColor: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? 'rgba(66, 133, 244, 0.15)' : '#1E222D',
+                                color: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? '#60A5FA' : '#9599A6',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Video size={13} />
+                              <span>Google Meet</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const randId = Math.random().toString(36).substring(2, 8);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Microsoft Teams',
+                                  meetingLocation: `https://teams.microsoft.com/l/meetup-join/19%3ameeting_${randId}%40thread.v2/0`
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Microsoft Teams' });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '8px 10px',
+                                borderRadius: '8px',
+                                border: formData.interviewMedia === 'Microsoft Teams' ? '1px solid #7C3AED' : '1px solid #2A2C38',
+                                backgroundColor: formData.interviewMedia === 'Microsoft Teams' ? 'rgba(124, 58, 237, 0.15)' : '#1E222D',
+                                color: formData.interviewMedia === 'Microsoft Teams' ? '#A78BFA' : '#9599A6',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Video size={13} />
+                              <span>MS Teams</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const zoomId = Math.floor(1000000000 + Math.random() * 9000000000);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Zoom',
+                                  meetingLocation: `https://zoom.us/j/${zoomId}?pwd=intelli${Math.floor(100 + Math.random() * 900)}`
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Zoom' });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '8px 10px',
+                                borderRadius: '8px',
+                                border: formData.interviewMedia === 'Zoom' ? '1px solid #0284C7' : '1px solid #2A2C38',
+                                backgroundColor: formData.interviewMedia === 'Zoom' ? 'rgba(2, 132, 199, 0.15)' : '#1E222D',
+                                color: formData.interviewMedia === 'Zoom' ? '#38BDF8' : '#9599A6',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Video size={13} />
+                              <span>Zoom</span>
+                            </button>
+                          </div>
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                           <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
-                            ONLINE MEETING LINK (GOOGLE MEET / TEAMS)
+                            ONLINE MEETING LINK ({((formData.interviewMedia || 'Google Meet').toUpperCase())})
                           </label>
                           <button
                             type="button"
                             onClick={() => {
-                              const chars = 'abcdefghijklmnopqrstuvwxyz';
-                              const randLetters = Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                              const randDigits = Math.floor(100 + Math.random() * 900);
-                              const generatedUrl = `https://meet.google.com/intelli-${randLetters}-${randDigits}`;
-                              setFormData(prev => ({ ...prev, meetingLocation: generatedUrl }));
-                              setToast({ type: 'success', message: 'Google Meet link generated and filled!' });
+                              const media = formData.interviewMedia || 'Google Meet';
+                              let genUrl = '';
+                              if (media === 'Microsoft Teams') {
+                                const randId = Math.random().toString(36).substring(2, 8);
+                                genUrl = `https://teams.microsoft.com/l/meetup-join/19%3ameeting_${randId}%40thread.v2/0`;
+                              } else if (media === 'Zoom') {
+                                const zoomId = Math.floor(1000000000 + Math.random() * 9000000000);
+                                genUrl = `https://zoom.us/j/${zoomId}?pwd=intelli${Math.floor(100 + Math.random() * 900)}`;
+                              } else {
+                                const chars = 'abcdefghijklmnopqrstuvwxyz';
+                                const randLetters = Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                                const randDigits = Math.floor(100 + Math.random() * 900);
+                                genUrl = `https://meet.google.com/intelli-${randLetters}-${randDigits}`;
+                              }
+                              setFormData(prev => ({ ...prev, meetingLocation: genUrl }));
+                              setToast({ type: 'success', message: `${media} link generated and filled!` });
                             }}
-                            title="Generate a random Google Meet link"
+                            title={`Generate a random ${formData.interviewMedia || 'Google Meet'} link`}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -2655,14 +2768,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             }}
                           >
                             <Sparkles size={12} />
-                            <span>⚡ Generate Meet Link</span>
+                            <span>⚡ Generate {formData.interviewMedia === 'Microsoft Teams' ? 'Teams' : formData.interviewMedia === 'Zoom' ? 'Zoom' : 'Meet'} Link</span>
                           </button>
                         </div>
                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                           <input
                             type="text"
                             name="meetingLocation"
-                            placeholder="e.g. https://meet.google.com/intelli-xyz-123"
+                            placeholder={formData.interviewMedia === 'Microsoft Teams' ? 'e.g. https://teams.microsoft.com/l/meetup-join/...' : formData.interviewMedia === 'Zoom' ? 'e.g. https://zoom.us/j/...' : 'e.g. https://meet.google.com/intelli-xyz-123'}
                             value={formData.meetingLocation}
                             onChange={handleFieldChange}
                             className="form-control"
@@ -3223,11 +3336,23 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                       <div style={{ color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 600 }}>{formatPanelDisplayName(slot.panelActualName || `Panel ${slot.panelNo}`)}</div>
                                       <div>
                                         <span style={{
-                                          backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)',
-                                          color: slot.type === 'Online' ? '#60A5FA' : '#A855F7',
+                                          backgroundColor: (slot.interviewMedia === 'Microsoft Teams' || (slot.meetingLocation && slot.meetingLocation.includes('teams')))
+                                            ? 'rgba(124, 58, 237, 0.15)'
+                                            : (slot.interviewMedia === 'Zoom' || (slot.meetingLocation && slot.meetingLocation.includes('zoom')))
+                                            ? 'rgba(2, 132, 199, 0.15)'
+                                            : slot.type === 'Online'
+                                            ? 'rgba(66, 133, 244, 0.1)'
+                                            : 'rgba(168, 85, 247, 0.1)',
+                                          color: (slot.interviewMedia === 'Microsoft Teams' || (slot.meetingLocation && slot.meetingLocation.includes('teams')))
+                                            ? '#A78BFA'
+                                            : (slot.interviewMedia === 'Zoom' || (slot.meetingLocation && slot.meetingLocation.includes('zoom')))
+                                            ? '#38BDF8'
+                                            : slot.type === 'Online'
+                                            ? '#60A5FA'
+                                            : '#A855F7',
                                           padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600
                                         }}>
-                                          {slot.type}
+                                          {(slot.meetingLocation && slot.meetingLocation.includes('teams')) ? 'MS Teams' : (slot.meetingLocation && slot.meetingLocation.includes('zoom')) ? 'Zoom' : (slot.interviewMedia || slot.type)}
                                         </span>
                                       </div>
                                       <div style={{ textAlign: 'center', color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 700 }}>1</div>

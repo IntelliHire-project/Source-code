@@ -204,6 +204,8 @@ const PANEL_MEMBER_TONES = [
 const PANEL_MEETING_TYPES = {
   'Google Meet': { icon: Video, label: 'Video Call (Google Meet)' },
   'MS Teams': { icon: Video, label: 'Video Call (MS Teams)' },
+  'Microsoft Teams': { icon: Video, label: 'Video Call (MS Teams)' },
+  'Zoom': { icon: Video, label: 'Video Call (Zoom Meeting)' },
   'In-Person': { icon: MapPin, label: 'In-Person' },
   'Phone Screening': { icon: Phone, label: 'Phone Screening' },
 };
