@@ -65,7 +65,7 @@ export const DEFAULT_SLOTS = [
     endTime: '10:30 AM',
     interviewType: 'Online',
     status: 'COMPLETED', // COMPLETED with evaluation on past date
-    meetingLocation: 'https://meet.google.com/intelli-tech-round',
+    meetingLocation: 'https://meet.google.com/sde-conf-mtg',
     capacity: 1,
     bookedCount: 1,
     panelMember: DEFAULT_PANEL_MEMBERS[0], // Saman Tech
@@ -121,7 +121,7 @@ export const DEFAULT_SLOTS = [
     endTime: '12:00 PM',
     interviewType: 'Online',
     status: 'SCHEDULED', // UPCOMING FUTURE DATE - Evaluation is LOCKED
-    meetingLocation: 'https://meet.google.com/intelli-architecture-eval',
+    meetingLocation: 'https://meet.google.com/fst-arch-rev',
     capacity: 1,
     bookedCount: 1,
     panelMember: DEFAULT_PANEL_MEMBERS[3], // Ruwan Bandara
@@ -436,7 +436,7 @@ export const getInterviewSlots = () => {
                   meetingLocation:
                     alloc.interviewType === 'Physical'
                       ? 'Innovation Hub — Interview Suite 102'
-                      : 'https://meet.google.com/intelli-tech-round',
+                      : 'https://meet.google.com/eng-tech-int',
                   capacity: 1,
                   bookedCount: 1,
                   panelMember: pm,

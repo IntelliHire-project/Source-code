@@ -113,6 +113,8 @@ export const INITIAL_ALLOCATIONS = [
     assignedTime: '09:30 AM – 10:30 AM',
     interviewDate: '02 Nov 2026',
     interviewType: 'Online',
+    interviewMedia: 'Google Meet',
+    meetingLocation: 'https://meet.google.com/sde-conf-mtg',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'Technical Interview',
     jobPosition: 'Senior Software Engineer',
@@ -126,6 +128,8 @@ export const INITIAL_ALLOCATIONS = [
     assignedTime: '02:00 PM – 03:00 PM',
     interviewDate: '02 Nov 2026',
     interviewType: 'Physical',
+    interviewMedia: 'In-Person',
+    meetingLocation: 'Engineering Interview Room 1, HQ Building',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'HR Portfolio Review',
     jobPosition: 'Senior Software Engineer',
@@ -139,6 +143,8 @@ export const INITIAL_ALLOCATIONS = [
     assignedTime: '11:00 AM – 12:00 PM',
     interviewDate: '04 Nov 2026',
     interviewType: 'Online',
+    interviewMedia: 'Google Meet',
+    meetingLocation: 'https://meet.google.com/fst-arch-rev',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'System Architecture',
     jobPosition: 'Senior Software Engineer',
@@ -148,7 +154,7 @@ export const INITIAL_ALLOCATIONS = [
 ];
 
 // Clean Storage Version to permanently purge old duplicate test entries and keep single default dataset
-const CLEAN_STORAGE_VERSION = 'v12_fresh_session_defaults';
+const CLEAN_STORAGE_VERSION = 'v13_valid_meet_links';
 
 export const resetToDefaultMockData = () => {
   try {
@@ -183,7 +189,7 @@ const INITIAL_PANELS = [
     id: 'panel-a',
     name: 'Panel A (Technical Leads)',
     meetingType: 'Google Meet',
-    meetingLink: 'https://meet.google.com/xyz-123',
+    meetingLink: 'https://meet.google.com/sde-conf-mtg',
     roundLabel: 'Round 1 · HR Screening',
     members: [
       { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
@@ -2493,7 +2499,7 @@ function isOutdatedPastDate(dateVal) {
 
                       <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
                       <span style={{ color: '#60A5FA', wordBreak: 'break-all' }}>
-                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/intelli-xyz-123')}
+                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/sde-conf-mtg')}
                       </span>
                     </div>
                   </div>
