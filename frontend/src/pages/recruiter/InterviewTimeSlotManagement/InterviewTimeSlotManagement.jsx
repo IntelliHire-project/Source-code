@@ -50,7 +50,7 @@ import {
 } from '../../../api/interviewApi';
 import { INITIAL_CANDIDATES, INITIAL_ALLOCATIONS, resetToDefaultMockData, formatPanelDisplayName } from '../InterviewAllocation/CandidateInterviewAllocation';
 
-const CLEAN_STORAGE_VERSION = 'v15_enterprise_teams_creds';
+const CLEAN_STORAGE_VERSION = 'v16_force_teams_creds_visible';
 (() => {
   try {
     if (typeof window !== 'undefined') {
@@ -136,9 +136,12 @@ const initialSlots = [
     startTime: '10:30 AM',
     endTime: '11:30 AM',
     interviewType: 'Online',
+    interviewMedia: 'Microsoft Teams',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/new',
+    meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+    meetingId: '284 912 049 192',
+    meetingPasscode: 'inTelli#2026',
     additionalNotes: 'Architecture discussion covering scalability, APIs, and database design.',
     bookedCount: 1,
   },
@@ -388,7 +391,7 @@ const emptyForm = {
   jobPosition: defaultVacancy,
   interviewRound: 'Technical Interview',
   customRoundName: '',
-  interviewMedia: 'Google Meet',
+  interviewMedia: 'Microsoft Teams',
   interviewType: 'Online',
   interviewDate: new Date().getHours() >= 17 ? getTomorrowInputValue() : getTodayInputValue(),
   startTime: '09:00',
@@ -396,9 +399,9 @@ const emptyForm = {
   capacity: '3',
   panelName: 'Panel A (Technical Leads)',
   panelEmails: 'saman.tech@company.com, nirosha.hr@company.com',
-  meetingLocation: 'https://meet.google.com/new',
-  meetingId: '',
-  meetingPasscode: '',
+  meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+  meetingId: '284 912 049 192',
+  meetingPasscode: 'inTelli#2026',
   additionalNotes: '',
 };
 
@@ -604,14 +607,32 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   const [slots, setSlots] = useState(() => {
     try {
-      if (!sessionStorage.getItem('intellihire_recruiter_session')) {
+      const isOutdated = typeof window !== 'undefined' && localStorage.getItem('intellihire_clean_version') !== CLEAN_STORAGE_VERSION;
+      if (isOutdated || !sessionStorage.getItem('intellihire_recruiter_session')) {
         if (typeof resetToDefaultMockData === 'function') {
           resetToDefaultMockData();
         }
         return initialSlots;
       }
       const stored = localStorage.getItem('intellihire_interview_slots');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((s, idx) => {
+            const isPhysical = s.interviewType === 'Physical';
+            const loc = s.meetingLocation || '';
+            const isTeams = s.interviewMedia === 'Microsoft Teams' || loc.includes('teams');
+            const isZoom = s.interviewMedia === 'Zoom' || loc.includes('zoom');
+            return {
+              ...s,
+              interviewMedia: isPhysical ? 'In-Person' : (s.interviewMedia || (isTeams ? 'Microsoft Teams' : isZoom ? 'Zoom' : 'Microsoft Teams')),
+              meetingLocation: s.meetingLocation || (isPhysical ? 'Engineering Conference Room, 2nd Floor' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'),
+              meetingId: s.meetingId || (!isPhysical ? (idx === 0 ? '284 912 049 192' : '592 104 389 716') : ''),
+              meetingPasscode: s.meetingPasscode || (!isPhysical ? 'inTelli#2026' : ''),
+            };
+          });
+        }
+      }
     } catch { }
     return initialSlots;
   });
@@ -4031,21 +4052,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 <span className="detail-label">Location / Link:</span>
                 <span className="detail-val highlight-val">{viewingSlot.meetingLocation || 'N/A'}</span>
               </div>
-              {viewingSlot.meetingId && (
-                <div className="modal-detail-row">
-                  <span className="detail-label">Meeting ID:</span>
-                  <span className="detail-val" style={{ fontFamily: 'monospace', color: '#A78BFA', fontWeight: 700, letterSpacing: '0.5px' }}>
-                    {viewingSlot.meetingId}
-                  </span>
-                </div>
-              )}
-              {viewingSlot.meetingPasscode && (
-                <div className="modal-detail-row">
-                  <span className="detail-label">Passcode:</span>
-                  <span className="detail-val" style={{ fontFamily: 'monospace', color: '#F0B90B', fontWeight: 700, letterSpacing: '0.5px' }}>
-                    {viewingSlot.meetingPasscode}
-                  </span>
-                </div>
+              {viewingSlot.interviewType !== 'Physical' && (
+                <>
+                  <div className="modal-detail-row">
+                    <span className="detail-label">Meeting ID:</span>
+                    <span className="detail-val" style={{ fontFamily: 'monospace', color: '#A78BFA', fontWeight: 700, letterSpacing: '0.5px' }}>
+                      {viewingSlot.meetingId || '284 912 049 192'}
+                    </span>
+                  </div>
+                  <div className="modal-detail-row">
+                    <span className="detail-label">Passcode:</span>
+                    <span className="detail-val" style={{ fontFamily: 'monospace', color: '#F0B90B', fontWeight: 700, letterSpacing: '0.5px' }}>
+                      {viewingSlot.meetingPasscode || 'inTelli#2026'}
+                    </span>
+                  </div>
+                </>
               )}
               <div className="modal-detail-row">
                 <span className="detail-label">Additional Notes:</span>

@@ -113,8 +113,10 @@ export const INITIAL_ALLOCATIONS = [
     assignedTime: '09:30 AM – 10:30 AM',
     interviewDate: '02 Nov 2026',
     interviewType: 'Online',
-    interviewMedia: 'Google Meet',
-    meetingLocation: 'https://meet.google.com/new',
+    interviewMedia: 'Microsoft Teams',
+    meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+    meetingId: '284 912 049 192',
+    meetingPasscode: 'inTelli#2026',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'Technical Interview',
     jobPosition: 'Senior Software Engineer',
@@ -145,8 +147,8 @@ export const INITIAL_ALLOCATIONS = [
     interviewType: 'Online',
     interviewMedia: 'Microsoft Teams',
     meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
-    meetingId: '284 912 049 192',
-    meetingPasscode: 'inTelli#2026',
+    meetingId: '592 104 389 716',
+    meetingPasscode: 'inTelli#7942',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'System Architecture',
     jobPosition: 'Senior Software Engineer',
@@ -156,7 +158,7 @@ export const INITIAL_ALLOCATIONS = [
 ];
 
 // Clean Storage Version to permanently purge old duplicate test entries and keep single default dataset
-const CLEAN_STORAGE_VERSION = 'v15_enterprise_teams_creds';
+const CLEAN_STORAGE_VERSION = 'v16_force_teams_creds_visible';
 
 export const resetToDefaultMockData = () => {
   try {
@@ -433,15 +435,27 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
   const [allocations, setAllocations] = useState(() => {
     try {
-      if (!sessionStorage.getItem('intellihire_recruiter_session')) {
+      const isOutdated = typeof window !== 'undefined' && localStorage.getItem('intellihire_clean_version') !== CLEAN_STORAGE_VERSION;
+      if (isOutdated || !sessionStorage.getItem('intellihire_recruiter_session')) {
         resetToDefaultMockData();
         return INITIAL_ALLOCATIONS;
       }
       const stored = localStorage.getItem('intellihire_allocations');
       if (stored !== null) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item, idx) => {
+            const loc = item.meetingLocation || '';
+            const isPhysical = item.interviewType === 'Physical';
+            const media = isPhysical ? 'In-Person' : (item.interviewMedia || (loc.includes('teams') ? 'Microsoft Teams' : loc.includes('zoom') ? 'Zoom' : 'Microsoft Teams'));
+            return {
+              ...item,
+              interviewMedia: media,
+              meetingLocation: item.meetingLocation || (isPhysical ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'),
+              meetingId: item.meetingId || (!isPhysical ? (idx === 0 ? '284 912 049 192' : '592 104 389 716') : ''),
+              meetingPasscode: item.meetingPasscode || (!isPhysical ? 'inTelli#2026' : ''),
+            };
+          });
         }
       }
     } catch {}
@@ -453,9 +467,21 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     fetchAllocations()
       .then((res) => {
         if (res && res.allocations && Array.isArray(res.allocations) && res.allocations.length > 0) {
-          setAllocations(res.allocations);
+          const enriched = res.allocations.map((item, idx) => {
+            const loc = item.meetingLocation || '';
+            const isPhysical = item.interviewType === 'Physical';
+            const media = isPhysical ? 'In-Person' : (item.interviewMedia || (loc.includes('teams') ? 'Microsoft Teams' : loc.includes('zoom') ? 'Zoom' : 'Microsoft Teams'));
+            return {
+              ...item,
+              interviewMedia: media,
+              meetingLocation: item.meetingLocation || (isPhysical ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'),
+              meetingId: item.meetingId || (!isPhysical ? (idx === 0 ? '284 912 049 192' : '592 104 389 716') : ''),
+              meetingPasscode: item.meetingPasscode || (!isPhysical ? 'inTelli#2026' : ''),
+            };
+          });
+          setAllocations(enriched);
           try {
-            localStorage.setItem('intellihire_allocations', JSON.stringify(res.allocations));
+            localStorage.setItem('intellihire_allocations', JSON.stringify(enriched));
           } catch (e) {}
         }
       })
@@ -1646,7 +1672,7 @@ function isOutdatedPastDate(dateVal) {
                   }}
                 >
                   <Send size={13} />
-                  <span>Send All Invites</span>
+                  <span>Preview &amp; Send Invites</span>
                 </button>
               </div>
             </div>
@@ -1754,8 +1780,8 @@ function isOutdatedPastDate(dateVal) {
                             <button
                               type="button"
                               className="btn-notify-row"
-                              onClick={() => handleNotifyCandidate(item)}
-                              title="Send interview invitation and meeting details"
+                              onClick={() => handleOpenEmailPreview(item)}
+                              title="Preview and send interview invitation with meeting credentials"
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1834,7 +1860,7 @@ function isOutdatedPastDate(dateVal) {
                       <button
                         type="button"
                         className="btn-notify-row"
-                        onClick={() => handleNotifyCandidate(item)}
+                        onClick={() => handleOpenEmailPreview(item)}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -2500,29 +2526,25 @@ function isOutdatedPastDate(dateVal) {
                       <span style={{ color: '#FFFFFF' }}>{previewSelectedCandidate.panelName || 'Panel A (Technical Leads)'}</span>
 
                       <span style={{ color: '#9599A6' }}>Platform:</span>
-                      <span style={{ color: previewSelectedCandidate.interviewMedia === 'Microsoft Teams' ? '#A78BFA' : previewSelectedCandidate.interviewMedia === 'Zoom' ? '#38BDF8' : '#60A5FA', fontWeight: 600 }}>
-                        {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Google Meet')}
+                      <span style={{ color: (previewSelectedCandidate.interviewMedia === 'Microsoft Teams' || (previewSelectedCandidate.meetingLocation && previewSelectedCandidate.meetingLocation.includes('teams'))) ? '#A78BFA' : (previewSelectedCandidate.interviewMedia === 'Zoom' || (previewSelectedCandidate.meetingLocation && previewSelectedCandidate.meetingLocation.includes('zoom'))) ? '#38BDF8' : '#60A5FA', fontWeight: 700 }}>
+                        {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Microsoft Teams')}
                       </span>
 
                       <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
                       <span style={{ color: '#60A5FA', wordBreak: 'break-all' }}>
-                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/new')}
+                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting')}
                       </span>
 
-                      {previewSelectedCandidate.meetingId && (
+                      {previewSelectedCandidate.interviewType !== 'Physical' && (
                         <>
                           <span style={{ color: '#9599A6' }}>Meeting ID:</span>
-                          <span style={{ color: '#A78BFA', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.5px' }}>
-                            {previewSelectedCandidate.meetingId}
+                          <span style={{ color: '#A78BFA', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
+                            {previewSelectedCandidate.meetingId || '284 912 049 192'}
                           </span>
-                        </>
-                      )}
 
-                      {previewSelectedCandidate.meetingPasscode && (
-                        <>
                           <span style={{ color: '#9599A6' }}>Passcode:</span>
-                          <span style={{ color: '#F0B90B', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.5px' }}>
-                            {previewSelectedCandidate.meetingPasscode}
+                          <span style={{ color: '#F0B90B', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
+                            {previewSelectedCandidate.meetingPasscode || 'inTelli#2026'}
                           </span>
                         </>
                       )}
@@ -2557,6 +2579,31 @@ function isOutdatedPastDate(dateVal) {
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  if (previewSelectedCandidate) {
+                    handleNotifyCandidate(previewSelectedCandidate);
+                    setShowEmailPreviewModal(false);
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid #3B82F6',
+                  color: '#60A5FA',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <Send size={13} />
+                <span>Send to {previewSelectedCandidate?.candidateName?.split(' ')[0] || 'Candidate'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleConfirmSendAllInvites}
                 style={{
                   display: 'inline-flex',
@@ -2574,7 +2621,7 @@ function isOutdatedPastDate(dateVal) {
                 }}
               >
                 <Send size={14} />
-                <span>Confirm &amp; Send All Invites ({filteredAllocations.filter((a) => a.status === 'ALLOCATED').length})</span>
+                <span>Send All ({filteredAllocations.filter((a) => a.status === 'ALLOCATED').length}) Invites</span>
               </button>
             </div>
           </div>
