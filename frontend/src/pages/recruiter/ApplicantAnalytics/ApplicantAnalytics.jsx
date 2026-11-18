@@ -150,6 +150,21 @@ export default function ApplicantAnalytics() {
             ))}
           </div>
 
+          {/* Printable Dossier Header (Only renders on @media print) */}
+          <div className="an-print-header">
+            <div className="an-print-header__top">
+              <div>
+                <h2 className="an-print-header__title">IntelliHire — Executive Analytics Dossier</h2>
+                <span className="an-print-header__subtitle">Recruitment Pipeline, Applicant Volume &amp; Evaluation Audit Report</span>
+              </div>
+              <div className="an-print-header__meta">
+                <div>Report: <strong>Applicant Analytics</strong></div>
+                <div>Generated: <strong>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</strong></div>
+                <div>Total Applicants: <strong>{totals.total}</strong> | Shortlisted: <strong>{totals.shortlisted}</strong></div>
+              </div>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="an-page-header">
             <div>
@@ -158,11 +173,11 @@ export default function ApplicantAnalytics() {
             </div>
             <div className="an-header-actions">
               <button className="an-print-btn" type="button" onClick={() => window.print()} title="Print or save PDF dossier">
-                <Printer size={16} />
+                <Printer size={14} />
                 Print / Save PDF
               </button>
               <button className="an-export-btn" type="button" onClick={exportReport} title="Export CSV report">
-                <Download size={16} />
+                <Download size={14} />
                 Export CSV
               </button>
             </div>
@@ -464,6 +479,12 @@ export default function ApplicantAnalytics() {
                 </button>
               </div>
             </div>}
+          </div>
+
+          {/* Printable Dossier Footer */}
+          <div className="an-print-footer">
+            <span>IntelliHire Recruitment Platform • Confidential Candidate Analytics</span>
+            <span>Generated for Hiring Manager • Page 1 of 1</span>
           </div>
         </main>
       </div>

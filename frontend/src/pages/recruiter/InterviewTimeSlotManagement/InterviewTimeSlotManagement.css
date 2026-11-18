@@ -1513,3 +1513,102 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
+
+/* ── Create Interview Choice Modal (Theme-Cohesive Dark & Gold) ── */
+.zoho-modal-card {
+  max-width: 580px !important;
+  width: 92% !important;
+  border-radius: 18px !important;
+  background: #14151E !important;
+  border: 1px solid rgba(240, 185, 11, 0.25) !important;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.zoho-modal-card .modal-header {
+  padding: 22px 26px 18px !important;
+  background: #181924 !important;
+  border-bottom: 1px solid #262938 !important;
+}
+
+.zoho-modal-choice-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #1A1C27;
+  border: 1px solid #2A2E3E;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.zoho-modal-choice-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.zoho-modal-choice-card:hover {
+  background: #202433 !important;
+  border-color: rgba(240, 185, 11, 0.6) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 18px rgba(240, 185, 11, 0.08) !important;
+}
+
+.zoho-modal-choice-card:hover::before {
+  background: #F0B90B;
+}
+
+.zoho-modal-choice-card:hover .choice-card-arrow {
+  color: #F0B90B !important;
+  transform: translateX(4px);
+}
+
+.zoho-modal-choice-card:hover .choice-card-icon-video {
+  background: rgba(240, 185, 11, 0.22) !important;
+  color: #F0B90B !important;
+  border-color: rgba(240, 185, 11, 0.5) !important;
+}
+
+.zoho-modal-choice-card:hover .choice-card-icon-physical {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(240, 185, 11, 0.5) !important;
+}
+
+.choice-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.choice-card-icon-video {
+  background: rgba(240, 185, 11, 0.12);
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.28);
+}
+
+.choice-card-icon-physical {
+  background: rgba(255, 255, 255, 0.06);
+  color: #E2E8F0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.choice-card-arrow {
+  color: #727685;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+

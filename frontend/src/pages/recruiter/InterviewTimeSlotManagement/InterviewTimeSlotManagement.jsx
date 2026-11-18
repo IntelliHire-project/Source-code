@@ -22,12 +22,16 @@ import {
   ShieldCheck,
   Send,
   X,
+  ChevronRight,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
+import '../../../components/common/VacancySelectorModal.css';
 import { VACANCIES } from '../../../data/vacancies';
 import { MOCK_CANDIDATES, enrichCandidateDetails, CandidateDetailView } from '../RankedApplicants/RankedApplicants';
 import {
@@ -47,7 +51,7 @@ import {
 } from '../../../api/interviewApi';
 import { INITIAL_CANDIDATES, INITIAL_ALLOCATIONS, resetToDefaultMockData, formatPanelDisplayName } from '../InterviewAllocation/CandidateInterviewAllocation';
 
-const CLEAN_STORAGE_VERSION = 'v12_fresh_session_defaults';
+const CLEAN_STORAGE_VERSION = 'v16_force_teams_creds_visible';
 (() => {
   try {
     if (typeof window !== 'undefined') {
@@ -120,7 +124,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 5,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/abc-tech-interview',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Focus on React state management and Node.js microservices architecture.',
     bookedCount: 2,
     isPast: true,
@@ -133,9 +137,12 @@ const initialSlots = [
     startTime: '10:30 AM',
     endTime: '11:30 AM',
     interviewType: 'Online',
+    interviewMedia: 'Microsoft Teams',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/fullstack-system-design',
+    meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+    meetingId: '284 912 049 192',
+    meetingPasscode: 'inTelli#2026',
     additionalNotes: 'Architecture discussion covering scalability, APIs, and database design.',
     bookedCount: 1,
   },
@@ -161,9 +168,12 @@ const initialSlots = [
     startTime: '09:30 AM',
     endTime: '10:30 AM',
     interviewType: 'Online',
+    interviewMedia: 'Microsoft Teams',
     capacity: 5,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/fullstack-technical-b',
+    meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+    meetingId: '284 912 049 192',
+    meetingPasscode: 'inTelli#2026',
     additionalNotes: 'Coding and debugging exercise focused on React and Node.js.',
     bookedCount: 2,
   },
@@ -189,9 +199,12 @@ const initialSlots = [
     startTime: '02:00 PM',
     endTime: '03:00 PM',
     interviewType: 'Online',
+    interviewMedia: 'Zoom',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/frontend-architecture',
+    meetingLocation: 'https://zoom.us/join',
+    meetingId: '948 2710 4912',
+    meetingPasscode: 'intelli2026',
     additionalNotes: 'Frontend architecture, accessibility, performance, and testing discussion.',
     bookedCount: 1,
   },
@@ -247,7 +260,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 6,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/pm-screening-room',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Initial background screening and career roadmap alignment.',
     bookedCount: 2,
   },
@@ -275,7 +288,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/product-design-review',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Portfolio review, design system critique, and UX problem-solving.',
     bookedCount: 1,
   },
@@ -314,6 +327,47 @@ function getTomorrowInputValue() {
 
 const defaultVacancy = 'Senior Software Engineer';
 
+export const generateMeetingCredentials = (platform = 'Google Meet') => {
+  if (platform === 'Microsoft Teams' || platform === 'MS Teams') {
+    // Generate realistic 12-digit Teams Meeting ID formatted as 3-3-3-3: e.g. "284 912 049 192"
+    const p1 = Math.floor(100 + Math.random() * 900);
+    const p2 = Math.floor(100 + Math.random() * 900);
+    const p3 = Math.floor(100 + Math.random() * 900);
+    const p4 = Math.floor(100 + Math.random() * 900);
+    const meetingId = `${p1} ${p2} ${p3} ${p4}`;
+    const num = Math.floor(1000 + Math.random() * 9000);
+    const meetingPasscode = `inTelli#${num}`;
+    return {
+      meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+      meetingId,
+      meetingPasscode,
+    };
+  }
+  if (platform === 'Zoom') {
+    // Generate realistic 11-digit Zoom Meeting ID formatted as 3-4-4: e.g. "948 2710 4912"
+    const p1 = Math.floor(100 + Math.random() * 900);
+    const p2 = Math.floor(1000 + Math.random() * 9000);
+    const p3 = Math.floor(1000 + Math.random() * 9000);
+    const meetingId = `${p1} ${p2} ${p3}`;
+    const meetingPasscode = Math.floor(100000 + Math.random() * 900000).toString();
+    return {
+      meetingLocation: 'https://zoom.us/join',
+      meetingId,
+      meetingPasscode,
+    };
+  }
+  // Google Meet - Google's official instant meeting launcher that ALWAYS starts an active live call
+  return {
+    meetingLocation: 'https://meet.google.com/new',
+    meetingId: '',
+    meetingPasscode: '',
+  };
+};
+
+export const generateValidMeetingUrl = (platform = 'Google Meet') => {
+  return generateMeetingCredentials(platform).meetingLocation;
+};
+
 function isSlotTimeInPast(slotDate, slotTimeStr) {
   if (!slotDate || !slotTimeStr) return false;
   const today = new Date();
@@ -338,7 +392,7 @@ const emptyForm = {
   jobPosition: defaultVacancy,
   interviewRound: 'Technical Interview',
   customRoundName: '',
-  interviewMedia: 'Google Meet',
+  interviewMedia: 'Microsoft Teams',
   interviewType: 'Online',
   interviewDate: new Date().getHours() >= 17 ? getTomorrowInputValue() : getTodayInputValue(),
   startTime: '09:00',
@@ -346,7 +400,9 @@ const emptyForm = {
   capacity: '3',
   panelName: 'Panel A (Technical Leads)',
   panelEmails: 'saman.tech@company.com, nirosha.hr@company.com',
-  meetingLocation: '',
+  meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+  meetingId: '284 912 049 192',
+  meetingPasscode: 'inTelli#2026',
   additionalNotes: '',
 };
 
@@ -552,20 +608,39 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   const [slots, setSlots] = useState(() => {
     try {
-      if (!sessionStorage.getItem('intellihire_recruiter_session')) {
+      const isOutdated = typeof window !== 'undefined' && localStorage.getItem('intellihire_clean_version') !== CLEAN_STORAGE_VERSION;
+      if (isOutdated || !sessionStorage.getItem('intellihire_recruiter_session')) {
         if (typeof resetToDefaultMockData === 'function') {
           resetToDefaultMockData();
         }
         return initialSlots;
       }
       const stored = localStorage.getItem('intellihire_interview_slots');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((s, idx) => {
+            const isPhysical = s.interviewType === 'Physical';
+            const loc = s.meetingLocation || '';
+            const isTeams = s.interviewMedia === 'Microsoft Teams' || loc.includes('teams');
+            const isZoom = s.interviewMedia === 'Zoom' || loc.includes('zoom');
+            return {
+              ...s,
+              interviewMedia: isPhysical ? 'In-Person' : (s.interviewMedia || (isTeams ? 'Microsoft Teams' : isZoom ? 'Zoom' : 'Microsoft Teams')),
+              meetingLocation: s.meetingLocation || (isPhysical ? 'Engineering Conference Room, 2nd Floor' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'),
+              meetingId: s.meetingId || (!isPhysical ? (idx === 0 ? '284 912 049 192' : '592 104 389 716') : ''),
+              meetingPasscode: s.meetingPasscode || (!isPhysical ? 'inTelli#2026' : ''),
+            };
+          });
+        }
+      }
     } catch { }
     return initialSlots;
   });
   const [formData, setFormData] = useState(initialForm);
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [showZohoModal, setShowZohoModal] = useState(false);
+  const [selectedFormatType, setSelectedFormatType] = useState('Google Meet');
   const [showInlineForm, setShowInlineForm] = useState(Boolean(location.state?.openForm));
   const [showPreview, setShowPreview] = useState(false);
   const [showManualAssign, setShowManualAssign] = useState(false);
@@ -601,6 +676,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
         console.warn('Backend fetch fallback:', err.message);
       });
   }, []);
+
+  // Keyboard navigation for Format Selector Modal (Enter to continue, Escape to close)
+  useEffect(() => {
+    if (!showZohoModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowZohoModal(false);
+      } else if (e.key === 'Enter' && selectedFormatType) {
+        handleChooseZohoType(selectedFormatType);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showZohoModal, selectedFormatType]);
 
   // Dynamic candidate list matching the active job position
   const currentShortlisted = useMemo(() => {
@@ -1298,6 +1387,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleOpenCreateInterview = () => {
+    setSelectedFormatType('Google Meet');
     setShowZohoModal(true);
   };
 
@@ -1323,7 +1413,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
       interviewDate: initialDate,
       meetingLocation: !isOnline
         ? 'Executive Boardroom 3B, 2nd Floor, HQ Tower'
-        : (type === 'Google Meet' || isOnline ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Past Session Evaluation Log'),
+        : (type === 'Google Meet' || isOnline ? generateValidMeetingUrl('Google Meet') : 'Past Session Evaluation Log'),
     });
     // Immediately synchronize all panel slots with the chosen interview type
     setPanels(prevPanels => {
@@ -1360,24 +1450,76 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setMessage('');
   };
 
+  const handleResetAllSlotsToDefault = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('intellihire_interview_slots');
+        localStorage.removeItem('intellihire_custom_slots');
+        localStorage.removeItem('intellihire_allocations');
+        localStorage.removeItem('intellihire_candidates');
+        localStorage.setItem('intellihire_clean_version', CLEAN_STORAGE_VERSION);
+        if (typeof resetToDefaultMockData === 'function') {
+          resetToDefaultMockData();
+        }
+      }
+      setSlots(initialSlots);
+      const defaultDate = new Date().getHours() >= 17 ? getTomorrowInputValue() : getTodayInputValue();
+      setPanels([
+        {
+          id: 1,
+          name: 'Panel A (Technical Leads)',
+          emails: 'saman.tech@company.com, nirosha.hr@company.com',
+          capacity: 2,
+          selectedDate: defaultDate,
+          slots: [
+            { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
+            { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Online', assignedCandidate: null },
+          ],
+        },
+      ]);
+      setEditingSlotId(null);
+      setShowInlineForm(false);
+      setToast({ type: 'success', message: 'All custom slots reset to clean default dataset!' });
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
   const handleMediaSelect = (media) => {
     const isOnline = media !== 'In-Person';
     const newType = isOnline ? 'Online' : 'Physical';
     setActiveZohoType(media === 'In-Person' ? 'In-Person' : 'Google Meet');
     setFormData(current => {
       let autoLocation = current.meetingLocation;
-      if (media === 'Google Meet' && (!autoLocation || autoLocation.includes('teams') || !autoLocation.includes('http'))) {
-        autoLocation = `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}`;
-      } else if (media === 'MS Teams' && (!autoLocation || autoLocation.includes('meet') || !autoLocation.includes('http'))) {
-        autoLocation = `https://teams.microsoft.com/l/meetup-join/intelli-${Math.random().toString(36).substring(2, 7)}`;
-      } else if (media === 'In-Person' && (autoLocation.includes('http') || !autoLocation)) {
+      let meetingId = current.meetingId || '';
+      let meetingPasscode = current.meetingPasscode || '';
+
+      if (media === 'Google Meet') {
+        autoLocation = 'https://meet.google.com/new';
+        meetingId = '';
+        meetingPasscode = '';
+      } else if (media === 'MS Teams' || media === 'Microsoft Teams') {
+        const creds = generateMeetingCredentials('Microsoft Teams');
+        autoLocation = creds.meetingLocation;
+        meetingId = creds.meetingId;
+        meetingPasscode = creds.meetingPasscode;
+      } else if (media === 'Zoom') {
+        const creds = generateMeetingCredentials('Zoom');
+        autoLocation = creds.meetingLocation;
+        meetingId = creds.meetingId;
+        meetingPasscode = creds.meetingPasscode;
+      } else if (media === 'In-Person') {
         autoLocation = 'Main Engineering Conference Room, 2nd Floor';
+        meetingId = '';
+        meetingPasscode = '';
       }
       return {
         ...current,
         interviewMedia: media,
         interviewType: newType,
         meetingLocation: autoLocation,
+        meetingId,
+        meetingPasscode,
       };
     });
     // Synchronize all panel slots when media type changes
@@ -1420,6 +1562,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
       panelName: slot.panelName || 'Panel A (Technical Leads)',
       panelEmails: slot.panelEmails || 'techlead@company.com, hr@company.com',
       meetingLocation: slot.meetingLocation || '',
+      meetingId: slot.meetingId || '',
+      meetingPasscode: slot.meetingPasscode || '',
       additionalNotes: slot.additionalNotes || '',
     });
     setFormError('');
@@ -1472,6 +1616,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
               panelName: panels[0]?.name || 'Panel A (Technical Leads)',
               panelEmails: panels[0]?.emails || 'techlead@company.com, hr@company.com',
               meetingLocation: formData.meetingLocation,
+              meetingId: formData.meetingId || '',
+              meetingPasscode: formData.meetingPasscode || '',
               additionalNotes: formData.additionalNotes,
             };
           }
@@ -1513,7 +1659,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
             status: 'AVAILABLE',
             panelName: p.name,
             panelEmails: p.emails,
-            meetingLocation: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Main Office Conference Room'),
+            meetingLocation: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? generateValidMeetingUrl('Google Meet') : 'Main Office Conference Room'),
+            meetingId: formData.meetingId || '',
+            meetingPasscode: formData.meetingPasscode || '',
             additionalNotes: formData.additionalNotes || 'N/A',
             bookedCount: sRow.assignedCandidate ? 1 : 0,
             assignedCandidate: sRow.assignedCandidate || null,
@@ -1895,7 +2043,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <p style={{ fontSize: '0.9rem', color: '#9599A6', maxWidth: '480px', margin: '0 auto 26px auto', lineHeight: 1.6 }}>
                 Schedule interviews with candidates who have applied for positions. Setup video meetings, in-person rounds, panel assignments, and Google Calendar sync.
               </p>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={handleOpenCreateInterview}
@@ -1915,7 +2063,37 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     transition: 'all 0.2s ease',
                   }}
                 >
+                  <Plus size={16} />
                   <span>Create Interview</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetAllSlotsToDefault}
+                  title="Clear newly created test slots and reset to clean default dataset"
+                  style={{
+                    padding: '12px 20px',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    color: '#EF4444',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                  }}
+                >
+                  <RotateCcw size={15} />
+                  <span>Reset Test Slots</span>
                 </button>
               </div>
             </div>
@@ -2623,75 +2801,468 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="form-group">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
-                            ONLINE MEETING LINK (GOOGLE MEET / TEAMS)
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                        {/* Interview Platform Selector */}
+                        <div style={{ marginBottom: '14px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                            SELECT INTERVIEW PLATFORM
                           </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const chars = 'abcdefghijklmnopqrstuvwxyz';
-                              const randLetters = Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                              const randDigits = Math.floor(100 + Math.random() * 900);
-                              const generatedUrl = `https://meet.google.com/intelli-${randLetters}-${randDigits}`;
-                              setFormData(prev => ({ ...prev, meetingLocation: generatedUrl }));
-                              setToast({ type: 'success', message: 'Google Meet link generated and filled!' });
-                            }}
-                            title="Generate a random Google Meet link"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              backgroundColor: 'rgba(240, 185, 11, 0.15)',
-                              border: '1px solid #F0B90B',
-                              color: '#F0B90B',
-                              padding: '3px 10px',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <Sparkles size={12} />
-                            <span>⚡ Generate Meet Link</span>
-                          </button>
-                        </div>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <input
-                            type="text"
-                            name="meetingLocation"
-                            placeholder="e.g. https://meet.google.com/intelli-xyz-123"
-                            value={formData.meetingLocation}
-                            onChange={handleFieldChange}
-                            className="form-control"
-                            style={{ backgroundColor: '#1E222D', color: '#FFFFFF', paddingRight: formData.meetingLocation ? '95px' : '12px' }}
-                          />
-                          {formData.meetingLocation && (
-                            <a
-                              href={formData.meetingLocation}
-                              target="_blank"
-                              rel="noreferrer"
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const creds = generateMeetingCredentials('Google Meet');
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Google Meet',
+                                  interviewType: 'Online',
+                                  meetingLocation: creds.meetingLocation,
+                                  meetingId: creds.meetingId,
+                                  meetingPasscode: creds.meetingPasscode,
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Google Meet (Instant Live Call)' });
+                              }}
                               style={{
-                                position: 'absolute',
-                                right: '8px',
-                                backgroundColor: 'rgba(66, 133, 244, 0.15)',
-                                color: '#60A5FA',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.7rem',
-                                fontWeight: 600,
-                                display: 'inline-flex',
+                                display: 'flex',
                                 alignItems: 'center',
-                                gap: '3px',
-                                textDecoration: 'none'
+                                justifyContent: 'center',
+                                gap: '8px',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? '1px solid #4285F4' : '1px solid #2A2C38',
+                                backgroundColor: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? 'rgba(66, 133, 244, 0.15)' : '#1E222D',
+                                color: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? '#60A5FA' : '#9599A6',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
                               }}
                             >
-                              <ExternalLink size={11} /> Test Link
-                            </a>
-                          )}
+                              <Video size={14} />
+                              <span>Google Meet</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const creds = generateMeetingCredentials('Microsoft Teams');
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Microsoft Teams',
+                                  interviewType: 'Online',
+                                  meetingLocation: creds.meetingLocation,
+                                  meetingId: prev.meetingId || creds.meetingId,
+                                  meetingPasscode: prev.meetingPasscode || creds.meetingPasscode,
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Microsoft Teams (Enterprise Meeting)' });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: formData.interviewMedia === 'Microsoft Teams' ? '1px solid #7C3AED' : '1px solid #2A2C38',
+                                backgroundColor: formData.interviewMedia === 'Microsoft Teams' ? 'rgba(124, 58, 237, 0.15)' : '#1E222D',
+                                color: formData.interviewMedia === 'Microsoft Teams' ? '#A78BFA' : '#9599A6',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Video size={14} />
+                              <span>MS Teams</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const creds = generateMeetingCredentials('Zoom');
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Zoom',
+                                  interviewType: 'Online',
+                                  meetingLocation: creds.meetingLocation,
+                                  meetingId: prev.meetingId || creds.meetingId,
+                                  meetingPasscode: prev.meetingPasscode || creds.meetingPasscode,
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Zoom' });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: formData.interviewMedia === 'Zoom' ? '1px solid #0284C7' : '1px solid #2A2C38',
+                                backgroundColor: formData.interviewMedia === 'Zoom' ? 'rgba(2, 132, 199, 0.15)' : '#1E222D',
+                                color: formData.interviewMedia === 'Zoom' ? '#38BDF8' : '#9599A6',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Video size={14} />
+                              <span>Zoom</span>
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Platform Specific Configuration Card */}
+                        {(!formData.interviewMedia || formData.interviewMedia === 'Google Meet') && (
+                          <div style={{
+                            backgroundColor: 'rgba(66, 133, 244, 0.06)',
+                            border: '1px solid rgba(66, 133, 244, 0.25)',
+                            borderRadius: '10px',
+                            padding: '14px 16px',
+                            marginBottom: '10px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22C55E' }}></span>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#60A5FA', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>
+                                  GOOGLE MEET INSTANT LIVE ROOM
+                                </label>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <a
+                                  href="https://meet.google.com/new"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    backgroundColor: 'rgba(66, 133, 244, 0.18)',
+                                    border: '1px solid rgba(66, 133, 244, 0.45)',
+                                    color: '#60A5FA',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    textDecoration: 'none'
+                                  }}
+                                  title="Launch an instant live Google Meet room with camera & mic"
+                                >
+                                  <Video size={12} />
+                                  <span>⚡ Instant Call (meet.new) ↗</span>
+                                </a>
+                              </div>
+                            </div>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '0.74rem', color: '#9599A6', lineHeight: '1.4' }}>
+                              Google&apos;s official instant meeting endpoint automatically initializes a video room with camera and microphone preview. No Microsoft or corporate login required.
+                            </p>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                name="meetingLocation"
+                                value={formData.meetingLocation || 'https://meet.google.com/new'}
+                                onChange={handleFieldChange}
+                                className="form-control"
+                                placeholder="e.g. https://meet.google.com/new"
+                                style={{ backgroundColor: '#1E222D', color: '#FFFFFF', paddingRight: '90px' }}
+                              />
+                              <a
+                                href={formData.meetingLocation || 'https://meet.google.com/new'}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  position: 'absolute',
+                                  right: '8px',
+                                  backgroundColor: 'rgba(66, 133, 244, 0.2)',
+                                  color: '#60A5FA',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  textDecoration: 'none'
+                                }}
+                              >
+                                <ExternalLink size={11} /> Test Call
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.interviewMedia === 'Microsoft Teams' && (
+                          <div style={{
+                            backgroundColor: 'rgba(124, 58, 237, 0.06)',
+                            border: '1px solid rgba(124, 58, 237, 0.25)',
+                            borderRadius: '10px',
+                            padding: '14px 16px',
+                            marginBottom: '10px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#A78BFA' }}></span>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#A78BFA', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>
+                                  MICROSOFT TEAMS ENTERPRISE CREDENTIALS
+                                </label>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const creds = generateMeetingCredentials('Microsoft Teams');
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    meetingLocation: creds.meetingLocation,
+                                    meetingId: creds.meetingId,
+                                    meetingPasscode: creds.meetingPasscode,
+                                  }));
+                                  setToast({ type: 'success', message: 'Generated fresh Enterprise Teams ID & Passcode!' });
+                                }}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  backgroundColor: 'rgba(124, 58, 237, 0.18)',
+                                  border: '1px solid rgba(124, 58, 237, 0.45)',
+                                  color: '#C084FC',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Sparkles size={12} />
+                                <span>⚡ Generate Fresh Credentials</span>
+                              </button>
+                            </div>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '0.74rem', color: '#9599A6', lineHeight: '1.4' }}>
+                              Corporate Teams interviews use official Meeting IDs and Passcodes. Candidates join via the Microsoft Teams join portal without requiring a company account.
+                            </p>
+
+                            {/* Row 1: Teams Portal Join URL */}
+                            <div style={{ marginBottom: '10px' }}>
+                              <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                TEAMS MEETING PORTAL / JOIN URL
+                              </label>
+                              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  name="meetingLocation"
+                                  value={formData.meetingLocation || 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'}
+                                  onChange={handleFieldChange}
+                                  className="form-control"
+                                  placeholder="e.g. https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting"
+                                  style={{ backgroundColor: '#1E222D', color: '#FFFFFF', paddingRight: '120px' }}
+                                />
+                                <a
+                                  href={formData.meetingLocation || 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                                    color: '#C084FC',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    textDecoration: 'none'
+                                  }}
+                                >
+                                  <ExternalLink size={11} /> Teams Portal ↗
+                                </a>
+                              </div>
+                            </div>
+
+                            {/* Row 2: Meeting ID and Passcode */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  TEAMS MEETING ID
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingId"
+                                  value={formData.meetingId || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. 284 912 049 192"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#1E222D',
+                                    color: '#A78BFA',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  MEETING PASSCODE
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingPasscode"
+                                  value={formData.meetingPasscode || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. inTelli#2026"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#1E222D',
+                                    color: '#F0B90B',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#6EE7B7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>✓</span> Included automatically in candidate email invitation and Google Calendar .ics file.
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.interviewMedia === 'Zoom' && (
+                          <div style={{
+                            backgroundColor: 'rgba(2, 132, 199, 0.06)',
+                            border: '1px solid rgba(2, 132, 199, 0.25)',
+                            borderRadius: '10px',
+                            padding: '14px 16px',
+                            marginBottom: '10px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38BDF8' }}></span>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#38BDF8', fontWeight: 700, margin: 0, textTransform: 'uppercase' }}>
+                                  ZOOM CLOUD MEETING CREDENTIALS
+                                </label>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const creds = generateMeetingCredentials('Zoom');
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    meetingLocation: creds.meetingLocation,
+                                    meetingId: creds.meetingId,
+                                    meetingPasscode: creds.meetingPasscode,
+                                  }));
+                                  setToast({ type: 'success', message: 'Generated fresh Zoom ID & Passcode!' });
+                                }}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  backgroundColor: 'rgba(2, 132, 199, 0.18)',
+                                  border: '1px solid rgba(2, 132, 199, 0.45)',
+                                  color: '#38BDF8',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Sparkles size={12} />
+                                <span>⚡ Generate Fresh Credentials</span>
+                              </button>
+                            </div>
+
+                            <div style={{ marginBottom: '10px' }}>
+                              <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                ZOOM JOIN URL
+                              </label>
+                              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  name="meetingLocation"
+                                  value={formData.meetingLocation || 'https://zoom.us/join'}
+                                  onChange={handleFieldChange}
+                                  className="form-control"
+                                  placeholder="e.g. https://zoom.us/join"
+                                  style={{ backgroundColor: '#1E222D', color: '#FFFFFF', paddingRight: '100px' }}
+                                />
+                                <a
+                                  href={formData.meetingLocation || 'https://zoom.us/join'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    backgroundColor: 'rgba(2, 132, 199, 0.2)',
+                                    color: '#38BDF8',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    textDecoration: 'none'
+                                  }}
+                                >
+                                  <ExternalLink size={11} /> Zoom Join ↗
+                                </a>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  ZOOM MEETING ID
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingId"
+                                  value={formData.meetingId || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. 948 2710 4912"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#1E222D',
+                                    color: '#38BDF8',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  PASSCODE
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingPasscode"
+                                  value={formData.meetingPasscode || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. 482910"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#1E222D',
+                                    color: '#F0B90B',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div style={{ marginTop: '8px', fontSize: '0.7rem', color: '#6EE7B7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>✓</span> Included automatically in candidate email invitation and Google Calendar .ics file.
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -3223,12 +3794,29 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                       <div style={{ color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 600 }}>{formatPanelDisplayName(slot.panelActualName || `Panel ${slot.panelNo}`)}</div>
                                       <div>
                                         <span style={{
-                                          backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)',
-                                          color: slot.type === 'Online' ? '#60A5FA' : '#A855F7',
+                                          backgroundColor: (slot.interviewMedia === 'Microsoft Teams' || (slot.meetingLocation && slot.meetingLocation.includes('teams')))
+                                            ? 'rgba(124, 58, 237, 0.15)'
+                                            : (slot.interviewMedia === 'Zoom' || (slot.meetingLocation && slot.meetingLocation.includes('zoom')))
+                                            ? 'rgba(2, 132, 199, 0.15)'
+                                            : slot.type === 'Online'
+                                            ? 'rgba(66, 133, 244, 0.1)'
+                                            : 'rgba(168, 85, 247, 0.1)',
+                                          color: (slot.interviewMedia === 'Microsoft Teams' || (slot.meetingLocation && slot.meetingLocation.includes('teams')))
+                                            ? '#A78BFA'
+                                            : (slot.interviewMedia === 'Zoom' || (slot.meetingLocation && slot.meetingLocation.includes('zoom')))
+                                            ? '#38BDF8'
+                                            : slot.type === 'Online'
+                                            ? '#60A5FA'
+                                            : '#A855F7',
                                           padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600
                                         }}>
-                                          {slot.type}
+                                          {(slot.meetingLocation && slot.meetingLocation.includes('teams')) ? 'MS Teams' : (slot.meetingLocation && slot.meetingLocation.includes('zoom')) ? 'Zoom' : (slot.interviewMedia || slot.type)}
                                         </span>
+                                        {slot.meetingId && (
+                                          <div style={{ fontSize: '0.64rem', color: '#9599A6', fontFamily: 'monospace', marginTop: '2px' }}>
+                                            ID: {slot.meetingId}
+                                          </div>
+                                        )}
                                       </div>
                                       <div style={{ textAlign: 'center', color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 700 }}>1</div>
                                       <div style={{ textAlign: 'center', color: '#22C55E', fontSize: '0.82rem', fontWeight: 700 }}>1</div>
@@ -3530,6 +4118,22 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 <span className="detail-label">Location / Link:</span>
                 <span className="detail-val highlight-val">{viewingSlot.meetingLocation || 'N/A'}</span>
               </div>
+              {viewingSlot.interviewType !== 'Physical' && (
+                <>
+                  <div className="modal-detail-row">
+                    <span className="detail-label">Meeting ID:</span>
+                    <span className="detail-val" style={{ fontFamily: 'monospace', color: '#A78BFA', fontWeight: 700, letterSpacing: '0.5px' }}>
+                      {viewingSlot.meetingId || '284 912 049 192'}
+                    </span>
+                  </div>
+                  <div className="modal-detail-row">
+                    <span className="detail-label">Passcode:</span>
+                    <span className="detail-val" style={{ fontFamily: 'monospace', color: '#F0B90B', fontWeight: 700, letterSpacing: '0.5px' }}>
+                      {viewingSlot.meetingPasscode || 'inTelli#2026'}
+                    </span>
+                  </div>
+                </>
+              )}
               <div className="modal-detail-row">
                 <span className="detail-label">Additional Notes:</span>
                 <span className="detail-val">{viewingSlot.additionalNotes || 'No notes provided.'}</span>
@@ -3545,7 +4149,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <a
                 href={generateGoogleCalendarUrl({
                   title: `IntelliHire Interview: ${viewingSlot.round} (${viewingSlot.jobPosition})`,
-                  description: `📌 INTELLIHIRE INTERVIEW DETAILS:\n• Job Position: ${viewingSlot.jobPosition}\n• Interview Round: ${viewingSlot.round}\n• Scheduled Time Slot: ${viewingSlot.interviewDate} (${viewingSlot.startTime} - ${viewingSlot.endTime})\n• Platform / Media: ${viewingSlot.interviewMedia || viewingSlot.interviewType}\n• Capacity: ${viewingSlot.bookedCount}/${viewingSlot.capacity} Candidates Allocated\n\n👥 ASSIGNED PANEL:\n• Name: ${viewingSlot.panelName || 'Panel A'}\n• Panel Emails: ${viewingSlot.panelEmails || 'N/A'}\n• Venue / Link: ${viewingSlot.meetingLocation || 'N/A'}\n\n📝 NOTES:\n${viewingSlot.additionalNotes || 'N/A'}`,
+                  description: [
+                    `📌 INTELLIHIRE INTERVIEW DETAILS:`,
+                    `• Job Position: ${viewingSlot.jobPosition}`,
+                    `• Interview Round: ${viewingSlot.round}`,
+                    `• Scheduled Time Slot: ${viewingSlot.interviewDate} (${viewingSlot.startTime} - ${viewingSlot.endTime})`,
+                    `• Platform / Media: ${viewingSlot.interviewMedia || viewingSlot.interviewType}`,
+                    viewingSlot.meetingId ? `• Meeting ID: ${viewingSlot.meetingId}` : null,
+                    viewingSlot.meetingPasscode ? `• Passcode: ${viewingSlot.meetingPasscode}` : null,
+                    `• Capacity: ${viewingSlot.bookedCount}/${viewingSlot.capacity} Candidates Allocated`,
+                    ``,
+                    `👥 ASSIGNED PANEL:`,
+                    `• Name: ${viewingSlot.panelName || 'Panel A'}`,
+                    `• Panel Emails: ${viewingSlot.panelEmails || 'N/A'}`,
+                    `• Venue / Link: ${viewingSlot.meetingLocation || 'N/A'}`,
+                    ``,
+                    `📝 NOTES:`,
+                    `${viewingSlot.additionalNotes || 'N/A'}`
+                  ].filter(Boolean).join('\n'),
                   interviewDate: viewingSlot.interviewDate,
                   startTime: viewingSlot.startTime,
                   endTime: viewingSlot.endTime,
@@ -3618,141 +4239,120 @@ function RecruiterInterviewTimeSlotManagementPage() {
         </div>
       )}
 
-      {/* ── Modal 1: Zoho Recruit Style Choice Modal ── */}
+      {/* ── Modal 1: Format Selector Modal (Matches Choose Job Opportunity style) ── */}
       {showZohoModal && (
-        <div className="modal-backdrop" onClick={() => setShowZohoModal(false)}>
+        <div className="vacancy-modal-overlay" onClick={() => setShowZohoModal(false)}>
           <div
-            className="modal-card zoho-modal-card"
+            className="vacancy-modal-container"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: '560px',
-              width: '90%',
-              borderRadius: '16px',
-              backgroundColor: '#16171F',
-              border: '1px solid #2A2C38',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
-              padding: '0',
-              overflow: 'hidden',
-              backgroundColor: '#16171F',
-              border: '1px solid rgba(240, 185, 11, 0.25)',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-            }}
+            style={{ position: 'relative' }}
           >
-            <div className="modal-header border-bottom-header flex-between" style={{ padding: '20px 24px', borderBottom: '1px solid #2A2C38' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '8px', height: '22px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
-                <h3 className="modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
-                  Create Interview
-                </h3>
+            {/* Top Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowZohoModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#9599A6',
+                cursor: 'pointer',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                transition: 'all 0.15s ease',
+                padding: 0,
+                zIndex: 10
+              }}
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header with Circular Gold Icon */}
+            <div className="vacancy-modal-header">
+              <div className="vacancy-modal-icon-wrap">
+                <Video size={24} className="vacancy-modal-icon" />
               </div>
-              <button
-                type="button"
-                className="toast-close"
-                onClick={() => setShowZohoModal(false)}
-                style={{
-                  fontSize: '1.4rem',
-                  color: '#9599A6',
-                  cursor: 'pointer',
-                  background: 'none',
-                  border: 'none',
-                  padding: '4px',
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
+              <h2 className="vacancy-modal-title">Choose Interview Format</h2>
+              <p className="vacancy-modal-subtitle">
+                To set up time slots, assign panel members, and configure candidate invitations, please select an interview format below.
+              </p>
             </div>
 
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Choice 1: Video Interview (Online) */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('Google Meet')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid rgba(66, 133, 244, 0.35)',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
+            {/* Modal Body / Cards List */}
+            <div className="vacancy-modal-body">
+              <div className="vacancy-cards-list">
+                {/* Option 1: Online Video Interview */}
                 <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(66, 133, 244, 0.15)',
-                    color: '#60A5FA',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
+                  className={`vacancy-select-card ${selectedFormatType === 'Google Meet' ? 'is-selected' : ''}`}
+                  onClick={() => setSelectedFormatType('Google Meet')}
+                  onDoubleClick={() => handleChooseZohoType('Google Meet')}
+                  title="Click to select, double-click to continue"
                 >
-                  <Video size={24} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                      Video Interview
-                    </h4>
-                    <span style={{ backgroundColor: 'rgba(66, 133, 244, 0.15)', color: '#60A5FA', border: '1px solid rgba(66, 133, 244, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                      🌐 Online
-                    </span>
+                  {selectedFormatType === 'Google Meet' && (
+                    <div className="vacancy-selected-checkmark">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="vacancy-card-main">
+                    <div className="vacancy-card-info">
+                      <span className="vacancy-card-code">#VIRTUAL</span>
+                      <h3 className="vacancy-card-title">Online Video Interview</h3>
+                    </div>
+                    <div className="vacancy-card-status-wrap">
+                      <span className="vacancy-status-badge status-active">
+                        Remote
+                      </span>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct online video interviews via Google Meet or Microsoft Teams with panel calendar sync.
-                  </p>
                 </div>
-              </div>
 
-              {/* Choice 2: In-person Interview (Physical) */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('In-Person')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid rgba(168, 85, 247, 0.35)',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
+                {/* Option 2: In-Person Physical Interview */}
                 <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-                    color: '#C084FC',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
+                  className={`vacancy-select-card ${selectedFormatType === 'In-Person' ? 'is-selected' : ''}`}
+                  onClick={() => setSelectedFormatType('In-Person')}
+                  onDoubleClick={() => handleChooseZohoType('In-Person')}
+                  title="Click to select, double-click to continue"
                 >
-                  <Building size={24} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                      In-person Interview
-                    </h4>
-                    <span style={{ backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#C084FC', border: '1px solid rgba(168, 85, 247, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                      🏢 Physical
-                    </span>
+                  {selectedFormatType === 'In-Person' && (
+                    <div className="vacancy-selected-checkmark">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="vacancy-card-main">
+                    <div className="vacancy-card-info">
+                      <span className="vacancy-card-code">#ON-SITE</span>
+                      <h3 className="vacancy-card-title">In-Person Physical Interview</h3>
+                    </div>
+                    <div className="vacancy-card-status-wrap">
+                      <span className="vacancy-status-badge status-active">
+                        On-Site
+                      </span>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct on-site physical office interviews with room location and panel members.
-                  </p>
                 </div>
               </div>
+            </div>
+
+            {/* Footer with Select & Continue Button */}
+            <div className="vacancy-modal-footer">
+              <button
+                type="button"
+                className="vacancy-confirm-btn"
+                disabled={!selectedFormatType}
+                onClick={() => {
+                  if (selectedFormatType) {
+                    handleChooseZohoType(selectedFormatType);
+                  }
+                }}
+              >
+                Select &amp; Continue
+              </button>
             </div>
           </div>
         </div>
