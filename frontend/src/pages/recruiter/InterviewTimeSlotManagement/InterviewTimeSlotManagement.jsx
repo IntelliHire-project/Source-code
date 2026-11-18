@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Send,
   X,
+  ChevronRight,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -3779,134 +3780,122 @@ function RecruiterInterviewTimeSlotManagementPage() {
           <div
             className="modal-card zoho-modal-card"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: '560px',
-              width: '90%',
-              borderRadius: '16px',
-              backgroundColor: '#16171F',
-              border: '1px solid #2A2C38',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
-              padding: '0',
-              overflow: 'hidden',
-              backgroundColor: '#16171F',
-              border: '1px solid rgba(240, 185, 11, 0.25)',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-            }}
           >
-            <div className="modal-header border-bottom-header flex-between" style={{ padding: '20px 24px', borderBottom: '1px solid #2A2C38' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '8px', height: '22px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
-                <h3 className="modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
-                  Create Interview
-                </h3>
+            <div className="modal-header border-bottom-header flex-between" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '4px', height: '24px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
+                <div>
+                  <h3 className="modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
+                    Create Interview
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
+                    Select your interview mode to configure slots, panel members, and invitations
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 className="toast-close"
                 onClick={() => setShowZohoModal(false)}
                 style={{
-                  fontSize: '1.4rem',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'grid',
+                  placeItems: 'center',
                   color: '#9599A6',
                   cursor: 'pointer',
-                  background: 'none',
-                  border: 'none',
-                  padding: '4px',
-                  lineHeight: 1,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  transition: 'all 0.15s ease',
+                  padding: 0
                 }}
+                title="Close"
               >
-                ×
+                <X size={16} />
               </button>
             </div>
 
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {/* Choice 1: Video Interview (Online) */}
               <div
                 className="zoho-modal-choice-card"
                 onClick={() => handleChooseZohoType('Google Meet')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid rgba(66, 133, 244, 0.35)',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
               >
-                <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(66, 133, 244, 0.15)',
-                    color: '#60A5FA',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Video size={24} />
+                <div className="choice-card-icon choice-card-icon-video">
+                  <Video size={22} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <h4 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
                       Video Interview
                     </h4>
-                    <span style={{ backgroundColor: 'rgba(66, 133, 244, 0.15)', color: '#60A5FA', border: '1px solid rgba(66, 133, 244, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                      🌐 Online
+                    <span style={{
+                      backgroundColor: 'rgba(240, 185, 11, 0.14)',
+                      color: '#F0B90B',
+                      border: '1px solid rgba(240, 185, 11, 0.3)',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.70rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#F0B90B' }} />
+                      Online
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct online video interviews via Google Meet or Microsoft Teams with panel calendar sync.
+                  <p style={{ fontSize: '0.82rem', color: '#9599A6', margin: '0 0 8px 0', lineHeight: 1.45 }}>
+                    Schedule remote video calls with automated calendar invitations and link generation.
                   </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#60A5FA', backgroundColor: 'rgba(96, 165, 250, 0.1)', border: '1px solid rgba(96, 165, 250, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Google Meet</span>
+                    <span style={{ fontSize: '0.68rem', color: '#A78BFA', backgroundColor: 'rgba(167, 139, 250, 0.1)', border: '1px solid rgba(167, 139, 250, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>MS Teams</span>
+                    <span style={{ fontSize: '0.68rem', color: '#38BDF8', backgroundColor: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Zoom</span>
+                  </div>
                 </div>
+                <ChevronRight size={18} className="choice-card-arrow" />
               </div>
 
               {/* Choice 2: In-person Interview (Physical) */}
               <div
                 className="zoho-modal-choice-card"
                 onClick={() => handleChooseZohoType('In-Person')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid rgba(168, 85, 247, 0.35)',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
               >
-                <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-                    color: '#C084FC',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Building size={24} />
+                <div className="choice-card-icon choice-card-icon-physical">
+                  <Building size={22} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                      In-person Interview
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <h4 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                      In-Person Interview
                     </h4>
-                    <span style={{ backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#C084FC', border: '1px solid rgba(168, 85, 247, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                      🏢 Physical
+                    <span style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      color: '#E2E8F0',
+                      border: '1px solid rgba(255, 255, 255, 0.16)',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.70rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#94A3B8' }} />
+                      On-Site Physical
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct on-site physical office interviews with room location and panel members.
+                  <p style={{ fontSize: '0.82rem', color: '#9599A6', margin: '0 0 8px 0', lineHeight: 1.45 }}>
+                    Schedule on-site interviews at company headquarters, conference rooms, or client offices.
                   </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.68rem', color: '#CBD5E1', backgroundColor: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Office Conference Room</span>
+                    <span style={{ fontSize: '0.68rem', color: '#CBD5E1', backgroundColor: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Building Access</span>
+                  </div>
                 </div>
+                <ChevronRight size={18} className="choice-card-arrow" />
               </div>
             </div>
           </div>
