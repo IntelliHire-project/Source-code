@@ -50,7 +50,7 @@ import {
 } from '../../../api/interviewApi';
 import { INITIAL_CANDIDATES, INITIAL_ALLOCATIONS, resetToDefaultMockData, formatPanelDisplayName } from '../InterviewAllocation/CandidateInterviewAllocation';
 
-const CLEAN_STORAGE_VERSION = 'v13_valid_meet_links';
+const CLEAN_STORAGE_VERSION = 'v14_instant_live_meet';
 (() => {
   try {
     if (typeof window !== 'undefined') {
@@ -123,7 +123,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 5,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/sde-conf-mtg',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Focus on React state management and Node.js microservices architecture.',
     bookedCount: 2,
     isPast: true,
@@ -138,7 +138,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/fst-arch-rev',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Architecture discussion covering scalability, APIs, and database design.',
     bookedCount: 1,
   },
@@ -166,7 +166,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 5,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/eng-tech-int',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Coding and debugging exercise focused on React and Node.js.',
     bookedCount: 2,
   },
@@ -194,7 +194,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/fnd-arch-dsk',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Frontend architecture, accessibility, performance, and testing discussion.',
     bookedCount: 1,
   },
@@ -250,7 +250,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 6,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/pms-scnr-omx',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Initial background screening and career roadmap alignment.',
     bookedCount: 2,
   },
@@ -278,7 +278,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/pdr-dsgn-rev',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Portfolio review, design system critique, and UX problem-solving.',
     bookedCount: 1,
   },
@@ -318,18 +318,14 @@ function getTomorrowInputValue() {
 const defaultVacancy = 'Senior Software Engineer';
 
 export const generateValidMeetingUrl = (platform = 'Google Meet') => {
-  const letters = 'abcdefghijklmnopqrstuvwxyz';
-  const getPart = (len) => Array.from({ length: len }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
   if (platform === 'Microsoft Teams') {
-    const threadId = Math.random().toString(36).substring(2, 8);
-    return `https://teams.microsoft.com/l/meetup-join/19%3ameeting_${threadId}%40thread.v2/0`;
+    return 'https://teams.live.com/';
   }
   if (platform === 'Zoom') {
-    const zoomId = Math.floor(1000000000 + Math.random() * 9000000000);
-    return `https://zoom.us/j/${zoomId}?pwd=intelli${Math.floor(100 + Math.random() * 900)}`;
+    return 'https://zoom.us/join';
   }
-  // Google Meet strictly enforces 3-4-3 lowercase letters: xxx-yyyy-zzz
-  return `https://meet.google.com/${getPart(3)}-${getPart(4)}-${getPart(3)}`;
+  // Google Meet - Google's official instant meeting launcher that ALWAYS starts an active live call
+  return 'https://meet.google.com/new';
 };
 
 function isSlotTimeInPast(slotDate, slotTimeStr) {

@@ -372,7 +372,7 @@ const initializeDatabase = async () => {
         end_time TEXT NOT NULL DEFAULT '10:30 AM',
         interview_type TEXT NOT NULL DEFAULT 'Online',
         status TEXT NOT NULL DEFAULT 'AVAILABLE',
-        meeting_location TEXT DEFAULT 'https://meet.google.com/sde-conf-mtg',
+        meeting_location TEXT DEFAULT 'https://meet.google.com/new',
         capacity INTEGER NOT NULL DEFAULT 1,
         booked_count INTEGER NOT NULL DEFAULT 0,
         panel_name TEXT,

@@ -114,7 +114,7 @@ export const INITIAL_ALLOCATIONS = [
     interviewDate: '02 Nov 2026',
     interviewType: 'Online',
     interviewMedia: 'Google Meet',
-    meetingLocation: 'https://meet.google.com/sde-conf-mtg',
+    meetingLocation: 'https://meet.google.com/new',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'Technical Interview',
     jobPosition: 'Senior Software Engineer',
@@ -144,7 +144,7 @@ export const INITIAL_ALLOCATIONS = [
     interviewDate: '04 Nov 2026',
     interviewType: 'Online',
     interviewMedia: 'Google Meet',
-    meetingLocation: 'https://meet.google.com/fst-arch-rev',
+    meetingLocation: 'https://meet.google.com/new',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'System Architecture',
     jobPosition: 'Senior Software Engineer',
@@ -154,7 +154,7 @@ export const INITIAL_ALLOCATIONS = [
 ];
 
 // Clean Storage Version to permanently purge old duplicate test entries and keep single default dataset
-const CLEAN_STORAGE_VERSION = 'v13_valid_meet_links';
+const CLEAN_STORAGE_VERSION = 'v14_instant_live_meet';
 
 export const resetToDefaultMockData = () => {
   try {
@@ -189,7 +189,7 @@ const INITIAL_PANELS = [
     id: 'panel-a',
     name: 'Panel A (Technical Leads)',
     meetingType: 'Google Meet',
-    meetingLink: 'https://meet.google.com/sde-conf-mtg',
+    meetingLink: 'https://meet.google.com/new',
     roundLabel: 'Round 1 · HR Screening',
     members: [
       { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
@@ -2499,7 +2499,7 @@ function isOutdatedPastDate(dateVal) {
 
                       <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
                       <span style={{ color: '#60A5FA', wordBreak: 'break-all' }}>
-                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/sde-conf-mtg')}
+                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/new')}
                       </span>
                     </div>
                   </div>
