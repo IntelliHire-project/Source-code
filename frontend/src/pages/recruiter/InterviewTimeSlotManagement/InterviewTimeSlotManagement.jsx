@@ -24,6 +24,7 @@ import {
   X,
   ChevronRight,
   Check,
+  RotateCcw,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
@@ -1449,6 +1450,41 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setMessage('');
   };
 
+  const handleResetAllSlotsToDefault = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('intellihire_interview_slots');
+        localStorage.removeItem('intellihire_custom_slots');
+        localStorage.removeItem('intellihire_allocations');
+        localStorage.removeItem('intellihire_candidates');
+        localStorage.setItem('intellihire_clean_version', CLEAN_STORAGE_VERSION);
+        if (typeof resetToDefaultMockData === 'function') {
+          resetToDefaultMockData();
+        }
+      }
+      setSlots(initialSlots);
+      const defaultDate = new Date().getHours() >= 17 ? getTomorrowInputValue() : getTodayInputValue();
+      setPanels([
+        {
+          id: 1,
+          name: 'Panel A (Technical Leads)',
+          emails: 'saman.tech@company.com, nirosha.hr@company.com',
+          capacity: 2,
+          selectedDate: defaultDate,
+          slots: [
+            { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
+            { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Online', assignedCandidate: null },
+          ],
+        },
+      ]);
+      setEditingSlotId(null);
+      setShowInlineForm(false);
+      setToast({ type: 'success', message: 'All custom slots reset to clean default dataset!' });
+    } catch (e) {
+      console.warn(e);
+    }
+  };
+
   const handleMediaSelect = (media) => {
     const isOnline = media !== 'In-Person';
     const newType = isOnline ? 'Online' : 'Physical';
@@ -2007,7 +2043,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <p style={{ fontSize: '0.9rem', color: '#9599A6', maxWidth: '480px', margin: '0 auto 26px auto', lineHeight: 1.6 }}>
                 Schedule interviews with candidates who have applied for positions. Setup video meetings, in-person rounds, panel assignments, and Google Calendar sync.
               </p>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={handleOpenCreateInterview}
@@ -2027,7 +2063,37 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     transition: 'all 0.2s ease',
                   }}
                 >
+                  <Plus size={16} />
                   <span>Create Interview</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetAllSlotsToDefault}
+                  title="Clear newly created test slots and reset to clean default dataset"
+                  style={{
+                    padding: '12px 20px',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    color: '#EF4444',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                  }}
+                >
+                  <RotateCcw size={15} />
+                  <span>Reset Test Slots</span>
                 </button>
               </div>
             </div>
