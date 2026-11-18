@@ -23,12 +23,14 @@ import {
   Send,
   X,
   ChevronRight,
+  Check,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
+import '../../../components/common/VacancySelectorModal.css';
 import { VACANCIES } from '../../../data/vacancies';
 import { MOCK_CANDIDATES, enrichCandidateDetails, CandidateDetailView } from '../RankedApplicants/RankedApplicants';
 import {
@@ -582,6 +584,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [formData, setFormData] = useState(initialForm);
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [showZohoModal, setShowZohoModal] = useState(false);
+  const [selectedFormatType, setSelectedFormatType] = useState('Google Meet');
   const [showInlineForm, setShowInlineForm] = useState(Boolean(location.state?.openForm));
   const [showPreview, setShowPreview] = useState(false);
   const [showManualAssign, setShowManualAssign] = useState(false);
@@ -617,6 +620,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
         console.warn('Backend fetch fallback:', err.message);
       });
   }, []);
+
+  // Keyboard navigation for Format Selector Modal (Enter to continue, Escape to close)
+  useEffect(() => {
+    if (!showZohoModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowZohoModal(false);
+      } else if (e.key === 'Enter' && selectedFormatType) {
+        handleChooseZohoType(selectedFormatType);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showZohoModal, selectedFormatType]);
 
   // Dynamic candidate list matching the active job position
   const currentShortlisted = useMemo(() => {
@@ -1314,6 +1331,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleOpenCreateInterview = () => {
+    setSelectedFormatType('Google Meet');
     setShowZohoModal(true);
   };
 
@@ -3774,129 +3792,120 @@ function RecruiterInterviewTimeSlotManagementPage() {
         </div>
       )}
 
-      {/* ── Modal 1: Zoho Recruit Style Choice Modal ── */}
+      {/* ── Modal 1: Format Selector Modal (Matches Choose Job Opportunity style) ── */}
       {showZohoModal && (
-        <div className="modal-backdrop" onClick={() => setShowZohoModal(false)}>
+        <div className="vacancy-modal-overlay" onClick={() => setShowZohoModal(false)}>
           <div
-            className="modal-card zoho-modal-card"
+            className="vacancy-modal-container"
             onClick={(e) => e.stopPropagation()}
+            style={{ position: 'relative' }}
           >
-            <div className="modal-header border-bottom-header flex-between" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '4px', height: '24px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
-                <div>
-                  <h3 className="modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
-                    Create Interview
-                  </h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#9599A6' }}>
-                    Select your interview mode to configure slots, panel members, and invitations
-                  </p>
-                </div>
+            {/* Top Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowZohoModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#9599A6',
+                cursor: 'pointer',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                transition: 'all 0.15s ease',
+                padding: 0,
+                zIndex: 10
+              }}
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header with Circular Gold Icon */}
+            <div className="vacancy-modal-header">
+              <div className="vacancy-modal-icon-wrap">
+                <Video size={24} className="vacancy-modal-icon" />
               </div>
-              <button
-                type="button"
-                className="toast-close"
-                onClick={() => setShowZohoModal(false)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: '#9599A6',
-                  cursor: 'pointer',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  transition: 'all 0.15s ease',
-                  padding: 0
-                }}
-                title="Close"
-              >
-                <X size={16} />
-              </button>
+              <h2 className="vacancy-modal-title">Choose Interview Format</h2>
+              <p className="vacancy-modal-subtitle">
+                To set up time slots, assign panel members, and configure candidate invitations, please select an interview format below.
+              </p>
             </div>
 
-            <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Choice 1: Video Interview (Online) */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('Google Meet')}
-              >
-                <div className="choice-card-icon choice-card-icon-video">
-                  <Video size={22} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <h4 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                      Video Interview
-                    </h4>
-                    <span style={{
-                      backgroundColor: 'rgba(240, 185, 11, 0.14)',
-                      color: '#F0B90B',
-                      border: '1px solid rgba(240, 185, 11, 0.3)',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.70rem',
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}>
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#F0B90B' }} />
-                      Online
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.82rem', color: '#9599A6', margin: '0 0 8px 0', lineHeight: 1.45 }}>
-                    Schedule remote video calls with automated calendar invitations and link generation.
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.68rem', color: '#60A5FA', backgroundColor: 'rgba(96, 165, 250, 0.1)', border: '1px solid rgba(96, 165, 250, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Google Meet</span>
-                    <span style={{ fontSize: '0.68rem', color: '#A78BFA', backgroundColor: 'rgba(167, 139, 250, 0.1)', border: '1px solid rgba(167, 139, 250, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>MS Teams</span>
-                    <span style={{ fontSize: '0.68rem', color: '#38BDF8', backgroundColor: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Zoom</span>
+            {/* Modal Body / Cards List */}
+            <div className="vacancy-modal-body">
+              <div className="vacancy-cards-list">
+                {/* Option 1: Online Video Interview */}
+                <div
+                  className={`vacancy-select-card ${selectedFormatType === 'Google Meet' ? 'is-selected' : ''}`}
+                  onClick={() => setSelectedFormatType('Google Meet')}
+                  onDoubleClick={() => handleChooseZohoType('Google Meet')}
+                  title="Click to select, double-click to continue"
+                >
+                  {selectedFormatType === 'Google Meet' && (
+                    <div className="vacancy-selected-checkmark">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="vacancy-card-main">
+                    <div className="vacancy-card-info">
+                      <span className="vacancy-card-code">#VIRTUAL</span>
+                      <h3 className="vacancy-card-title">Online Video Interview</h3>
+                    </div>
+                    <div className="vacancy-card-status-wrap">
+                      <span className="vacancy-status-badge status-active">
+                        Remote
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="choice-card-arrow" />
-              </div>
 
-              {/* Choice 2: In-person Interview (Physical) */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('In-Person')}
-              >
-                <div className="choice-card-icon choice-card-icon-physical">
-                  <Building size={22} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <h4 style={{ fontSize: '1.02rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                      In-Person Interview
-                    </h4>
-                    <span style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      color: '#E2E8F0',
-                      border: '1px solid rgba(255, 255, 255, 0.16)',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.70rem',
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}>
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#94A3B8' }} />
-                      On-Site Physical
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.82rem', color: '#9599A6', margin: '0 0 8px 0', lineHeight: 1.45 }}>
-                    Schedule on-site interviews at company headquarters, conference rooms, or client offices.
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.68rem', color: '#CBD5E1', backgroundColor: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Office Conference Room</span>
-                    <span style={{ fontSize: '0.68rem', color: '#CBD5E1', backgroundColor: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.12)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Building Access</span>
+                {/* Option 2: In-Person Physical Interview */}
+                <div
+                  className={`vacancy-select-card ${selectedFormatType === 'In-Person' ? 'is-selected' : ''}`}
+                  onClick={() => setSelectedFormatType('In-Person')}
+                  onDoubleClick={() => handleChooseZohoType('In-Person')}
+                  title="Click to select, double-click to continue"
+                >
+                  {selectedFormatType === 'In-Person' && (
+                    <div className="vacancy-selected-checkmark">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="vacancy-card-main">
+                    <div className="vacancy-card-info">
+                      <span className="vacancy-card-code">#ON-SITE</span>
+                      <h3 className="vacancy-card-title">In-Person Physical Interview</h3>
+                    </div>
+                    <div className="vacancy-card-status-wrap">
+                      <span className="vacancy-status-badge status-active">
+                        On-Site
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <ChevronRight size={18} className="choice-card-arrow" />
               </div>
+            </div>
+
+            {/* Footer with Select & Continue Button */}
+            <div className="vacancy-modal-footer">
+              <button
+                type="button"
+                className="vacancy-confirm-btn"
+                disabled={!selectedFormatType}
+                onClick={() => {
+                  if (selectedFormatType) {
+                    handleChooseZohoType(selectedFormatType);
+                  }
+                }}
+              >
+                Select &amp; Continue
+              </button>
             </div>
           </div>
         </div>
