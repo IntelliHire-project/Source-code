@@ -143,8 +143,10 @@ export const INITIAL_ALLOCATIONS = [
     assignedTime: '11:00 AM – 12:00 PM',
     interviewDate: '04 Nov 2026',
     interviewType: 'Online',
-    interviewMedia: 'Google Meet',
-    meetingLocation: 'https://meet.google.com/new',
+    interviewMedia: 'Microsoft Teams',
+    meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
+    meetingId: '284 912 049 192',
+    meetingPasscode: 'inTelli#2026',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'System Architecture',
     jobPosition: 'Senior Software Engineer',
@@ -154,7 +156,7 @@ export const INITIAL_ALLOCATIONS = [
 ];
 
 // Clean Storage Version to permanently purge old duplicate test entries and keep single default dataset
-const CLEAN_STORAGE_VERSION = 'v14_instant_live_meet';
+const CLEAN_STORAGE_VERSION = 'v15_enterprise_teams_creds';
 
 export const resetToDefaultMockData = () => {
   try {
@@ -2497,10 +2499,33 @@ function isOutdatedPastDate(dateVal) {
                       <span style={{ color: '#9599A6' }}>Assigned Panel:</span>
                       <span style={{ color: '#FFFFFF' }}>{previewSelectedCandidate.panelName || 'Panel A (Technical Leads)'}</span>
 
+                      <span style={{ color: '#9599A6' }}>Platform:</span>
+                      <span style={{ color: previewSelectedCandidate.interviewMedia === 'Microsoft Teams' ? '#A78BFA' : previewSelectedCandidate.interviewMedia === 'Zoom' ? '#38BDF8' : '#60A5FA', fontWeight: 600 }}>
+                        {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Google Meet')}
+                      </span>
+
                       <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
                       <span style={{ color: '#60A5FA', wordBreak: 'break-all' }}>
                         {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/new')}
                       </span>
+
+                      {previewSelectedCandidate.meetingId && (
+                        <>
+                          <span style={{ color: '#9599A6' }}>Meeting ID:</span>
+                          <span style={{ color: '#A78BFA', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.5px' }}>
+                            {previewSelectedCandidate.meetingId}
+                          </span>
+                        </>
+                      )}
+
+                      {previewSelectedCandidate.meetingPasscode && (
+                        <>
+                          <span style={{ color: '#9599A6' }}>Passcode:</span>
+                          <span style={{ color: '#F0B90B', fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.5px' }}>
+                            {previewSelectedCandidate.meetingPasscode}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
