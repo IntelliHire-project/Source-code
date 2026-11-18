@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Check, Plus, X, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, Sparkles } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
-import { fetchAvailableRoles, createCustomJobRole, storeSelectedRole } from '../../../api/mockInterviewApi';
+import { fetchAvailableRoles, createCustomJobRole, storeSelectedRole, saveMockInterviewJobDescription } from '../../../api/mockInterviewApi';
 import './RoleSelection.css';
 
 const ICON_MAP = {
@@ -87,6 +87,26 @@ export default function MockInterviewRoleSelection() {
 
   const [step, setStep] = useState(1);
   const [jobDescription, setJobDescription] = useState('');
+  const [isSubmittingJd, setIsSubmittingJd] = useState(false);
+
+  // Restore stored job description and role from sessionStorage if available
+  useEffect(() => {
+    try {
+      const cachedJd = sessionStorage.getItem('mock_interview_job_description');
+      if (cachedJd) {
+        setJobDescription(cachedJd);
+      }
+      const cachedRole = sessionStorage.getItem('mock_interview_selected_role');
+      if (cachedRole) {
+        const parsed = JSON.parse(cachedRole);
+        if (parsed?.roleId) {
+          setSelectedRole(parsed.roleId);
+        }
+      }
+    } catch (e) {
+      // Storage unavailable or parse error
+    }
+  }, []);
 
   // Fetch available roles from backend on mount
   useEffect(() => {
@@ -183,26 +203,66 @@ export default function MockInterviewRoleSelection() {
           roleTitle: currentRole?.title,
           category: currentRole?.category,
         }).catch(() => {});
+        sessionStorage.setItem(
+          'mock_interview_selected_role',
+          JSON.stringify({
+            roleId: selectedRole,
+            roleTitle: currentRole?.title,
+            category: currentRole?.category,
+          })
+        );
       } catch (err) {
         // Continue even if network is offline
       }
       setStep(2);
     } else {
+      setIsSubmittingJd(true);
+      const cleanJd = (jobDescription || '').trim();
+
+      // Store in sessionStorage for client persistence
       try {
-        await storeSelectedRole({
-          roleId: selectedRole,
-          roleTitle: currentRole?.title,
-          category: currentRole?.category,
-          jobDescription,
-        });
+        sessionStorage.setItem('mock_interview_job_description', cleanJd);
+        sessionStorage.setItem(
+          'mock_interview_selected_role',
+          JSON.stringify({
+            roleId: selectedRole,
+            roleTitle: currentRole?.title,
+            category: currentRole?.category,
+            jobDescription: cleanJd,
+          })
+        );
       } catch (err) {
-        console.warn('Could not store selected role in backend:', err.message);
+        // Storage unavailable or quota exceeded
       }
+
+      // Submit and store to backend
+      try {
+        await Promise.allSettled([
+          saveMockInterviewJobDescription({
+            roleId: selectedRole,
+            roleTitle: currentRole?.title,
+            category: currentRole?.category,
+            jobDescription: cleanJd,
+            source: 'candidate_submission',
+          }),
+          storeSelectedRole({
+            roleId: selectedRole,
+            roleTitle: currentRole?.title,
+            category: currentRole?.category,
+            jobDescription: cleanJd,
+          }),
+        ]);
+      } catch (err) {
+        console.warn('Could not store job description in backend:', err.message);
+      } finally {
+        setIsSubmittingJd(false);
+      }
+
       navigate('/candidate/mock-interviews/questions', {
         state: { 
           roleId: selectedRole, 
           roleTitle: currentRole?.title,
-          jobDescription: jobDescription
+          jobDescription: cleanJd,
         }
       });
     }
@@ -319,12 +379,48 @@ export default function MockInterviewRoleSelection() {
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
           />
+          <div className="jd-footer-toolbar">
+            <div className="jd-char-count">
+              {jobDescription.length > 0 ? (
+                <span>
+                  {jobDescription.length.toLocaleString()} characters &bull;{' '}
+                  {jobDescription.trim().split(/\s+/).filter(Boolean).length} words
+                </span>
+              ) : (
+                <span className="jd-hint">Optional: paste responsibilities, requirements, or tech stack</span>
+              )}
+            </div>
+
+            <div className="jd-toolbar-actions">
+              {jobDescription.length > 0 && (
+                <button
+                  type="button"
+                  className="jd-clear-btn"
+                  onClick={() => setJobDescription('')}
+                >
+                  Clear
+                </button>
+              )}
+              {currentRole && (
+                <button
+                  type="button"
+                  className="jd-template-btn"
+                  onClick={() => {
+                    const sample = `${currentRole.title} Responsibilities:\n- ${currentRole.description || 'System architecture, API design, database management, and scaling.'}\n\nKey Requirements:\n- ${(currentRole.skills || ['Core Domain Skills', 'System Design', 'Communication']).join('\n- ')}`;
+                    setJobDescription(sample);
+                  }}
+                >
+                  Use Role Template
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       )}
 
       <div className="bottom-action-bar">
-        <button type="button" className="back-btn" onClick={handleBack}>&larr; Back</button>
+        <button type="button" className="back-btn" onClick={handleBack} disabled={isSubmittingJd}>&larr; Back</button>
         <div className="right-actions">
           {currentRole && (
             <div className="currently-selected">
@@ -332,7 +428,14 @@ export default function MockInterviewRoleSelection() {
               <span className="value">{currentRole.title}</span>
             </div>
           )}
-          <button type="button" className="continue-btn" onClick={handleContinue}>Continue &gt;</button>
+          <button
+            type="button"
+            className="continue-btn"
+            onClick={handleContinue}
+            disabled={isSubmittingJd}
+          >
+            {isSubmittingJd ? 'Saving...' : step === 2 ? 'Continue & Generate >' : 'Continue >'}
+          </button>
         </div>
       </div>
       {/* Custom Role Modal */}

@@ -74,3 +74,81 @@ export const fetchSelectedRole = async () => {
   return response.data;
 };
 
+/**
+ * Creates a new job description for mock interview preparation.
+ * @param {object} jdData - { jobDescription, roleId, title, skills, experienceLevel }
+ * @returns {Promise<object>}
+ */
+export const createJobDescription = async (jdData) => {
+  const response = await apiInstance.post('/mock-interviews/job-descriptions', jdData);
+  return response.data;
+};
+
+/**
+ * Saves/submits a job description for the candidate's mock interview session.
+ * Stores in the job descriptions repository and syncs with selected role.
+ * @param {object} jdData - { jobDescription, roleId, roleTitle, category, skills, experienceLevel }
+ * @returns {Promise<object>}
+ */
+export const saveMockInterviewJobDescription = async (jdData) => {
+  try {
+    const response = await apiInstance.post('/mock-interviews/job-descriptions/save', jdData);
+    return response.data;
+  } catch (error) {
+    // Graceful fallback to selected-role endpoint if standalone endpoint is unavailable
+    const fallback = await apiInstance.post('/mock-interviews/roles/selected', jdData);
+    return fallback.data;
+  }
+};
+
+/**
+ * Fetches all job descriptions with optional search and filters.
+ * @param {object} [params] - { roleId, search }
+ * @returns {Promise<object>}
+ */
+export const fetchJobDescriptions = async (params = {}) => {
+  const response = await apiInstance.get('/mock-interviews/job-descriptions', { params });
+  return response.data;
+};
+
+/**
+ * Retrieves a single job description by ID.
+ * @param {string|number} id
+ * @returns {Promise<object>}
+ */
+export const getJobDescriptionById = async (id) => {
+  const response = await apiInstance.get(`/mock-interviews/job-descriptions/${id}`);
+  return response.data;
+};
+
+/**
+ * Retrieves the candidate's latest mock interview job description.
+ * @returns {Promise<object>}
+ */
+export const fetchLatestJobDescription = async () => {
+  const response = await apiInstance.get('/mock-interviews/job-descriptions/latest');
+  return response.data;
+};
+
+/**
+ * Updates an existing job description.
+ * @param {string|number} id
+ * @param {object} jdData
+ * @returns {Promise<object>}
+ */
+export const updateJobDescription = async (id, jdData) => {
+  const response = await apiInstance.put(`/mock-interviews/job-descriptions/${id}`, jdData);
+  return response.data;
+};
+
+/**
+ * Deletes a job description by ID.
+ * @param {string|number} id
+ * @returns {Promise<object>}
+ */
+export const deleteJobDescription = async (id) => {
+  const response = await apiInstance.delete(`/mock-interviews/job-descriptions/${id}`);
+  return response.data;
+};
+
+

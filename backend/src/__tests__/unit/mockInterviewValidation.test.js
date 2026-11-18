@@ -8,6 +8,9 @@ const {
   validateCreateRole,
   validateUpdateRole,
   validateUserRoleAccess,
+  validateCreateJobDescription,
+  validateUpdateJobDescription,
+  validateSaveJobDescription,
   ALLOWED_CATEGORIES,
 } = require('../../middlewares/mockInterviewValidation');
 
@@ -275,6 +278,334 @@ describe('mockInterviewValidation Middleware', () => {
         403
       );
       expect(next).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateCreateJobDescription', () => {
+    test('passes when valid payload is provided', () => {
+      req.body = {
+        title: 'Senior Full Stack Engineer',
+        roleId: 'backend',
+        jobDescription: 'Seeking an experienced engineer proficient in Node.js, React, and PostgreSQL.',
+        experienceLevel: 'senior',
+        skills: ['Node.js', 'React', 'PostgreSQL'],
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(errorResponse).not.toHaveBeenCalled();
+      expect(req.body.jobDescription).toBe(
+        'Seeking an experienced engineer proficient in Node.js, React, and PostgreSQL.'
+      );
+      expect(req.body.title).toBe('Senior Full Stack Engineer');
+      expect(req.body.roleId).toBe('backend');
+      expect(req.body.skills).toEqual(['Node.js', 'React', 'PostgreSQL']);
+    });
+
+    test('accepts alternate description keys (description or content)', () => {
+      req.body = {
+        description: 'Design and implement REST APIs and scalable microservices.',
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(errorResponse).not.toHaveBeenCalled();
+      expect(req.body.jobDescription).toBe(
+        'Design and implement REST APIs and scalable microservices.'
+      );
+    });
+
+    test('rejects missing or empty job description', () => {
+      req.body = { jobDescription: '   ' };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description is required and must be a non-empty string.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects job description shorter than 5 characters', () => {
+      req.body = { jobDescription: 'Dev' };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description must be at least 5 characters long.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects job description exceeding 50,000 characters', () => {
+      req.body = { jobDescription: 'a'.repeat(50001) };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description cannot exceed 50,000 characters.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects invalid title exceeding 150 characters', () => {
+      req.body = {
+        jobDescription: 'Valid job description text for candidate role.',
+        title: 'T'.repeat(151),
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Title cannot exceed 150 characters.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects non-string title', () => {
+      req.body = {
+        jobDescription: 'Valid job description text for candidate role.',
+        title: 12345,
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Title must be a string.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects non-string roleId', () => {
+      req.body = {
+        jobDescription: 'Valid job description text for candidate role.',
+        roleId: { id: 'backend' },
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Role identifier (roleId) must be a string.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects non-string experienceLevel', () => {
+      req.body = {
+        jobDescription: 'Valid job description text for candidate role.',
+        experienceLevel: 3,
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Experience level must be a string.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('parses comma-separated skills string into array of strings', () => {
+      req.body = {
+        jobDescription: 'Valid job description text for candidate role.',
+        skills: 'JavaScript, TypeScript, Docker',
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.body.skills).toEqual(['JavaScript', 'TypeScript', 'Docker']);
+    });
+
+    test('rejects invalid skills format when not array or string', () => {
+      req.body = {
+        jobDescription: 'Valid job description text for candidate role.',
+        skills: 9999,
+      };
+
+      validateCreateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Skills must be an array of strings or a comma-separated string.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateUpdateJobDescription', () => {
+    test('passes when valid update payload is provided', () => {
+      req.body = {
+        title: 'Updated Role Title',
+        jobDescription: 'Updated job description details with sufficient length.',
+        experienceLevel: 'lead',
+        skills: ['Kubernetes', 'Go'],
+      };
+
+      validateUpdateJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(errorResponse).not.toHaveBeenCalled();
+      expect(req.body.title).toBe('Updated Role Title');
+    });
+
+    test('rejects empty request body on update', () => {
+      req.body = {};
+
+      validateUpdateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'At least one field to update must be provided.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('validates jobDescription on update when empty', () => {
+      req.body = { jobDescription: '   ' };
+
+      validateUpdateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description cannot be empty.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects update jobDescription shorter than 5 characters', () => {
+      req.body = { jobDescription: 'Hi' };
+
+      validateUpdateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description must be at least 5 characters long.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('validates title on update when empty', () => {
+      req.body = { title: '   ' };
+
+      validateUpdateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Title cannot be empty.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('validates title on update when exceeding 150 characters', () => {
+      req.body = { title: 'T'.repeat(151) };
+
+      validateUpdateJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Title cannot exceed 150 characters.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('parses comma-separated skills on update', () => {
+      req.body = { skills: 'Express, Jest' };
+
+      validateUpdateJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.body.skills).toEqual(['Express', 'Jest']);
+    });
+  });
+
+  describe('validateSaveJobDescription', () => {
+    test('passes and sets empty string when jobDescription is omitted (optional step)', () => {
+      req.body = {
+        roleId: 'backend',
+        title: 'Backend Developer',
+      };
+
+      validateSaveJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(errorResponse).not.toHaveBeenCalled();
+      expect(req.body.jobDescription).toBe('');
+      expect(req.body.roleId).toBe('backend');
+    });
+
+    test('passes with trimmed string when jobDescription is provided', () => {
+      req.body = {
+        jobDescription: '   Building scalable distributed systems with Node.js.   ',
+      };
+
+      validateSaveJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(errorResponse).not.toHaveBeenCalled();
+      expect(req.body.jobDescription).toBe(
+        'Building scalable distributed systems with Node.js.'
+      );
+    });
+
+    test('rejects non-string jobDescription', () => {
+      req.body = { jobDescription: 12345 };
+
+      validateSaveJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description must be a string.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects jobDescription exceeding 50,000 characters', () => {
+      req.body = { jobDescription: 'x'.repeat(50001) };
+
+      validateSaveJobDescription(req, res, next);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description cannot exceed 50,000 characters.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('trims title and roleId when provided', () => {
+      req.body = {
+        title: '   DevOps Lead   ',
+        roleId: '   devops-1   ',
+      };
+
+      validateSaveJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.body.title).toBe('DevOps Lead');
+      expect(req.body.roleId).toBe('devops-1');
     });
   });
 });

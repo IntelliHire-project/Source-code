@@ -64,6 +64,10 @@ export default function GeneratedQuestions() {
   }, [pageCtx]);
 
   const roleName = location.state?.roleTitle || 'Selected Role';
+  const jobDescription =
+    location.state?.jobDescription ||
+    (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('mock_interview_job_description') : '') ||
+    '';
   
   const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);
   const [generatingId, setGeneratingId] = useState(null);
@@ -103,7 +107,8 @@ export default function GeneratedQuestions() {
           hint: `Focus on technical depth, trade-off analysis, and clear communication strategy for ${q.topic}.`
         })),
         startIndex: question ? questions.findIndex((q) => q.id === question.id) : 0,
-        interviewMode: mode
+        interviewMode: mode,
+        jobDescription,
       },
     });
   };

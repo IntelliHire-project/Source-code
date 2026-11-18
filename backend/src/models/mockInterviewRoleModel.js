@@ -595,6 +595,23 @@ const storeSelectedRole = async (data = {}, userId = null, executor = db) => {
       status,
     ];
     const result = await executor.query(query, values);
+
+    // If a job description was provided with the selected role submission, also store it in mock_interview_job_descriptions
+    if (jobDescription) {
+      try {
+        await executor.query(
+          `
+            INSERT INTO mock_interview_job_descriptions 
+              (user_id, role_id, title, job_description, experience_level, source, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, 'mid', 'role_selection_submission', NOW(), NOW());
+          `,
+          [assignedUserId, roleId, roleTitle, jobDescription]
+        );
+      } catch (jdErr) {
+        console.warn('Could not mirror job description to mock_interview_job_descriptions:', jdErr.message);
+      }
+    }
+
     if (result && result.rows && result.rows.length > 0) {
       const row = result.rows[0];
       return {

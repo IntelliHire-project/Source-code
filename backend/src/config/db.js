@@ -469,6 +469,22 @@ const initializeDatabase = async () => {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_interview_job_descriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        role_id TEXT,
+        title TEXT,
+        job_description TEXT NOT NULL,
+        skills JSONB DEFAULT '[]'::jsonb,
+        experience_level TEXT DEFAULT 'mid',
+        company TEXT,
+        source TEXT DEFAULT 'custom',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // Seed default roles if not existing
     await client.query(`
       INSERT INTO mock_interview_roles (role_id, title, description, category, icon, is_custom, skills)
@@ -518,6 +534,9 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_mock_roles_is_custom ON mock_interview_roles(is_custom);
       CREATE INDEX IF NOT EXISTS idx_mock_selected_user_id ON mock_interview_selected_roles(user_id);
       CREATE INDEX IF NOT EXISTS idx_mock_selected_role_id ON mock_interview_selected_roles(role_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_jd_user_id ON mock_interview_job_descriptions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_jd_role_id ON mock_interview_job_descriptions(role_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_jd_created_at ON mock_interview_job_descriptions(created_at);
     `);
   } finally {
     client.release();

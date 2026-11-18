@@ -212,10 +212,193 @@ const validateUserRoleAccess = (req, res, next) => {
   return next();
 };
 
+/**
+ * Validates the payload for creating a job description for mock interviews.
+ */
+const validateCreateJobDescription = (req, res, next) => {
+  const { jobDescription, description, content, title, roleId, experienceLevel, skills } = req.body || {};
+  const rawDescription = jobDescription || description || content;
+
+  if (!rawDescription || typeof rawDescription !== 'string' || !rawDescription.trim()) {
+    return errorResponse(res, 'Job description is required and must be a non-empty string.', 400);
+  }
+
+  const trimmedDescription = rawDescription.trim();
+  if (trimmedDescription.length < 5) {
+    return errorResponse(res, 'Job description must be at least 5 characters long.', 400);
+  }
+
+  if (trimmedDescription.length > 50000) {
+    return errorResponse(res, 'Job description cannot exceed 50,000 characters.', 400);
+  }
+
+  if (title !== undefined && title !== null) {
+    if (typeof title !== 'string') {
+      return errorResponse(res, 'Title must be a string.', 400);
+    }
+    if (title.trim().length > 150) {
+      return errorResponse(res, 'Title cannot exceed 150 characters.', 400);
+    }
+    req.body.title = title.trim();
+  }
+
+  if (roleId !== undefined && roleId !== null) {
+    if (typeof roleId !== 'string') {
+      return errorResponse(res, 'Role identifier (roleId) must be a string.', 400);
+    }
+    req.body.roleId = roleId.trim();
+  }
+
+  if (experienceLevel !== undefined && experienceLevel !== null) {
+    if (typeof experienceLevel !== 'string') {
+      return errorResponse(res, 'Experience level must be a string.', 400);
+    }
+    req.body.experienceLevel = experienceLevel.trim();
+  }
+
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(parsedSkills)) {
+      return errorResponse(res, 'Skills must be an array of strings or a comma-separated string.', 400);
+    }
+    req.body.skills = parsedSkills.map((s) => String(s).trim()).filter(Boolean);
+  }
+
+  req.body.jobDescription = trimmedDescription;
+  return next();
+};
+
+/**
+ * Validates the payload for updating an existing job description.
+ */
+const validateUpdateJobDescription = (req, res, next) => {
+  const { jobDescription, description, content, title, roleId, experienceLevel, skills, company } = req.body || {};
+  const rawDescription =
+    jobDescription !== undefined ? jobDescription : description !== undefined ? description : content;
+
+  if (
+    rawDescription === undefined &&
+    title === undefined &&
+    roleId === undefined &&
+    experienceLevel === undefined &&
+    skills === undefined &&
+    company === undefined
+  ) {
+    return errorResponse(res, 'At least one field to update must be provided.', 400);
+  }
+
+  if (rawDescription !== undefined) {
+    if (typeof rawDescription !== 'string' || !rawDescription.trim()) {
+      return errorResponse(res, 'Job description cannot be empty.', 400);
+    }
+    const trimmedDescription = rawDescription.trim();
+    if (trimmedDescription.length < 5) {
+      return errorResponse(res, 'Job description must be at least 5 characters long.', 400);
+    }
+    if (trimmedDescription.length > 50000) {
+      return errorResponse(res, 'Job description cannot exceed 50,000 characters.', 400);
+    }
+    req.body.jobDescription = trimmedDescription;
+  }
+
+  if (title !== undefined && title !== null) {
+    if (typeof title !== 'string' || !title.trim()) {
+      return errorResponse(res, 'Title cannot be empty.', 400);
+    }
+    if (title.trim().length > 150) {
+      return errorResponse(res, 'Title cannot exceed 150 characters.', 400);
+    }
+    req.body.title = title.trim();
+  }
+
+  if (roleId !== undefined && roleId !== null) {
+    if (typeof roleId !== 'string') {
+      return errorResponse(res, 'Role identifier (roleId) must be a string.', 400);
+    }
+    req.body.roleId = roleId.trim();
+  }
+
+  if (experienceLevel !== undefined && experienceLevel !== null) {
+    if (typeof experienceLevel !== 'string') {
+      return errorResponse(res, 'Experience level must be a string.', 400);
+    }
+    req.body.experienceLevel = experienceLevel.trim();
+  }
+
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(parsedSkills)) {
+      return errorResponse(res, 'Skills must be an array of strings or a comma-separated string.', 400);
+    }
+    req.body.skills = parsedSkills.map((s) => String(s).trim()).filter(Boolean);
+  }
+
+  return next();
+};
+
+/**
+ * Validates the payload for submitting/saving a job description in a mock interview session.
+ * Providing a specific job description is optional (allowing standard questions if skipped).
+ * If provided, enforces string formatting and maximum length.
+ */
+const validateSaveJobDescription = (req, res, next) => {
+  const { jobDescription, description, content, title, roleId, experienceLevel, skills } = req.body || {};
+  const rawDescription =
+    jobDescription !== undefined ? jobDescription : description !== undefined ? description : content;
+
+  if (rawDescription !== undefined && rawDescription !== null) {
+    if (typeof rawDescription !== 'string') {
+      return errorResponse(res, 'Job description must be a string.', 400);
+    }
+    const trimmed = rawDescription.trim();
+    if (trimmed.length > 50000) {
+      return errorResponse(res, 'Job description cannot exceed 50,000 characters.', 400);
+    }
+    req.body.jobDescription = trimmed;
+  } else {
+    req.body.jobDescription = '';
+  }
+
+  if (title !== undefined && title !== null) {
+    if (typeof title !== 'string') {
+      return errorResponse(res, 'Title must be a string.', 400);
+    }
+    req.body.title = title.trim();
+  }
+
+  if (roleId !== undefined && roleId !== null) {
+    if (typeof roleId !== 'string') {
+      return errorResponse(res, 'Role identifier (roleId) must be a string.', 400);
+    }
+    req.body.roleId = roleId.trim();
+  }
+
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (Array.isArray(parsedSkills)) {
+      req.body.skills = parsedSkills.map((s) => String(s).trim()).filter(Boolean);
+    }
+  }
+
+  return next();
+};
+
 module.exports = {
   ALLOWED_CATEGORIES,
   validateCreateRole,
   validateUpdateRole,
   validateUserRoleAccess,
+  validateCreateJobDescription,
+  validateUpdateJobDescription,
+  validateSaveJobDescription,
 };
 
