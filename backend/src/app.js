@@ -48,6 +48,10 @@ app.use("/mock-interview", mockInterviewRoutes);
 app.use("/api/mock-interview", mockInterviewRoutes);
 app.use("/job-roles", mockInterviewRoutes);
 app.use("/api/job-roles", mockInterviewRoutes);
+app.use("/job-descriptions", mockInterviewRoutes);
+app.use("/api/job-descriptions", mockInterviewRoutes);
+app.use("/job-description", mockInterviewRoutes);
+app.use("/api/job-description", mockInterviewRoutes);
 
 // Global Error Handler Middleware (must be registered last)
 app.use(errorHandler);
