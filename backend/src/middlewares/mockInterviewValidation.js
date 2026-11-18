@@ -342,6 +342,56 @@ const validateUpdateJobDescription = (req, res, next) => {
   return next();
 };
 
+/**
+ * Validates the payload for submitting/saving a job description in a mock interview session.
+ * Providing a specific job description is optional (allowing standard questions if skipped).
+ * If provided, enforces string formatting and maximum length.
+ */
+const validateSaveJobDescription = (req, res, next) => {
+  const { jobDescription, description, content, title, roleId, experienceLevel, skills } = req.body || {};
+  const rawDescription =
+    jobDescription !== undefined ? jobDescription : description !== undefined ? description : content;
+
+  if (rawDescription !== undefined && rawDescription !== null) {
+    if (typeof rawDescription !== 'string') {
+      return errorResponse(res, 'Job description must be a string.', 400);
+    }
+    const trimmed = rawDescription.trim();
+    if (trimmed.length > 50000) {
+      return errorResponse(res, 'Job description cannot exceed 50,000 characters.', 400);
+    }
+    req.body.jobDescription = trimmed;
+  } else {
+    req.body.jobDescription = '';
+  }
+
+  if (title !== undefined && title !== null) {
+    if (typeof title !== 'string') {
+      return errorResponse(res, 'Title must be a string.', 400);
+    }
+    req.body.title = title.trim();
+  }
+
+  if (roleId !== undefined && roleId !== null) {
+    if (typeof roleId !== 'string') {
+      return errorResponse(res, 'Role identifier (roleId) must be a string.', 400);
+    }
+    req.body.roleId = roleId.trim();
+  }
+
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (Array.isArray(parsedSkills)) {
+      req.body.skills = parsedSkills.map((s) => String(s).trim()).filter(Boolean);
+    }
+  }
+
+  return next();
+};
+
 module.exports = {
   ALLOWED_CATEGORIES,
   validateCreateRole,
@@ -349,5 +399,6 @@ module.exports = {
   validateUserRoleAccess,
   validateCreateJobDescription,
   validateUpdateJobDescription,
+  validateSaveJobDescription,
 };
 

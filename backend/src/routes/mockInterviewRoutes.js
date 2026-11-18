@@ -6,6 +6,7 @@ const {
   validateUserRoleAccess,
   validateCreateJobDescription,
   validateUpdateJobDescription,
+  validateSaveJobDescription,
 } = require('../middlewares/mockInterviewValidation');
 const {
   createJobRoleHandler,
@@ -72,8 +73,8 @@ router.get('/selected-role', optionalAuth, getSelectedRoleHandler);
 router.post('/select-role', optionalAuth, storeSelectedRoleHandler);
 
 // 4. Job Description endpoints (Must precede parameterized /:id routes)
-router.post('/job-descriptions/save', optionalAuth, validateUserRoleAccess, validateCreateJobDescription, saveMockInterviewJobDescriptionHandler);
-router.post('/job-description/save', optionalAuth, validateUserRoleAccess, validateCreateJobDescription, saveMockInterviewJobDescriptionHandler);
+router.post('/job-descriptions/save', optionalAuth, validateUserRoleAccess, validateSaveJobDescription, saveMockInterviewJobDescriptionHandler);
+router.post('/job-description/save', optionalAuth, validateUserRoleAccess, validateSaveJobDescription, saveMockInterviewJobDescriptionHandler);
 
 router.get('/job-descriptions/latest', optionalAuth, getLatestJobDescriptionHandler);
 router.get('/job-description/latest', optionalAuth, getLatestJobDescriptionHandler);

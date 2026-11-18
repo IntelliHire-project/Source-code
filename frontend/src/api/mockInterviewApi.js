@@ -85,13 +85,20 @@ export const createJobDescription = async (jdData) => {
 };
 
 /**
- * Saves/links a job description for the candidate's mock interview session.
- * @param {object} jdData - { jobDescription, roleId, title }
+ * Saves/submits a job description for the candidate's mock interview session.
+ * Stores in the job descriptions repository and syncs with selected role.
+ * @param {object} jdData - { jobDescription, roleId, roleTitle, category, skills, experienceLevel }
  * @returns {Promise<object>}
  */
 export const saveMockInterviewJobDescription = async (jdData) => {
-  const response = await apiInstance.post('/mock-interviews/job-descriptions/save', jdData);
-  return response.data;
+  try {
+    const response = await apiInstance.post('/mock-interviews/job-descriptions/save', jdData);
+    return response.data;
+  } catch (error) {
+    // Graceful fallback to selected-role endpoint if standalone endpoint is unavailable
+    const fallback = await apiInstance.post('/mock-interviews/roles/selected', jdData);
+    return fallback.data;
+  }
 };
 
 /**

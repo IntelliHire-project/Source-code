@@ -293,37 +293,81 @@ const deleteJobDescription = async (id, user = null, executor = db) => {
  * Saves a job description for the current mock interview session and syncs with selected role.
  */
 const saveSelectedJobDescription = async (data = {}, user = null, executor = db) => {
-  const createdJd = await createJobDescription(data, user, executor);
+  const rawDescription = data.jobDescription || data.description || data.content || '';
+  const trimmed = String(rawDescription).trim();
   const userId = user && user.id ? Number(user.id) : data.userId ? Number(data.userId) : null;
-  const roleId = data.roleId || createdJd.roleId;
+  const roleId = (data.roleId || '').trim() || null;
+  const roleTitle = (data.roleTitle || data.title || '').trim() || null;
+  const category = (data.category || '').toLowerCase().trim() || 'engineering';
+
+  let createdJd = null;
+  if (trimmed) {
+    createdJd = await createJobDescription({ ...data, jobDescription: trimmed }, user, executor);
+  }
 
   if (userId) {
     try {
+      let updateResult;
       if (roleId) {
-        await executor.query(
+        updateResult = await executor.query(
           `
             UPDATE mock_interview_selected_roles
-            SET job_description = $1, updated_at = NOW()
-            WHERE user_id = $2 AND role_id = $3;
+            SET job_description = $1, role_id = COALESCE($2, role_id), role_title = COALESCE($3, role_title), updated_at = NOW()
+            WHERE user_id = $4 AND role_id = $2
+            RETURNING *;
           `,
-          [createdJd.jobDescription, userId, roleId]
+          [trimmed || null, roleId, roleTitle, userId]
         );
-      } else {
-        await executor.query(
+      }
+
+      if (!updateResult || !updateResult.rows || updateResult.rows.length === 0) {
+        updateResult = await executor.query(
           `
             UPDATE mock_interview_selected_roles
-            SET job_description = $1, updated_at = NOW()
-            WHERE user_id = $2;
+            SET job_description = $1, role_id = COALESCE($2, role_id), role_title = COALESCE($3, role_title), updated_at = NOW()
+            WHERE user_id = $4
+            RETURNING *;
           `,
-          [createdJd.jobDescription, userId]
+          [trimmed || null, roleId, roleTitle, userId]
+        );
+      }
+
+      if (!updateResult || !updateResult.rows || updateResult.rows.length === 0) {
+        await executor.query(
+          `
+            INSERT INTO mock_interview_selected_roles 
+              (user_id, role_id, role_title, category, job_description, interview_mode, status, updated_at)
+            VALUES ($1, $2, $3, $4, $5, 'text', 'selected', NOW());
+          `,
+          [
+            userId,
+            roleId || 'general',
+            roleTitle || 'General Role',
+            category,
+            trimmed || null,
+          ]
         );
       }
     } catch (err) {
-      console.warn('Sync with mock_interview_selected_roles skipped/failed:', err.message);
+      console.warn('Sync with mock_interview_selected_roles failed:', err.message);
     }
   }
 
-  return createdJd;
+  return (
+    createdJd || {
+      id: Date.now(),
+      userId,
+      roleId,
+      title: roleTitle || '',
+      jobDescription: trimmed,
+      skills: [],
+      experienceLevel: 'mid',
+      company: null,
+      source: 'custom',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  );
 };
 
 module.exports = {
