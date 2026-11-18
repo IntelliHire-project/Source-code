@@ -204,7 +204,7 @@ const validateUserRoleAccess = (req, res, next) => {
     if (!allowedRoles.includes(req.user.role)) {
       return errorResponse(
         res,
-        'Access denied. Your user role does not have permission to manage mock interview operations.',
+        'Access denied. Your user role does not have permission to manage mock interview roles.',
         403
       );
     }
