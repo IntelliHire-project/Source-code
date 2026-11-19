@@ -11,6 +11,7 @@ import {
   Upload,
   Loader2,
   AlertCircle,
+  ShieldCheck,
   X,
 } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
@@ -22,8 +23,6 @@ import {
   chatWithCVApi,
 } from '../../../api/authApi';
 import './cv-insights.css';
-
-/* ── Mock Data ── */
 
 function formatCvItem(item) {
   if (!item) return null;
@@ -42,31 +41,6 @@ function formatCvItem(item) {
     isActive: Boolean(item.is_active),
     isRealCv: true,
   };
-}
-
-const MOCK_AI_RESPONSES = [
-  {
-    keywords: ['summary', 'profile', 'introduction'],
-    text: 'Focus on 2-3 sentences that showcase your unique value proposition. Mention your years of experience, key technical stacks, and the type of problems you solve. For example: "Senior Full-Stack Engineer with 7+ years building scalable web applications using React, Node.js, and AWS. Passionate about architecting clean, performant systems that drive measurable business impact."',
-  },
-  {
-    keywords: ['keyword', 'keywords', 'skill', 'skills'],
-    text: 'Review the job descriptions you are targeting and extract the top 10-15 technical and soft skills that appear most frequently. Create a dedicated "Technical Skills" section at the top of your CV, grouped by category (e.g., "Languages: TypeScript, Python" — "Frameworks: React, Next.js" — "Cloud: AWS, Docker").',
-  },
-  {
-    keywords: ['ATS', 'ats', 'parse', 'scanner', 'filter'],
-    text: 'To improve ATS compatibility: (1) Use standard section headings (Experience, Education, Skills). (2) Avoid tables, columns, or graphics the parser may skip. (3) Spell out acronyms at least once (e.g., "CI/CD (Continuous Integration/Continuous Deployment)"). (4) Use standard PDF format.',
-  },
-];
-
-function getMockAiResponse(userMessage) {
-  const lower = userMessage.toLowerCase();
-  for (const entry of MOCK_AI_RESPONSES) {
-    if (entry.keywords.some((kw) => lower.includes(kw))) {
-      return entry.text;
-    }
-  }
-  return 'Great question. Consider tailoring your CV for each application by aligning your experience summary with the specific role requirements. Focus on highlighting measurable achievements and using keywords from the job description. Would you like me to look at a specific section of your CV?';
 }
 
 /* ── ScoreRing ── */
@@ -177,7 +151,7 @@ export function InsightList({ type, items, presentKeywords, missingKeywords }) {
 
 /* ── ChatPanel ── */
 
-export function ChatPanel({ messages, onSend, isTyping }) {
+export function ChatPanel({ messages, onSend, isTyping, selectedCvName }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
 
@@ -193,7 +167,7 @@ export function ChatPanel({ messages, onSend, isTyping }) {
 
   function handleSend() {
     const text = input.trim();
-    if (!text) return;
+    if (!text || isTyping) return;
     onSend(text);
     setInput('');
   }
@@ -211,12 +185,11 @@ export function ChatPanel({ messages, onSend, isTyping }) {
         <div className="chat-panel__header-avatar">
           <Bot size={18} />
         </div>
-        <div>
+        <div className="chat-panel__header-info">
           <h3>Ask the CV Assistant</h3>
-        </div>
-        <div className="chat-panel__header-status">
-          <span className="chat-panel__header-status-dot" />
-          Online
+          <p className="chat-panel__selected-cv">
+            {selectedCvName ? `Chatting about: ${selectedCvName}` : 'Select a CV to chat'}
+          </p>
         </div>
       </div>
 
@@ -262,6 +235,7 @@ export function ChatPanel({ messages, onSend, isTyping }) {
           className="chat-panel__input"
           placeholder="Ask about your CV..."
           value={input}
+          maxLength={2000}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
         />
@@ -287,11 +261,17 @@ const ANALYSIS_TABS = [
   { key: 'keywords', label: 'Keyword Gaps' },
 ];
 
+const INITIAL_CHAT_MESSAGES = [{
+  role: 'ai',
+  text: "Hi! I'm your CV assistant. Ask me anything about improving your CV.",
+}];
+
 function CVInsights() {
   const { setPageLabel } = useContext(CandidatePageContext);
   const fileInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const analysisRequestRef = useRef(0);
+  const chatRequestRef = useRef(0);
 
   const [cvList, setCvList] = useState([]);
   const [selectedCvId, setSelectedCvId] = useState(null);
@@ -304,12 +284,7 @@ function CVInsights() {
   const [isUploading, setIsUploading] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  const [chatMessages, setChatMessages] = useState([
-    {
-      role: 'ai',
-      text: "Hi! I'm your CV assistant. Ask me anything about improving your CV — I can help with summaries, keywords, ATS issues, and more.",
-    },
-  ]);
+  const [chatMessages, setChatMessages] = useState(INITIAL_CHAT_MESSAGES);
   const [isChatTyping, setIsChatTyping] = useState(false);
 
   useEffect(() => {
@@ -422,15 +397,10 @@ function CVInsights() {
 
     setSelectedCvId(cv.id);
     setCvDropdownOpen(false);
+    chatRequestRef.current += 1;
+    setChatMessages(INITIAL_CHAT_MESSAGES);
+    setIsChatTyping(false);
     runAnalysis(cv);
-
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        role: 'ai',
-        text: `Switched analysis to "${cv.filename}". Check the tabs above for consistent strengths, weaknesses, suggestions, and keyword gaps!`,
-      },
-    ]);
     // Note: Active CV remains strictly managed by CV Management page and is not modified here
   }
 
@@ -473,26 +443,16 @@ function CVInsights() {
       ]);
       setSelectedCvId(newCvDoc.id);
       setCvDropdownOpen(false);
+      chatRequestRef.current += 1;
+      setChatMessages(INITIAL_CHAT_MESSAGES);
+      setIsChatTyping(false);
 
       setFeedback({
         type: 'success',
         message: `CV "${file.name}" uploaded successfully and set as active document!`,
       });
 
-      setChatMessages((prev) => [
-        ...prev,
-        { role: 'user', text: `Please analyze my new CV: ${file.name}` },
-      ]);
-
-      runAnalysis(newCvDoc, () => {
-        setChatMessages((prev) => [
-          ...prev,
-          {
-            role: 'ai',
-            text: `I've finished analyzing "${newCvDoc.filename}". Check the tabs above for feedback, or ask me a question below.`,
-          },
-        ]);
-      });
+      runAnalysis(newCvDoc);
     } catch (err) {
       console.error('Error uploading CV:', err);
       const msg =
@@ -510,29 +470,35 @@ function CVInsights() {
   }
 
   async function handleSend(text) {
+    if (!selectedCv || !selectedCv.isRealCv) {
+      setFeedback({ type: 'error', message: 'Select or upload a CV before using the assistant.' });
+      return;
+    }
+
+    const requestId = ++chatRequestRef.current;
     const updatedMessages = [...chatMessages, { role: 'user', text }];
     setChatMessages(updatedMessages);
     setIsChatTyping(true);
+    setFeedback(null);
 
-    if (selectedCv && selectedCv.isRealCv) {
-      try {
-        const res = await chatWithCVApi(selectedCv.id, text, chatMessages);
-        const reply = res?.reply || res?.data?.reply;
-        if (reply) {
-          setChatMessages((prev) => [...prev, { role: 'ai', text: reply }]);
-          setIsChatTyping(false);
-          return;
-        }
-      } catch (err) {
-        console.warn('Live CV Assistant chat request failed, falling back:', err);
+    try {
+      const res = await chatWithCVApi(selectedCv.id, text, chatMessages.slice(-6));
+      if (requestId !== chatRequestRef.current) return;
+      const reply = res?.reply || res?.data?.reply;
+      if (typeof reply !== 'string' || !reply.trim()) {
+        throw new Error('The server returned an empty chat response.');
       }
-    }
-
-    setTimeout(() => {
-      const reply = getMockAiResponse(text);
       setChatMessages((prev) => [...prev, { role: 'ai', text: reply }]);
-      setIsChatTyping(false);
-    }, 1000);
+    } catch (err) {
+      if (requestId !== chatRequestRef.current) return;
+      console.error('CV assistant request failed:', err);
+      setFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'The CV assistant is unavailable. Please try again.',
+      });
+    } finally {
+      if (requestId === chatRequestRef.current) setIsChatTyping(false);
+    }
   }
 
   return (
@@ -706,6 +672,8 @@ function CVInsights() {
         {/* Chat Panel */}
         <div className="cv-insights__chat">
           <ChatPanel
+            key={selectedCvId}
+            selectedCvName={selectedCv?.filename}
             messages={chatMessages}
             onSend={handleSend}
             isTyping={isChatTyping}
@@ -713,6 +681,13 @@ function CVInsights() {
         </div>
       </div>
 
+      <div className="cv-insights__privacy">
+        <ShieldCheck size={14} className="cv-insights__privacy-icon" aria-hidden="true" />
+        <p>
+          CV content and chat messages may be sent to Google Gemini for AI insights and responses.
+          Please avoid sharing sensitive information; personal details may remain despite filtering.
+        </p>
+      </div>
     </div>
   );
 }
