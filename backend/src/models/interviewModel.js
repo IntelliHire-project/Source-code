@@ -77,24 +77,17 @@ const formatSlotRow = (row) => {
   let panelMember = DEFAULT_PANEL_MEMBERS[0];
   if (row.panel_name) {
     const pNameLower = row.panel_name.toLowerCase();
-    const matched = DEFAULT_PANEL_MEMBERS.find((p) =>
-      pNameLower.includes(p.name.toLowerCase()) ||
-      (pNameLower.includes('hr') && p.role.toLowerCase().includes('hr')) ||
-      (pNameLower.includes('tech') && p.role.toLowerCase().includes('tech')) ||
-      (pNameLower.includes('design') && (p.department.toLowerCase().includes('talent') || p.role.toLowerCase().includes('design'))) ||
-      (pNameLower.includes('architect') && p.role.toLowerCase().includes('architect'))
-    );
-    if (matched) {
-      panelMember = matched;
+    const roundLower = (row.round || '').toLowerCase();
+    const posLower = (row.job_position || '').toLowerCase();
+
+    if (pNameLower.includes('dilhani') || pNameLower.includes('panel b') || roundLower.includes('design') || posLower.includes('design')) {
+      panelMember = DEFAULT_PANEL_MEMBERS[2]; // Dilhani Wickramasinghe
+    } else if (pNameLower.includes('ruwan') || pNameLower.includes('panel c') || roundLower.includes('architect') || posLower.includes('intern') || posLower.includes('ba')) {
+      panelMember = DEFAULT_PANEL_MEMBERS[3]; // Ruwan Bandara
+    } else if (pNameLower.includes('nirosha') || (pNameLower.includes('hr') && !pNameLower.includes('tech'))) {
+      panelMember = DEFAULT_PANEL_MEMBERS[1]; // Nirosha HR
     } else {
-      panelMember = {
-        id: `pm-${row.id || 1}`,
-        name: row.panel_name,
-        email: 'interviews@company.com',
-        role: 'Panel Interviewer',
-        department: 'Hiring Team',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      };
+      panelMember = DEFAULT_PANEL_MEMBERS[0]; // Saman Tech
     }
   }
 
