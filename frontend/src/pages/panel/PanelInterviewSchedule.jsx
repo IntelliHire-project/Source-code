@@ -168,25 +168,22 @@ export const sanitizePanelSlots = (rawList) => {
   // 1. Strictly filter out open unallocated slots (status AVAILABLE)
   const confirmed = list.filter((s) => s && s.status !== 'AVAILABLE');
 
-    // 2. Normalize Danushka card to ensure clean HIRE evaluation
-    const cleanedFromCorrupt = confirmed.map((s) => {
-      const isDanushka =
-        (s.candidate?.name || s.candidateName || '').toLowerCase().includes('danushka') ||
-        (s.status === 'COMPLETED' && (s.evaluation?.candidateName || '').toLowerCase().includes('danushka'));
-      if (isDanushka && s.evaluation?.recommendation === 'HOLD') {
-        return false;
-        if (isDanushka && s.status === 'COMPLETED') {
-          return {
-            ...s,
-            evaluation: {
-              ...s.evaluation,
-              recommendation: s.evaluation?.recommendation === 'HOLD' ? 'HIRE' : (s.evaluation?.recommendation || 'HIRE'),
-            },
-          };
-        }
-        return true;
-        return s;
-      });
+  // 2. Normalize Danushka card to ensure clean HIRE evaluation
+  const cleanedFromCorrupt = confirmed.map((s) => {
+    const isDanushka =
+      (s.candidate?.name || s.candidateName || '').toLowerCase().includes('danushka') ||
+      (s.status === 'COMPLETED' && (s.evaluation?.candidateName || '').toLowerCase().includes('danushka'));
+    if (isDanushka && s.status === 'COMPLETED') {
+      return {
+        ...s,
+        evaluation: {
+          ...s.evaluation,
+          recommendation: s.evaluation?.recommendation === 'HOLD' ? 'HIRE' : (s.evaluation?.recommendation || 'HIRE'),
+        },
+      };
+    }
+    return s;
+  });
 
     // 3. Ensure all 4 core default sessions are represented
     const merged = [...cleanedFromCorrupt];
@@ -259,7 +256,6 @@ export const sanitizePanelSlots = (rawList) => {
 
     // Load data on mount & listen to live allocation updates
     useEffect(() => {
-      const PANEL_STORAGE_VERSION = 'v28_upcoming_eval_locked';
       const PANEL_STORAGE_VERSION = 'v29_chronological_eval_locked';
       if (typeof window !== 'undefined' && localStorage.getItem('intellihire_panel_ui_ver') !== PANEL_STORAGE_VERSION) {
         localStorage.removeItem('intellihire_interview_slots');

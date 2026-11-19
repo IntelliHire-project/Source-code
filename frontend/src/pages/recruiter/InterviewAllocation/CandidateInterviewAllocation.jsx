@@ -169,7 +169,6 @@ export const mergeWithInitialAllocations = (incomingList) => {
     if (filteredIncoming.length === 0) {
       return INITIAL_ALLOCATIONS;
     }
-    const merged = [...incomingList];
     const merged = [...filteredIncoming];
     INITIAL_ALLOCATIONS.forEach((init) => {
       const exists = merged.some(
@@ -187,7 +186,6 @@ export const mergeWithInitialAllocations = (incomingList) => {
   };
 
   // Clean Storage Version to permanently purge old duplicate test entries and keep single default dataset
-  const CLEAN_STORAGE_VERSION = 'v28_merge_and_persist_notified';
   const CLEAN_STORAGE_VERSION = 'v29_exclude_completed_danushka';
 
   export const resetToDefaultMockData = () => {
@@ -1394,10 +1392,8 @@ export const mergeWithInitialAllocations = (incomingList) => {
       showToast('Interview allocations saved and synced to schedule!');
     };
 
-    // Filtered Allocations for display
     // Filtered Allocations for display (strictly exclude completed sessions / Danushka Silva which belong solely to Panel Schedule)
     const filteredAllocations = useMemo(() => {
-      let list = allocations;
       let list = allocations.filter((a) => {
         const isDanushka = (a.candidateName || '').toLowerCase().includes('danushka');
         const isCompleted = a.status === 'COMPLETED';

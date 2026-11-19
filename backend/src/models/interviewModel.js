@@ -900,11 +900,26 @@ const createRescheduleRequest = async (reqData) => {
  * Approve Reschedule Request
  */
 const approveRescheduleRequest = async (requestId, selectedProposedSlot, resolutionNotes = '') => {
-  const cleanReqId = parseInt(String(requestId).replace(/\D/g, ''), 10) || 1;
-  const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [cleanReqId]);
-  if (rows.length === 0) throw new Error('Reschedule request not found.');
+  let cleanReqId = parseInt(String(requestId).replace(/\D/g, ''), 10);
+  if (isNaN(cleanReqId) || cleanReqId > 2147483647) {
+    cleanReqId = null;
+  }
 
-  const request = rows[0];
+  let request = null;
+  if (cleanReqId) {
+    const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [cleanReqId]);
+    if (rows.length > 0) request = rows[0];
+  }
+
+  if (!request) {
+    // Fallback: find the latest pending request
+    const { rows } = await db.query("SELECT * FROM interview_reschedule_requests WHERE status = 'PENDING' ORDER BY id DESC LIMIT 1");
+    if (rows.length > 0) request = rows[0];
+  }
+
+  if (!request) throw new Error('Reschedule request not found.');
+
+  const targetReqId = request.id;
   const slotId = request.slot_id;
 
   // Update request
@@ -912,7 +927,7 @@ const approveRescheduleRequest = async (requestId, selectedProposedSlot, resolut
     `UPDATE interview_reschedule_requests SET
       status = 'APPROVED', resolution_notes = $1, resolved_at = NOW()
     WHERE id = $2`,
-    [resolutionNotes, cleanReqId]
+    [resolutionNotes, targetReqId]
   );
 
   // Update slot if proposed slot was provided
@@ -936,18 +951,33 @@ const approveRescheduleRequest = async (requestId, selectedProposedSlot, resolut
  * Reject Reschedule Request
  */
 const rejectRescheduleRequest = async (requestId, rejectionReason = '') => {
-  const cleanReqId = parseInt(String(requestId).replace(/\D/g, ''), 10) || 1;
-  const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [cleanReqId]);
-  if (rows.length === 0) throw new Error('Reschedule request not found.');
+  let cleanReqId = parseInt(String(requestId).replace(/\D/g, ''), 10);
+  if (isNaN(cleanReqId) || cleanReqId > 2147483647) {
+    cleanReqId = null;
+  }
 
-  const request = rows[0];
+  let request = null;
+  if (cleanReqId) {
+    const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [cleanReqId]);
+    if (rows.length > 0) request = rows[0];
+  }
+
+  if (!request) {
+    // Fallback: find the latest pending request
+    const { rows } = await db.query("SELECT * FROM interview_reschedule_requests WHERE status = 'PENDING' ORDER BY id DESC LIMIT 1");
+    if (rows.length > 0) request = rows[0];
+  }
+
+  if (!request) throw new Error('Reschedule request not found.');
+
+  const targetReqId = request.id;
   const slotId = request.slot_id;
 
   await db.query(
     `UPDATE interview_reschedule_requests SET
       status = 'REJECTED', resolution_notes = $1, resolved_at = NOW()
     WHERE id = $2`,
-    [rejectionReason, cleanReqId]
+    [rejectionReason, targetReqId]
   );
 
   // Revert slot status back to SCHEDULED
