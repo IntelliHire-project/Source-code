@@ -201,72 +201,110 @@ export default function CandidateAssessmentsListPage() {
           </div>
         </div>
 
+        {/* Loading Indicator */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#9ca3af' }}>
+            <Loader2 size={36} className="animate-spin" style={{ margin: '0 auto 16px', color: '#818cf8', animation: 'spin 1s linear infinite' }} />
+            <p style={{ fontSize: '15px', color: '#d1d5db' }}>Loading your assigned assessments...</p>
+          </div>
+        )}
+
+        {/* Error / Notice Alert */}
+        {!loading && error && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            marginBottom: '20px',
+            color: '#f87171',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '13px'
+          }}>
+            <AlertCircle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && filteredAssignments.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#9ca3af' }}>
+            <FileCheck size={44} style={{ margin: '0 auto 16px', color: '#6b7280' }} />
+            <h3 style={{ color: '#fff', fontSize: '18px', marginBottom: '8px' }}>No assessments found</h3>
+            <p style={{ fontSize: '14px' }}>There are no assessments matching your current filter.</p>
+          </div>
+        )}
+
         {/* Assessments Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
-          {filteredAssignments.map(item => (
-            <div
-              key={item.id}
-              className="cap-question-card"
-              style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <span className="cap-badge category">{item.company}</span>
-                  <span
-                    className="cap-badge"
-                    style={{
-                      background: item.status === 'Completed' ? 'rgba(16, 185, 129, 0.15)' : item.status === 'In Progress' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.15)',
-                      color: item.status === 'Completed' ? '#34d399' : item.status === 'In Progress' ? '#fcd34d' : '#818cf8',
-                      border: '1px solid currentColor'
-                    }}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-
-                <h3 style={{ fontSize: '18px', fontWeight: 650, color: '#fff', marginBottom: '6px' }}>
-                  {item.title}
-                </h3>
-                <p style={{ color: '#818cf8', fontSize: '13px', fontWeight: 500, marginBottom: '14px' }}>
-                  {item.jobRole}
-                </p>
-                <p style={{ color: '#9ca3af', fontSize: '13px', lineHeight: 1.5, marginBottom: '20px' }}>
-                  {item.description}
-                </p>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', color: '#d1d5db', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Clock size={15} style={{ color: '#818cf8' }} /> {item.duration}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Calendar size={15} style={{ color: '#818cf8' }} /> Due: {item.dueDate}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                {item.status === 'Completed' ? (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(16, 185, 129, 0.1)', padding: '12px 16px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                    <span style={{ fontSize: '13px', color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <CheckCircle2 size={16} /> Completed
-                    </span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
-                      Score: {item.scoreAchieved}
+        {!loading && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+            {filteredAssignments.map(item => (
+              <div
+                key={item.id}
+                className="cap-question-card"
+                style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <span className="cap-badge category">{item.company}</span>
+                    <span
+                      className="cap-badge"
+                      style={{
+                        background: item.status === 'Completed' ? 'rgba(16, 185, 129, 0.15)' : item.status === 'In Progress' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                        color: item.status === 'Completed' ? '#34d399' : item.status === 'In Progress' ? '#fcd34d' : '#818cf8',
+                        border: '1px solid currentColor'
+                      }}
+                    >
+                      {item.status}
                     </span>
                   </div>
-                ) : (
-                  <button
-                    className="cap-btn-prim"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    onClick={() => navigate(`/a/${item.id}`)}
-                  >
-                    {item.status === 'In Progress' ? 'Continue Assessment' : 'Start Assessment'} <ChevronRight size={16} />
-                  </button>
-                )}
+
+                  <h3 style={{ fontSize: '18px', fontWeight: 650, color: '#fff', marginBottom: '6px' }}>
+                    {item.title}
+                  </h3>
+                  <p style={{ color: '#818cf8', fontSize: '13px', fontWeight: 500, marginBottom: '14px' }}>
+                    {item.jobRole}
+                  </p>
+                  <p style={{ color: '#9ca3af', fontSize: '13px', lineHeight: 1.5, marginBottom: '20px' }}>
+                    {item.description}
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', color: '#d1d5db', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={15} style={{ color: '#818cf8' }} /> {item.duration}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Calendar size={15} style={{ color: '#818cf8' }} /> Due: {item.dueDate}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  {item.status === 'Completed' ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(16, 185, 129, 0.1)', padding: '12px 16px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                      <span style={{ fontSize: '13px', color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <CheckCircle2 size={16} /> Completed
+                      </span>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+                        Score: {item.scoreAchieved}
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      className="cap-btn-prim"
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={() => navigate(`/a/${item.id}`)}
+                    >
+                      {item.status === 'In Progress' ? 'Continue Assessment' : 'Start Assessment'} <ChevronRight size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
