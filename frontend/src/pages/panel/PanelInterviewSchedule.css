@@ -624,6 +624,23 @@
   border-color: rgba(240, 185, 11, 0.4);
 }
 
+.subrow-action-btn.evaluate-locked-btn {
+  color: #D1D5DB;
+  background: rgba(240, 185, 11, 0.05);
+  border: 1px dashed rgba(240, 185, 11, 0.3);
+}
+
+.subrow-action-btn.evaluate-locked-btn:hover {
+  color: #F0B90B;
+  background: rgba(240, 185, 11, 0.12);
+  border-color: #F0B90B;
+  border-style: solid;
+}
+
+.subrow-action-btn.evaluate-locked-btn .lock-icon {
+  color: #F0B90B;
+}
+
 .subrow-status-pill {
   display: inline-flex;
   align-items: center;
