@@ -2527,7 +2527,7 @@ function isOutdatedPastDate(dateVal) {
 
                       <span style={{ color: '#9599A6' }}>Platform:</span>
                       <span style={{ color: (previewSelectedCandidate.interviewMedia === 'Microsoft Teams' || (previewSelectedCandidate.meetingLocation && previewSelectedCandidate.meetingLocation.includes('teams'))) ? '#A78BFA' : (previewSelectedCandidate.interviewMedia === 'Zoom' || (previewSelectedCandidate.meetingLocation && previewSelectedCandidate.meetingLocation.includes('zoom'))) ? '#38BDF8' : '#60A5FA', fontWeight: 700 }}>
-                        {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Microsoft Teams')}
+                        {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.meetingLocation?.includes('zoom') ? 'Zoom' : previewSelectedCandidate.meetingLocation?.includes('meet.google') ? 'Google Meet' : (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Microsoft Teams'))}
                       </span>
 
                       <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
@@ -2535,7 +2535,7 @@ function isOutdatedPastDate(dateVal) {
                         {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting')}
                       </span>
 
-                      {previewSelectedCandidate.interviewType !== 'Physical' && (
+                      {previewSelectedCandidate.interviewType !== 'Physical' && !previewSelectedCandidate.meetingLocation?.includes('meet.google') && previewSelectedCandidate.interviewMedia !== 'Google Meet' && (
                         <>
                           <span style={{ color: '#9599A6' }}>Meeting ID:</span>
                           <span style={{ color: '#A78BFA', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
