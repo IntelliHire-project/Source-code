@@ -127,11 +127,14 @@ export default function CandidateAssessmentsListPage() {
     };
   }, []);
 
-  const filteredAssignments = ASSIGNMENTS_MOCK.filter(item => {
+  const filteredAssignments = assignments.filter((item) => {
     const matchesStatus = filterStatus === 'All' || item.status === filterStatus;
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.jobRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.company.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      (item.title || '').toLowerCase().includes(query) ||
+      (item.jobRole || '').toLowerCase().includes(query) ||
+      (item.company || '').toLowerCase().includes(query);
     return matchesStatus && matchesSearch;
   });
 
