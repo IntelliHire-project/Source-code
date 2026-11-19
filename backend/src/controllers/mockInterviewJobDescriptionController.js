@@ -6,6 +6,8 @@ const {
   updateJobDescription,
   deleteJobDescription,
   saveSelectedJobDescription,
+  getRoleIntegratedJobDescription,
+  attachJobDescriptionToSelectedRole,
 } = require('../models/mockInterviewJobDescriptionModel');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -167,6 +169,63 @@ const saveMockInterviewJobDescriptionHandler = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves the integrated job description for a specific role or the selected role.
+ * GET /api/mock-interviews/roles/:roleId/job-description or GET /api/mock-interviews/job-descriptions/role/:roleId
+ */
+const getRoleIntegratedJobDescriptionHandler = async (req, res) => {
+  try {
+    const { roleId } = req.params;
+    if (!roleId) {
+      return errorResponse(res, 'Role identifier (roleId) is required.', 400);
+    }
+
+    const userId = req.user ? req.user.id : null;
+    const integrated = await getRoleIntegratedJobDescription(roleId, userId);
+
+    if (!integrated) {
+      return errorResponse(res, 'Job role not found.', 404);
+    }
+
+    return successResponse(res, 'Role-integrated job description retrieved successfully.', {
+      integration: integrated,
+      role: integrated.role,
+      template: integrated.template,
+      activeJobDescription: integrated.activeJobDescription,
+      savedJobDescription: integrated.savedJobDescription,
+    });
+  } catch (error) {
+    console.error('Error fetching role-integrated job description:', error);
+    const statusCode = error.statusCode || 500;
+    return errorResponse(res, error.message || 'Failed to retrieve role-integrated job description.', statusCode);
+  }
+};
+
+/**
+ * Handles attaching and integrating a job description directly with the candidate's selected role.
+ * POST /api/mock-interviews/roles/selected/job-description or PUT /api/mock-interviews/roles/selected/job-description
+ */
+const attachJobDescriptionToSelectedRoleHandler = async (req, res) => {
+  try {
+    const { roleId } = req.body || {};
+    if (!roleId || !String(roleId).trim()) {
+      return errorResponse(res, 'Role identifier (roleId) is required to integrate job description.', 400);
+    }
+
+    const integrated = await attachJobDescriptionToSelectedRole(req.body, req.user);
+    return successResponse(
+      res,
+      'Job description successfully integrated with selected role.',
+      { integratedRole: integrated },
+      200
+    );
+  } catch (error) {
+    console.error('Error attaching job description to selected role:', error);
+    const statusCode = error.statusCode || 500;
+    return errorResponse(res, error.message || 'Failed to integrate job description with selected role.', statusCode);
+  }
+};
+
 module.exports = {
   createJobDescriptionHandler,
   getJobDescriptionsHandler,
@@ -175,5 +234,7 @@ module.exports = {
   updateJobDescriptionHandler,
   deleteJobDescriptionHandler,
   saveMockInterviewJobDescriptionHandler,
+  getRoleIntegratedJobDescriptionHandler,
+  attachJobDescriptionToSelectedRoleHandler,
 };
 

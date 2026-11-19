@@ -2,7 +2,13 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Check, Plus, X, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, Sparkles } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
-import { fetchAvailableRoles, createCustomJobRole, storeSelectedRole, saveMockInterviewJobDescription } from '../../../api/mockInterviewApi';
+import {
+  fetchAvailableRoles,
+  createCustomJobRole,
+  storeSelectedRole,
+  saveMockInterviewJobDescription,
+  attachJobDescriptionToSelectedRole,
+} from '../../../api/mockInterviewApi';
 import './RoleSelection.css';
 
 const ICON_MAP = {
@@ -35,33 +41,76 @@ const ROLES = [
     id: 'backend',
     title: 'Backend Developer',
     description: 'System architecture, API design, database management, and server-side logic scaling.',
-    icon: Database
+    category: 'engineering',
+    skills: ['Node.js', 'Express', 'SQL', 'System Design', 'REST APIs', 'PostgreSQL'],
+    icon: Database,
   },
   {
     id: 'frontend',
     title: 'Frontend Developer',
     description: 'Building responsive user interfaces, state management, and seamless UX implementation.',
-    icon: MonitorPlay
+    category: 'engineering',
+    skills: ['React', 'JavaScript', 'CSS', 'HTML', 'State Management', 'Web Performance'],
+    icon: MonitorPlay,
   },
   {
     id: 'uiux',
     title: 'UI/UX Designer',
     description: 'Visual storytelling, user research, wireframing, and creating high-fidelity prototypes.',
-    icon: Palette
+    category: 'design',
+    skills: ['Figma', 'User Research', 'Wireframing', 'Prototyping', 'Design Systems'],
+    icon: Palette,
   },
   {
     id: 'qa',
     title: 'QA Engineer',
     description: 'Automated testing, quality assurance frameworks, and ensuring bug-free product delivery.',
-    icon: ShieldCheck
+    category: 'qa',
+    skills: ['Automated Testing', 'Jest', 'Cypress', 'Playwright', 'Test Planning', 'API Testing'],
+    icon: ShieldCheck,
   },
   {
     id: 'data',
     title: 'Data Analyst',
     description: 'Statistical modeling, data visualization, and extracting actionable business insights.',
-    icon: BarChart3
-  }
+    category: 'data',
+    skills: ['SQL', 'Python', 'Data Visualization', 'Tableau', 'Statistical Modeling'],
+    icon: BarChart3,
+  },
 ];
+
+/**
+ * Builds an industry-standard Job Description template tailored specifically to the selected role.
+ */
+const buildRoleIntegratedTemplate = (role) => {
+  if (!role) return '';
+  const skillsList =
+    Array.isArray(role.skills) && role.skills.length > 0
+      ? role.skills
+      : ['Domain Knowledge', 'System Architecture', 'Problem Solving'];
+
+  return [
+    `# Position: ${role.title}`,
+    `**Track**: ${(role.category || 'engineering').toUpperCase()} | **Mock Interview Focus**`,
+    '',
+    `## Role Overview`,
+    `${role.description}`,
+    '',
+    `## Core Responsibilities`,
+    `- Architect, develop, and maintain high-quality solutions for ${role.title}.`,
+    `- Collaborate with cross-functional product and engineering teams to solve real-world problems.`,
+    `- Champion technical excellence, automated testing, and reliable software delivery.`,
+    '',
+    `## Key Requirements & Technical Competencies`,
+    skillsList.map((skill) => `- ${skill}`).join('\n'),
+    '- Solid problem-solving fundamentals, system trade-off evaluation, and clean code principles.',
+    '- Clear, structured communication during technical discussions and scenario walk-throughs.',
+    '',
+    `## Interview Preparation Scope`,
+    `- Core technical domain questions and scenario-based problem solving for ${role.title}.`,
+    `- Architecture decisions, scalability considerations, and debugging strategies.`,
+  ].join('\n');
+};
 
 export default function MockInterviewRoleSelection() {
   const navigate = useNavigate();
@@ -167,6 +216,28 @@ export default function MockInterviewRoleSelection() {
   const currentRole = allRoles.find(r => r.id === selectedRole);
   const activeCategoryLabel = categories.find(c => c.id === selectedCategory)?.label || 'All Categories';
 
+  const matchedSkillsCount = (currentRole?.skills || []).filter((s) =>
+    jobDescription.toLowerCase().includes(s.toLowerCase())
+  ).length;
+
+  const handleAddSkillToJd = (skill) => {
+    if (!skill) return;
+    if (jobDescription.toLowerCase().includes(skill.toLowerCase())) return;
+    setJobDescription((prev) => {
+      const trimmed = prev.trim();
+      if (!trimmed) {
+        return `- Required Skill: ${skill}`;
+      }
+      return `${trimmed}\n- Required Skill: ${skill}`;
+    });
+  };
+
+  const handleLoadRoleTemplate = () => {
+    if (!currentRole) return;
+    const template = buildRoleIntegratedTemplate(currentRole);
+    setJobDescription(template);
+  };
+
   const handleAddCustomRole = async () => {
     if (!customInput.trim()) return;
     const title = customInput.trim();
@@ -177,6 +248,8 @@ export default function MockInterviewRoleSelection() {
       description: 'Custom role defined by you for a personalised mock interview experience.',
       icon: Sparkles,
       isCustom: true,
+      category: 'engineering',
+      skills: ['Domain Expertise', 'Problem Solving', 'Communication'],
     };
     setCustomRoles(prev => [...prev, newRole]);
     setSelectedRole(tempId);
@@ -197,6 +270,11 @@ export default function MockInterviewRoleSelection() {
 
   const handleContinue = async () => {
     if (step === 1) {
+      // Automatically prefill role-integrated template if candidate hasn't entered a custom JD yet
+      if (!jobDescription.trim() && currentRole) {
+        setJobDescription(buildRoleIntegratedTemplate(currentRole));
+      }
+
       try {
         storeSelectedRole({
           roleId: selectedRole,
@@ -228,6 +306,7 @@ export default function MockInterviewRoleSelection() {
             roleId: selectedRole,
             roleTitle: currentRole?.title,
             category: currentRole?.category,
+            skills: currentRole?.skills,
             jobDescription: cleanJd,
           })
         );
@@ -235,15 +314,23 @@ export default function MockInterviewRoleSelection() {
         // Storage unavailable or quota exceeded
       }
 
-      // Submit and store to backend
+      // Submit and integrate with backend
       try {
         await Promise.allSettled([
+          attachJobDescriptionToSelectedRole({
+            roleId: selectedRole,
+            roleTitle: currentRole?.title,
+            category: currentRole?.category,
+            skills: currentRole?.skills,
+            jobDescription: cleanJd,
+          }),
           saveMockInterviewJobDescription({
             roleId: selectedRole,
             roleTitle: currentRole?.title,
             category: currentRole?.category,
+            skills: currentRole?.skills,
             jobDescription: cleanJd,
-            source: 'candidate_submission',
+            source: 'role_integration',
           }),
           storeSelectedRole({
             roleId: selectedRole,
@@ -262,6 +349,8 @@ export default function MockInterviewRoleSelection() {
         state: { 
           roleId: selectedRole, 
           roleTitle: currentRole?.title,
+          category: currentRole?.category,
+          skills: currentRole?.skills,
           jobDescription: cleanJd,
         }
       });
@@ -370,12 +459,70 @@ export default function MockInterviewRoleSelection() {
         <div className="ai-badge">Tailored Questions</div>
         <h1 className="page-title">Provide a Job Description</h1>
         <p className="page-subtitle">
-          Paste a specific job description below. Our AI will analyze it to generate highly relevant, targeted interview questions.
+          Your mock interview is tailored for <strong>{currentRole?.title || 'your selected role'}</strong>. Use the integrated role description below or customize it with specific requirements.
         </p>
+
+        {/* Selected Role Integration Card */}
+        {currentRole && (
+          <div className="selected-role-summary-card">
+            <div className="selected-role-summary-left">
+              <div className="selected-role-icon-box">
+                {React.createElement(currentRole.icon || Sparkles, { size: 22 })}
+              </div>
+              <div className="selected-role-info">
+                <div className="selected-role-title-row">
+                  <span className="selected-role-title">{currentRole.title}</span>
+                  <span className="selected-role-category-pill">
+                    {(currentRole.category || 'engineering').toUpperCase()}
+                  </span>
+                </div>
+                <p className="selected-role-desc">{currentRole.description}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="change-role-btn"
+              onClick={() => setStep(1)}
+              title="Select a different job role"
+            >
+              Change Role
+            </button>
+          </div>
+        )}
+
+        {/* Role Skills Integration Chips */}
+        {currentRole && currentRole.skills && currentRole.skills.length > 0 && (
+          <div className="role-skills-integration-section">
+            <div className="role-skills-header-row">
+              <span className="role-skills-label">Integrated Role Skills:</span>
+              <span className="role-skills-status">
+                {matchedSkillsCount} of {currentRole.skills.length} skills in description
+              </span>
+            </div>
+            <div className="role-skills-chips-wrapper">
+              {currentRole.skills.map((skill) => {
+                const isIncluded = jobDescription.toLowerCase().includes(skill.toLowerCase());
+                return (
+                  <button
+                    key={skill}
+                    type="button"
+                    className={`role-skill-chip ${isIncluded ? 'active' : ''}`}
+                    onClick={() => handleAddSkillToJd(skill)}
+                    title={isIncluded ? `"${skill}" is included in the JD` : `Click to add "${skill}" to JD`}
+                  >
+                    <Check size={12} className={`skill-check-icon ${isIncluded ? 'visible' : ''}`} />
+                    <span>{skill}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="jd-textarea-container">
           <textarea
             className="jd-textarea"
-            placeholder="Paste job description here (Optional)..."
+            placeholder={`Paste or customize ${currentRole?.title || 'Job'} Description here...`}
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
           />
@@ -385,9 +532,10 @@ export default function MockInterviewRoleSelection() {
                 <span>
                   {jobDescription.length.toLocaleString()} characters &bull;{' '}
                   {jobDescription.trim().split(/\s+/).filter(Boolean).length} words
+                  {matchedSkillsCount > 0 && ` \u2022 ${matchedSkillsCount} skills linked`}
                 </span>
               ) : (
-                <span className="jd-hint">Optional: paste responsibilities, requirements, or tech stack</span>
+                <span className="jd-hint">Click "Use Role Template" to generate a description tailored to {currentRole?.title}</span>
               )}
             </div>
 
@@ -405,10 +553,7 @@ export default function MockInterviewRoleSelection() {
                 <button
                   type="button"
                   className="jd-template-btn"
-                  onClick={() => {
-                    const sample = `${currentRole.title} Responsibilities:\n- ${currentRole.description || 'System architecture, API design, database management, and scaling.'}\n\nKey Requirements:\n- ${(currentRole.skills || ['Core Domain Skills', 'System Design', 'Communication']).join('\n- ')}`;
-                    setJobDescription(sample);
-                  }}
+                  onClick={handleLoadRoleTemplate}
                 >
                   Use Role Template
                 </button>

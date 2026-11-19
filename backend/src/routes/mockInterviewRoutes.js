@@ -28,6 +28,8 @@ const {
   updateJobDescriptionHandler,
   deleteJobDescriptionHandler,
   saveMockInterviewJobDescriptionHandler,
+  getRoleIntegratedJobDescriptionHandler,
+  attachJobDescriptionToSelectedRoleHandler,
 } = require('../controllers/mockInterviewJobDescriptionController');
 
 const router = express.Router();
@@ -71,6 +73,13 @@ router.delete('/roles/selected', optionalAuth, clearSelectedRoleHandler);
 router.post('/selected-role', optionalAuth, storeSelectedRoleHandler);
 router.get('/selected-role', optionalAuth, getSelectedRoleHandler);
 router.post('/select-role', optionalAuth, storeSelectedRoleHandler);
+
+// Selected Role & Job Description Integration endpoints (Must precede /roles/:id)
+router.get('/roles/selected/job-description', optionalAuth, getLatestJobDescriptionHandler);
+router.post('/roles/selected/job-description', optionalAuth, validateUserRoleAccess, attachJobDescriptionToSelectedRoleHandler);
+router.put('/roles/selected/job-description', optionalAuth, validateUserRoleAccess, attachJobDescriptionToSelectedRoleHandler);
+router.get('/roles/:roleId/job-description', optionalAuth, getRoleIntegratedJobDescriptionHandler);
+router.get('/job-descriptions/role/:roleId', optionalAuth, getRoleIntegratedJobDescriptionHandler);
 
 // 4. Job Description endpoints (Must precede parameterized /:id routes)
 router.post('/job-descriptions/save', optionalAuth, validateUserRoleAccess, validateSaveJobDescription, saveMockInterviewJobDescriptionHandler);
