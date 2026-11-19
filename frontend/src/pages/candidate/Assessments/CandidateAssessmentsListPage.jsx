@@ -68,6 +68,65 @@ export default function CandidateAssessmentsListPage() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCandidateAssessments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch published assessments from backend API
+        const response = await fetchAssessments({ status: 'Published' });
+        const rawList = response?.data?.assessments || response?.assessments || [];
+
+        if (rawList && rawList.length > 0) {
+          const formatted = rawList.map((item) => ({
+            id: item.assessmentCode || item.id,
+            title: item.title || item.name || 'Technical Assessment',
+            jobRole: item.jobRole || item.role || item.vacancy || 'Software Engineering',
+            company: item.company || 'IntelliHire Partner',
+            dueDate: item.createdAt
+              ? new Date(new Date(item.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : 'Flexible',
+            duration: `${item.duration || 60} mins`,
+            questionsCount: item.questionsCount || (Array.isArray(item.questions) ? item.questions.length : 0),
+            passingScore: `${item.passingScore || item.passing || 70}%`,
+            status: item.candidateStatus || 'Pending',
+            mode: 'Required',
+            description:
+              item.description ||
+              'Complete this technical assessment to demonstrate your domain skills for this job application.',
+          }));
+
+          if (isMounted) setAssignments(formatted);
+        } else {
+          // Graceful fallback if database has no published assessments yet
+          if (isMounted) setAssignments(ASSIGNMENTS_MOCK);
+        }
+      } catch (err) {
+        console.error('Failed to load candidate assessments:', err);
+        if (isMounted) {
+          // Fallback to sample data so UI stays functional
+          setAssignments(ASSIGNMENTS_MOCK);
+          setError('Could not connect to assessment service. Showing preview data.');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadCandidateAssessments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const filteredAssignments = ASSIGNMENTS_MOCK.filter(item => {
     const matchesStatus = filterStatus === 'All' || item.status === filterStatus;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
