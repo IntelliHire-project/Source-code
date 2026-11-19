@@ -2526,24 +2526,24 @@ function isOutdatedPastDate(dateVal) {
                       <span style={{ color: '#FFFFFF' }}>{previewSelectedCandidate.panelName || 'Panel A (Technical Leads)'}</span>
 
                       <span style={{ color: '#9599A6' }}>Platform:</span>
-                      <span style={{ color: (previewSelectedCandidate.interviewMedia === 'Microsoft Teams' || (previewSelectedCandidate.meetingLocation && previewSelectedCandidate.meetingLocation.includes('teams'))) ? '#A78BFA' : (previewSelectedCandidate.interviewMedia === 'Zoom' || (previewSelectedCandidate.meetingLocation && previewSelectedCandidate.meetingLocation.includes('zoom'))) ? '#38BDF8' : '#60A5FA', fontWeight: 700 }}>
+                      <span style={{ color: '#F0B90B', fontWeight: 700 }}>
                         {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.meetingLocation?.includes('zoom') ? 'Zoom' : previewSelectedCandidate.meetingLocation?.includes('meet.google') ? 'Google Meet' : (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Microsoft Teams'))}
                       </span>
 
                       <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
-                      <span style={{ color: '#60A5FA', wordBreak: 'break-all' }}>
+                      <span style={{ color: '#F0B90B', wordBreak: 'break-all' }}>
                         {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting')}
                       </span>
 
                       {previewSelectedCandidate.interviewType !== 'Physical' && !previewSelectedCandidate.meetingLocation?.includes('meet.google') && previewSelectedCandidate.interviewMedia !== 'Google Meet' && (
                         <>
                           <span style={{ color: '#9599A6' }}>Meeting ID:</span>
-                          <span style={{ color: '#A78BFA', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
+                          <span style={{ color: '#FFFFFF', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
                             {previewSelectedCandidate.meetingId || '284 912 049 192'}
                           </span>
 
                           <span style={{ color: '#9599A6' }}>Passcode:</span>
-                          <span style={{ color: '#F0B90B', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
+                          <span style={{ color: '#FFFFFF', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.5px' }}>
                             {previewSelectedCandidate.meetingPasscode || 'inTelli#2026'}
                           </span>
                         </>
