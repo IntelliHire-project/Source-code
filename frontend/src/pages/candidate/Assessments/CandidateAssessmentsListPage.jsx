@@ -68,8 +68,8 @@ export default function CandidateAssessmentsListPage() {
   const filteredAssignments = ASSIGNMENTS_MOCK.filter(item => {
     const matchesStatus = filterStatus === 'All' || item.status === filterStatus;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.jobRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.company.toLowerCase().includes(searchQuery.toLowerCase());
+                          item.jobRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          item.company.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
