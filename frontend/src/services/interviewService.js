@@ -483,12 +483,12 @@ export const getInterviewSlots = () => {
                 let pm = DEFAULT_PANEL_MEMBERS[idx % DEFAULT_PANEL_MEMBERS.length];
                 const roundLower = (alloc.interviewRound || '').toLowerCase();
                 const panelLower = (alloc.panelName || '').toLowerCase();
-                if (panelLower.includes('hr') || roundLower.includes('hr') || roundLower.includes('culture') || roundLower.includes('portfolio')) {
-                  pm = DEFAULT_PANEL_MEMBERS[1]; // Nirosha HR
-                } else if (panelLower.includes('arch') || roundLower.includes('arch') || roundLower.includes('system') || roundLower.includes('lead')) {
-                  pm = DEFAULT_PANEL_MEMBERS[3]; // Ruwan Bandara
-                } else if (panelLower.includes('design') || roundLower.includes('design') || roundLower.includes('product')) {
+                if (panelLower.includes('dilhani') || panelLower.includes('panel b') || roundLower.includes('design') || roundLower.includes('product')) {
                   pm = DEFAULT_PANEL_MEMBERS[2]; // Dilhani Wickramasinghe
+                } else if (panelLower.includes('ruwan') || panelLower.includes('panel c') || roundLower.includes('arch') || roundLower.includes('system') || roundLower.includes('intern') || roundLower.includes('ba')) {
+                  pm = DEFAULT_PANEL_MEMBERS[3]; // Ruwan Bandara
+                } else if (panelLower.includes('nirosha') || (panelLower.includes('hr') && !panelLower.includes('tech')) || roundLower.includes('culture')) {
+                  pm = DEFAULT_PANEL_MEMBERS[1]; // Nirosha HR
                 } else {
                   pm = DEFAULT_PANEL_MEMBERS[0]; // Saman Tech
                 }

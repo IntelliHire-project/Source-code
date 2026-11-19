@@ -37,6 +37,7 @@ import {
   splitTimeRange,
   cleanSingleTime,
   getEndTime,
+  DEFAULT_PANEL_MEMBERS,
 } from '../../services/interviewService';
 import { fetchInterviewSlots, submitEvaluationApi } from '../../api/interviewApi';
 import TopBar from '../../components/TopBar/TopBar';
@@ -168,21 +169,41 @@ export const sanitizePanelSlots = (rawList) => {
   // 1. Strictly filter out open unallocated slots (status AVAILABLE)
   const confirmed = list.filter((s) => s && s.status !== 'AVAILABLE');
 
-  // 2. Normalize Danushka card to ensure clean HIRE evaluation
+  // 2. Normalize Danushka card and resolve real panel members for all slots
   const cleanedFromCorrupt = confirmed.map((s) => {
     const isDanushka =
       (s.candidate?.name || s.candidateName || '').toLowerCase().includes('danushka') ||
       (s.status === 'COMPLETED' && (s.evaluation?.candidateName || '').toLowerCase().includes('danushka'));
+    let evaluation = s.evaluation;
     if (isDanushka && s.status === 'COMPLETED') {
-      return {
-        ...s,
-        evaluation: {
-          ...s.evaluation,
-          recommendation: s.evaluation?.recommendation === 'HOLD' ? 'HIRE' : (s.evaluation?.recommendation || 'HIRE'),
-        },
+      evaluation = {
+        ...s.evaluation,
+        recommendation: s.evaluation?.recommendation === 'HOLD' ? 'HIRE' : (s.evaluation?.recommendation || 'HIRE'),
       };
     }
-    return s;
+
+    const pName = (s.panelMember?.name || s.panelName || '').toLowerCase();
+    const round = (s.round || '').toLowerCase();
+    const jobPos = (s.jobPosition || '').toLowerCase();
+    let pm = s.panelMember;
+
+    if (!pm || !pm.name || pm.name.toLowerCase().includes('panel')) {
+      if (pName.includes('dilhani') || pName.includes('panel b') || round.includes('design') || jobPos.includes('design')) {
+        pm = DEFAULT_PANEL_MEMBERS[2]; // Dilhani Wickramasinghe
+      } else if (pName.includes('ruwan') || pName.includes('panel c') || round.includes('architect') || jobPos.includes('intern') || jobPos.includes('ba')) {
+        pm = DEFAULT_PANEL_MEMBERS[3]; // Ruwan Bandara
+      } else if (pName.includes('nirosha') || (pName.includes('hr') && !pName.includes('tech'))) {
+        pm = DEFAULT_PANEL_MEMBERS[1]; // Nirosha HR
+      } else {
+        pm = DEFAULT_PANEL_MEMBERS[0]; // Saman Tech
+      }
+    }
+
+    return {
+      ...s,
+      panelMember: pm,
+      evaluation,
+    };
   });
 
     // 3. Ensure all 4 core default sessions are represented
@@ -256,7 +277,7 @@ export const sanitizePanelSlots = (rawList) => {
 
     // Load data on mount & listen to live allocation updates
     useEffect(() => {
-      const PANEL_STORAGE_VERSION = 'v29_chronological_eval_locked';
+      const PANEL_STORAGE_VERSION = 'v30_named_panel_members';
       if (typeof window !== 'undefined' && localStorage.getItem('intellihire_panel_ui_ver') !== PANEL_STORAGE_VERSION) {
         localStorage.removeItem('intellihire_interview_slots');
         localStorage.setItem('intellihire_panel_ui_ver', PANEL_STORAGE_VERSION);
@@ -333,10 +354,10 @@ export const sanitizePanelSlots = (rawList) => {
           (pId && slotMemberId === pId) ||
           (pEmail && slotMemberEmail.includes(pEmail)) ||
           (pName && (slotMemberName.includes(pName) || pName.includes(slotMemberName))) ||
-          (pName.includes('saman') && slotMemberName.includes('technical')) ||
-          (pName.includes('nirosha') && slotMemberName.includes('hr')) ||
-          (pName.includes('dilhani') && (slotMemberName.includes('design') || slotMemberName.includes('product'))) ||
-          (pName.includes('ruwan') && (slotMemberName.includes('architect') || slotMemberName.includes('backend')))
+          (pName.includes('saman') && (slotMemberName.includes('technical') || slotMemberName.includes('saman') || slotMemberName.includes('panel a'))) ||
+          (pName.includes('nirosha') && (slotMemberName.includes('hr') || slotMemberName.includes('nirosha'))) ||
+          (pName.includes('dilhani') && (slotMemberName.includes('design') || slotMemberName.includes('dilhani') || slotMemberName.includes('product') || slotMemberName.includes('panel b'))) ||
+          (pName.includes('ruwan') && (slotMemberName.includes('architect') || slotMemberName.includes('ruwan') || slotMemberName.includes('backend') || slotMemberName.includes('panel c') || slotMemberName.includes('intern') || slotMemberName.includes('ba')))
         );
       });
     }, [slots, currentPanelist, isAllView]);
