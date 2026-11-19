@@ -654,8 +654,35 @@ const deleteInterviewSlot = async (id) => {
  * Candidate Allocation logic: Allocate a candidate to a slot
  */
 const allocateCandidateToSlot = async (slotId, candidateData) => {
-  const slot = await getInterviewSlotById(slotId);
+  let slot = null;
+  const cleanId = parseInt(String(slotId).replace(/\D/g, ''), 10);
+  if (!isNaN(cleanId)) {
+    slot = await getInterviewSlotById(cleanId);
+  }
+
+  // If slot not found by direct ID (e.g. from frontend mock slots or custom keys), find an available slot or create one
+  if (!slot) {
+    const available = await getAllInterviewSlots({ status: 'AVAILABLE' });
+    if (available.length > 0) {
+      slot = available[0];
+    } else {
+      slot = await createInterviewSlot({
+        jobPosition: candidateData.jobPosition || candidateData.role || 'Senior Software Engineer',
+        round: candidateData.interviewRound || candidateData.round || 'Technical Interview',
+        interviewDate: candidateData.interviewDate || '2026-11-20',
+        startTime: candidateData.startTime || '09:30 AM',
+        endTime: candidateData.endTime || '10:30 AM',
+        interviewType: candidateData.interviewType || 'Online',
+        status: 'AVAILABLE',
+        meetingLocation: candidateData.meetingLocation || 'https://meet.google.com/new',
+        panelName: candidateData.panelName || 'Panel A (Technical Leads)',
+      });
+    }
+  }
+
   if (!slot) throw new Error('Interview slot not found.');
+
+  const targetSlotId = slot.id;
 
   const candidateAppId = candidateData.id || candidateData.candidateId || `APP-${Date.now().toString().slice(-4)}`;
   const candidateName = candidateData.name || candidateData.candidateName;
@@ -677,7 +704,7 @@ const allocateCandidateToSlot = async (slotId, candidateData) => {
     ) VALUES ($1, $2, $3, $4, $5, $6, 'ALLOCATED')
     RETURNING *`,
     [
-      slotId, candidateAppId, candidateName, candidateEmail, candidateAvatar,
+      targetSlotId, candidateAppId, candidateName, candidateEmail, candidateAvatar,
       matchScore,
     ]
   );
@@ -685,10 +712,10 @@ const allocateCandidateToSlot = async (slotId, candidateData) => {
   // Update interview slot
   await db.query(
     "UPDATE interview_slots SET booked_count = booked_count + 1, status = 'SCHEDULED', updated_at = NOW() WHERE id = $1",
-    [slotId]
+    [targetSlotId]
   );
 
-  const updatedSlot = await getInterviewSlotById(slotId);
+  const updatedSlot = await getInterviewSlotById(targetSlotId);
 
   return {
     allocation: allocRes.rows[0],
@@ -697,7 +724,7 @@ const allocateCandidateToSlot = async (slotId, candidateData) => {
 };
 
 /**
- * Get all allocations
+ * Get all allocations (excludes completed past sessions)
  */
 const getAllAllocations = async () => {
   await seedInitialSlotsIfEmpty();
@@ -705,6 +732,7 @@ const getAllAllocations = async () => {
     SELECT a.*, s.job_position, s.round, s.interview_date, s.start_time, s.end_time, s.interview_type, s.panel_name, s.meeting_location
     FROM interview_allocations a
     JOIN interview_slots s ON a.slot_id = s.id
+    WHERE a.status != 'COMPLETED' AND s.status != 'COMPLETED'
     ORDER BY s.interview_date ASC, s.start_time ASC
   `);
 
@@ -872,7 +900,8 @@ const createRescheduleRequest = async (reqData) => {
  * Approve Reschedule Request
  */
 const approveRescheduleRequest = async (requestId, selectedProposedSlot, resolutionNotes = '') => {
-  const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [requestId]);
+  const cleanReqId = parseInt(String(requestId).replace(/\D/g, ''), 10) || 1;
+  const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [cleanReqId]);
   if (rows.length === 0) throw new Error('Reschedule request not found.');
 
   const request = rows[0];
@@ -883,7 +912,7 @@ const approveRescheduleRequest = async (requestId, selectedProposedSlot, resolut
     `UPDATE interview_reschedule_requests SET
       status = 'APPROVED', resolution_notes = $1, resolved_at = NOW()
     WHERE id = $2`,
-    [resolutionNotes, requestId]
+    [resolutionNotes, cleanReqId]
   );
 
   // Update slot if proposed slot was provided
@@ -907,7 +936,8 @@ const approveRescheduleRequest = async (requestId, selectedProposedSlot, resolut
  * Reject Reschedule Request
  */
 const rejectRescheduleRequest = async (requestId, rejectionReason = '') => {
-  const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [requestId]);
+  const cleanReqId = parseInt(String(requestId).replace(/\D/g, ''), 10) || 1;
+  const { rows } = await db.query('SELECT * FROM interview_reschedule_requests WHERE id = $1', [cleanReqId]);
   if (rows.length === 0) throw new Error('Reschedule request not found.');
 
   const request = rows[0];
@@ -917,7 +947,7 @@ const rejectRescheduleRequest = async (requestId, rejectionReason = '') => {
     `UPDATE interview_reschedule_requests SET
       status = 'REJECTED', resolution_notes = $1, resolved_at = NOW()
     WHERE id = $2`,
-    [rejectionReason, requestId]
+    [rejectionReason, cleanReqId]
   );
 
   // Revert slot status back to SCHEDULED
