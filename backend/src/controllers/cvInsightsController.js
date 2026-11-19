@@ -76,14 +76,20 @@ const getCVInsights = async (req, res, next) => {
 const chatWithCV = async (req, res, next) => {
   try {
     const cvId = parseInt(req.params.id, 10);
-    const { message, history } = req.body;
+    const { message, history = [] } = req.body || {};
 
     if (!cvId) {
       return errorResponse(res, "Valid CV ID is required.", 400);
     }
 
-    if (!message || !message.trim()) {
-      return errorResponse(res, "Message is required.", 400);
+    if (typeof message !== "string" || !message.trim() || message.length > 2000) {
+      return errorResponse(res, "Message must be between 1 and 2000 characters.", 400);
+    }
+
+    if (!Array.isArray(history) || history.length > 6 ||
+        !history.every((item) => item && ["user", "ai"].includes(item.role) &&
+          typeof item.text === "string" && item.text.length <= 2000)) {
+      return errorResponse(res, "Invalid chat history.", 400);
     }
 
     const candidate = await candidateModel.findCandidateByUserId(req.user.id);
@@ -105,7 +111,11 @@ const chatWithCV = async (req, res, next) => {
       }
     }
 
-    const reply = await chatWithCVAssistant(cvText, message.trim(), history || []);
+    const input = await buildCVInsightsInput(cvText, candidate, {
+      message: message.trim(),
+      history: history.map(({ role, text }) => ({ role, text })),
+    });
+    const reply = await chatWithCVAssistant(input);
 
     return successResponse(res, "Chat response generated successfully.", {
       reply,

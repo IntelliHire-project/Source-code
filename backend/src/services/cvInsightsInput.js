@@ -12,7 +12,9 @@ const redactContactDetails = (value, identifiers) => {
   return text
     .replace(/[A-Z0-9._%+-]+\s*@\s*[A-Z0-9.-]+\s*\.\s*[A-Z]{2,}/gi, "[email redacted]")
     .replace(/(?:https?:\/\/|www\.)[^\s<>"']+|(?:linkedin|github)\.com\/[^\s<>"']+/gi, "[link redacted]")
-    .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, "[phone redacted]");
+    .replace(/(?:\+?\d[\d \t().-]{7,}\d)/g, (match) =>
+      /^(?:19|20)\d{2}\s*-\s*(?:19|20)\d{2}$/.test(match) ? match : "[phone redacted]"
+    );
 };
 
 const sanitizeValue = (value, identifiers) => {
@@ -26,7 +28,7 @@ const sanitizeValue = (value, identifiers) => {
   return value;
 };
 
-const buildCVInsightsInput = async (cvText, candidate) => {
+const buildCVInsightsInput = async (cvText, candidate, chat = null) => {
   if (typeof cvText !== "string" || cvText.trim().length < 20) {
     const error = new Error("Not enough readable CV text to generate insights.");
     error.status = 422;
@@ -66,10 +68,14 @@ const buildCVInsightsInput = async (cvText, candidate) => {
         .map(({ title, school, period }) => ({ title, school, period }))
       : [],
   };
-  return {
+  const input = {
     structured: sanitizeValue(structured, identifiers),
     text: redactContactDetails(cvText, identifiers).slice(0, 15000),
   };
+  if (chat) {
+    input.chat = sanitizeValue(chat, identifiers);
+  }
+  return input;
 };
 
 module.exports = { buildCVInsightsInput };
