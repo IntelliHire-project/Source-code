@@ -5,7 +5,7 @@ jest.mock("@google/genai", () => ({
   })),
 }));
 
-const { generateCVInsights } = require("../../services/geminiService");
+const { generateCVInsights, chatWithCVAssistant } = require("../../services/geminiService");
 
 describe("generateCVInsights", () => {
   const originalKey = process.env.GEMINI_API_KEY;
@@ -48,5 +48,26 @@ describe("generateCVInsights", () => {
     process.env.GEMINI_API_KEY = "test-key";
     mockGenerateContent.mockResolvedValueOnce({ text: JSON.stringify({ strengths: "not an array" }) });
     await expect(generateCVInsights(input)).rejects.toThrow("AI service returned invalid CV insights.");
+  });
+
+  test("chat sends prepared data and requires evidence without inventing numbers", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    const chatInput = { ...input, chat: { message: "Improve my summary", history: [] } };
+    mockGenerateContent.mockResolvedValueOnce({ text: "Highlight your React work." });
+    await expect(chatWithCVAssistant(chatInput)).resolves.toBe("Highlight your React work.");
+    const prompt = mockGenerateContent.mock.calls[0][0].contents;
+    expect(prompt).toContain(JSON.stringify(chatInput));
+    expect(prompt).toContain("Do not invent");
+  });
+
+  test("chat fails rather than producing a generic reply without an AI service", async () => {
+    delete process.env.GEMINI_API_KEY;
+    await expect(chatWithCVAssistant(input)).rejects.toMatchObject({ status: 503 });
+  });
+
+  test("chat rejects an empty Gemini reply", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    mockGenerateContent.mockResolvedValueOnce({ text: "" });
+    await expect(chatWithCVAssistant(input)).rejects.toMatchObject({ status: 502 });
   });
 });

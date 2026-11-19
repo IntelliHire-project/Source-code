@@ -48,4 +48,24 @@ describe("buildCVInsightsInput", () => {
     await expect(buildCVInsightsInput("A readable resume containing enough text.", {}))
       .rejects.toMatchObject({ status: 503 });
   });
+
+  test("redacts known identifiers from the question and chat history", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ name: "Jane Doe", skills: ["React"], experience: [], education: [] }),
+    });
+    const input = await buildCVInsightsInput(
+      "Jane Doe is a React developer with experience from 2018 - 2021.",
+      { name: "Jane Doe" },
+      {
+        message: "Rewrite Jane Doe's summary. Email me at jane@example.com",
+        history: [{ role: "user", text: "My name is Jane Doe." }],
+      }
+    );
+    expect(JSON.stringify(input)).not.toContain("Jane Doe");
+    expect(JSON.stringify(input)).not.toContain("jane@example.com");
+    expect(input.chat.history[0].role).toBe("user");
+    expect(input.structured.skills).toEqual(["React"]);
+    expect(input.text).toContain("2018 - 2021");
+  });
 });
