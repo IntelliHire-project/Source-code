@@ -62,6 +62,9 @@ const ASSIGNMENTS_MOCK = [
 
 export default function CandidateAssessmentsListPage() {
   const navigate = useNavigate();
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
