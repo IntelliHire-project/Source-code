@@ -25,87 +25,6 @@ import './cv-insights.css';
 
 /* ── Mock Data ── */
 
-const MOCK_CVS = [
-  { id: 1, filename: 'SENIOR_PRODUCT_DES.PDF', uploadDate: 'Uploaded Jan 12, 2024', isActive: true },
-  { id: 2, filename: 'DEVOPS_FOCUSED_RESUME.PDF', uploadDate: 'Uploaded Nov 02, 2023', isActive: false },
-  { id: 3, filename: 'GENERAL_SOFTWARE_ENG.PDF', uploadDate: 'Uploaded Aug 15, 2023', isActive: false },
-];
-
-const MOCK_ANALYSIS = {
-  strengths: [
-    'Strong quantifiable impact in project descriptions with clear metrics',
-    'Clean, consistent formatting throughout the document',
-    'Relevant technical skills prominently listed in experience context',
-    'Good use of action verbs in experience section headers',
-    'Education and certifications are well-organized and concise',
-  ],
-  weaknesses: [
-    'Missing a dedicated technical skills section for quick recruiter scan',
-    'Professional summary is too generic and lacks role-specific keywords',
-    'Employment dates are inconsistently formatted across roles',
-    'No links to portfolio, GitHub, or live project demos',
-  ],
-  suggestions: [
-    { text: 'Add a targeted professional summary with key role-specific keywords for your target industry', link: 'Learn More' },
-    { text: 'Create a standalone technical skills section with proficiency levels and categories', link: 'Apply Suggestion' },
-    { text: 'Quantify achievements with metrics (percentages, revenue, time saved) in each role description', link: 'Apply Suggestion' },
-    { text: 'Add links to GitHub, portfolio, or relevant project repositories at the top of the document', link: 'Learn More' },
-    { text: 'Standardise date formats across all employment entries to YYYY - YYYY format', link: 'Apply Suggestion' },
-  ],
-  presentKeywords: ['React', 'TypeScript', 'Node.js', 'AWS', 'PostgreSQL', 'Docker', 'REST APIs'],
-  missingKeywords: ['Kubernetes', 'GraphQL', 'CI/CD', 'Microservices', 'Redis', 'Terraform', 'Next.js'],
-};
-
-const ANALYSIS_VARIANTS = [
-  MOCK_ANALYSIS,
-  {
-    strengths: [
-      'Clear career progression with consistent, promotion-worthy roles',
-      'Strong leadership and mentorship signals in experience descriptions',
-      'Efficient use of whitespace makes the CV easy to scan quickly',
-      'Technical certifications are prominently highlighted',
-      'Consistent use of active language across all sections',
-    ],
-    weaknesses: [
-      'Objective section is vague and does not target a specific role',
-      'List of technologies is scattered instead of grouped by category',
-      'Some bullet points exceed two lines, reducing readability',
-      'Contact details missing a phone number for quick recruiter reach',
-    ],
-    suggestions: [
-      { text: 'Rewrite the objective to name your target role and key differentiators', link: 'Learn More' },
-      { text: 'Group technologies into Languages / Frameworks / Cloud categories', link: 'Apply Suggestion' },
-      { text: 'Trim bullets to two lines or fewer to keep the recruiter engaged', link: 'Apply Suggestion' },
-      { text: 'Add a phone number and direct email to the header', link: 'Apply Suggestion' },
-    ],
-    presentKeywords: ['JavaScript', 'React', 'Node.js', 'SQL', 'Git', 'Agile', 'REST APIs'],
-    missingKeywords: ['TypeScript', 'GraphQL', 'Docker', 'CI/CD', 'Terraform', 'Redis', 'Microservices'],
-  },
-  {
-    strengths: [
-      'Excellent quantification of results with hard numbers and percentages',
-      'Clear, modern formatting that parses well with ATS tools',
-      'Relevant projects showcased with outcomes and tech stack',
-      'Concise bullets that highlight impact over responsibilities',
-      'Strong keywords aligned with senior engineering roles',
-    ],
-    weaknesses: [
-      'Missing an executive summary tailored to the applied role',
-      'No dedicated achievements section to separate wins from duties',
-      'Employment gaps are not explained or addressed',
-      'Only one professional reference provided',
-    ],
-    suggestions: [
-      { text: 'Add a role-specific executive summary at the top of the document', link: 'Learn More' },
-      { text: 'Create a separate Achievements section with quantifiable wins', link: 'Apply Suggestion' },
-      { text: 'Briefly explain employment gaps in a professional summary line', link: 'Apply Suggestion' },
-      { text: 'Add 2-3 professional references or a "References available" note', link: 'Apply Suggestion' },
-    ],
-    presentKeywords: ['Python', 'Django', 'PostgreSQL', 'Docker', 'AWS', 'Celery', 'REST APIs'],
-    missingKeywords: ['React', 'TypeScript', 'Kubernetes', 'GraphQL', 'Terraform', 'Kafka', 'CI/CD'],
-  },
-];
-
 function formatCvItem(item) {
   if (!item) return null;
   return {
@@ -123,13 +42,6 @@ function formatCvItem(item) {
     isActive: Boolean(item.is_active),
     isRealCv: true,
   };
-}
-
-function buildAnalysisForCv(cv) {
-  if (!cv || cv.id === undefined || cv.id === null) return ANALYSIS_VARIANTS[0];
-  const numId = typeof cv.id === 'number' ? cv.id : parseInt(cv.id, 10);
-  const safeId = isNaN(numId) ? 0 : Math.abs(numId);
-  return ANALYSIS_VARIANTS[safeId % ANALYSIS_VARIANTS.length] || ANALYSIS_VARIANTS[0];
 }
 
 const MOCK_AI_RESPONSES = [
@@ -212,7 +124,7 @@ export function InsightList({ type, items, presentKeywords, missingKeywords }) {
         <div className="insight-keywords__group">
           <span className="insight-keywords__label">
             <Zap size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-            Missing but in-demand
+            Job-specific keyword gaps require a job description
           </span>
           <div className="insight-keywords__tags">
             {missingKeywords.map((kw) => (
@@ -379,12 +291,13 @@ function CVInsights() {
   const { setPageLabel } = useContext(CandidatePageContext);
   const fileInputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const analysisRequestRef = useRef(0);
 
   const [cvList, setCvList] = useState([]);
   const [selectedCvId, setSelectedCvId] = useState(null);
   const [cvDropdownOpen, setCvDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('strengths');
-  const [analysis, setAnalysis] = useState(MOCK_ANALYSIS);
+  const [analysis, setAnalysis] = useState(null);
   const [insightsCache, setInsightsCache] = useState({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLoadingCvs, setIsLoadingCvs] = useState(true);
@@ -421,24 +334,13 @@ function CVInsights() {
         setSelectedCvId(active.id);
         runAnalysis(active);
       } else {
-        // Fallback to sample CVs if none uploaded yet
-        const sampleCvs = MOCK_CVS.map((cv) => ({
-          ...cv,
-          isActive: cv.id === 1,
-        }));
-        setCvList(sampleCvs);
-        setSelectedCvId(sampleCvs[0].id);
-        runAnalysis(sampleCvs[0]);
+        setCvList([]);
+        setSelectedCvId(null);
+        setAnalysis(null);
       }
     } catch (err) {
-      console.warn('Could not load CVs from backend, using default list:', err);
-      const sampleCvs = MOCK_CVS.map((cv) => ({
-        ...cv,
-        isActive: cv.id === 1,
-      }));
-      setCvList(sampleCvs);
-      setSelectedCvId(sampleCvs[0].id);
-      runAnalysis(sampleCvs[0]);
+      console.error('Could not load CVs:', err);
+      setFeedback({ type: 'error', message: 'Could not load CVs. Please try again.' });
     } finally {
       setIsLoadingCvs(false);
     }
@@ -472,21 +374,25 @@ function CVInsights() {
 
   async function runAnalysis(cv, onComplete, force = false) {
     if (!cv) return;
+    const requestId = ++analysisRequestRef.current;
 
     // Check client-side cache first to ensure instant, consistent summary without changing
     if (!force && insightsCache[cv.id]) {
       setAnalysis(insightsCache[cv.id]);
+      setIsAnalyzing(false);
       setActiveTab('strengths');
       onComplete?.();
       return;
     }
 
     setIsAnalyzing(true);
+    setAnalysis(null);
     setActiveTab('strengths');
 
     if (cv.isRealCv) {
       try {
-        const res = await getCVInsightsApi(cv.id);
+        const res = await getCVInsightsApi(cv.id, force);
+        if (requestId !== analysisRequestRef.current) return;
         const liveInsights = res?.insights || res?.data?.insights;
         if (liveInsights && Array.isArray(liveInsights.strengths)) {
           setInsightsCache((prev) => ({ ...prev, [cv.id]: liveInsights }));
@@ -495,18 +401,17 @@ function CVInsights() {
           onComplete?.();
           return;
         }
+        throw new Error('The server returned invalid CV insights.');
       } catch (err) {
-        console.warn('Backend insights request error, falling back:', err);
+        if (requestId !== analysisRequestRef.current) return;
+        console.error('CV insights request failed:', err);
+        setFeedback({
+          type: 'error',
+          message: err.response?.data?.message || 'Could not generate CV insights. Please try again.',
+        });
       }
     }
-
-    setTimeout(() => {
-      const fallback = buildAnalysisForCv(cv);
-      setInsightsCache((prev) => ({ ...prev, [cv.id]: fallback }));
-      setAnalysis(fallback);
-      setIsAnalyzing(false);
-      onComplete?.();
-    }, 400);
+    setIsAnalyzing(false);
   }
 
   async function handleCvSelect(cv) {
@@ -556,33 +461,10 @@ function CVInsights() {
       setIsUploading(true);
       setFeedback(null);
 
-      let newCvDoc = null;
-      try {
-        const res = await uploadCandidateCV(file, true);
-        const rawNewCv = res?.cv || res?.data?.cv || res?.data;
-        if (rawNewCv && rawNewCv.id) {
-          newCvDoc = formatCvItem(rawNewCv);
-        }
-      } catch (uploadErr) {
-        console.warn('Backend upload failed, creating client record:', uploadErr);
-        newCvDoc = {
-          id: Date.now(),
-          filename: file.name,
-          uploadDate: 'Uploaded just now',
-          size: `${Math.round(file.size / 1024)} KB`,
-          isActive: true,
-        };
-      }
-
-      if (!newCvDoc) {
-        newCvDoc = {
-          id: Date.now(),
-          filename: file.name,
-          uploadDate: 'Uploaded just now',
-          size: `${Math.round(file.size / 1024)} KB`,
-          isActive: true,
-        };
-      }
+      const res = await uploadCandidateCV(file, true);
+      const rawNewCv = res?.cv || res?.data?.cv || res?.data;
+      if (!rawNewCv || !rawNewCv.id) throw new Error('The server did not return the uploaded CV.');
+      const newCvDoc = formatCvItem(rawNewCv);
 
       // Update state with newly uploaded CV
       setCvList((prev) => [
@@ -607,7 +489,7 @@ function CVInsights() {
           ...prev,
           {
             role: 'ai',
-            text: `I've finished analyzing "${newCvDoc.filename}". It scans well overall — check the tabs above for strengths, weaknesses, suggestions, and keyword gaps, or ask me anything specific below.`,
+            text: `I've finished analyzing "${newCvDoc.filename}". Check the tabs above for feedback, or ask me a question below.`,
           },
         ]);
       });
@@ -808,13 +690,15 @@ function CVInsights() {
                 <div className="cv-insights__skeleton-line cv-insights__skeleton-line--long" />
                 <div className="cv-insights__skeleton-line cv-insights__skeleton-line--medium" />
               </div>
-            ) : (
+            ) : analysis ? (
               <InsightList
                 type={activeTab}
                 items={analysis[activeTab]}
                 presentKeywords={analysis.presentKeywords}
                 missingKeywords={analysis.missingKeywords}
               />
+            ) : (
+              <p>Select or upload a CV to generate insights.</p>
             )}
           </div>
         </div>
