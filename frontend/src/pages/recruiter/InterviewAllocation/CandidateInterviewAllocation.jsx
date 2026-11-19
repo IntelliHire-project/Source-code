@@ -92,16 +92,16 @@ export const INITIAL_CANDIDATES = [
 // Clean Default Mock Time Slots (6 balanced slots across roles, upcoming November 2026)
 const INITIAL_SLOTS = [
   // Senior Software Engineer
-  { id: 'SLOT-101', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '09:30 AM', end: '10:30 AM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
-  { id: 'SLOT-102', dateKey: '2026-11-02', date: '02 Nov 2026', dateShort: '02 Nov', time: '02:00 PM', end: '03:00 PM', type: 'Physical', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'HR Portfolio Review', panelName: 'Panel A (Technical Leads)' },
-  { id: 'SLOT-103', dateKey: '2026-11-04', date: '04 Nov 2026', dateShort: '04 Nov', time: '11:00 AM', end: '12:00 PM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'System Architecture', panelName: 'Panel A (Technical Leads)' },
-  { id: 'SLOT-104', dateKey: '2026-11-05', date: '05 Nov 2026', dateShort: '05 Nov', time: '10:00 AM', end: '11:00 AM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-101', dateKey: '2026-11-20', date: '20 Nov 2026', dateShort: '20 Nov', time: '09:30 AM', end: '10:30 AM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-102', dateKey: '2026-11-20', date: '20 Nov 2026', dateShort: '20 Nov', time: '02:00 PM', end: '03:00 PM', type: 'Physical', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'HR Portfolio Review', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-103', dateKey: '2026-11-21', date: '21 Nov 2026', dateShort: '21 Nov', time: '11:00 AM', end: '12:00 PM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'System Architecture', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-104', dateKey: '2026-11-22', date: '22 Nov 2026', dateShort: '22 Nov', time: '10:00 AM', end: '11:00 AM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
 
   // Backend Engineer
-  { id: 'SLOT-105', dateKey: '2026-11-06', date: '06 Nov 2026', dateShort: '06 Nov', time: '01:30 PM', end: '02:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Backend Engineer', round: 'API Design & Database', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-105', dateKey: '2026-11-23', date: '23 Nov 2026', dateShort: '23 Nov', time: '01:30 PM', end: '02:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Backend Engineer', round: 'API Design & Database', panelName: 'Panel A (Technical Leads)' },
 
   // UI/UX Designer
-  { id: 'SLOT-106', dateKey: '2026-11-10', date: '10 Nov 2026', dateShort: '10 Nov', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'UI/UX Designer', round: 'Design Portfolio Review', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-106', dateKey: '2026-11-24', date: '24 Nov 2026', dateShort: '24 Nov', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'UI/UX Designer', round: 'Design Portfolio Review', panelName: 'Panel A (Technical Leads)' },
 ];
 
 // Initial Allocation Results Data (3 mock allocations matching Panel Interview Schedule)
@@ -111,12 +111,12 @@ export const INITIAL_ALLOCATIONS = [
     candidateName: 'Alice Fernando',
     slotId: 'SLOT-101',
     assignedTime: '09:30 AM – 10:30 AM',
-    interviewDate: '02 Nov 2026',
+    interviewDate: '20 Nov 2026',
     interviewType: 'Online',
-    interviewMedia: 'Microsoft Teams',
-    meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
-    meetingId: '284 912 049 192',
-    meetingPasscode: 'inTelli#2026',
+    interviewMedia: 'Google Meet',
+    meetingLocation: 'https://meet.google.com/new',
+    meetingId: 'meet.google.com/new',
+    meetingPasscode: 'Direct Video Link',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'Technical Interview',
     jobPosition: 'Senior Software Engineer',
@@ -128,7 +128,7 @@ export const INITIAL_ALLOCATIONS = [
     candidateName: 'Kamal Perera',
     slotId: 'SLOT-102',
     assignedTime: '02:00 PM – 03:00 PM',
-    interviewDate: '02 Nov 2026',
+    interviewDate: '20 Nov 2026',
     interviewType: 'Physical',
     interviewMedia: 'In-Person',
     meetingLocation: 'Engineering Interview Room 1, HQ Building',
@@ -143,12 +143,12 @@ export const INITIAL_ALLOCATIONS = [
     candidateName: 'Nimal Silva',
     slotId: 'SLOT-103',
     assignedTime: '11:00 AM – 12:00 PM',
-    interviewDate: '04 Nov 2026',
+    interviewDate: '21 Nov 2026',
     interviewType: 'Online',
-    interviewMedia: 'Microsoft Teams',
-    meetingLocation: 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting',
-    meetingId: '592 104 389 716',
-    meetingPasscode: 'inTelli#7942',
+    interviewMedia: 'Google Meet',
+    meetingLocation: 'https://meet.google.com/new',
+    meetingId: 'meet.google.com/new',
+    meetingPasscode: 'Direct Video Link',
     panelName: 'Panel A (Technical Leads)',
     interviewRound: 'System Architecture',
     jobPosition: 'Senior Software Engineer',
@@ -157,8 +157,29 @@ export const INITIAL_ALLOCATIONS = [
   },
 ];
 
+// Helper to merge newly allocated candidates with initial allocations so default candidates are never lost
+export const mergeWithInitialAllocations = (incomingList) => {
+  if (!Array.isArray(incomingList) || incomingList.length === 0) {
+    return INITIAL_ALLOCATIONS;
+  }
+  const merged = [...incomingList];
+  INITIAL_ALLOCATIONS.forEach((init) => {
+    const exists = merged.some(
+      (item) =>
+        String(item.candidateId) === String(init.candidateId) ||
+        (item.candidateName &&
+          init.candidateName &&
+          item.candidateName.trim().toLowerCase() === init.candidateName.trim().toLowerCase())
+    );
+    if (!exists) {
+      merged.push(init);
+    }
+  });
+  return merged;
+};
+
 // Clean Storage Version to permanently purge old duplicate test entries and keep single default dataset
-const CLEAN_STORAGE_VERSION = 'v16_force_teams_creds_visible';
+const CLEAN_STORAGE_VERSION = 'v28_merge_and_persist_notified';
 
 export const resetToDefaultMockData = () => {
   try {
@@ -426,7 +447,16 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       if (stored !== null) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const merged = [...parsed];
+          INITIAL_CANDIDATES.forEach((init) => {
+            const exists = merged.some(
+              (c) => String(c.id) === String(init.id) || (c.name && init.name && c.name.trim().toLowerCase() === init.name.trim().toLowerCase())
+            );
+            if (!exists) {
+              merged.push(init);
+            }
+          });
+          return merged;
         }
       }
     } catch {}
@@ -444,16 +474,16 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
       if (stored !== null) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((item, idx) => {
-            const loc = item.meetingLocation || '';
+          const merged = mergeWithInitialAllocations(parsed);
+          return merged.map((item, idx) => {
             const isPhysical = item.interviewType === 'Physical';
-            const media = isPhysical ? 'In-Person' : (item.interviewMedia || (loc.includes('teams') ? 'Microsoft Teams' : loc.includes('zoom') ? 'Zoom' : 'Microsoft Teams'));
+            const media = isPhysical ? 'In-Person' : (item.interviewMedia || 'Google Meet');
             return {
               ...item,
               interviewMedia: media,
-              meetingLocation: item.meetingLocation || (isPhysical ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'),
-              meetingId: item.meetingId || (!isPhysical ? (idx === 0 ? '284 912 049 192' : '592 104 389 716') : ''),
-              meetingPasscode: item.meetingPasscode || (!isPhysical ? 'inTelli#2026' : ''),
+              meetingLocation: item.meetingLocation || (isPhysical ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/new'),
+              meetingId: item.meetingId || (!isPhysical ? 'meet.google.com/new' : ''),
+              meetingPasscode: item.meetingPasscode || (!isPhysical ? 'Direct Video Link' : ''),
             };
           });
         }
@@ -467,16 +497,16 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     fetchAllocations()
       .then((res) => {
         if (res && res.allocations && Array.isArray(res.allocations) && res.allocations.length > 0) {
-          const enriched = res.allocations.map((item, idx) => {
-            const loc = item.meetingLocation || '';
+          const combined = mergeWithInitialAllocations(res.allocations);
+          const enriched = combined.map((item, idx) => {
             const isPhysical = item.interviewType === 'Physical';
-            const media = isPhysical ? 'In-Person' : (item.interviewMedia || (loc.includes('teams') ? 'Microsoft Teams' : loc.includes('zoom') ? 'Zoom' : 'Microsoft Teams'));
+            const media = isPhysical ? 'In-Person' : (item.interviewMedia || 'Google Meet');
             return {
               ...item,
               interviewMedia: media,
-              meetingLocation: item.meetingLocation || (isPhysical ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'),
-              meetingId: item.meetingId || (!isPhysical ? (idx === 0 ? '284 912 049 192' : '592 104 389 716') : ''),
-              meetingPasscode: item.meetingPasscode || (!isPhysical ? 'inTelli#2026' : ''),
+              meetingLocation: item.meetingLocation || (isPhysical ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/new'),
+              meetingId: item.meetingId || (!isPhysical ? 'meet.google.com/new' : ''),
+              meetingPasscode: item.meetingPasscode || (!isPhysical ? 'Direct Video Link' : ''),
             };
           });
           setAllocations(enriched);
@@ -542,8 +572,8 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
         const storedAlloc = localStorage.getItem('intellihire_allocations');
         if (storedAlloc !== null) {
           const parsed = JSON.parse(storedAlloc);
-          if (Array.isArray(parsed)) {
-            setAllocations(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAllocations(mergeWithInitialAllocations(parsed));
           }
         }
 
@@ -551,7 +581,13 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
         if (storedCandidates !== null) {
           const parsedC = JSON.parse(storedCandidates);
           if (Array.isArray(parsedC) && parsedC.length > 0) {
-            setCandidates(parsedC);
+            const mergedC = [...parsedC];
+            INITIAL_CANDIDATES.forEach((init) => {
+              if (!mergedC.some((c) => String(c.id) === String(init.id) || (c.name && init.name && c.name.trim().toLowerCase() === init.name.trim().toLowerCase()))) {
+                mergedC.push(init);
+              }
+            });
+            setCandidates(mergedC);
           }
         }
         const storedCustom = JSON.parse(localStorage.getItem('intellihire_custom_slots') || '[]');
@@ -644,10 +680,31 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     Array.isArray(embeddedVacancy?.panels) ? embeddedVacancy.panels : INITIAL_PANELS
   );
   const [viewingPanel, setViewingPanel] = useState(null);
-  const [notifiedCandidateIds, setNotifiedCandidateIds] = useState(() => new Set());
+  const [notifiedCandidateIds, setNotifiedCandidateIds] = useState(() => {
+    try {
+      const stored = localStorage.getItem('intellihire_notified_candidate_ids');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          return new Set(parsed);
+        }
+      }
+    } catch {}
+    return new Set();
+  });
+
+  const updateNotifiedCandidateIds = (updater) => {
+    setNotifiedCandidateIds((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : new Set(updater);
+      try {
+        localStorage.setItem('intellihire_notified_candidate_ids', JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  };
 
   const handleNotifyCandidate = (item) => {
-    setNotifiedCandidateIds((prev) => {
+    updateNotifiedCandidateIds((prev) => {
       const next = new Set(prev);
       next.add(item.candidateId);
       return next;
@@ -670,7 +727,7 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
 
   const handleConfirmSendAllInvites = () => {
     const allocated = filteredAllocations.filter((a) => a.status === 'ALLOCATED');
-    setNotifiedCandidateIds((prev) => {
+    updateNotifiedCandidateIds((prev) => {
       const next = new Set(prev);
       allocated.forEach((a) => next.add(a.candidateId));
       return next;
@@ -754,7 +811,8 @@ function isOutdatedPastDate(dateVal) {
       });
       const map = new Map();
       [...custom, ...mapped].forEach(s => {
-        if (!isOutdatedPastDate(s.dateKey || s.rawDate || s.date)) {
+        const isPast = Boolean(s.isPast || isSlotTimeInPast(s.dateKey || s.rawDate || s.date, s.time || s.startTime));
+        if (!isOutdatedPastDate(s.dateKey || s.rawDate || s.date) && !isPast) {
           map.set(s.id, s);
         }
       });
@@ -766,13 +824,15 @@ function isOutdatedPastDate(dateVal) {
 
   const allSlots = useMemo(() => {
     const map = new Map();
-    // Prioritize valid custom slots from panels/form
+    // Prioritize valid custom slots from panels/form (excluding any past slots)
     customSlots
-      .filter((s) => !isOutdatedPastDate(s.dateKey || s.date))
+      .filter((s) => !isOutdatedPastDate(s.dateKey || s.date) && !Boolean(s.isPast || isSlotTimeInPast(s.dateKey || s.date, s.time || s.startTime)))
       .forEach((s) => map.set(s.id, s));
-    // INITIAL_SLOTS (1 past slot + future slots)
+    // INITIAL_SLOTS (future slots)
     INITIAL_SLOTS.forEach((s) => {
-      if (!map.has(s.id)) map.set(s.id, s);
+      if (!map.has(s.id) && !Boolean(s.isPast || isSlotTimeInPast(s.dateKey || s.date, s.time || s.startTime))) {
+        map.set(s.id, s);
+      }
     });
     return Array.from(map.values());
   }, [customSlots]);
@@ -839,9 +899,12 @@ function isOutdatedPastDate(dateVal) {
   }, [candidates, jobPosition, allocations, candidateSearchQuery]);
 
   const filteredSlots = useMemo(() => {
-    // Match on position
+    const isPastSlot = (slot) => Boolean(slot.isPast || isSlotTimeInPast(slot.dateKey || slot.date, slot.time || slot.startTime));
+
+    // Match on position & strictly exclude past slots
     const posMatches = slotsWithRemaining.filter((slot) => {
       if (isOutdatedPastDate(slot.dateKey || slot.date)) return false;
+      if (isPastSlot(slot)) return false;
       if (!jobPosition) return true;
       const slotPos = (slot.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const targetPos = jobPosition.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -852,7 +915,7 @@ function isOutdatedPastDate(dateVal) {
 
     const displayPool = posMatches.length > 0
       ? posMatches
-      : slotsWithRemaining.filter((s) => !isOutdatedPastDate(s.dateKey || s.date));
+      : slotsWithRemaining.filter((s) => !isOutdatedPastDate(s.dateKey || s.date) && !isPastSlot(s));
 
     // Deduplicate slots strictly by normalized date + time to prevent any duplicates
     const normalizeSlotKey = (s) => {
@@ -863,7 +926,7 @@ function isOutdatedPastDate(dateVal) {
 
     const uniqueMap = new Map();
     displayPool.forEach((s) => {
-      if (isOutdatedPastDate(s.dateKey || s.date)) return;
+      if (isOutdatedPastDate(s.dateKey || s.date) || isPastSlot(s)) return;
       const key = normalizeSlotKey(s);
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, s);
@@ -929,19 +992,28 @@ function isOutdatedPastDate(dateVal) {
     );
   };
 
-  const buildAllocationRecord = (candidate, slot) => ({
-    candidateId: candidate.id,
-    candidateName: candidate.name,
-    slotId: slot.id,
-    assignedTime: formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime),
-    interviewDate: slot.date,
-    interviewType: slot.type,
-    panelName: slot.panelName || assignedPanels[0]?.name || 'Panel A (Technical Leads)',
-    interviewRound: (interviewRound && interviewRound !== 'All Rounds') ? interviewRound : (slot.round || candidate.round || 'Technical Interview'),
-    jobPosition: jobPosition || slot.jobPosition || candidate.jobPosition || candidate.role || 'Senior Software Engineer',
-    score: candidate.score || 85,
-    status: 'ALLOCATED',
-  });
+  const buildAllocationRecord = (candidate, slot) => {
+    const isPhysical = slot.type === 'Physical';
+    return {
+      candidateId: candidate.id,
+      candidateName: candidate.name,
+      slotId: slot.id,
+      assignedTime: formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime),
+      interviewDate: slot.date,
+      interviewType: slot.type,
+      interviewMedia: isPhysical ? 'In-Person' : 'Google Meet',
+      meetingLocation: isPhysical
+        ? 'Engineering Interview Room 1, HQ Building'
+        : (slot.meetingLocation || 'https://meet.google.com/new'),
+      meetingId: isPhysical ? '' : 'meet.google.com/new',
+      meetingPasscode: isPhysical ? '' : 'Direct Video Link',
+      panelName: slot.panelName || assignedPanels[0]?.name || 'Panel A (Technical Leads)',
+      interviewRound: (interviewRound && interviewRound !== 'All Rounds') ? interviewRound : (slot.round || candidate.round || 'Technical Interview'),
+      jobPosition: jobPosition || slot.jobPosition || candidate.jobPosition || candidate.role || 'Senior Software Engineer',
+      score: candidate.score || 85,
+      status: 'ALLOCATED',
+    };
+  };
 
   const performManualAllocation = (selectedCands, slotToAssign) => {
     const candidatesToMove = selectedCands.filter(
@@ -1099,6 +1171,13 @@ function isOutdatedPastDate(dateVal) {
     setAllocations(nextAllocations);
     setCandidates(nextCandidates);
 
+    // Remove candidate from notified list if unassigned
+    updateNotifiedCandidateIds((prev) => {
+      const next = new Set(prev);
+      next.delete(candidateId);
+      return next;
+    });
+
     // Persist removal to backend PostgreSQL API
     const targetIdentifier = candidateId || candidateName;
     if (targetIdentifier) {
@@ -1215,7 +1294,10 @@ function isOutdatedPastDate(dateVal) {
     setCustomSlots([]);
 
     setSelectedSlotId('');
-    setNotifiedCandidateIds(new Set());
+    updateNotifiedCandidateIds(new Set());
+    try {
+      localStorage.removeItem('intellihire_notified_candidate_ids');
+    } catch (e) {}
     setShowResetConfirm(false);
     setCurrentPage(1);
     window.dispatchEvent(
@@ -2108,7 +2190,7 @@ function isOutdatedPastDate(dateVal) {
                   <tbody>
                     {filteredSlots.length === 0 && (
                       <tr>
-                        <td colSpan="6" className="allocation-empty-cell">No slots match the selected filters.</td>
+                        <td colSpan="6" className="allocation-empty-cell">No available upcoming slots match the selected filters.</td>
                       </tr>
                     )}
                     {paginatedSlots.map((slot) => {
@@ -2527,12 +2609,12 @@ function isOutdatedPastDate(dateVal) {
 
                       <span style={{ color: '#9599A6' }}>Platform:</span>
                       <span style={{ color: '#F0B90B', fontWeight: 700 }}>
-                        {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.meetingLocation?.includes('zoom') ? 'Zoom' : previewSelectedCandidate.meetingLocation?.includes('meet.google') ? 'Google Meet' : (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Microsoft Teams'))}
+                        {previewSelectedCandidate.interviewMedia || (previewSelectedCandidate.interviewType === 'Physical' ? 'In-Person Office' : 'Google Meet')}
                       </span>
 
                       <span style={{ color: '#9599A6' }}>Meeting Venue / Link:</span>
                       <span style={{ color: '#F0B90B', wordBreak: 'break-all' }}>
-                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting')}
+                        {previewSelectedCandidate.meetingLocation || (previewSelectedCandidate.interviewType === 'Physical' ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/new')}
                       </span>
 
                       {previewSelectedCandidate.interviewType !== 'Physical' && !previewSelectedCandidate.meetingLocation?.includes('meet.google') && previewSelectedCandidate.interviewMedia !== 'Google Meet' && (

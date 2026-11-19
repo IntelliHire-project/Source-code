@@ -191,11 +191,11 @@ const seedInitialSlotsIfEmpty = async () => {
         panel_emails: 'saman.tech@company.com',
         panel_member: JSON.stringify(DEFAULT_PANEL_MEMBERS[0]),
         candidate: JSON.stringify({
-          id: 'APP-001',
-          name: 'Alice Fernando',
-          email: 'alice.fernando@example.com',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-          matchScore: 88,
+          id: 'APP-000',
+          name: 'Danushka Silva',
+          email: 'danushka.silva@example.com',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+          matchScore: 92,
         }),
         evaluation: JSON.stringify({
           score: 4,
@@ -210,7 +210,7 @@ const seedInitialSlotsIfEmpty = async () => {
       {
         job_position: 'Senior Software Engineer',
         round: 'HR Portfolio Review',
-        interview_date: '2026-11-02',
+        interview_date: '2026-11-20',
         start_time: '02:00 PM',
         end_time: '03:00 PM',
         interview_type: 'Physical',
@@ -233,7 +233,7 @@ const seedInitialSlotsIfEmpty = async () => {
       {
         job_position: 'Senior Software Engineer',
         round: 'System Architecture',
-        interview_date: '2026-11-04',
+        interview_date: '2026-11-21',
         start_time: '11:00 AM',
         end_time: '12:00 PM',
         interview_type: 'Online',
@@ -252,6 +252,29 @@ const seedInitialSlotsIfEmpty = async () => {
           matchScore: 79,
         }),
         additional_notes: 'Upcoming technical round. Evaluation is locked until the interview date has arrived.',
+      },
+      {
+        job_position: 'Senior Software Engineer',
+        round: 'Technical Interview',
+        interview_date: '2026-11-20',
+        start_time: '09:30 AM',
+        end_time: '10:30 AM',
+        interview_type: 'Online',
+        status: 'SCHEDULED',
+        meeting_location: 'https://meet.google.com/new',
+        capacity: 1,
+        booked_count: 1,
+        panel_name: 'Panel A (Technical Leads)',
+        panel_emails: 'saman.tech@company.com',
+        panel_member: JSON.stringify(DEFAULT_PANEL_MEMBERS[0]),
+        candidate: JSON.stringify({
+          id: 'APP-001',
+          name: 'Alice Fernando',
+          email: 'alice.fernando@example.com',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          matchScore: 88,
+        }),
+        additional_notes: 'Live coding session and React performance assessment round. Evaluation unlocks on the interview date.',
       },
       {
         job_position: 'Senior Software Engineer',
@@ -399,8 +422,16 @@ const getAllInterviewSlots = async (filters = {}) => {
       e.overall_rating, e.recommendation AS eval_recommendation, e.strengths AS eval_strengths, 
       e.improvements AS eval_improvements, e.evaluated_by, e.submitted_at AS eval_submitted_at
     FROM interview_slots s
-    LEFT JOIN interview_allocations a ON a.slot_id = s.id
-    LEFT JOIN interview_evaluations e ON e.slot_id = s.id
+    LEFT JOIN (
+      SELECT DISTINCT ON (slot_id) *
+      FROM interview_allocations
+      ORDER BY slot_id, id DESC
+    ) a ON a.slot_id = s.id
+    LEFT JOIN (
+      SELECT DISTINCT ON (slot_id) *
+      FROM interview_evaluations
+      ORDER BY slot_id, id DESC
+    ) e ON e.slot_id = s.id
   `;
   const conditions = [];
   const values = [];
@@ -450,8 +481,16 @@ const getInterviewSlotById = async (id) => {
       e.overall_rating, e.recommendation AS eval_recommendation, e.strengths AS eval_strengths, 
       e.improvements AS eval_improvements, e.evaluated_by, e.submitted_at AS eval_submitted_at
     FROM interview_slots s
-    LEFT JOIN interview_allocations a ON a.slot_id = s.id
-    LEFT JOIN interview_evaluations e ON e.slot_id = s.id
+    LEFT JOIN (
+      SELECT DISTINCT ON (slot_id) *
+      FROM interview_allocations
+      ORDER BY slot_id, id DESC
+    ) a ON a.slot_id = s.id
+    LEFT JOIN (
+      SELECT DISTINCT ON (slot_id) *
+      FROM interview_evaluations
+      ORDER BY slot_id, id DESC
+    ) e ON e.slot_id = s.id
     WHERE s.id = $1
   `;
   const { rows } = await db.query(query, [id]);

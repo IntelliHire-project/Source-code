@@ -70,14 +70,15 @@ export const DEFAULT_SLOTS = [
     bookedCount: 1,
     panelMember: DEFAULT_PANEL_MEMBERS[0], // Saman Tech
     candidate: {
-      id: 'APP-001',
-      name: 'Alice Fernando',
-      email: 'alice.fernando@example.com',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      matchScore: 88,
+      id: 'APP-000',
+      name: 'Danushka Silva',
+      email: 'danushka.silva@example.com',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      matchScore: 92,
     },
     additionalNotes: 'Live coding session completed. Architecture evaluation and problem-solving interview.',
     evaluation: {
+      candidateName: 'Danushka Silva',
       score: 4,
       strengths: 'Demonstrated exceptional understanding of React performance optimization, state management, and clean architecture principles.',
       improvements: 'Can further explore advanced Redis caching and automated end-to-end testing pipelines.',
@@ -91,8 +92,8 @@ export const DEFAULT_SLOTS = [
     jobPosition: 'Senior Software Engineer',
     vacancyId: 'v-1',
     round: 'HR Portfolio Review',
-    interviewDate: '2026-11-02',
-    displayDate: '02 Nov 2026',
+    interviewDate: '2026-11-20',
+    displayDate: '20 Nov 2026',
     startTime: '02:00 PM',
     endTime: '03:00 PM',
     interviewType: 'Physical',
@@ -115,8 +116,8 @@ export const DEFAULT_SLOTS = [
     jobPosition: 'Senior Software Engineer',
     vacancyId: 'v-1',
     round: 'System Architecture',
-    interviewDate: '2026-11-04',
-    displayDate: '04 Nov 2026',
+    interviewDate: '2026-11-21',
+    displayDate: '21 Nov 2026',
     startTime: '11:00 AM',
     endTime: '12:00 PM',
     interviewType: 'Online',
@@ -134,6 +135,30 @@ export const DEFAULT_SLOTS = [
     },
     additionalNotes: 'Upcoming technical round. Evaluation is locked until the interview date has arrived.',
   },
+  {
+    id: 4,
+    jobPosition: 'Senior Software Engineer',
+    vacancyId: 'v-1',
+    round: 'Technical Interview',
+    interviewDate: '2026-11-20',
+    displayDate: '20 Nov 2026',
+    startTime: '09:30 AM',
+    endTime: '10:30 AM',
+    interviewType: 'Online',
+    status: 'SCHEDULED', // UPCOMING FUTURE DATE - Evaluation is LOCKED
+    meetingLocation: 'https://meet.google.com/new',
+    capacity: 1,
+    bookedCount: 1,
+    panelMember: DEFAULT_PANEL_MEMBERS[0], // Saman Tech
+    candidate: {
+      id: 'APP-001',
+      name: 'Alice Fernando',
+      email: 'alice.fernando@example.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      matchScore: 88,
+    },
+    additionalNotes: 'Live coding session and React performance assessment round. Evaluation unlocks on the interview date.',
+  },
 ];
 
 // Initial Mock Reschedule Requests
@@ -147,23 +172,23 @@ export const DEFAULT_RESCHEDULE_REQUESTS = [
     candidateEmail: 'kamal.perera@example.com',
     jobPosition: 'Senior Software Engineer',
     round: 'HR Portfolio Review',
-    currentDate: '2026-11-02',
-    currentDisplayDate: '02 Nov 2026',
+    currentDate: '2026-11-20',
+    currentDisplayDate: '20 Nov 2026',
     currentTime: '02:00 PM - 03:00 PM',
     reasonCategory: 'Schedule Conflict / Urgent Meeting',
     detailedReason: 'Prior urgent leadership sync scheduled at this time. Requesting to reschedule to an alternative slot.',
     proposedSlots: [
       {
         id: 'prop-1',
-        date: '2026-11-05',
-        displayDate: '05 Nov 2026',
+        date: '2026-11-23',
+        displayDate: '23 Nov 2026',
         startTime: '10:00 AM',
         endTime: '11:00 AM',
       },
       {
         id: 'prop-2',
-        date: '2026-11-06',
-        displayDate: '06 Nov 2026',
+        date: '2026-11-24',
+        displayDate: '24 Nov 2026',
         startTime: '03:30 PM',
         endTime: '04:30 PM',
       },
@@ -335,13 +360,28 @@ export const generateGoogleCalendarLink = ({ title, description, date, startTime
 
 export const getInterviewSlots = () => {
   try {
+    const CLEAN_SLOTS_VERSION = 'v27_four_sessions_sync';
+    if (typeof window !== 'undefined' && localStorage.getItem('intellihire_panel_clean_ver') !== CLEAN_SLOTS_VERSION) {
+      localStorage.removeItem(STORAGE_KEYS.SLOTS);
+      localStorage.setItem('intellihire_panel_clean_ver', CLEAN_SLOTS_VERSION);
+    }
+
     let baseSlots = [];
     const stored = localStorage.getItem(STORAGE_KEYS.SLOTS);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          baseSlots = parsed;
+          // Strictly filter out open unallocated slots (status AVAILABLE) and phantom duplicate HOLD evaluations
+          const validInStored = parsed.filter((s) => {
+            if (!s || s.status === 'AVAILABLE') return false;
+            // Discard duplicate phantom evaluations with HOLD
+            if (s.status === 'COMPLETED' && s.evaluation?.recommendation === 'HOLD') return false;
+            return true;
+          });
+          if (validInStored.length >= 3) {
+            baseSlots = validInStored;
+          }
         }
       } catch {}
     }
@@ -349,43 +389,72 @@ export const getInterviewSlots = () => {
       baseSlots = [...DEFAULT_SLOTS];
     }
 
-    // Always sanitize baseSlots so startTime and endTime are never corrupted or duplicated
-    baseSlots = baseSlots.map((slot) => {
+    // Always sanitize baseSlots and strictly deduplicate by candidate name (including completed fallback)
+    const deduplicatedSlots = [];
+    const seenCandidateNames = new Set();
+    baseSlots.forEach((slot) => {
       const parsed = splitTimeRange(slot.startTime, '10:00 AM');
       const cleanEnd = (slot.endTime && !slot.endTime.includes('–') && !slot.endTime.includes(' - ') && slot.endTime !== slot.startTime)
         ? cleanSingleTime(slot.endTime)
         : parsed.endTime;
-      return {
+      const sanitized = {
         ...slot,
         startTime: parsed.startTime,
         endTime: cleanEnd,
       };
+
+      const candNameKey = (sanitized.candidate?.name || sanitized.candidateName || (sanitized.status === 'COMPLETED' ? 'danushka silva' : `slot-${sanitized.id}`)).trim().toLowerCase();
+      if (!seenCandidateNames.has(candNameKey)) {
+        seenCandidateNames.add(candNameKey);
+        deduplicatedSlots.push(sanitized);
+      }
     });
+
+    // Ensure all 4 core default sessions exist in baseSlots
+    DEFAULT_SLOTS.forEach((defSlot) => {
+      const defNameKey = (defSlot.candidate?.name || '').trim().toLowerCase();
+      const exists = deduplicatedSlots.some((s) => {
+        const sKey = (s.candidate?.name || s.candidateName || (s.status === 'COMPLETED' ? 'danushka silva' : '')).trim().toLowerCase();
+        return sKey === defNameKey;
+      });
+      if (!exists) {
+        deduplicatedSlots.push(defSlot);
+      }
+    });
+
+    baseSlots = deduplicatedSlots;
 
     // Read live allocations from Candidate Interview Allocation UI (intellihire_allocations)
     const allocJson = localStorage.getItem('intellihire_allocations');
     if (allocJson) {
       try {
         const allocations = JSON.parse(allocJson);
-        if (Array.isArray(allocations)) {
-          if (allocations.length === 0) {
-            localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify([]));
-            return [];
-          }
+        if (Array.isArray(allocations) && allocations.length > 0) {
           const activeAllocations = allocations.filter((a) => a.status === 'ALLOCATED');
 
           if (activeAllocations.length > 0) {
             const merged = [];
+            const matchedBaseSlotIds = new Set();
+
+            // 1. Keep completed evaluation slots intact from baseSlots (only official HIRE evaluation)
+            baseSlots
+              .filter((s) => s.status === 'COMPLETED' && s.evaluation?.recommendation !== 'HOLD')
+              .forEach((s) => {
+                merged.push(s);
+                matchedBaseSlotIds.add(s.id);
+              });
 
             activeAllocations.forEach((alloc, idx) => {
-              // Match existing slot by candidate ID or Name
+              // Match existing slot by candidate ID or Name (excluding already completed evaluation slots)
               const existing = baseSlots.find(
                 (s) =>
-                  s.candidate?.id === alloc.candidateId ||
-                  s.candidate?.name?.trim().toLowerCase() === (alloc.candidateName || '').trim().toLowerCase()
+                  s.status !== 'COMPLETED' &&
+                  (s.candidate?.id === alloc.candidateId ||
+                    s.candidate?.name?.trim().toLowerCase() === (alloc.candidateName || '').trim().toLowerCase())
               );
 
               if (existing) {
+                matchedBaseSlotIds.add(existing.id);
                 // Parse assignedTime or existing time to guarantee separate start and end times
                 const rawTime = alloc.assignedTime || existing.startTime || '11:00 AM';
                 const parsed = splitTimeRange(rawTime, '11:00 AM');
@@ -405,16 +474,20 @@ export const getInterviewSlots = () => {
                   startTime: sTime,
                   endTime: eTime,
                   interviewType: alloc.interviewType || existing.interviewType,
+                  meetingLocation: alloc.meetingLocation || existing.meetingLocation,
+                  meetingId: alloc.meetingId || existing.meetingId,
+                  meetingPasscode: alloc.meetingPasscode || existing.meetingPasscode,
                 });
               } else {
                 // Newly allocated candidate from Candidate Allocation!
                 let pm = DEFAULT_PANEL_MEMBERS[idx % DEFAULT_PANEL_MEMBERS.length];
                 const roundLower = (alloc.interviewRound || '').toLowerCase();
-                if (roundLower.includes('hr') || roundLower.includes('culture') || roundLower.includes('portfolio')) {
+                const panelLower = (alloc.panelName || '').toLowerCase();
+                if (panelLower.includes('hr') || roundLower.includes('hr') || roundLower.includes('culture') || roundLower.includes('portfolio')) {
                   pm = DEFAULT_PANEL_MEMBERS[1]; // Nirosha HR
-                } else if (roundLower.includes('arch') || roundLower.includes('system') || roundLower.includes('lead')) {
+                } else if (panelLower.includes('arch') || roundLower.includes('arch') || roundLower.includes('system') || roundLower.includes('lead')) {
                   pm = DEFAULT_PANEL_MEMBERS[3]; // Ruwan Bandara
-                } else if (roundLower.includes('design') || roundLower.includes('product')) {
+                } else if (panelLower.includes('design') || roundLower.includes('design') || roundLower.includes('product')) {
                   pm = DEFAULT_PANEL_MEMBERS[2]; // Dilhani Wickramasinghe
                 } else {
                   pm = DEFAULT_PANEL_MEMBERS[0]; // Saman Tech
@@ -428,15 +501,18 @@ export const getInterviewSlots = () => {
                   vacancyId: 'v-1',
                   round: alloc.interviewRound || 'Technical Interview',
                   interviewDate: toIsoDateString(alloc.interviewDate),
-                  displayDate: alloc.interviewDate || '05 Nov 2026',
+                  displayDate: alloc.interviewDate || '20 Nov 2026',
                   startTime: parsed.startTime,
                   endTime: parsed.endTime,
                   interviewType: alloc.interviewType || 'Online',
                   status: 'SCHEDULED',
                   meetingLocation:
-                    alloc.interviewType === 'Physical'
+                    alloc.meetingLocation ||
+                    (alloc.interviewType === 'Physical'
                       ? 'Innovation Hub — Interview Suite 102'
-                      : 'https://meet.google.com/new',
+                      : 'https://meet.google.com/new'),
+                  meetingId: alloc.meetingId || '',
+                  meetingPasscode: alloc.meetingPasscode || '',
                   capacity: 1,
                   bookedCount: 1,
                   panelMember: pm,
@@ -452,8 +528,35 @@ export const getInterviewSlots = () => {
               }
             });
 
-            localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(merged));
-            return merged;
+            // 2. Preserve any remaining baseSlots (e.g. other scheduled interviews)
+            baseSlots.forEach((s) => {
+              if (!matchedBaseSlotIds.has(s.id) && s.status !== 'COMPLETED') {
+                merged.push(s);
+              }
+            });
+
+            // Deduplicate merged strictly by candidate name
+            const finalMerged = [];
+            const mergedSeenNames = new Set();
+            merged.forEach((s) => {
+              const nameKey = (s.candidate?.name || s.candidateName || (s.status === 'COMPLETED' ? 'danushka silva' : `slot-${s.id}`)).trim().toLowerCase();
+              if (!mergedSeenNames.has(nameKey)) {
+                mergedSeenNames.add(nameKey);
+                finalMerged.push(s);
+              }
+            });
+
+            // Guarantee all 4 core default slots are present
+            DEFAULT_SLOTS.forEach((def) => {
+              const defKey = (def.candidate?.name || '').trim().toLowerCase();
+              if (!mergedSeenNames.has(defKey)) {
+                mergedSeenNames.add(defKey);
+                finalMerged.push(def);
+              }
+            });
+
+            localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(finalMerged));
+            return finalMerged;
           }
         }
       } catch (e) {
@@ -461,6 +564,7 @@ export const getInterviewSlots = () => {
       }
     }
 
+    localStorage.setItem(STORAGE_KEYS.SLOTS, JSON.stringify(baseSlots));
     return baseSlots;
   } catch (err) {
     console.error('Failed to load slots from localStorage:', err);

@@ -50,7 +50,7 @@ import {
 } from '../../../api/interviewApi';
 import { INITIAL_CANDIDATES, INITIAL_ALLOCATIONS, resetToDefaultMockData, formatPanelDisplayName } from '../InterviewAllocation/CandidateInterviewAllocation';
 
-const CLEAN_STORAGE_VERSION = 'v16_force_teams_creds_visible';
+const CLEAN_STORAGE_VERSION = 'v28_merge_and_persist_notified';
 (() => {
   try {
     if (typeof window !== 'undefined') {
@@ -630,10 +630,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             const isZoom = s.interviewMedia === 'Zoom' || loc.includes('zoom');
             return {
               ...s,
-              interviewMedia: isPhysical ? 'In-Person' : (s.interviewMedia || (isTeams ? 'Microsoft Teams' : isZoom ? 'Zoom' : 'Microsoft Teams')),
-              meetingLocation: s.meetingLocation || (isPhysical ? 'Engineering Conference Room, 2nd Floor' : 'https://www.microsoft.com/en-us/microsoft-teams/join-a-meeting'),
-              meetingId: s.meetingId || (!isPhysical ? (idx === 0 ? '284 912 049 192' : '592 104 389 716') : ''),
-              meetingPasscode: s.meetingPasscode || (!isPhysical ? 'inTelli#2026' : ''),
+              interviewMedia: isPhysical ? 'In-Person' : (s.interviewMedia || (isTeams ? 'Microsoft Teams' : isZoom ? 'Zoom' : 'Google Meet')),
+              meetingLocation: s.meetingLocation || (isPhysical ? 'Engineering Conference Room, 2nd Floor' : 'https://meet.google.com/new'),
+              meetingId: s.meetingId || (!isPhysical ? 'meet.google.com/new' : ''),
+              meetingPasscode: s.meetingPasscode || (!isPhysical ? 'Direct Video Link' : ''),
             };
           });
         }
