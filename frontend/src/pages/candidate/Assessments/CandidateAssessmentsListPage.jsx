@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileCheck,
@@ -11,8 +11,10 @@ import {
   ExternalLink,
   Award,
   Search,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
+import { fetchAssessments } from '../../../api/assessmentApi';
 import './TakeAssessmentPage.css';
 
 const ASSIGNMENTS_MOCK = [
@@ -66,8 +68,8 @@ export default function CandidateAssessmentsListPage() {
   const filteredAssignments = ASSIGNMENTS_MOCK.filter(item => {
     const matchesStatus = filterStatus === 'All' || item.status === filterStatus;
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.jobRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.company.toLowerCase().includes(searchQuery.toLowerCase());
+      item.jobRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.company.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
