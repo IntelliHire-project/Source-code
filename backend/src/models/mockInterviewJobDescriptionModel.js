@@ -519,6 +519,13 @@ const attachJobDescriptionToSelectedRole = async (data = {}, user = null, execut
   };
 };
 
+/**
+ * Updates the candidate's selected role job description directly.
+ */
+const updateSelectedRoleJobDescription = async (data = {}, user = null, executor = db) => {
+  return attachJobDescriptionToSelectedRole(data, user, executor);
+};
+
 module.exports = {
   formatJobDescriptionRow,
   createJobDescription,
@@ -531,5 +538,6 @@ module.exports = {
   generateRoleIntegratedJobDescription,
   getRoleIntegratedJobDescription,
   attachJobDescriptionToSelectedRole,
+  updateSelectedRoleJobDescription,
 };
 

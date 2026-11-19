@@ -640,6 +640,136 @@
   border-color: #FFC107;
 }
 
+.jd-retrieve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  color: #c0c0c0;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.jd-retrieve-btn:hover:not(:disabled) {
+  background: #2a2a2a;
+  border-color: #666;
+  color: #ffffff;
+}
+
+.jd-retrieve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.jd-update-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFC107;
+  border: 1px solid #FFC107;
+  color: #000000;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jd-update-btn:hover:not(:disabled) {
+  background: #e5ac00;
+  border-color: #e5ac00;
+}
+
+.jd-update-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.jd-last-saved-time {
+  color: #4caf50;
+  font-size: 0.8rem;
+}
+
+/* ── Job Description Status Notice ── */
+.jd-status-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  animation: fadeInNotice 0.25s ease-out;
+}
+
+.jd-status-notice.success {
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.35);
+  color: #81c784;
+}
+
+.jd-status-notice.info {
+  background: rgba(33, 150, 243, 0.12);
+  border: 1px solid rgba(33, 150, 243, 0.35);
+  color: #64b5f6;
+}
+
+.jd-status-notice.error {
+  background: rgba(244, 67, 54, 0.12);
+  border: 1px solid rgba(244, 67, 54, 0.35);
+  color: #e57373;
+}
+
+.jd-status-notice-text {
+  font-weight: 500;
+}
+
+.jd-notice-dismiss {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s ease;
+}
+
+.jd-notice-dismiss:hover {
+  opacity: 1;
+}
+
+@keyframes fadeInNotice {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spinning {
+  animation: spinAround 1s linear infinite;
+}
+
+@keyframes spinAround {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── Selected Role Integration Banner & Chips ── */
 .selected-role-summary-card {
   display: flex;

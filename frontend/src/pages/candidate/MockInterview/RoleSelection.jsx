@@ -1,6 +1,21 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronDown, Check, Plus, X, Database, MonitorPlay, Palette, ShieldCheck, BarChart3, Sparkles } from 'lucide-react';
+import {
+  Search,
+  ChevronDown,
+  Check,
+  Plus,
+  X,
+  Database,
+  MonitorPlay,
+  Palette,
+  ShieldCheck,
+  BarChart3,
+  Sparkles,
+  Save,
+  RotateCcw,
+  RefreshCw,
+} from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import {
   fetchAvailableRoles,
@@ -8,6 +23,10 @@ import {
   storeSelectedRole,
   saveMockInterviewJobDescription,
   attachJobDescriptionToSelectedRole,
+  fetchRoleIntegratedJobDescription,
+  fetchLatestJobDescription,
+  updateJobDescription,
+  updateSelectedRoleJobDescription,
 } from '../../../api/mockInterviewApi';
 import './RoleSelection.css';
 
@@ -137,6 +156,11 @@ export default function MockInterviewRoleSelection() {
   const [step, setStep] = useState(1);
   const [jobDescription, setJobDescription] = useState('');
   const [isSubmittingJd, setIsSubmittingJd] = useState(false);
+  const [savedJdId, setSavedJdId] = useState(null);
+  const [isRetrievingJd, setIsRetrievingJd] = useState(false);
+  const [isUpdatingJd, setIsUpdatingJd] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [updateNotice, setUpdateNotice] = useState(null);
 
   // Restore stored job description and role from sessionStorage if available
   useEffect(() => {
@@ -238,6 +262,123 @@ export default function MockInterviewRoleSelection() {
     setJobDescription(template);
   };
 
+  const handleRetrieveSavedJd = async (roleIdToFetch, showNotification = false) => {
+    const targetRoleId = roleIdToFetch || selectedRole;
+    if (!targetRoleId) return;
+    setIsRetrievingJd(true);
+    try {
+      const res = await fetchRoleIntegratedJobDescription(targetRoleId);
+      if (res && res.savedJobDescription) {
+        const saved = res.savedJobDescription;
+        if (saved.jobDescription) {
+          setJobDescription(saved.jobDescription);
+          if (saved.id) setSavedJdId(saved.id);
+          if (saved.updatedAt) setLastUpdated(saved.updatedAt);
+          if (showNotification) {
+            setUpdateNotice({ type: 'success', text: 'Saved job description reloaded.' });
+          }
+          return;
+        }
+      } else if (res && res.activeJobDescription) {
+        if (!jobDescription.trim()) {
+          setJobDescription(res.activeJobDescription);
+        }
+        if (showNotification) {
+          setUpdateNotice({ type: 'info', text: 'Loaded role-integrated template.' });
+        }
+      } else {
+        const latestRes = await fetchLatestJobDescription();
+        if (latestRes && latestRes.jobDescription) {
+          const jd = latestRes.jobDescription;
+          if (jd.jobDescription && (!jd.roleId || jd.roleId === targetRoleId)) {
+            setJobDescription(jd.jobDescription);
+            if (jd.id) setSavedJdId(jd.id);
+            if (jd.updatedAt) setLastUpdated(jd.updatedAt);
+            if (showNotification) {
+              setUpdateNotice({ type: 'success', text: 'Loaded latest job description.' });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not retrieve job description:', err.message);
+      if (showNotification) {
+        setUpdateNotice({ type: 'error', text: 'Could not retrieve saved description.' });
+      }
+    } finally {
+      setIsRetrievingJd(false);
+      if (showNotification) {
+        setTimeout(() => {
+          setUpdateNotice((prev) => (prev?.type === 'success' || prev?.type === 'info' ? null : prev));
+        }, 3000);
+      }
+    }
+  };
+
+  const handleUpdateJobDescription = async () => {
+    const cleanJd = (jobDescription || '').trim();
+    if (!cleanJd) {
+      setUpdateNotice({ type: 'error', text: 'Job description cannot be empty to update.' });
+      return;
+    }
+
+    setIsUpdatingJd(true);
+    setUpdateNotice(null);
+
+    const payload = {
+      roleId: selectedRole,
+      roleTitle: currentRole?.title,
+      category: currentRole?.category,
+      skills: currentRole?.skills,
+      jobDescription: cleanJd,
+    };
+
+    try {
+      let updatedRecord = null;
+      if (savedJdId) {
+        const res = await updateJobDescription(savedJdId, payload);
+        updatedRecord = res?.jobDescription;
+      } else {
+        const res = await updateSelectedRoleJobDescription(payload);
+        updatedRecord = res?.jobDescription || res?.updatedRole?.jobDescription;
+        if (res?.updatedRole?.id || res?.jobDescription?.id) {
+          setSavedJdId(res.updatedRole?.id || res.jobDescription?.id);
+        }
+      }
+
+      const timestamp = updatedRecord?.updatedAt || new Date().toISOString();
+      setLastUpdated(timestamp);
+      setUpdateNotice({ type: 'success', text: 'Job description updated successfully!' });
+
+      try {
+        sessionStorage.setItem('mock_interview_job_description', cleanJd);
+        sessionStorage.setItem(
+          'mock_interview_selected_role',
+          JSON.stringify({
+            roleId: selectedRole,
+            roleTitle: currentRole?.title,
+            category: currentRole?.category,
+            skills: currentRole?.skills,
+            jobDescription: cleanJd,
+            jdId: savedJdId || updatedRecord?.id,
+            updatedAt: timestamp,
+          })
+        );
+      } catch (e) {}
+    } catch (err) {
+      console.error('Failed to update job description:', err);
+      setUpdateNotice({
+        type: 'error',
+        text: err.response?.data?.message || err.message || 'Failed to update job description.',
+      });
+    } finally {
+      setIsUpdatingJd(false);
+      setTimeout(() => {
+        setUpdateNotice((prev) => (prev?.type === 'success' ? null : prev));
+      }, 3500);
+    }
+  };
+
   const handleAddCustomRole = async () => {
     if (!customInput.trim()) return;
     const title = customInput.trim();
@@ -270,29 +411,36 @@ export default function MockInterviewRoleSelection() {
 
   const handleContinue = async () => {
     if (step === 1) {
-      // Automatically prefill role-integrated template if candidate hasn't entered a custom JD yet
-      if (!jobDescription.trim() && currentRole) {
-        setJobDescription(buildRoleIntegratedTemplate(currentRole));
-      }
-
+      const targetRole = currentRole;
       try {
         storeSelectedRole({
           roleId: selectedRole,
-          roleTitle: currentRole?.title,
-          category: currentRole?.category,
+          roleTitle: targetRole?.title,
+          category: targetRole?.category,
         }).catch(() => {});
         sessionStorage.setItem(
           'mock_interview_selected_role',
           JSON.stringify({
             roleId: selectedRole,
-            roleTitle: currentRole?.title,
-            category: currentRole?.category,
+            roleTitle: targetRole?.title,
+            category: targetRole?.category,
           })
         );
       } catch (err) {
         // Continue even if network is offline
       }
+
       setStep(2);
+
+      // Attempt to retrieve saved JD for this role
+      handleRetrieveSavedJd(selectedRole, false).then(() => {
+        setJobDescription((prev) => {
+          if (!prev.trim() && targetRole) {
+            return buildRoleIntegratedTemplate(targetRole);
+          }
+          return prev;
+        });
+      });
     } else {
       setIsSubmittingJd(true);
       const cleanJd = (jobDescription || '').trim();
@@ -308,15 +456,17 @@ export default function MockInterviewRoleSelection() {
             category: currentRole?.category,
             skills: currentRole?.skills,
             jobDescription: cleanJd,
+            jdId: savedJdId,
+            updatedAt: lastUpdated,
           })
         );
       } catch (err) {
         // Storage unavailable or quota exceeded
       }
 
-      // Submit and integrate with backend
+      // Submit and integrate with backend (supports both save and update)
       try {
-        await Promise.allSettled([
+        const persistCalls = [
           attachJobDescriptionToSelectedRole({
             roleId: selectedRole,
             roleTitle: currentRole?.title,
@@ -338,7 +488,21 @@ export default function MockInterviewRoleSelection() {
             category: currentRole?.category,
             jobDescription: cleanJd,
           }),
-        ]);
+        ];
+
+        if (savedJdId) {
+          persistCalls.push(
+            updateJobDescription(savedJdId, {
+              roleId: selectedRole,
+              roleTitle: currentRole?.title,
+              category: currentRole?.category,
+              skills: currentRole?.skills,
+              jobDescription: cleanJd,
+            }).catch(() => {})
+          );
+        }
+
+        await Promise.allSettled(persistCalls);
       } catch (err) {
         console.warn('Could not store job description in backend:', err.message);
       } finally {
@@ -519,6 +683,21 @@ export default function MockInterviewRoleSelection() {
           </div>
         )}
 
+        {/* Retrieval/Update Status Feedback */}
+        {updateNotice && (
+          <div className={`jd-status-notice ${updateNotice.type}`}>
+            <span className="jd-status-notice-text">{updateNotice.text}</span>
+            <button
+              type="button"
+              className="jd-notice-dismiss"
+              onClick={() => setUpdateNotice(null)}
+              aria-label="Dismiss message"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <div className="jd-textarea-container">
           <textarea
             className="jd-textarea"
@@ -533,6 +712,11 @@ export default function MockInterviewRoleSelection() {
                   {jobDescription.length.toLocaleString()} characters &bull;{' '}
                   {jobDescription.trim().split(/\s+/).filter(Boolean).length} words
                   {matchedSkillsCount > 0 && ` \u2022 ${matchedSkillsCount} skills linked`}
+                  {lastUpdated && (
+                    <span className="jd-last-saved-time">
+                      {' '}&bull; Saved {new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
                 </span>
               ) : (
                 <span className="jd-hint">Click "Use Role Template" to generate a description tailored to {currentRole?.title}</span>
@@ -545,19 +729,45 @@ export default function MockInterviewRoleSelection() {
                   type="button"
                   className="jd-clear-btn"
                   onClick={() => setJobDescription('')}
+                  disabled={isUpdatingJd || isRetrievingJd}
                 >
                   Clear
                 </button>
               )}
+              <button
+                type="button"
+                className="jd-retrieve-btn"
+                onClick={() => handleRetrieveSavedJd(selectedRole, true)}
+                disabled={isRetrievingJd || isUpdatingJd}
+                title="Reload saved job description from server"
+              >
+                <RotateCcw size={13} className={isRetrievingJd ? 'spinning' : ''} />
+                {isRetrievingJd ? 'Loading...' : 'Reload Saved'}
+              </button>
               {currentRole && (
                 <button
                   type="button"
                   className="jd-template-btn"
                   onClick={handleLoadRoleTemplate}
+                  disabled={isUpdatingJd || isRetrievingJd}
                 >
                   Use Role Template
                 </button>
               )}
+              <button
+                type="button"
+                className="jd-update-btn"
+                onClick={handleUpdateJobDescription}
+                disabled={isUpdatingJd || isRetrievingJd || !jobDescription.trim()}
+                title="Update and save job description"
+              >
+                {isUpdatingJd ? (
+                  <RefreshCw size={13} className="spinning" />
+                ) : (
+                  <Save size={13} />
+                )}
+                {isUpdatingJd ? 'Updating...' : 'Update & Save'}
+              </button>
             </div>
           </div>
         </div>

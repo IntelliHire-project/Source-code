@@ -30,6 +30,7 @@ const {
   saveMockInterviewJobDescriptionHandler,
   getRoleIntegratedJobDescriptionHandler,
   attachJobDescriptionToSelectedRoleHandler,
+  updateSelectedRoleJobDescriptionHandler,
 } = require('../controllers/mockInterviewJobDescriptionController');
 
 const router = express.Router();
@@ -77,7 +78,8 @@ router.post('/select-role', optionalAuth, storeSelectedRoleHandler);
 // Selected Role & Job Description Integration endpoints (Must precede /roles/:id)
 router.get('/roles/selected/job-description', optionalAuth, getLatestJobDescriptionHandler);
 router.post('/roles/selected/job-description', optionalAuth, validateUserRoleAccess, attachJobDescriptionToSelectedRoleHandler);
-router.put('/roles/selected/job-description', optionalAuth, validateUserRoleAccess, attachJobDescriptionToSelectedRoleHandler);
+router.put('/roles/selected/job-description', optionalAuth, validateUserRoleAccess, updateSelectedRoleJobDescriptionHandler);
+router.patch('/roles/selected/job-description', optionalAuth, validateUserRoleAccess, updateSelectedRoleJobDescriptionHandler);
 router.get('/roles/:roleId/job-description', optionalAuth, getRoleIntegratedJobDescriptionHandler);
 router.get('/job-descriptions/role/:roleId', optionalAuth, getRoleIntegratedJobDescriptionHandler);
 
@@ -92,12 +94,14 @@ router.post('/job-descriptions', optionalAuth, validateUserRoleAccess, validateC
 router.get('/job-descriptions', optionalAuth, getJobDescriptionsHandler);
 router.get('/job-descriptions/:id', optionalAuth, getJobDescriptionByIdHandler);
 router.put('/job-descriptions/:id', optionalAuth, validateUserRoleAccess, validateUpdateJobDescription, updateJobDescriptionHandler);
+router.patch('/job-descriptions/:id', optionalAuth, validateUserRoleAccess, validateUpdateJobDescription, updateJobDescriptionHandler);
 router.delete('/job-descriptions/:id', optionalAuth, validateUserRoleAccess, deleteJobDescriptionHandler);
 
 router.post('/job-description', optionalAuth, validateUserRoleAccess, validateCreateJobDescription, createJobDescriptionHandler);
 router.get('/job-description', optionalAuth, getJobDescriptionsHandler);
 router.get('/job-description/:id', optionalAuth, getJobDescriptionByIdHandler);
 router.put('/job-description/:id', optionalAuth, validateUserRoleAccess, validateUpdateJobDescription, updateJobDescriptionHandler);
+router.patch('/job-description/:id', optionalAuth, validateUserRoleAccess, validateUpdateJobDescription, updateJobDescriptionHandler);
 router.delete('/job-description/:id', optionalAuth, validateUserRoleAccess, deleteJobDescriptionHandler);
 
 // 5. Roles subpath endpoints (e.g. /mock-interviews/roles)
