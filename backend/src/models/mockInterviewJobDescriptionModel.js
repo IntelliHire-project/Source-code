@@ -370,6 +370,162 @@ const saveSelectedJobDescription = async (data = {}, user = null, executor = db)
   );
 };
 
+/**
+ * Generates an industry-standard, role-integrated Job Description template
+ * tailored to a specific job role, its category, and its core skill set.
+ */
+const generateRoleIntegratedJobDescription = (role) => {
+  if (!role) return '';
+
+  const title = role.title || 'Technical Specialist';
+  const categoryLabel = (role.category || 'engineering').toUpperCase();
+  const summary =
+    role.description ||
+    'System architecture, technical execution, and high-reliability software delivery.';
+  const skillsList =
+    Array.isArray(role.skills) && role.skills.length > 0
+      ? role.skills
+      : ['Core Technical Competencies', 'System Architecture', 'Problem Solving', 'Structured Communication'];
+
+  return [
+    `# Job Title: ${title}`,
+    `**Track**: ${categoryLabel} | **Mode**: AI Mock Interview Tailored`,
+    '',
+    `## Role Overview`,
+    `${summary}`,
+    '',
+    `## Core Responsibilities`,
+    `- Architect, design, and implement scalable, resilient solutions for ${title}.`,
+    `- Drive technical problem-solving, code quality, and engineering best practices.`,
+    `- Collaborate effectively across cross-functional teams to deliver impactful products.`,
+    `- Diagnose, debug, and optimize complex technical workflows and system performance.`,
+    '',
+    `## Key Requirements & Technical Competencies`,
+    skillsList.map((skill) => `- Hands-on experience with ${skill}`).join('\n'),
+    '- Solid grounding in software fundamentals, trade-off analysis, and system architecture.',
+    '- Clear, structured communication and scenario-based technical leadership.',
+    '',
+    `## Mock Interview Evaluation Criteria`,
+    `- Technical depth and precision in ${skillsList.slice(0, 3).join(', ')}.`,
+    `- Ability to break down ambiguous technical requirements into practical steps.`,
+    `- Trade-off articulation (e.g. performance vs complexity, consistency vs availability).`,
+  ].join('\n');
+};
+
+/**
+ * Retrieves the integrated job description for a specific role.
+ * Returns the role metadata, any previously saved JD for this user + role,
+ * and a role-tailored template.
+ */
+const getRoleIntegratedJobDescription = async (roleId, userId = null, executor = db) => {
+  if (!roleId) return null;
+
+  const { findJobRoleById, DEFAULT_ROLES } = require('./mockInterviewRoleModel');
+  let role = null;
+
+  try {
+    role = await findJobRoleById(roleId, executor);
+  } catch (err) {
+    console.warn('Could not fetch role by ID, falling back to default roles:', err.message);
+  }
+
+  if (!role) {
+    role = (DEFAULT_ROLES || []).find(
+      (r) => r.id === roleId || r.roleId === roleId || (r.title && r.title.toLowerCase() === roleId.toLowerCase())
+    );
+  }
+
+  if (!role) {
+    role = {
+      id: roleId,
+      roleId,
+      title: roleId.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      category: 'engineering',
+      description: 'Professional role evaluation for mock interview practice.',
+      skills: ['Domain Knowledge', 'Problem Solving', 'System Design'],
+    };
+  }
+
+  const template = generateRoleIntegratedJobDescription(role);
+
+  // Check if user has an existing saved job description for this roleId
+  let savedJobDescription = null;
+  if (userId) {
+    try {
+      const query = `
+        SELECT * FROM mock_interview_job_descriptions 
+        WHERE user_id = $1 AND role_id = $2 
+        ORDER BY updated_at DESC, id DESC 
+        LIMIT 1;
+      `;
+      const result = await executor.query(query, [Number(userId), roleId]);
+      if (result && result.rows && result.rows.length > 0) {
+        savedJobDescription = formatJobDescriptionRow(result.rows[0]);
+      }
+    } catch (err) {
+      console.warn('Could not check saved JD for role:', err.message);
+    }
+  }
+
+  return {
+    role,
+    roleId: role.roleId || role.id,
+    roleTitle: role.title,
+    category: role.category,
+    skills: role.skills || [],
+    template,
+    savedJobDescription,
+    activeJobDescription: savedJobDescription ? savedJobDescription.jobDescription : template,
+  };
+};
+
+/**
+ * Directly integrates and attaches a job description to the candidate's active selected role.
+ */
+const attachJobDescriptionToSelectedRole = async (data = {}, user = null, executor = db) => {
+  const roleId = (data.roleId || data.id || '').trim();
+  const rawDescription = data.jobDescription || data.description || data.content || '';
+  const jobDescription = String(rawDescription).trim();
+
+  if (!roleId) {
+    const error = new Error('Role identifier (roleId) is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const roleTitle = (data.roleTitle || data.title || '').trim();
+  const category = (data.category || '').toLowerCase().trim();
+
+  // Save selected job description session and sync with selected roles table
+  const savedJd = await saveSelectedJobDescription(
+    {
+      ...data,
+      roleId,
+      jobDescription,
+      roleTitle,
+      category,
+      source: 'role_integration',
+    },
+    user,
+    executor
+  );
+
+  return {
+    roleId,
+    roleTitle: roleTitle || savedJd.title,
+    category: category || 'engineering',
+    jobDescription: savedJd.jobDescription,
+    savedAt: savedJd.updatedAt || new Date().toISOString(),
+  };
+};
+
+/**
+ * Updates the candidate's selected role job description directly.
+ */
+const updateSelectedRoleJobDescription = async (data = {}, user = null, executor = db) => {
+  return attachJobDescriptionToSelectedRole(data, user, executor);
+};
+
 module.exports = {
   formatJobDescriptionRow,
   createJobDescription,
@@ -379,5 +535,9 @@ module.exports = {
   updateJobDescription,
   deleteJobDescription,
   saveSelectedJobDescription,
+  generateRoleIntegratedJobDescription,
+  getRoleIntegratedJobDescription,
+  attachJobDescriptionToSelectedRole,
+  updateSelectedRoleJobDescription,
 };
 

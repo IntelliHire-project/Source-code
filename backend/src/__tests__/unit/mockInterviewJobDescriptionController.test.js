@@ -6,6 +6,9 @@ jest.mock('../../models/mockInterviewJobDescriptionModel', () => ({
   updateJobDescription: jest.fn(),
   deleteJobDescription: jest.fn(),
   saveSelectedJobDescription: jest.fn(),
+  getRoleIntegratedJobDescription: jest.fn(),
+  attachJobDescriptionToSelectedRole: jest.fn(),
+  updateSelectedRoleJobDescription: jest.fn(),
 }));
 
 jest.mock('../../utils/response', () => ({
@@ -21,6 +24,9 @@ const {
   updateJobDescription,
   deleteJobDescription,
   saveSelectedJobDescription,
+  getRoleIntegratedJobDescription,
+  attachJobDescriptionToSelectedRole,
+  updateSelectedRoleJobDescription,
 } = require('../../models/mockInterviewJobDescriptionModel');
 const { successResponse, errorResponse } = require('../../utils/response');
 const {
@@ -31,6 +37,9 @@ const {
   updateJobDescriptionHandler,
   deleteJobDescriptionHandler,
   saveMockInterviewJobDescriptionHandler,
+  getRoleIntegratedJobDescriptionHandler,
+  attachJobDescriptionToSelectedRoleHandler,
+  updateSelectedRoleJobDescriptionHandler,
 } = require('../../controllers/mockInterviewJobDescriptionController');
 
 describe('mockInterviewJobDescriptionController Unit Tests', () => {
@@ -434,6 +443,128 @@ describe('mockInterviewJobDescriptionController Unit Tests', () => {
       await saveMockInterviewJobDescriptionHandler(req, res);
 
       expect(errorResponse).toHaveBeenCalledWith(res, 'Failed to save session', 500);
+    });
+  });
+
+  // =========================================================================
+  // 8. getRoleIntegratedJobDescriptionHandler
+  // =========================================================================
+  describe('getRoleIntegratedJobDescriptionHandler', () => {
+    test('rejects request if roleId is missing', async () => {
+      req.params = {};
+
+      await getRoleIntegratedJobDescriptionHandler(req, res);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Role identifier (roleId) is required.',
+        400
+      );
+      expect(getRoleIntegratedJobDescription).not.toHaveBeenCalled();
+    });
+
+    test('rejects request if role is not found', async () => {
+      req.params = { roleId: 'nonexistent-role' };
+      getRoleIntegratedJobDescription.mockResolvedValue(null);
+
+      await getRoleIntegratedJobDescriptionHandler(req, res);
+
+      expect(getRoleIntegratedJobDescription).toHaveBeenCalledWith('nonexistent-role', null);
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Job role not found.', 404);
+    });
+
+    test('retrieves role-integrated job description successfully', async () => {
+      const mockResult = {
+        role: { id: 'backend', title: 'Backend Developer' },
+        template: '# Position: Backend Developer',
+        activeJobDescription: '# Position: Backend Developer',
+        savedJobDescription: { id: 2, jobDescription: 'Custom backend JD' },
+      };
+      req.params = { roleId: 'backend' };
+      req.user = { id: 10 };
+      getRoleIntegratedJobDescription.mockResolvedValue(mockResult);
+
+      await getRoleIntegratedJobDescriptionHandler(req, res);
+
+      expect(getRoleIntegratedJobDescription).toHaveBeenCalledWith('backend', 10);
+      expect(successResponse).toHaveBeenCalledWith(
+        res,
+        'Role-integrated job description retrieved successfully.',
+        {
+          integration: mockResult,
+          role: mockResult.role,
+          template: mockResult.template,
+          activeJobDescription: mockResult.activeJobDescription,
+          savedJobDescription: mockResult.savedJobDescription,
+        }
+      );
+    });
+
+    test('handles retrieval error and returns 500', async () => {
+      req.params = { roleId: 'backend' };
+      getRoleIntegratedJobDescription.mockRejectedValue(new Error('Retrieval error'));
+
+      await getRoleIntegratedJobDescriptionHandler(req, res);
+
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Retrieval error', 500);
+    });
+  });
+
+  // =========================================================================
+  // 9. updateSelectedRoleJobDescriptionHandler
+  // =========================================================================
+  describe('updateSelectedRoleJobDescriptionHandler', () => {
+    test('rejects request if roleId is missing or empty', async () => {
+      req.body = { roleId: '   ' };
+
+      await updateSelectedRoleJobDescriptionHandler(req, res);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Role identifier (roleId) is required to update job description.',
+        400
+      );
+      expect(updateSelectedRoleJobDescription).not.toHaveBeenCalled();
+    });
+
+    test('updates selected role job description successfully and returns 200', async () => {
+      const mockUpdated = {
+        roleId: 'frontend',
+        roleTitle: 'Frontend Developer',
+        category: 'engineering',
+        jobDescription: 'Updated frontend React specification',
+        savedAt: '2026-11-19T22:00:00.000Z',
+      };
+      req.body = {
+        roleId: 'frontend',
+        jobDescription: 'Updated frontend React specification',
+      };
+      req.user = { id: 5 };
+      updateSelectedRoleJobDescription.mockResolvedValue(mockUpdated);
+
+      await updateSelectedRoleJobDescriptionHandler(req, res);
+
+      expect(updateSelectedRoleJobDescription).toHaveBeenCalledWith(req.body, req.user);
+      expect(successResponse).toHaveBeenCalledWith(
+        res,
+        'Job description updated successfully for selected role.',
+        {
+          updatedRole: mockUpdated,
+          jobDescription: mockUpdated.jobDescription,
+        },
+        200
+      );
+    });
+
+    test('handles update error and returns error code', async () => {
+      req.body = { roleId: 'frontend', jobDescription: 'New JD' };
+      const err = new Error('Database write error');
+      err.statusCode = 503;
+      updateSelectedRoleJobDescription.mockRejectedValue(err);
+
+      await updateSelectedRoleJobDescriptionHandler(req, res);
+
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Database write error', 503);
     });
   });
 });
