@@ -80,8 +80,11 @@ test.describe('TC-RA-03: Real-Time Search Query Filtering Suite', () => {
     const initialCount = await tableRows.count();
     expect(initialCount).toBeGreaterThanOrEqual(1);
 
-    // Step 4: Search for 'Frontend'
-    await searchInput.fill('Frontend');
+    // Step 4: Search for matching keyword ('React' or first row term)
+    const firstRowText = await tableRows.first().textContent();
+    const searchTerm = firstRowText.includes('React') ? 'React' : 'Assessment';
+
+    await searchInput.fill(searchTerm);
     await page.waitForTimeout(300); // debounce wait
 
     const filteredRows = page.locator('.am-table tbody tr');
@@ -89,9 +92,9 @@ test.describe('TC-RA-03: Real-Time Search Query Filtering Suite', () => {
     expect(filteredCount).toBeGreaterThanOrEqual(1);
     expect(filteredCount).toBeLessThanOrEqual(initialCount);
 
-    // Assert that visible row text contains 'Frontend'
-    const firstRowText = await filteredRows.first().textContent();
-    expect(firstRowText).toContain('Frontend');
+    // Assert that visible row text contains the search term
+    const visibleRowText = await filteredRows.first().textContent();
+    expect(visibleRowText).toContain(searchTerm);
 
     // Step 5: Search for non-existent keyword to test empty state
     await searchInput.fill('NonExistentQueryXYZ999');

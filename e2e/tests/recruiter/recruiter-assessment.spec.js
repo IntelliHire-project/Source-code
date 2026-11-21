@@ -138,17 +138,17 @@ test.describe('Recruiter Assessment Module — End-to-End Test Suite', () => {
     await page.locator('.am-tab-btn').nth(1).click();
     await expect(page.locator('.am-search input')).toBeVisible();
 
-    // Type search query
-    await page.locator('.am-search input').fill('Frontend');
+    // Type search query 'React' (matching live assessment 'Senior Software Engineer — React Assessment')
+    await page.locator('.am-search input').fill('React');
     await page.waitForTimeout(300);
 
     const rows = page.locator('.am-table tbody tr');
     const count = await rows.count();
     expect(count).toBeGreaterThanOrEqual(1);
 
-    // Verify row content contains Frontend
+    // Verify row content contains React
     const firstRowText = await rows.first().textContent();
-    expect(firstRowText).toContain('Frontend');
+    expect(firstRowText).toContain('React');
   });
 
   // -------------------------------------------------------------------------
