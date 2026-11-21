@@ -31,8 +31,8 @@ const JOB_ROLES = [
 ];
 
 const STARTER_QUESTIONS = [
-  { id: 1, title: 'Describe the difference between server-side rendering and client-side rendering.', text: 'Describe the difference between server-side rendering and client-side rendering.', points: 10, type: 'Long Answer' },
-  { id: 2, title: 'Implement a function to reverse a linked list.', text: 'Write a production-ready solution and explain its time complexity.', points: 20, type: 'Coding' },
+  { id: 1, title: 'Describe the difference between server-side rendering and client-side rendering.', text: 'Describe the difference between server-side rendering and client-side rendering.', prompt: 'Describe the difference between server-side rendering and client-side rendering.', points: 10, type: 'Long Answer' },
+  { id: 2, title: 'Implement a function to reverse a linked list.', text: 'Write a production-ready solution and explain its time complexity.', prompt: 'Write a production-ready solution and explain its time complexity.', points: 20, type: 'Coding' },
 ];
 
 function CreateAssessmentPage() {
@@ -83,8 +83,35 @@ function CreateAssessmentPage() {
             }
 
             if (Array.isArray(a.questions) && a.questions.length > 0) {
-              setQuestions(a.questions);
-              setExpanded(a.questions[0].id);
+              const normalized = a.questions.map((q, idx) => {
+                const textVal = q.text || q.prompt || q.questionText || q.question || q.snippet || '';
+                const titleVal = q.title || (textVal ? (textVal.length > 55 ? textVal.substring(0, 55) + '...' : textVal) : `Question ${idx + 1}`);
+                const rawType = q.type || 'Long Answer';
+                const normType = (rawType === 'MCQ' || rawType === 'Multiple Choice' || rawType === 'mcq' || rawType === 'multi')
+                  ? 'Multiple Choice'
+                  : (rawType === 'Coding' || rawType === 'coding')
+                    ? 'Coding'
+                    : (rawType === 'Short Answer' || rawType === 'Open Ended')
+                      ? 'Short Answer'
+                      : 'Long Answer';
+
+                return {
+                  ...q,
+                  id: q.id != null ? q.id : (q.questionCode || `q-${idx + 1}-${Date.now()}`),
+                  title: titleVal,
+                  text: textVal || titleVal,
+                  prompt: textVal || titleVal,
+                  points: q.points != null ? Number(q.points) : 10,
+                  type: normType,
+                  options: Array.isArray(q.options) && q.options.length > 0
+                    ? q.options
+                    : (normType === 'Multiple Choice' ? ['Option A', 'Option B', 'Option C', 'Option D'] : []),
+                  correct: q.correct != null ? Number(q.correct) : 0,
+                  boilerplate: q.boilerplate || q.defaultCode || '',
+                };
+              });
+              setQuestions(normalized);
+              setExpanded(normalized[0]?.id);
             }
           }
         } catch (err) {
@@ -122,7 +149,73 @@ function CreateAssessmentPage() {
   };
 
   const updateQuestion = (id, key, value) => {
-    setQuestions(questions.map((q) => (q.id === id ? { ...q, [key]: value } : q)));
+    setQuestions((prevQuestions) =>
+      prevQuestions.map((q) => {
+        if (q.id === id) {
+          const updated = { ...q, [key]: value };
+          if (key === 'text') {
+            updated.prompt = value;
+            if (!q.title || q.title.startsWith('Question ') || q.title === q.text || q.title === q.prompt) {
+              updated.title = value.length > 55 ? value.substring(0, 55) + '...' : value;
+            }
+          } else if (key === 'prompt') {
+            updated.text = value;
+          } else if (key === 'type') {
+            if (value === 'Multiple Choice' && (!updated.options || updated.options.length === 0)) {
+              updated.options = ['Option A', 'Option B', 'Option C', 'Option D'];
+              updated.correct = 0;
+            }
+          }
+          return updated;
+        }
+        return q;
+      })
+    );
+  };
+
+  const updateOption = (questionId, optIndex, value) => {
+    setQuestions((prevQuestions) =>
+      prevQuestions.map((q) => {
+        if (q.id === questionId) {
+          const newOpts = [...(q.options || [])];
+          newOpts[optIndex] = value;
+          return { ...q, options: newOpts };
+        }
+        return q;
+      })
+    );
+  };
+
+  const addOption = (questionId) => {
+    setQuestions((prevQuestions) =>
+      prevQuestions.map((q) => {
+        if (q.id === questionId) {
+          const currentOpts = q.options || [];
+          const nextLetter = String.fromCharCode(65 + currentOpts.length);
+          return { ...q, options: [...currentOpts, `Option ${nextLetter}`] };
+        }
+        return q;
+      })
+    );
+  };
+
+  const removeOption = (questionId, optIndex) => {
+    setQuestions((prevQuestions) =>
+      prevQuestions.map((q) => {
+        if (q.id === questionId) {
+          const newOpts = (q.options || []).filter((_, idx) => idx !== optIndex);
+          const newCorrect = (q.correct || 0) >= newOpts.length ? Math.max(0, newOpts.length - 1) : (q.correct || 0);
+          return { ...q, options: newOpts, correct: newCorrect };
+        }
+        return q;
+      })
+    );
+  };
+
+  const setCorrectOption = (questionId, optIndex) => {
+    setQuestions((prevQuestions) =>
+      prevQuestions.map((q) => (q.id === questionId ? { ...q, correct: optIndex } : q))
+    );
   };
 
   const handleSave = async (targetStatus = 'Draft') => {
@@ -138,6 +231,27 @@ function CreateAssessmentPage() {
       setSubmitting(true);
       setError('');
 
+      const questionsToSave = questions.map((q, idx) => {
+        const textContent = (q.text || q.prompt || q.title || '').trim();
+        const rawType = q.type || 'Long Answer';
+        const titleContent = q.title && q.title.trim()
+          ? q.title.trim()
+          : (textContent ? (textContent.length > 55 ? textContent.substring(0, 55) + '...' : textContent) : `Question ${idx + 1}`);
+
+        return {
+          ...q,
+          id: q.id || `q-${idx + 1}`,
+          title: titleContent,
+          prompt: textContent || titleContent,
+          text: textContent || titleContent,
+          points: Number(q.points) || 10,
+          type: rawType,
+          options: rawType === 'Multiple Choice' || rawType === 'MCQ' ? (Array.isArray(q.options) ? q.options : []) : undefined,
+          correct: rawType === 'Multiple Choice' || rawType === 'MCQ' ? (q.correct != null ? Number(q.correct) : 0) : undefined,
+          boilerplate: rawType === 'Coding' ? (q.boilerplate || '') : undefined,
+        };
+      });
+
       const payload = {
         title: assessmentTitle,
         description: config.description,
@@ -146,7 +260,7 @@ function CreateAssessmentPage() {
         duration: Number(config.duration) || 60,
         difficulty: config.difficulty,
         status: targetStatus,
-        questions: questions,
+        questions: questionsToSave,
       };
 
       if (isEditing && assessmentId) {
@@ -350,31 +464,41 @@ function CreateAssessmentPage() {
                   Question Bank <small>{questions.length} Questions</small>
                 </h2>
                 <button
-                  onClick={() =>
+                  type="button"
+                  onClick={() => {
+                    const newId = Date.now();
                     setQuestions([
                       ...questions,
                       {
-                        id: Date.now(),
-                        title: 'New assessment question',
+                        id: newId,
+                        title: `Question ${questions.length + 1}`,
                         text: '',
+                        prompt: '',
                         points: 10,
-                        type: 'Multiple Choice',
+                        type: 'Long Answer',
+                        options: ['Option A', 'Option B', 'Option C', 'Option D'],
+                        correct: 0,
+                        boilerplate: '',
                       },
-                    ])
-                  }
+                    ]);
+                    setExpanded(newId);
+                  }}
                 >
                   <Plus size={16} /> Add Question
                 </button>
               </div>
-              {questions.map((question) => (
-                <article className="ca-question" key={question.id}>
+              {questions.map((question, idx) => (
+                <article className="ca-question" key={question.id || idx}>
                   <header
                     onClick={() =>
                       setExpanded(expanded === question.id ? null : question.id)
                     }
                   >
                     <span className="ca-q-icon">Q</span>
-                    <strong>{question.title}</strong>
+                    <strong>{question.title || question.text || question.prompt || `Question ${idx + 1}`}</strong>
+                    <span style={{ fontSize: '11px', color: '#ffd400', background: 'rgba(255, 212, 0, 0.1)', padding: '3px 8px', borderRadius: '4px', border: '1px solid rgba(255, 212, 0, 0.3)' }}>
+                      {question.type}
+                    </span>
                     <span>{question.points} Points</span>
                     {expanded === question.id ? (
                       <ChevronUp size={17} />
@@ -385,12 +509,24 @@ function CreateAssessmentPage() {
                   {expanded === question.id && (
                     <div className="ca-question-body">
                       <label>
-                        Question Text
+                        Question Title / Summary
+                        <input
+                          type="text"
+                          value={question.title || ''}
+                          onChange={(e) =>
+                            updateQuestion(question.id, 'title', e.target.value)
+                          }
+                          placeholder="Short question title or headline..."
+                        />
+                      </label>
+                      <label>
+                        Question Text / Prompt *
                         <textarea
-                          value={question.text}
+                          value={question.text || question.prompt || ''}
                           onChange={(e) =>
                             updateQuestion(question.id, 'text', e.target.value)
                           }
+                          placeholder="Type question prompt, instructions, or problem statement..."
                         />
                       </label>
                       <div className="qb-form-grid">
@@ -398,6 +534,7 @@ function CreateAssessmentPage() {
                           Points Value
                           <input
                             type="number"
+                            min="1"
                             value={question.points}
                             onChange={(e) =>
                               updateQuestion(question.id, 'points', e.target.value)
@@ -412,13 +549,130 @@ function CreateAssessmentPage() {
                               updateQuestion(question.id, 'type', e.target.value)
                             }
                           >
-                            <option>Long Answer</option>
-                            <option>Multiple Choice</option>
-                            <option>Coding</option>
+                            <option value="Long Answer">Long Answer</option>
+                            <option value="Short Answer">Short Answer</option>
+                            <option value="Multiple Choice">Multiple Choice</option>
+                            <option value="Coding">Coding</option>
                           </select>
                         </label>
                       </div>
+
+                      {/* Multiple Choice Options Editor */}
+                      {(question.type === 'Multiple Choice' || question.type === 'MCQ') && (
+                        <div style={{ marginTop: '16px', marginBottom: '20px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#ffd400', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              Multiple Choice Options (Select Correct Answer):
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => addOption(question.id)}
+                              style={{
+                                background: 'rgba(255, 212, 0, 0.1)',
+                                border: '1px solid #ffd400',
+                                color: '#ffd400',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontWeight: 600
+                              }}
+                            >
+                              <Plus size={13} /> Add Option
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {(question.options || []).map((opt, optIdx) => {
+                              const isCorrect = Number(question.correct) === optIdx;
+                              return (
+                                <div
+                                  key={optIdx}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    background: isCorrect ? 'rgba(255, 212, 0, 0.1)' : '#1f2024',
+                                    border: isCorrect ? '1px solid #ffd400' : '1px solid #4a4b53',
+                                    borderRadius: '6px',
+                                    padding: '8px 12px'
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`correct-${question.id}`}
+                                    checked={isCorrect}
+                                    onChange={() => setCorrectOption(question.id, optIdx)}
+                                    title="Click to mark as correct answer"
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#ffd400' }}
+                                  />
+                                  <span style={{ fontWeight: 700, color: isCorrect ? '#ffd400' : '#aaa', minWidth: '22px', fontSize: '13px' }}>
+                                    {String.fromCharCode(65 + optIdx)}.
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={opt}
+                                    onChange={(e) => updateOption(question.id, optIdx, e.target.value)}
+                                    placeholder={`Option ${String.fromCharCode(65 + optIdx)} text...`}
+                                    style={{
+                                      flex: 1,
+                                      border: 'none',
+                                      background: 'transparent',
+                                      color: '#eee',
+                                      outline: 'none',
+                                      fontSize: '14px',
+                                      height: 'auto',
+                                      padding: '2px 0'
+                                    }}
+                                  />
+                                  {isCorrect && (
+                                    <span style={{ fontSize: '11px', color: '#ffd400', fontWeight: 700, padding: '2px 6px', background: 'rgba(255, 212, 0, 0.15)', borderRadius: '4px' }}>
+                                      ✓ Correct
+                                    </span>
+                                  )}
+                                  {(question.options || []).length > 2 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeOption(question.id, optIdx)}
+                                      style={{ background: 'transparent', border: 'none', color: '#e33142', cursor: 'pointer', padding: '4px' }}
+                                      title="Remove option"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Coding Boilerplate Editor */}
+                      {question.type === 'Coding' && (
+                        <div style={{ marginTop: '16px', marginBottom: '20px' }}>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#ffd400', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Candidate Starter Code Boilerplate
+                          </label>
+                          <textarea
+                            value={question.boilerplate || ''}
+                            onChange={(e) => updateQuestion(question.id, 'boilerplate', e.target.value)}
+                            placeholder="// Starter code boilerplate for candidate solution...\nfunction solution(input) {\n  // Your code here\n}"
+                            style={{
+                              fontFamily: 'Consolas, monospace',
+                              fontSize: '13px',
+                              minHeight: '110px',
+                              background: '#18191d',
+                              border: '1px solid #4a4b53',
+                              color: '#a7f3d0'
+                            }}
+                          />
+                        </div>
+                      )}
+
                       <button
+                        type="button"
                         className="ca-remove"
                         onClick={() =>
                           setQuestions(questions.filter((q) => q.id !== question.id))
