@@ -74,6 +74,31 @@ describe('CV insights', () => {
     log.mockRestore();
   });
 
+  test('keeps long replies visible while limiting the history sent with the next question', async () => {
+    getCandidateCVs.mockResolvedValue({ cvs: [{ id: 5, cv_name: 'Resume.pdf', is_active: true }] });
+    getCVInsightsApi.mockResolvedValue({ insights: { strengths: [], weaknesses: [], suggestions: [], presentKeywords: [], missingKeywords: [] } });
+    const longReply = 'a'.repeat(2001);
+    chatWithCVApi.mockResolvedValueOnce({ reply: longReply }).mockResolvedValueOnce({ reply: 'Follow-up response' });
+    renderPage();
+    await screen.findByText('Resume.pdf');
+    const input = screen.getByPlaceholderText('Ask about your CV...');
+    fireEvent.change(input, { target: { value: 'Review my CV' } });
+    fireEvent.click(screen.getByLabelText('Send message'));
+    await screen.findByText(longReply);
+
+    fireEvent.change(input, { target: { value: 'What should I improve first?' } });
+    fireEvent.click(screen.getByLabelText('Send message'));
+    await screen.findByText('Follow-up response');
+
+    const history = chatWithCVApi.mock.calls[1][2];
+    expect(history[history.length - 1]).toEqual({
+      role: 'ai',
+      text: `${'a'.repeat(1988)}\n[truncated]`,
+    });
+    expect(history.every(({ text }) => text.length <= 2000)).toBe(true);
+    expect(screen.getByText(longReply)).toBeTruthy();
+  });
+
   test('clears chat and ignores late replies when switching CVs', async () => {
     getCandidateCVs.mockResolvedValue({ cvs: [
       { id: 5, cv_name: 'First.pdf', is_active: true },

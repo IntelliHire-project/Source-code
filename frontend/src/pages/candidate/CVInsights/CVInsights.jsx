@@ -482,7 +482,13 @@ function CVInsights() {
     setFeedback(null);
 
     try {
-      const res = await chatWithCVApi(selectedCv.id, text, chatMessages.slice(-6));
+      const history = chatMessages.slice(-6).map(({ role, text: messageText }) => ({
+        role,
+        text: messageText.length > 2000
+          ? `${messageText.slice(0, 1988)}\n[truncated]`
+          : messageText,
+      }));
+      const res = await chatWithCVApi(selectedCv.id, text, history);
       if (requestId !== chatRequestRef.current) return;
       const reply = res?.reply || res?.data?.reply;
       if (typeof reply !== 'string' || !reply.trim()) {
