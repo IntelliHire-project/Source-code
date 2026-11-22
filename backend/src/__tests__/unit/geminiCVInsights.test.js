@@ -58,6 +58,7 @@ describe("generateCVInsights", () => {
     const prompt = mockGenerateContent.mock.calls[0][0].contents;
     expect(prompt).toContain(JSON.stringify(chatInput));
     expect(prompt).toContain("Do not invent");
+    expect(prompt).toContain("Do not analyze the entire CV unless asked.");
   });
 
   test("chat fails rather than producing a generic reply without an AI service", async () => {
@@ -69,5 +70,50 @@ describe("generateCVInsights", () => {
     process.env.GEMINI_API_KEY = "test-key";
     mockGenerateContent.mockResolvedValueOnce({ text: "" });
     await expect(chatWithCVAssistant(input)).rejects.toMatchObject({ status: 502 });
+  });
+
+  test.each([
+    ["insights", generateCVInsights],
+    ["chat", chatWithCVAssistant],
+  ])("%s reports Gemini authentication failures as service errors, not session errors", async (_, generate) => {
+    process.env.GEMINI_API_KEY = "test-key";
+    mockGenerateContent.mockRejectedValue(Object.assign(new Error("Provider authentication failed"), { status: 401 }));
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(generate(input)).rejects.toMatchObject({
+        status: 503,
+        message: "The AI service is unavailable. Please try again later.",
+      });
+    } finally {
+      warn.mockRestore();
+      mockGenerateContent.mockReset();
+    }
+  });
+
+  test("logs a safe category for a leaked Gemini key without logging the provider error", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    mockGenerateContent.mockRejectedValue(Object.assign(new Error("Your API key was reported as leaked. private-detail"), { status: 403 }));
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(chatWithCVAssistant(input)).rejects.toMatchObject({ status: 503 });
+      expect(warn).toHaveBeenCalledWith("Gemini model request failed (status 403): key reported leaked.");
+      expect(JSON.stringify(warn.mock.calls)).not.toContain("private-detail");
+    } finally {
+      warn.mockRestore();
+      mockGenerateContent.mockReset();
+    }
+  });
+
+  test("distinguishes free tier verification from billing", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+    mockGenerateContent.mockRejectedValue(Object.assign(new Error("FREE_TIER_VERIFICATION_REQUIRED: verify the project or set up billing"), { status: 403 }));
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(chatWithCVAssistant(input)).rejects.toMatchObject({ status: 503 });
+      expect(warn).toHaveBeenCalledWith("Gemini model request failed (status 403): verification required.");
+    } finally {
+      warn.mockRestore();
+      mockGenerateContent.mockReset();
+    }
   });
 });
