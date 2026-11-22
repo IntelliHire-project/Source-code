@@ -11,19 +11,25 @@ const {
   getCurrentUser,
   logout,
   changePassword,
+} = require("../controllers/authController");
+
+const {
   getCandidateCVs,
   uploadCandidateCV,
   replaceCandidateCV,
   setActiveCandidateCV,
   downloadCandidateCV,
   deleteCandidateCV,
+} = require("../controllers/cvController");
+
+const {
   getCVInsights,
   chatWithCV,
-} = require("../controllers/authController");
+} = require("../controllers/cvInsightsController");
 
 const router = express.Router();
 
-// Authentication and registration
+// Authentication & account management
 router.post("/create-account", uploadCv, createAccount);
 router.post("/login", login);
 router.get("/verify-email", verifyEmail);
@@ -33,14 +39,16 @@ router.get("/me", authMiddleware, getCurrentUser);
 router.post("/logout", authMiddleware, logout);
 router.post("/change-password", authMiddleware, changePassword);
 
-// Candidate CV management routes
+// Candidate CV management routes (delegated to cvController)
 router.get("/candidate/cvs", authMiddleware, getCandidateCVs);
 router.post("/candidate/cvs", authMiddleware, uploadCv, uploadCandidateCV);
 router.get("/candidate/cvs/:id/download", authMiddleware, downloadCandidateCV);
-router.get("/candidate/cvs/:id/insights", authMiddleware, getCVInsights);
-router.post("/candidate/cvs/:id/chat", authMiddleware, chatWithCV);
 router.put("/candidate/cvs/:id", authMiddleware, uploadCv, replaceCandidateCV);
 router.put("/candidate/cvs/:id/active", authMiddleware, setActiveCandidateCV);
 router.delete("/candidate/cvs/:id", authMiddleware, deleteCandidateCV);
+
+// CV Insights & Chat (delegated to cvInsightsController)
+router.get("/candidate/cvs/:id/insights", authMiddleware, getCVInsights);
+router.post("/candidate/cvs/:id/chat", authMiddleware, chatWithCV);
 
 module.exports = router;

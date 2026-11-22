@@ -35,6 +35,13 @@ import AdminToast from '../../../components/common/AdminToast';
 import { INTERVIEWS } from '../../../data/interviews';
 import { VACANCIES } from '../../../data/vacancies';
 import { getRescheduleRequests, getEndTime } from '../../../services/interviewService';
+import {
+  fetchInterviewSlots,
+  fetchAllocations,
+  allocateCandidate,
+  deleteAllocation,
+  resetAllocations,
+} from '../../../api/interviewApi';
 import '../../../style.css';
 import './CandidateInterviewAllocation.css';
 
@@ -430,6 +437,65 @@ export default function CandidateInterviewAllocationPage({ embeddedVacancy = nul
     } catch {}
     return INITIAL_ALLOCATIONS;
   });
+
+  // Live load allocations & slots from backend PostgreSQL API on mount
+  useEffect(() => {
+    fetchAllocations()
+      .then((res) => {
+        if (res && res.allocations && Array.isArray(res.allocations) && res.allocations.length > 0) {
+          setAllocations(res.allocations);
+          try {
+            localStorage.setItem('intellihire_allocations', JSON.stringify(res.allocations));
+          } catch (e) {}
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend fetchAllocations fallback:', err.message);
+      });
+
+    fetchInterviewSlots()
+      .then((res) => {
+        if (res && res.slots && Array.isArray(res.slots) && res.slots.length > 0) {
+          const mapped = res.slots.map((s) => {
+            const dObj = new Date(s.interviewDate || s.rawDate);
+            const shortDate = isNaN(dObj.getTime())
+              ? (s.interviewDate || '30 Oct').substring(0, 6)
+              : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            const displayTime = formatDisplayTime(s.startTime);
+            const displayEnd = formatDisplayTime(s.endTime || getEndTime(s.startTime));
+            return {
+              id: `SLOT-${s.id}`,
+              rawSlotId: s.id,
+              dateKey: s.interviewDate,
+              date: s.displayDate || s.interviewDate,
+              dateShort: shortDate,
+              time: displayTime,
+              end: displayEnd,
+              startTime: displayTime,
+              endTime: displayEnd,
+              type: s.interviewType || 'Online',
+              cap: s.capacity || 1,
+              capacity: s.capacity || 1,
+              rem: s.candidate ? 0 : (s.capacity || 1),
+              jobPosition: s.jobPosition,
+              round: s.round,
+              status: s.status,
+              panelName: s.panelName || 'Panel A (Technical Leads)',
+              assignedCandidate: s.candidate || null,
+              isCustom: true,
+            };
+          });
+          setCustomSlots((prev) => {
+            const map = new Map();
+            [...prev, ...mapped].forEach((s) => map.set(s.id, s));
+            return Array.from(map.values());
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend fetchInterviewSlots fallback:', err.message);
+      });
+  }, []);
 
   // Live listener to sync custom slots from other components / tabs
   useEffect(() => {
@@ -889,6 +955,18 @@ function isOutdatedPastDate(dateVal) {
       localStorage.setItem('intellihire_candidates', JSON.stringify(nextCandidates));
     } catch {}
 
+    // Persist to backend PostgreSQL API
+    const rawSlotId = String(slotToAssign.rawSlotId || slotToAssign.id).replace('SLOT-', '');
+    candidatesToMove.forEach((candidate) => {
+      allocateCandidate(rawSlotId, {
+        id: candidate.id,
+        name: candidate.name,
+        email: candidate.email || `${(candidate.name || 'candidate').toLowerCase().replace(/\s+/g, '.')}@example.com`,
+        score: candidate.score,
+        avatar: candidate.avatar,
+      }).catch((err) => console.error('Error allocating candidate to PostgreSQL:', err));
+    });
+
     // 4. Update component state with precomputed arrays
     setAllocations(nextAllocations);
     setCandidates(nextCandidates);
@@ -985,6 +1063,12 @@ function isOutdatedPastDate(dateVal) {
     setAllocations(nextAllocations);
     setCandidates(nextCandidates);
 
+    // Persist removal to backend PostgreSQL API
+    const targetIdentifier = candidateId || candidateName;
+    if (targetIdentifier) {
+      deleteAllocation(targetIdentifier).catch((err) => console.warn('Backend deleteAllocation fallback:', err));
+    }
+
     window.dispatchEvent(
       new CustomEvent('intellihire_slots_updated', {
         detail: { source: 'CandidateInterviewAllocation' },
@@ -1037,6 +1121,21 @@ function isOutdatedPastDate(dateVal) {
       localStorage.setItem('intellihire_candidates', JSON.stringify(nextCandidates));
     } catch {}
 
+    // Persist auto-allocations to backend PostgreSQL API
+    eligibleCandidates.forEach((cand) => {
+      const targetSlot = availableSlots.find((s) => s.rem > 0);
+      if (targetSlot) {
+        const rawSlotId = String(targetSlot.rawSlotId || targetSlot.id).replace('SLOT-', '');
+        allocateCandidate(rawSlotId, {
+          id: cand.id,
+          name: cand.name,
+          email: cand.email || `${(cand.name || 'candidate').toLowerCase().replace(/\s+/g, '.')}@example.com`,
+          score: cand.score,
+          avatar: cand.avatar,
+        }).catch((err) => console.error('Error saving auto-allocation to PostgreSQL:', err));
+      }
+    });
+
     setAllocations(newAllocations);
     setCandidates(nextCandidates);
 
@@ -1057,6 +1156,9 @@ function isOutdatedPastDate(dateVal) {
     try {
       localStorage.setItem('intellihire_allocations', JSON.stringify([]));
     } catch (e) {}
+
+    // Reset all allocations in backend PostgreSQL API
+    resetAllocations().catch((err) => console.warn('Backend resetAllocations fallback:', err));
 
     // 2. Mark ALL 9 candidates as SHORTLISTED (0 allocated, 9 shortlisted)
     const allShortlistedCandidates = INITIAL_CANDIDATES.map((c) => ({
@@ -1598,7 +1700,24 @@ function isOutdatedPastDate(dateVal) {
                         </div>
                       </td>
                       <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.interviewDate}</td>
-                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>{item.interviewType}</td>
+                      <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: item.interviewType === 'Physical' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                            color: item.interviewType === 'Physical' ? '#C084FC' : '#60A5FA',
+                            border: `1px solid ${item.interviewType === 'Physical' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
+                          }}
+                        >
+                          {item.interviewType === 'Physical' ? '🏢 Physical' : '🌐 Online'}
+                        </span>
+                      </td>
                       <td style={{ whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                         <span
                           className={`status-result-badge ${
@@ -1698,7 +1817,7 @@ function isOutdatedPastDate(dateVal) {
                     <div><dt>Panel</dt><dd>{formatPanelDisplayName(item.panelName || 'Panel A')}</dd></div>
                     <div><dt>Date</dt><dd>{item.interviewDate}</dd></div>
                     <div><dt>Time</dt><dd>{item.assignedTime}</dd></div>
-                    <div><dt>Type</dt><dd>{item.interviewType}</dd></div>
+                    <div><dt>Type</dt><dd>{item.interviewType === 'Physical' ? '🏢 Physical' : '🌐 Online'}</dd></div>
                   </dl>
                   {item.status === 'ALLOCATED' && (
                     <div className="result-row-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>

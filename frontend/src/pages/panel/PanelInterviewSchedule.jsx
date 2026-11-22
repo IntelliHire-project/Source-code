@@ -25,6 +25,7 @@ import {
   ClipboardCheck,
   Lock,
   Building2,
+  UserPlus,
 } from 'lucide-react';
 import {
   getInterviewSlots,
@@ -33,10 +34,123 @@ import {
   submitRescheduleRequest,
   generateGoogleCalendarLink,
   isPastOrToday,
+  splitTimeRange,
+  cleanSingleTime,
+  getEndTime,
 } from '../../services/interviewService';
+import { fetchInterviewSlots, submitEvaluationApi } from '../../api/interviewApi';
 import TopBar from '../../components/TopBar/TopBar';
 import RecruiterSidebar from '../../components/common/RecruiterSidebar';
 import './PanelInterviewSchedule.css';
+
+// Helper: Format slot timing cleanly without duplicating end time
+export const formatTimingDisplay = (startTime, endTime) => {
+  if (!startTime) return '—';
+  const startRaw = String(startTime).trim();
+  const sParts = startRaw.split(/\s*(?:[\u2013\u2014–—-]|to)\s*/i).filter(Boolean);
+
+  // If startTime itself is already a range (e.g. "11:00 AM – 12:00 PM" or "11:00 AM – 12:00 PM – 12:00 PM")
+  if (sParts.length >= 2) {
+    const s = cleanSingleTime(sParts[0]);
+    const e = cleanSingleTime(sParts[sParts.length - 1]);
+    return s && e && s !== e ? `${s} – ${e}` : s;
+  }
+
+  const s = cleanSingleTime(sParts[0] || startRaw);
+  let e = '';
+  if (endTime) {
+    const eParts = String(endTime).split(/\s*(?:[\u2013\u2014–—-]|to)\s*/i).filter(Boolean);
+    e = cleanSingleTime(eParts[eParts.length - 1] || endTime);
+  } else {
+    e = getEndTime(s);
+  }
+
+  if (e && e.toLowerCase() !== s.toLowerCase()) {
+    return `${s} – ${e}`;
+  }
+  return s;
+};
+
+// Convert 12h or 24h string to HH:mm for <input type="time">
+export const toTimeInputValue = (timeValue) => {
+  if (!timeValue) return '10:00';
+  const clean = String(timeValue).trim();
+  if (/^\d{2}:\d{2}$/.test(clean)) return clean;
+  if (/^\d{1}:\d{2}$/.test(clean)) return `0${clean}`;
+  const match = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!match) return '10:00';
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const period = match[3] ? match[3].toUpperCase() : '';
+  if (period === 'PM' && hours < 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+};
+
+// Convert HH:mm (24h) to 'hh:mm AM/PM'
+export const to12HourTime = (timeValue) => {
+  if (!timeValue) return '10:00 AM';
+  const clean = String(timeValue).trim();
+  if (clean.includes('AM') || clean.includes('PM')) {
+    const m = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (m) {
+      return `${String(parseInt(m[1], 10)).padStart(2, '0')}:${m[2]} ${m[3].toUpperCase()}`;
+    }
+    return clean;
+  }
+  const match = clean.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return clean;
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const period = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${String(hours).padStart(2, '0')}:${minutes} ${period}`;
+};
+
+// Calculate end time based on start time + minutes
+export const calculateEndTime = (start24or12, durationMinutes = 60) => {
+  const start24 = toTimeInputValue(start24or12);
+  const [h, m] = start24.split(':').map(Number);
+  const totalMins = (isNaN(h) ? 10 : h) * 60 + (isNaN(m) ? 0 : m) + Number(durationMinutes);
+  const endH = Math.floor(totalMins / 60) % 24;
+  const endM = totalMins % 60;
+  const end24 = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+  return {
+    time24: end24,
+    time12: to12HourTime(end24),
+  };
+};
+
+// Calculate duration in minutes between start and end
+export const getDurationMinutes = (startTime, endTime) => {
+  try {
+    const s24 = toTimeInputValue(startTime);
+    const e24 = toTimeInputValue(endTime);
+    const [sh, sm] = s24.split(':').map(Number);
+    const [eh, em] = e24.split(':').map(Number);
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff <= 0) diff += 24 * 60;
+    return diff || 60;
+  } catch {
+    return 60;
+  }
+};
+
+// Format duration into readable string (e.g. "1 hr", "45 mins", "1 hr 30 mins")
+export const formatDurationDisplay = (minutes) => {
+  if (!minutes || minutes <= 0) return '1 hr';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0 && m > 0) return `${h} hr ${m} min`;
+  if (h > 0) return `${h} hr`;
+  return `${m} mins`;
+};
+
+const DURATION_PRESETS = [
+  { label: '30 mins', mins: 30 },
+  { label: '45 mins', mins: 45 },
+  { label: '1 hour (Standard)', mins: 60 },
+];
 
 const RESCHEDULE_REASONS = [
   'Schedule Conflict / Prior Meeting',
@@ -102,8 +216,18 @@ export default function PanelInterviewSchedule() {
   }, []);
 
   const refreshSlots = () => {
-    const allSlots = getInterviewSlots();
-    setSlots(allSlots);
+    fetchInterviewSlots()
+      .then((res) => {
+        if (res && res.slots && Array.isArray(res.slots) && res.slots.length > 0) {
+          setSlots(res.slots);
+          saveInterviewSlots(res.slots);
+        } else {
+          setSlots(getInterviewSlots());
+        }
+      })
+      .catch(() => {
+        setSlots(getInterviewSlots());
+      });
   };
 
   const isAllView = selectedPanelistId === 'ALL';
@@ -125,13 +249,31 @@ export default function PanelInterviewSchedule() {
   const panelistSlots = useMemo(() => {
     if (isAllView) return slots;
     if (!currentPanelist) return [];
-    return slots.filter((slot) => slot.panelMember?.id === currentPanelist.id || slot.panelMember?.email === currentPanelist.email);
+    const pId = String(currentPanelist.id || '').toLowerCase();
+    const pEmail = String(currentPanelist.email || '').toLowerCase();
+    const pName = String(currentPanelist.name || '').toLowerCase();
+
+    return slots.filter((slot) => {
+      const slotMemberId = String(slot.panelMember?.id || '').toLowerCase();
+      const slotMemberEmail = String(slot.panelMember?.email || slot.panelEmails || '').toLowerCase();
+      const slotMemberName = String(slot.panelMember?.name || slot.panelName || '').toLowerCase();
+
+      return (
+        (pId && slotMemberId === pId) ||
+        (pEmail && slotMemberEmail.includes(pEmail)) ||
+        (pName && (slotMemberName.includes(pName) || pName.includes(slotMemberName))) ||
+        (pName.includes('saman') && slotMemberName.includes('technical')) ||
+        (pName.includes('nirosha') && slotMemberName.includes('hr')) ||
+        (pName.includes('dilhani') && (slotMemberName.includes('design') || slotMemberName.includes('product'))) ||
+        (pName.includes('ruwan') && (slotMemberName.includes('architect') || slotMemberName.includes('backend')))
+      );
+    });
   }, [slots, currentPanelist, isAllView]);
 
   // Sub-filter tabs
   const filteredSlots = useMemo(() => {
     if (activeFilter === 'UPCOMING') {
-      return panelistSlots.filter((s) => s.status === 'SCHEDULED' || s.status === 'RESCHEDULED');
+      return panelistSlots.filter((s) => (s.status === 'SCHEDULED' || s.status === 'RESCHEDULED') && s.candidate);
     }
     if (activeFilter === 'COMPLETED') {
       return panelistSlots.filter((s) => s.status === 'COMPLETED');
@@ -139,16 +281,20 @@ export default function PanelInterviewSchedule() {
     if (activeFilter === 'PENDING_RESCHEDULE') {
       return panelistSlots.filter((s) => s.status === 'RESCHEDULE_REQUESTED');
     }
+    if (activeFilter === 'AVAILABLE') {
+      return panelistSlots.filter((s) => s.status === 'AVAILABLE' || !s.candidate);
+    }
     return panelistSlots;
   }, [panelistSlots, activeFilter]);
 
   // Statistics
   const stats = useMemo(() => {
     const total = panelistSlots.length;
-    const upcoming = panelistSlots.filter((s) => s.status === 'SCHEDULED' || s.status === 'RESCHEDULED').length;
+    const upcoming = panelistSlots.filter((s) => (s.status === 'SCHEDULED' || s.status === 'RESCHEDULED') && s.candidate).length;
     const completed = panelistSlots.filter((s) => s.status === 'COMPLETED').length;
     const pendingReschedules = panelistSlots.filter((s) => s.status === 'RESCHEDULE_REQUESTED').length;
-    return { total, upcoming, completed, pendingReschedules };
+    const openSlots = panelistSlots.filter((s) => s.status === 'AVAILABLE' || !s.candidate).length;
+    return { total, upcoming, completed, pendingReschedules, openSlots };
   }, [panelistSlots]);
 
   const showToast = (msg) => {
@@ -164,17 +310,21 @@ export default function PanelInterviewSchedule() {
     setRescheduleReasonCategory(RESCHEDULE_REASONS[0]);
     setDetailedNotes('');
     
-    // Default proposed slot is 1 or 2 days later
+    // Default proposed slot is 2 days later
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 2);
     const dateStr = defaultDate.toISOString().split('T')[0];
+
+    const cleanStart = slot.startTime ? cleanSingleTime(splitTimeRange(slot.startTime).startTime) : '10:00 AM';
+    // Strictly enforce standard 1-hour session (60 minutes) instead of 2 hours
+    const { time12: cleanEnd } = calculateEndTime(cleanStart, 60);
 
     setProposedSlots([
       {
         id: 1,
         date: dateStr,
-        startTime: slot.startTime || '10:00 AM',
-        endTime: slot.endTime || '11:00 AM',
+        startTime: to12HourTime(cleanStart),
+        endTime: to12HourTime(cleanEnd),
       },
     ]);
     setModalOpen(true);
@@ -188,13 +338,17 @@ export default function PanelInterviewSchedule() {
     }
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + proposedSlots.length + 2);
+    const dateStr = defaultDate.toISOString().split('T')[0];
+    const defaultStart = proposedSlots.length === 1 ? '02:00 PM' : '04:00 PM';
+    const defaultEnd = proposedSlots.length === 1 ? '03:00 PM' : '05:00 PM';
+
     setProposedSlots([
       ...proposedSlots,
       {
         id: Date.now(),
-        date: defaultDate.toISOString().split('T')[0],
-        startTime: '02:00 PM',
-        endTime: '03:00 PM',
+        date: dateStr,
+        startTime: defaultStart,
+        endTime: defaultEnd,
       },
     ]);
   };
@@ -205,10 +359,50 @@ export default function PanelInterviewSchedule() {
     setProposedSlots(proposedSlots.filter((s) => s.id !== id));
   };
 
-  // Update proposed slot fields
+  // Update proposed slot fields (date, etc.)
   const handleUpdateProposedSlot = (id, field, value) => {
     setProposedSlots(
       proposedSlots.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
+  };
+
+  // Handle start/end time change from <input type="time">
+  const handleSlotTimeChange = (id, field, value24) => {
+    if (!value24) return;
+    setProposedSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        if (field === 'startTime') {
+          const newStart12 = to12HourTime(value24);
+          // Always calculate standard 60 minutes (1 hour) end time
+          const { time12: newEnd12 } = calculateEndTime(value24, 60);
+          return {
+            ...s,
+            startTime: newStart12,
+            endTime: newEnd12,
+          };
+        } else if (field === 'endTime') {
+          return {
+            ...s,
+            endTime: to12HourTime(value24),
+          };
+        }
+        return s;
+      })
+    );
+  };
+
+  // Quick duration preset click
+  const handleSetDuration = (id, durationMins) => {
+    setProposedSlots((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const { time12: newEnd12 } = calculateEndTime(s.startTime, durationMins);
+        return {
+          ...s,
+          endTime: newEnd12,
+        };
+      })
     );
   };
 
@@ -221,17 +415,19 @@ export default function PanelInterviewSchedule() {
 
     const formattedProposed = proposedSlots.map((s, idx) => {
       const dateObj = new Date(s.date);
-      const displayDate = dateObj.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
+      const displayDate = isNaN(dateObj.getTime())
+        ? s.date
+        : dateObj.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          });
       return {
         id: `prop-${idx + 1}-${Date.now()}`,
         date: s.date,
         displayDate,
-        startTime: s.startTime,
-        endTime: s.endTime,
+        startTime: to12HourTime(s.startTime),
+        endTime: to12HourTime(s.endTime),
       };
     });
 
@@ -244,7 +440,7 @@ export default function PanelInterviewSchedule() {
       round: selectedSlotForReschedule.round,
       currentDate: selectedSlotForReschedule.interviewDate,
       currentDisplayDate: selectedSlotForReschedule.displayDate || selectedSlotForReschedule.interviewDate,
-      currentTime: `${selectedSlotForReschedule.startTime} - ${selectedSlotForReschedule.endTime}`,
+      currentTime: formatTimingDisplay(selectedSlotForReschedule.startTime, selectedSlotForReschedule.endTime),
       reasonCategory: rescheduleReasonCategory,
       detailedReason: detailedNotes,
       proposedSlots: formattedProposed,
@@ -310,6 +506,21 @@ export default function PanelInterviewSchedule() {
 
     setSlots(updatedSlots);
     saveInterviewSlots(updatedSlots);
+
+    // Persist evaluation to backend PostgreSQL API
+    const rawSlotId = String(evalSlot.id).replace('SLOT-', '');
+    submitEvaluationApi({
+      slotId: rawSlotId,
+      candidateId: evalSlot.candidate?.id || null,
+      candidateName: evalSlot.candidate?.name || 'Candidate',
+      candidateEmail: evalSlot.candidate?.email || '',
+      score: evalScore,
+      strengths: evalStrengths,
+      improvements: evalImprovements,
+      recommendation: evalRecommendation,
+      evaluatedBy: currentPanelist?.name || 'Panel Member',
+    }).catch((err) => console.error('Error submitting evaluation to backend PostgreSQL:', err));
+
     setEvalModalOpen(false);
     showToast(`Evaluation recorded successfully for ${evalSlot.candidate?.name}!`);
   };
@@ -504,6 +715,12 @@ export default function PanelInterviewSchedule() {
             >
               Reschedule Requested <span className="tab-badge">{stats.pendingReschedules}</span>
             </button>
+            <button
+              className={`panel-tab-btn ${activeFilter === 'AVAILABLE' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('AVAILABLE')}
+            >
+              Open Slots <span className="tab-badge">{stats.openSlots}</span>
+            </button>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -565,10 +782,11 @@ export default function PanelInterviewSchedule() {
             {filteredSlots.map((slot) => {
               const isPendingReschedule = slot.status === 'RESCHEDULE_REQUESTED';
               const isRescheduled = slot.status === 'RESCHEDULED';
+              const isAvailable = slot.status === 'AVAILABLE' || !slot.candidate;
 
               const gcalUrl = generateGoogleCalendarLink({
-                title: `${slot.jobPosition} - ${slot.round} Interview (${slot.candidate?.name})`,
-                description: `Candidate: ${slot.candidate?.name}\nEmail: ${slot.candidate?.email}\nRound: ${slot.round}\nNotes: ${slot.additionalNotes || 'N/A'}`,
+                title: `${slot.jobPosition} - ${slot.round} Interview (${slot.candidate?.name || 'Open Slot'})`,
+                description: `Candidate: ${slot.candidate?.name || 'Awaiting candidate allocation'}\nRound: ${slot.round}\nNotes: ${slot.additionalNotes || 'N/A'}`,
                 date: slot.interviewDate,
                 startTime: slot.startTime,
                 endTime: slot.endTime,
@@ -579,6 +797,8 @@ export default function PanelInterviewSchedule() {
                 ? 'status-completed'
                 : isPendingReschedule
                 ? 'status-reschedule-requested'
+                : isAvailable
+                ? 'status-available'
                 : 'status-scheduled';
 
               return (
@@ -588,24 +808,32 @@ export default function PanelInterviewSchedule() {
                 >
                   {/* Left: Candidate & Position */}
                   <div className="card-left">
-                    <div className="candidate-avatar-wrap">
-                      <img
-                        src={slot.candidate?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                        alt={slot.candidate?.name}
-                        className="candidate-avatar"
-                      />
-                      {slot.candidate?.matchScore && (
-                        <div className="match-badge">{slot.candidate.matchScore}%</div>
-                      )}
-                    </div>
+                    {isAvailable ? (
+                      <div className="candidate-avatar-wrap">
+                        <div className="open-slot-avatar">
+                          <UserPlus size={22} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="candidate-avatar-wrap">
+                        <img
+                          src={slot.candidate?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                          alt={slot.candidate?.name || 'Candidate'}
+                          className="candidate-avatar"
+                        />
+                        {slot.candidate?.matchScore && (
+                          <div className="match-badge">{slot.candidate.matchScore}%</div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="candidate-info">
                       <div className="role-tag-row">
                         <span className="role-badge">{slot.jobPosition}</span>
                         <span className="round-badge">{slot.round}</span>
-                        {isAllView && slot.panelMember && (
+                        {isAllView && (slot.panelMember?.name || slot.panelName) && (
                           <span className="panelist-chip">
-                            <User size={12} /> {slot.panelMember.name}
+                            <User size={12} /> {slot.panelMember?.name || slot.panelName}
                           </span>
                         )}
                         {slot.status === 'COMPLETED' ? (
@@ -616,15 +844,21 @@ export default function PanelInterviewSchedule() {
                           <span className="status-tag status-tag-pending">
                             <Clock size={12} /> Reschedule Pending
                           </span>
+                        ) : isAvailable ? (
+                          <span className="status-tag status-tag-open">
+                            <Clock size={12} /> Open Time Slot
+                          </span>
                         ) : (
                           <span className="status-tag status-tag-confirmed">
                             <CheckCircle2 size={12} /> Confirmed
                           </span>
                         )}
                       </div>
-                      <h3>{slot.candidate?.name}</h3>
+                      <h3>{isAvailable ? 'Open Slot — Awaiting Allocation' : slot.candidate?.name}</h3>
                       <p className="candidate-notes">
-                        {slot.additionalNotes || 'Technical evaluation session.'}
+                        {isAvailable
+                          ? (slot.additionalNotes || 'Available time slot ready for candidate scheduling in Recruiter Hub.')
+                          : (slot.additionalNotes || 'Technical evaluation session.')}
                       </p>
                     </div>
                   </div>
@@ -637,7 +871,7 @@ export default function PanelInterviewSchedule() {
                     </div>
                     <div className="timing-row time-row">
                       <Clock size={13} className="timing-icon text-muted" />
-                      <span className="timing-time-text">{slot.startTime} – {slot.endTime}</span>
+                      <span className="timing-time-text">{formatTimingDisplay(slot.startTime, slot.endTime)}</span>
                     </div>
                     <div className="timing-mode-row">
                       <span className={`timing-mode-pill ${slot.interviewType === 'Physical' ? 'mode-physical' : 'mode-online'}`}>
@@ -681,6 +915,32 @@ export default function PanelInterviewSchedule() {
                             <RefreshCw size={12} />
                             <span>Review / Approve in Recruiter Hub</span>
                           </button>
+                        </div>
+                      </>
+                    ) : isAvailable ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-primary-action-cta allocate-btn"
+                          onClick={() => navigate('/recruiter/interviews/allocation')}
+                        >
+                          <UserPlus size={15} />
+                          <span>Allocate Candidate</span>
+                        </button>
+                        <div className="card-actions-subrow">
+                          <button
+                            type="button"
+                            className="subrow-action-btn"
+                            onClick={() => navigate('/recruiter/interviews')}
+                            title="Manage in Recruiter Hub"
+                            style={{ width: '100%' }}
+                          >
+                            <Calendar size={13} /> Manage Slots
+                          </button>
+                        </div>
+                        <div className="actions-footnote">
+                          <Lock size={11} />
+                          <span>Available for candidate allocation</span>
                         </div>
                       </>
                     ) : isPastOrToday(slot.interviewDate) ? (
@@ -793,7 +1053,7 @@ export default function PanelInterviewSchedule() {
                     </div>
                     <div className="summary-time">
                       <div className="date">{selectedSlotForReschedule.displayDate || selectedSlotForReschedule.interviewDate}</div>
-                      <div className="time">{selectedSlotForReschedule.startTime} - {selectedSlotForReschedule.endTime}</div>
+                      <div className="time">{formatTimingDisplay(selectedSlotForReschedule.startTime, selectedSlotForReschedule.endTime)}</div>
                     </div>
                   </div>
                 </div>
@@ -820,48 +1080,181 @@ export default function PanelInterviewSchedule() {
 
                 {/* Proposed New Times */}
                 <div className="form-field-group">
-                  <label className="form-field-label">
-                    <Calendar className="w-4 h-4" />
-                    Propose Your Available Dates & Times (1 to 3 options) *
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2px' }}>
+                    <label className="form-field-label" style={{ marginBottom: 0 }}>
+                      <Calendar className="w-4 h-4 text-accent" style={{ color: 'var(--accent-dark)' }} />
+                      Propose Available Dates &amp; Times (1 to 3 options) *
+                    </label>
+                    <span style={{ fontSize: '11px', color: '#9599A6' }}>
+                      {proposedSlots.length} of 3 options added
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#858997', lineHeight: 1.4 }}>
+                    Specify your preferred alternative dates and start/end times. The recruiter will select and confirm one of these options.
+                  </p>
+
                   <div className="proposed-slots-container">
-                    {proposedSlots.map((propSlot, index) => (
-                      <div key={propSlot.id} className="proposed-slot-row">
-                        <input
-                          type="date"
-                          className="form-input"
-                          value={propSlot.date}
-                          onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'date', e.target.value)}
-                          required
-                        />
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="e.g. 10:00 AM"
-                          value={propSlot.startTime}
-                          onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'startTime', e.target.value)}
-                          required
-                        />
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="e.g. 11:00 AM"
-                          value={propSlot.endTime}
-                          onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'endTime', e.target.value)}
-                          required
-                        />
-                        {proposedSlots.length > 1 && (
-                          <button
-                            type="button"
-                            className="remove-slot-btn"
-                            onClick={() => handleRemoveProposedSlot(propSlot.id)}
-                            title="Remove this proposed slot"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                    {proposedSlots.map((propSlot, index) => {
+                      const duration = getDurationMinutes(propSlot.startTime, propSlot.endTime);
+                      const dateFormatted = (() => {
+                        try {
+                          if (!propSlot.date) return 'Select date';
+                          const dObj = new Date(propSlot.date);
+                          return isNaN(dObj.getTime())
+                            ? propSlot.date
+                            : dObj.toLocaleDateString('en-GB', {
+                                weekday: 'short',
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              });
+                        } catch {
+                          return propSlot.date;
+                        }
+                      })();
+
+                      return (
+                        <div key={propSlot.id} className="proposed-slot-card">
+                          {/* Card Header */}
+                          <div className="slot-card-header">
+                            <div className="slot-card-title">
+                              {proposedSlots.length > 1 && (
+                                <span className={`slot-option-badge option-${index + 1}`}>
+                                  Option {index + 1}
+                                </span>
+                              )}
+                              <span className="slot-duration-pill">
+                                <Clock size={11} /> {formatDurationDisplay(duration)}
+                              </span>
+                            </div>
+                            {proposedSlots.length > 1 && (
+                              <button
+                                type="button"
+                                className="remove-slot-btn-styled"
+                                onClick={() => handleRemoveProposedSlot(propSlot.id)}
+                                title="Remove this alternative option"
+                              >
+                                <Trash2 size={13} /> Remove
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Inputs Grid: 3 clearly labeled columns */}
+                          <div className="slot-inputs-grid">
+                            {/* Column 1: Date */}
+                            <div className="slot-input-col">
+                              <label className="slot-sublabel">
+                                <Calendar size={12} style={{ color: '#F0B90B' }} />
+                                <span>Interview Date *</span>
+                              </label>
+                              <div
+                                className="date-picker-input-container"
+                                onClick={(e) => {
+                                  const input = e.currentTarget.querySelector('input[type="date"]');
+                                  if (input && typeof input.showPicker === 'function') {
+                                    try { input.showPicker(); } catch (_) {}
+                                  }
+                                }}
+                              >
+                                <input
+                                  type="date"
+                                  className="form-input-styled date-picker-field"
+                                  value={propSlot.date}
+                                  min={new Date().toISOString().split('T')[0]}
+                                  onChange={(e) => handleUpdateProposedSlot(propSlot.id, 'date', e.target.value)}
+                                  required
+                                />
+                                <button
+                                  type="button"
+                                  className="date-picker-icon-btn"
+                                  title="Open Calendar Date Picker"
+                                  tabIndex={-1}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const container = e.currentTarget.closest('.date-picker-input-container');
+                                    const input = container?.querySelector('input[type="date"]');
+                                    if (input && typeof input.showPicker === 'function') {
+                                      try { input.showPicker(); } catch (_) {}
+                                    } else {
+                                      input?.focus();
+                                    }
+                                  }}
+                                >
+                                  <Calendar size={15} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Column 2: Start Time */}
+                            <div className="slot-input-col">
+                              <label className="slot-sublabel">
+                                <Clock size={12} style={{ color: '#60A5FA' }} />
+                                <span>Start Time *</span>
+                              </label>
+                              <input
+                                type="time"
+                                className="form-input-styled time-picker-input"
+                                value={toTimeInputValue(propSlot.startTime)}
+                                onChange={(e) => handleSlotTimeChange(propSlot.id, 'startTime', e.target.value)}
+                                required
+                              />
+                              <span className="time-preview-tag">
+                                ⏰ {to12HourTime(propSlot.startTime)}
+                              </span>
+                            </div>
+
+                            {/* Column 3: End Time */}
+                            <div className="slot-input-col">
+                              <label className="slot-sublabel">
+                                <Clock size={12} style={{ color: '#4ADE80' }} />
+                                <span>End Time *</span>
+                              </label>
+                              <input
+                                type="time"
+                                className="form-input-styled time-picker-input"
+                                value={toTimeInputValue(propSlot.endTime)}
+                                onChange={(e) => handleSlotTimeChange(propSlot.id, 'endTime', e.target.value)}
+                                required
+                              />
+                              <span className="time-preview-tag">
+                                🏁 {to12HourTime(propSlot.endTime)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Quick Duration Chips Bar */}
+                          <div className="slot-presets-bar">
+                            <span className="presets-label">Session Duration:</span>
+                            <div className="duration-chips">
+                              {DURATION_PRESETS.map((dp) => (
+                                <button
+                                  key={dp.mins}
+                                  type="button"
+                                  className={`duration-chip-btn ${duration === dp.mins ? 'active' : ''}`}
+                                  onClick={() => handleSetDuration(propSlot.id, dp.mins)}
+                                >
+                                  {dp.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Live Visual Summary Preview */}
+                          <div className="slot-summary-strip">
+                            <div className="summary-strip-left">
+                              <CheckCircle2 size={13} style={{ color: '#4ADE80' }} />
+                              <span className="summary-strip-text">
+                                <strong>{dateFormatted}</strong> &nbsp;·&nbsp;{' '}
+                                <span className="highlight-time">
+                                  {to12HourTime(propSlot.startTime)} – {to12HourTime(propSlot.endTime)}
+                                </span>{' '}
+                                <span className="summary-duration">({formatDurationDisplay(duration)} session)</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
 
                     {proposedSlots.length < 3 && (
                       <button
@@ -869,7 +1262,7 @@ export default function PanelInterviewSchedule() {
                         className="add-proposed-btn"
                         onClick={handleAddProposedSlot}
                       >
-                        <Plus className="w-4 h-4" /> Add Another Alternative Slot
+                        <Plus className="w-4 h-4" /> Add Another Alternative Slot ({proposedSlots.length} of 3 added)
                       </button>
                     )}
                   </div>

@@ -4,6 +4,8 @@
  * of interview rescheduling requests.
  */
 
+import * as interviewApi from '../api/interviewApi';
+
 const STORAGE_KEYS = {
   SLOTS: 'intellihire_interview_slots',
   RESCHEDULE_REQUESTS: 'intellihire_reschedule_requests',
@@ -192,10 +194,35 @@ export const toIsoDateString = (dStr) => {
   return '2026-11-05';
 };
 
+// Helper: Convert date string (ISO 'YYYY-MM-DD' or other) to readable display string 'DD Mon YYYY'
+export const toDisplayDateString = (dStr) => {
+  if (!dStr) return '';
+  const clean = String(dStr).trim();
+  if (/^\d{2}\s+[A-Za-z]{3}\s+\d{4}$/.test(clean)) return clean;
+  const matchDmy = clean.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+  if (matchDmy) {
+    return `${matchDmy[1].padStart(2, '0')} ${matchDmy[2]} ${matchDmy[3]}`;
+  }
+  const matchIso = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (matchIso) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const mon = months[parseInt(matchIso[2], 10) - 1] || 'Nov';
+    return `${matchIso[3].padStart(2, '0')} ${mon} ${matchIso[1]}`;
+  }
+  try {
+    const d = new Date(clean);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+  } catch (_) {}
+  return clean;
+};
+
 // Helper: Calculate end time (+1 hour)
 export const getEndTime = (timeStr) => {
   if (!timeStr) return '11:00 AM';
-  const m = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  const cleanStr = String(timeStr).split(/\s*(?:[\u2013\u2014–—-]|to)\s*/i)[0].trim();
+  const m = cleanStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
   if (!m) return '11:00 AM';
   let hrs = parseInt(m[1], 10);
   const mins = m[2];
@@ -207,6 +234,36 @@ export const getEndTime = (timeStr) => {
     hrs = hrs - 12;
   }
   return `${String(hrs).padStart(2, '0')}:${mins} ${ampm}`;
+};
+
+// Helper: Clean a single time string (e.g. '09:00 AM', '11:00', etc.)
+export const cleanSingleTime = (tStr) => {
+  if (!tStr) return '';
+  const match = String(tStr).match(/(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i);
+  return match ? match[1].trim() : String(tStr).trim();
+};
+
+// Helper: Cleanly split a time or time range string into separate startTime and endTime
+export const splitTimeRange = (timeStr, defaultStart = '10:00 AM') => {
+  if (!timeStr) {
+    const s = cleanSingleTime(defaultStart) || '10:00 AM';
+    return { startTime: s, endTime: getEndTime(s) };
+  }
+  const clean = String(timeStr).trim();
+  const parts = clean.split(/\s*(?:[\u2013\u2014–—-]|to)\s*/i).filter(Boolean);
+  if (parts.length >= 2) {
+    const s = cleanSingleTime(parts[0]);
+    const e = cleanSingleTime(parts[parts.length - 1]);
+    return {
+      startTime: s,
+      endTime: e || getEndTime(s),
+    };
+  }
+  const s = cleanSingleTime(clean);
+  return {
+    startTime: s,
+    endTime: getEndTime(s),
+  };
 };
 
 const CANDIDATE_AVATARS = [
@@ -233,6 +290,10 @@ export const isPastOrToday = (dateStr) => {
 // Helper: Generate Google Calendar URL
 export const generateGoogleCalendarLink = ({ title, description, date, startTime, endTime, location }) => {
   try {
+    const timing = splitTimeRange(startTime);
+    const cleanStart = timing.startTime;
+    const cleanEnd = (endTime && !endTime.includes('–') && !endTime.includes(' - ')) ? cleanSingleTime(endTime) : timing.endTime;
+
     const parseDateTime = (dStr, tStr) => {
       if (!dStr) return new Date();
       const iso = toIsoDateString(dStr);
@@ -253,8 +314,8 @@ export const generateGoogleCalendarLink = ({ title, description, date, startTime
       return dateObj;
     };
 
-    const startObj = parseDateTime(date, startTime);
-    const endObj = parseDateTime(date, endTime || startTime);
+    const startObj = parseDateTime(date, cleanStart);
+    const endObj = parseDateTime(date, cleanEnd || cleanStart);
     const startIso = startObj.toISOString().replace(/-|:|\.\d\d\d/g, '');
     const endIso = endObj.toISOString().replace(/-|:|\.\d\d\d/g, '');
 
@@ -288,6 +349,19 @@ export const getInterviewSlots = () => {
       baseSlots = [...DEFAULT_SLOTS];
     }
 
+    // Always sanitize baseSlots so startTime and endTime are never corrupted or duplicated
+    baseSlots = baseSlots.map((slot) => {
+      const parsed = splitTimeRange(slot.startTime, '10:00 AM');
+      const cleanEnd = (slot.endTime && !slot.endTime.includes('–') && !slot.endTime.includes(' - ') && slot.endTime !== slot.startTime)
+        ? cleanSingleTime(slot.endTime)
+        : parsed.endTime;
+      return {
+        ...slot,
+        startTime: parsed.startTime,
+        endTime: cleanEnd,
+      };
+    });
+
     // Read live allocations from Candidate Interview Allocation UI (intellihire_allocations)
     const allocJson = localStorage.getItem('intellihire_allocations');
     if (allocJson) {
@@ -312,10 +386,15 @@ export const getInterviewSlots = () => {
               );
 
               if (existing) {
-                const sTime = alloc.assignedTime || existing.startTime || '11:00 AM';
-                const eTime = (alloc.assignedTime || !existing.endTime || existing.endTime === existing.startTime || (sTime.includes('02:00') && existing.endTime.includes('11:00')))
-                  ? getEndTime(sTime)
-                  : existing.endTime;
+                // Parse assignedTime or existing time to guarantee separate start and end times
+                const rawTime = alloc.assignedTime || existing.startTime || '11:00 AM';
+                const parsed = splitTimeRange(rawTime, '11:00 AM');
+                const sTime = parsed.startTime;
+                let eTime = parsed.endTime;
+
+                if (!alloc.assignedTime && existing.endTime && existing.endTime !== existing.startTime && !existing.endTime.includes('–')) {
+                  eTime = cleanSingleTime(existing.endTime);
+                }
 
                 merged.push({
                   ...existing,
@@ -341,6 +420,8 @@ export const getInterviewSlots = () => {
                   pm = DEFAULT_PANEL_MEMBERS[0]; // Saman Tech
                 }
 
+                const parsed = splitTimeRange(alloc.assignedTime || '02:00 PM', '02:00 PM');
+
                 merged.push({
                   id: `slot-alloc-${alloc.candidateId || idx + 10}`,
                   jobPosition: alloc.jobPosition || 'Senior Software Engineer',
@@ -348,16 +429,8 @@ export const getInterviewSlots = () => {
                   round: alloc.interviewRound || 'Technical Interview',
                   interviewDate: toIsoDateString(alloc.interviewDate),
                   displayDate: alloc.interviewDate || '05 Nov 2026',
-                  startTime: (() => {
-                    const raw = alloc.assignedTime || '02:00 PM';
-                    return raw.includes('–') ? raw.split('–')[0].trim() : (raw.includes(' - ') ? raw.split(' - ')[0].trim() : raw);
-                  })(),
-                  endTime: (() => {
-                    const raw = alloc.assignedTime || '02:00 PM';
-                    if (raw.includes('–')) return raw.split('–')[1].trim();
-                    if (raw.includes(' - ')) return raw.split(' - ')[1].trim();
-                    return getEndTime(raw);
-                  })(),
+                  startTime: parsed.startTime,
+                  endTime: parsed.endTime,
                   interviewType: alloc.interviewType || 'Online',
                   status: 'SCHEDULED',
                   meetingLocation:
@@ -502,7 +575,119 @@ export const submitRescheduleRequest = ({
   });
   saveInterviewSlots(updatedSlots);
 
+  try {
+    interviewApi.createRescheduleRequest({
+      slotId,
+      requestedBy: 'PANEL_MEMBER',
+      panelMember,
+      candidateName,
+      candidateEmail,
+      jobPosition,
+      round,
+      currentDate,
+      currentTime,
+      reasonCategory,
+      detailedReason,
+      proposedSlots,
+    }).catch(() => {});
+  } catch (_) {}
+
   return { success: true, request: newRequest };
+};
+
+/**
+ * Synchronize approved/rescheduled interview time & date to candidate allocation results in localStorage
+ */
+export const syncRescheduledAllocation = ({
+  slotId,
+  candidateName,
+  candidateId,
+  newDate,
+  newDisplayDate,
+  newStartTime,
+  newEndTime,
+}) => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+
+    const rawAlloc = localStorage.getItem('intellihire_allocations');
+    const allocations = rawAlloc ? JSON.parse(rawAlloc) : [];
+
+    const cleanDisplayDate = toDisplayDateString(newDisplayDate || newDate);
+    const cleanStart = cleanSingleTime(newStartTime);
+    const cleanEnd = cleanSingleTime(newEndTime) || getEndTime(cleanStart);
+    const timeRangeStr = `${cleanStart} – ${cleanEnd}`;
+
+    const candNameClean = (candidateName || '').trim().toLowerCase();
+    const candIdClean = (candidateId || '').trim().toLowerCase();
+    const slotIdStr = String(slotId || '').toLowerCase();
+
+    let matched = false;
+    const nextAllocations = (Array.isArray(allocations) ? allocations : []).map((alloc) => {
+      const matchByName = candNameClean && (alloc.candidateName || '').trim().toLowerCase() === candNameClean;
+      const matchById = candIdClean && (alloc.candidateId || '').trim().toLowerCase() === candIdClean;
+      const matchBySlot = slotIdStr && (
+        String(alloc.slotId || '').toLowerCase() === slotIdStr ||
+        String(alloc.slotId || '').toLowerCase() === `slot-${slotIdStr}` ||
+        slotIdStr.includes(String(alloc.slotId || '').toLowerCase())
+      );
+
+      if (matchByName || matchById || matchBySlot) {
+        matched = true;
+        return {
+          ...alloc,
+          interviewDate: cleanDisplayDate || alloc.interviewDate,
+          rawDate: newDate || alloc.rawDate,
+          assignedTime: timeRangeStr,
+          startTime: cleanStart,
+          endTime: cleanEnd,
+          assignedEndTime: cleanEnd,
+        };
+      }
+      return alloc;
+    });
+
+    if (matched) {
+      localStorage.setItem('intellihire_allocations', JSON.stringify(nextAllocations));
+    }
+
+    // Also update custom slots if present
+    const rawCustom = localStorage.getItem('intellihire_custom_slots');
+    if (rawCustom) {
+      try {
+        const customSlots = JSON.parse(rawCustom);
+        if (Array.isArray(customSlots)) {
+          const nextCustom = customSlots.map((cs) => {
+            if (
+              String(cs.id) === slotIdStr ||
+              `slot-${cs.id}`.toLowerCase() === slotIdStr ||
+              (candNameClean && (cs.assignedCandidate?.name || '').trim().toLowerCase() === candNameClean)
+            ) {
+              return {
+                ...cs,
+                date: cleanDisplayDate || cs.date,
+                dateShort: cleanDisplayDate ? cleanDisplayDate.slice(0, 6) : cs.dateShort,
+                time: cleanStart,
+                startTime: cleanStart,
+                end: cleanEnd,
+                endTime: cleanEnd,
+              };
+            }
+            return cs;
+          });
+          localStorage.setItem('intellihire_custom_slots', JSON.stringify(nextCustom));
+        }
+      } catch (e) {}
+    }
+
+    // Notify all open pages / components listening to intellihire_slots_updated
+    window.dispatchEvent(new CustomEvent('intellihire_slots_updated', {
+      detail: { source: 'approveReschedule', candidateName, newDate: cleanDisplayDate, assignedTime: timeRangeStr }
+    }));
+    window.dispatchEvent(new Event('storage'));
+  } catch (err) {
+    console.error('Failed to sync rescheduled allocation to localStorage:', err);
+  }
 };
 
 /**
@@ -531,8 +716,10 @@ export const approveRescheduleRequest = (requestId, selectedProposedSlot, recrui
   saveRescheduleRequests(updatedRequests);
 
   // Update the slot
+  let targetSlot = null;
   const updatedSlots = slots.map((slot) => {
     if (slot.id === request.slotId) {
+      targetSlot = slot;
       return {
         ...slot,
         interviewDate: selectedProposedSlot.date,
@@ -546,6 +733,24 @@ export const approveRescheduleRequest = (requestId, selectedProposedSlot, recrui
     return slot;
   });
   saveInterviewSlots(updatedSlots);
+
+  // Sync updated date & time to Candidate Allocation Results table (intellihire_allocations)
+  syncRescheduledAllocation({
+    slotId: request.slotId,
+    candidateName: request.candidateName || targetSlot?.candidate?.name,
+    candidateId: targetSlot?.candidate?.id,
+    newDate: selectedProposedSlot.date,
+    newDisplayDate: selectedProposedSlot.displayDate,
+    newStartTime: selectedProposedSlot.startTime,
+    newEndTime: selectedProposedSlot.endTime,
+  });
+
+  try {
+    interviewApi.approveRescheduleRequestApi(requestId, {
+      selectedProposedSlot,
+      recruiterNotes,
+    }).catch(() => {});
+  } catch (_) {}
 
   return { success: true, updatedRequest: updatedRequests.find((r) => r.id === requestId) };
 };
@@ -586,6 +791,12 @@ export const rejectRescheduleRequest = (requestId, rejectionReason = '') => {
   });
   saveInterviewSlots(updatedSlots);
 
+  try {
+    interviewApi.rejectRescheduleRequestApi(requestId, {
+      rejectionReason,
+    }).catch(() => {});
+  } catch (_) {}
+
   return { success: true };
 };
 
@@ -613,8 +824,10 @@ export const customRescheduleSlot = (requestId, customSlotData, notes = '') => {
   });
   saveRescheduleRequests(updatedRequests);
 
+  let targetSlot = null;
   const updatedSlots = slots.map((slot) => {
     if (slot.id === request.slotId) {
+      targetSlot = slot;
       return {
         ...slot,
         interviewDate: customSlotData.date,
@@ -630,5 +843,25 @@ export const customRescheduleSlot = (requestId, customSlotData, notes = '') => {
   });
   saveInterviewSlots(updatedSlots);
 
+  // Sync updated date & time to Candidate Allocation Results table (intellihire_allocations)
+  syncRescheduledAllocation({
+    slotId: request.slotId,
+    candidateName: request.candidateName || targetSlot?.candidate?.name,
+    candidateId: targetSlot?.candidate?.id,
+    newDate: customSlotData.date,
+    newDisplayDate: customSlotData.displayDate,
+    newStartTime: customSlotData.startTime,
+    newEndTime: customSlotData.endTime,
+  });
+
+  try {
+    interviewApi.customRescheduleSlotApi(requestId, {
+      customSlotData,
+      notes,
+    }).catch(() => {});
+  } catch (_) {}
+
   return { success: true };
 };
+
+export { interviewApi };

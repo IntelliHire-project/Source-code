@@ -699,8 +699,8 @@ img {
 
 .sidebar-sub-list {
   list-style: none;
-  margin: 4px 0 4px 20px;
-  padding: 0 0 0 12px;
+  margin: 4px 0 4px 16px;
+  padding: 0 0 0 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -710,8 +710,8 @@ img {
 .sidebar-sub-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  font-size: 0.85rem;
+  padding: 7px 10px;
+  font-size: 0.84rem;
   color: var(--text-on-dark-muted);
   text-decoration: none;
   border-radius: var(--radius-sm);
@@ -725,7 +725,7 @@ img {
 .sidebar-sub-item:hover {
   color: var(--text-on-dark);
   background: var(--primary-light);
-  padding-left: 16px;
+  padding-left: 13px;
 }
 
 .sidebar-sub-item.is-active {

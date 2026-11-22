@@ -393,6 +393,40 @@
   border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
+.status-tag-open {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94A3B8;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.panel-interview-card.status-available {
+  border-left: 3px solid #64748B;
+  opacity: 0.96;
+}
+
+.open-slot-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(240, 185, 11, 0.08);
+  border: 2px dashed rgba(240, 185, 11, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #F0B90B;
+}
+
+.btn-primary-action-cta.allocate-btn {
+  background: linear-gradient(135deg, rgba(240, 185, 11, 0.15) 0%, rgba(240, 185, 11, 0.25) 100%);
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.45);
+}
+
+.btn-primary-action-cta.allocate-btn:hover {
+  background: #F0B90B;
+  color: #000000;
+}
+
 .candidate-notes {
   font-size: 12px;
   color: #9599A6;
@@ -685,7 +719,7 @@
   background: #16171F;
   border-radius: 16px;
   width: 100%;
-  max-width: 640px;
+  max-width: 680px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   border: 1px solid #2A2C38;
   overflow: hidden;
@@ -834,42 +868,282 @@
   min-height: 80px;
 }
 
-/* Proposed Slots Builder */
+/* Proposed Slots Builder - Cards with Clear Time Picker Layout */
 .proposed-slots-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
-.proposed-slot-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
-  gap: 8px;
+.proposed-slot-card {
+  background: #1B1D27;
+  border: 1px solid #2D3142;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.proposed-slot-card:hover {
+  border-color: rgba(240, 185, 11, 0.35);
+}
+
+.slot-card-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  background: #1E222D;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #2A2C38;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.remove-slot-btn {
-  background: transparent;
-  border: none;
-  color: #E63946;
-  cursor: pointer;
-  padding: 6px;
+.slot-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slot-option-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
   border-radius: 6px;
 }
 
-.remove-slot-btn:hover {
-  background: rgba(230, 57, 70, 0.15);
+.slot-option-badge.option-1 {
+  background: rgba(240, 185, 11, 0.15);
+  color: #F0B90B;
+  border: 1px solid rgba(240, 185, 11, 0.35);
+}
+
+.slot-option-badge.option-2,
+.slot-option-badge.option-3 {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818CF8;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.slot-duration-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+  background: #242838;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.remove-slot-btn-styled {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #F87171;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.remove-slot-btn-styled:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #EF4444;
+}
+
+.slot-inputs-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .slot-inputs-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.slot-input-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.slot-sublabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #D1D5DB;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.form-input-styled {
+  width: 100%;
+  background: #12131B;
+  border: 1px solid #32374A;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  color-scheme: dark;
+}
+
+.form-input-styled:focus {
+  border-color: #F0B90B;
+  box-shadow: 0 0 0 2px rgba(240, 185, 11, 0.2);
+}
+
+.date-picker-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+}
+
+.date-picker-field {
+  padding-right: 36px;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.date-picker-icon-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #F0B90B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.date-picker-icon-btn:hover {
+  background: rgba(240, 185, 11, 0.2);
+  color: #FFD700;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  filter: invert(0.8);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.time-picker-input {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.time-preview-tag {
+  font-size: 11px;
+  color: #F0B90B;
+  font-weight: 600;
+  margin-top: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.slot-presets-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.presets-label {
+  font-size: 11px;
+  color: #858997;
+  font-weight: 600;
+}
+
+.duration-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.duration-chip-btn {
+  background: #141622;
+  border: 1px solid #2C3144;
+  color: #9CA3AF;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.duration-chip-btn:hover {
+  border-color: #F0B90B;
+  color: #FFFFFF;
+}
+
+.duration-chip-btn.active {
+  background: rgba(240, 185, 11, 0.18);
+  border-color: #F0B90B;
+  color: #F0B90B;
+}
+
+.slot-summary-strip {
+  margin-top: 12px;
+  background: rgba(240, 185, 11, 0.06);
+  border: 1px solid rgba(240, 185, 11, 0.18);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #E5E7EB;
+}
+
+.highlight-time {
+  color: #F0B90B;
+  font-weight: 700;
+}
+
+.summary-duration {
+  color: #9CA3AF;
+  font-size: 11px;
 }
 
 .add-proposed-btn {
   background: #1E222D;
   border: 1px dashed #3A3D4C;
   color: #FFFFFF;
-  padding: 10px;
+  padding: 11px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;

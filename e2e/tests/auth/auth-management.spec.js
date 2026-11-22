@@ -109,8 +109,8 @@ test.describe('Auth Management & Session Suite', () => {
 
     expect(meRes.status()).toBe(200);
     const meData = await meRes.json();
-    expect(meData.data.user.email).toBe(DEMO_CANDIDATE_EMAIL);
-    expect(meData.data.user.role).toBe('candidate');
+    expect(meData.user.email).toBe(DEMO_CANDIDATE_EMAIL);
+    expect(meData.user.role).toBe('candidate');
   });
 
   // -------------------------------------------------------------------------
@@ -178,7 +178,7 @@ test.describe('Auth Management & Session Suite', () => {
         password: DEMO_CANDIDATE_PASSWORD,
       },
     });
-    const { data: { token } } = await loginRes.json();
+    const { token } = await loginRes.json();
 
     // 1. Attempt password change with incorrect current password
     const failRes = await request.post(`${BASE_URL}/auth/change-password`, {

@@ -2,11 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
-  Eye,
   Pencil,
   Plus,
   Trash2,
@@ -19,7 +17,6 @@ import {
   Clock,
   Sparkles,
   CheckCircle2,
-  ArrowRight,
   RefreshCw,
   AlertCircle,
   ShieldCheck,
@@ -42,6 +39,12 @@ import {
   saveInterviewSlots,
   getEndTime,
 } from '../../../services/interviewService';
+import {
+  fetchInterviewSlots,
+  createInterviewSlot,
+  updateInterviewSlot,
+  deleteInterviewSlot,
+} from '../../../api/interviewApi';
 import { INITIAL_CANDIDATES, INITIAL_ALLOCATIONS, resetToDefaultMockData, formatPanelDisplayName } from '../InterviewAllocation/CandidateInterviewAllocation';
 
 const CLEAN_STORAGE_VERSION = 'v12_fresh_session_defaults';
@@ -65,7 +68,7 @@ const CLEAN_STORAGE_VERSION = 'v12_fresh_session_defaults';
         }
       }
     }
-  } catch {}
+  } catch { }
 })();
 
 // ── Google Calendar URL Helper ─────────────────────────────────────────────
@@ -557,7 +560,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
       }
       const stored = localStorage.getItem('intellihire_interview_slots');
       if (stored) return JSON.parse(stored);
-    } catch {}
+    } catch { }
     return initialSlots;
   });
   const [formData, setFormData] = useState(initialForm);
@@ -571,7 +574,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [selectedSlotKey, setSelectedSlotKey] = useState(null);
   const [viewingCandidate, setViewingCandidate] = useState(null);
   const [autoAssignSummary, setAutoAssignSummary] = useState(null);
-  
+
   // If we arrived from another page requesting to open the form directly, skip the choice modal
   // Wait, the flow is: Hero card -> Choice Modal -> Inline Form.
   // We can just open the Choice modal directly, or the inline form. I'll open the Choice modal.
@@ -584,6 +587,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4;
   const todayInputValue = getTodayInputValue();
+
+  // Fetch live slots from PostgreSQL backend on mount
+  useEffect(() => {
+    fetchInterviewSlots()
+      .then(res => {
+        if (res && res.slots && Array.isArray(res.slots) && res.slots.length > 0) {
+          setSlots(res.slots);
+          saveInterviewSlots(res.slots);
+        }
+      })
+      .catch(err => {
+        console.warn('Backend fetch fallback:', err.message);
+      });
+  }, []);
 
   // Dynamic candidate list matching the active job position
   const currentShortlisted = useMemo(() => {
@@ -607,7 +624,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
           }
         }
       }
-    } catch {}
+    } catch { }
 
     if (!pos) return CANDIDATES_BY_ROLE['Senior Software Engineer'] || [];
 
@@ -705,14 +722,15 @@ function RecruiterInterviewTimeSlotManagementPage() {
         selectedDate: defaultDate,
         slots: [
           { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
-          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Physical', assignedCandidate: null },
+          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Online', assignedCandidate: null },
         ],
       },
     ];
   });
 
-  const syncCandidateAllocations = (updatedPanels) => {
+  const syncCandidateAllocations = (updatedPanels, explicitType = null) => {
     try {
+      const currentActiveType = explicitType || formData.interviewType || (activeZohoType === 'In-Person' || formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online');
       const getStoredAlloc = () => {
         try {
           const raw = localStorage.getItem('intellihire_allocations');
@@ -720,7 +738,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) return parsed;
           }
-        } catch {}
+        } catch { }
         return INITIAL_ALLOCATIONS;
       };
       const getStoredCands = () => {
@@ -730,13 +748,13 @@ function RecruiterInterviewTimeSlotManagementPage() {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed) && parsed.length > 0) return parsed;
           }
-        } catch {}
+        } catch { }
         return INITIAL_CANDIDATES;
       };
 
       const existingAllocations = getStoredAlloc();
       const existingCandidates = getStoredCands();
-      
+
       const currentFormCandidateNames = new Set(
         currentShortlisted.map(c => c.name)
       );
@@ -774,14 +792,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
           slotId: `SLOT-${panel.id}-${slot.id}`,
           assignedTime: timeRange,
           interviewDate: formatDate(slotRawDate),
-          interviewType: slot.type || (activeZohoType === 'In-Person' ? 'Physical' : 'Online'),
+          interviewType: slot.type || currentActiveType,
           panelName: panel.name || 'Panel A (Technical Leads)',
           interviewRound: formData.interviewRound || 'Technical Interview',
           jobPosition: candidate.jobPosition || candidate.role || formData.jobPosition || 'Senior Software Engineer',
           score: candidate.score || 85,
           status: 'ALLOCATED',
         };
-        const exIdx = nextAllocations.findIndex(a => 
+        const exIdx = nextAllocations.findIndex(a =>
           (a.candidateId && String(a.candidateId) === String(candId)) ||
           (a.candidateName && a.candidateName.toLowerCase().trim() === candName.toLowerCase().trim())
         );
@@ -817,7 +835,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             end: displayEnd,
             startTime: displayTime,
             endTime: displayEnd,
-            type: s.type || (p.id === 1 ? 'Online' : 'Physical'),
+            type: s.type || currentActiveType,
             cap: 1,
             capacity: 1,
             rem: s.assignedCandidate ? 0 : 1,
@@ -1033,11 +1051,11 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setPanels(prev =>
       prev.map(p => {
         if (p.id !== panelId) return p;
-        
+
         const otherDateSlots = p.slots.filter(s => s.date !== date);
         let thisDateSlots = p.slots.filter(s => s.date === date);
         const defaultTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
-        
+
         if (thisDateSlots.length < desiredCount) {
           let nextId = p.slots.length > 0 ? Math.max(...p.slots.map(s => s.id)) + 1 : 1;
           while (thisDateSlots.length < desiredCount) {
@@ -1047,7 +1065,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
         } else if (thisDateSlots.length > desiredCount) {
           thisDateSlots = thisDateSlots.slice(0, desiredCount);
         }
-        
+
         const totalSlots = otherDateSlots.length + thisDateSlots.length;
         return {
           ...p,
@@ -1081,8 +1099,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
         const [h, m] = nextTime.split(':').map(Number);
         const nextEndTime = `${String((h + 1) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         const nextId = p.slots.length ? Math.max(...p.slots.map(s => s.id)) + 1 : 1;
-        const slotType = existingOnDate.length % 2 === 0 ? 'Online' : 'Physical';
-        const newSlots = [...p.slots, { id: nextId, date: d, startTime: nextTime, endTime: nextEndTime, type: slotType, assignedCandidate: null }];
+        const currentSlotType = formData.interviewType || (activeZohoType === 'In-Person' || formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online');
+        const newSlots = [...p.slots, { id: nextId, date: d, startTime: nextTime, endTime: nextEndTime, type: currentSlotType, assignedCandidate: null }];
         return {
           ...p,
           selectedDate: d,
@@ -1137,7 +1155,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
         selectedDate: defaultDate,
         slots: [
           { id: 1, date: defaultDate, startTime: '09:00', endTime: '10:00', type: 'Online', assignedCandidate: null },
-          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Physical', assignedCandidate: null },
+          { id: 2, date: defaultDate, startTime: '11:00', endTime: '12:00', type: 'Online', assignedCandidate: null },
         ],
       },
     ];
@@ -1288,23 +1306,36 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setActiveZohoType(type);
     let selectedMedia = 'Google Meet';
     let isOnline = true;
-    if (type === 'In-Person') {
+    if (type === 'In-Person' || type === 'Physical') {
       selectedMedia = 'In-Person';
       isOnline = false;
     } else if (type === 'Log') {
       selectedMedia = 'Log';
       isOnline = false;
     }
+    const resolvedType = isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical');
     const initialDate = panels[0]?.selectedDate || new Date().toISOString().split('T')[0];
     setFormData({
       ...emptyForm,
       jobPosition: positionFilter,
       interviewMedia: selectedMedia,
-      interviewType: isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical'),
+      interviewType: resolvedType,
       interviewDate: initialDate,
-      meetingLocation: type === 'In-Person' 
-        ? 'Executive Boardroom 3B, 2nd Floor, HQ Tower' 
-        : (type === 'Google Meet' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Past Session Evaluation Log'),
+      meetingLocation: !isOnline
+        ? 'Executive Boardroom 3B, 2nd Floor, HQ Tower'
+        : (type === 'Google Meet' || isOnline ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Past Session Evaluation Log'),
+    });
+    // Immediately synchronize all panel slots with the chosen interview type
+    setPanels(prevPanels => {
+      const updated = prevPanels.map(p => ({
+        ...p,
+        slots: (p.slots || []).map(s => ({
+          ...s,
+          type: resolvedType,
+        })),
+      }));
+      syncCandidateAllocations(updated, resolvedType);
+      return updated;
     });
     setEditingSlotId(null);
     setShowInlineForm(true);
@@ -1330,12 +1361,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleMediaSelect = (media) => {
+    const isOnline = media !== 'In-Person';
+    const newType = isOnline ? 'Online' : 'Physical';
+    setActiveZohoType(media === 'In-Person' ? 'In-Person' : 'Google Meet');
     setFormData(current => {
-      const isOnline = media !== 'In-Person';
       let autoLocation = current.meetingLocation;
-      if (media === 'Google Meet' && (!autoLocation || autoLocation.includes('teams'))) {
+      if (media === 'Google Meet' && (!autoLocation || autoLocation.includes('teams') || !autoLocation.includes('http'))) {
         autoLocation = `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}`;
-      } else if (media === 'MS Teams' && (!autoLocation || autoLocation.includes('meet'))) {
+      } else if (media === 'MS Teams' && (!autoLocation || autoLocation.includes('meet') || !autoLocation.includes('http'))) {
         autoLocation = `https://teams.microsoft.com/l/meetup-join/intelli-${Math.random().toString(36).substring(2, 7)}`;
       } else if (media === 'In-Person' && (autoLocation.includes('http') || !autoLocation)) {
         autoLocation = 'Main Engineering Conference Room, 2nd Floor';
@@ -1343,9 +1376,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
       return {
         ...current,
         interviewMedia: media,
-        interviewType: isOnline ? 'Online' : 'Physical',
+        interviewType: newType,
         meetingLocation: autoLocation,
       };
+    });
+    // Synchronize all panel slots when media type changes
+    setPanels(prevPanels => {
+      const updated = prevPanels.map(p => ({
+        ...p,
+        slots: (p.slots || []).map(s => ({
+          ...s,
+          type: newType,
+        })),
+      }));
+      syncCandidateAllocations(updated, newType);
+      return updated;
     });
   };
 
@@ -1399,9 +1444,23 @@ function RecruiterInterviewTimeSlotManagementPage() {
     const formattedDate = formatDate(effectiveDate);
     const roundSummary = roundTypes.join(', ');
 
+    const currentSlotInterviewType = formData.interviewType || (formData.interviewMedia === 'In-Person' || activeZohoType === 'In-Person' ? 'Physical' : 'Online');
+
     if (editingSlotId) {
-      setSlots(current =>
-        current.map(slot => {
+      const updatedPayload = {
+        jobPosition: formData.jobPosition,
+        round: roundSummary,
+        interviewDate: effectiveDate,
+        interviewType: currentSlotInterviewType,
+        panelName: panels[0]?.name || 'Panel A (Technical Leads)',
+        panelEmails: panels[0]?.emails || 'techlead@company.com, hr@company.com',
+        meetingLocation: formData.meetingLocation,
+        additionalNotes: formData.additionalNotes,
+      };
+      updateInterviewSlot(editingSlotId, updatedPayload).catch(() => { });
+
+      setSlots(current => {
+        const next = current.map(slot => {
           if (slot.id === editingSlotId) {
             return {
               ...slot,
@@ -1409,7 +1468,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               round: roundSummary,
               interviewMedia: formData.interviewMedia,
               interviewDate: formattedDate,
-              interviewType: formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online',
+              interviewType: currentSlotInterviewType,
               panelName: panels[0]?.name || 'Panel A (Technical Leads)',
               panelEmails: panels[0]?.emails || 'techlead@company.com, hr@company.com',
               meetingLocation: formData.meetingLocation,
@@ -1417,8 +1476,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             };
           }
           return slot;
-        })
-      );
+        });
+        saveInterviewSlots(next);
+        return next;
+      });
       setToast({ type: 'success', message: 'Interview slot updated successfully!' });
     } else {
       let createdSlots = [];
@@ -1447,7 +1508,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             interviewDate: formatDate(slotRawDate),
             startTime: formatTime(sRow.startTime || '09:00'),
             endTime: formatTime(sRow.endTime || '10:00'),
-            interviewType: formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online',
+            interviewType: currentSlotInterviewType,
             capacity: p.capacity || 1,
             status: 'AVAILABLE',
             panelName: p.name,
@@ -1462,10 +1523,36 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
       setSlots(current => {
         const next = [...createdSlots, ...current];
-        try {
-          localStorage.setItem('intellihire_interview_slots', JSON.stringify(next));
-        } catch (e) {}
+        saveInterviewSlots(next);
         return next;
+      });
+
+      // Send to backend PostgreSQL API
+      createdSlots.forEach(s => {
+        const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
+          id: s.assignedCandidate.id,
+          name: s.assignedCandidate.name,
+          email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+          score: s.assignedCandidate.score || 85,
+          avatar: s.assignedCandidate.avatar || '',
+        } : null;
+
+        createInterviewSlot({
+          jobPosition: s.jobPosition,
+          round: s.round,
+          interviewDate: s.rawDate || effectiveDate,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          interviewType: s.interviewType,
+          meetingLocation: s.meetingLocation,
+          capacity: s.capacity,
+          panelName: s.panelName,
+          panelEmails: s.panelEmails,
+          additionalNotes: s.additionalNotes,
+          candidate: candidatePayload,
+          status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
+          bookedCount: candidatePayload ? 1 : 0,
+        }).catch(err => console.error('Error saving slot to database:', err));
       });
 
       // Synchronize directly with Candidate Interview Allocation
@@ -1483,7 +1570,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             end: s.endTime,
             startTime: s.startTime,
             endTime: s.endTime,
-            type: s.interviewType,
+            type: s.interviewType || currentSlotInterviewType,
             cap: s.capacity,
             capacity: s.capacity,
             rem: s.assignedCandidate ? Math.max(0, s.capacity - 1) : s.capacity,
@@ -1515,7 +1602,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               const parsed = JSON.parse(raw);
               if (Array.isArray(parsed)) return parsed;
             }
-          } catch {}
+          } catch { }
           return INITIAL_ALLOCATIONS;
         })();
 
@@ -1530,14 +1617,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
               slotId: `SLOT-${s.id}`,
               assignedTime: timeRange,
               interviewDate: s.interviewDate,
-              interviewType: s.interviewType,
+              interviewType: s.interviewType || currentSlotInterviewType,
               panelName: s.panelName || 'Panel A (Technical Leads)',
               interviewRound: s.round || formData.interviewRound || 'Technical Interview',
               jobPosition: cand.jobPosition || cand.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
               status: 'ALLOCATED',
               score: cand.score || 85,
             };
-            const exIdx = currentAllocations.findIndex(a => 
+            const exIdx = currentAllocations.findIndex(a =>
               (a.candidateId && String(a.candidateId) === String(candId)) ||
               (a.candidateName && a.candidateName.trim().toLowerCase() === cand.name.trim().toLowerCase())
             );
@@ -1558,7 +1645,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               const parsed = JSON.parse(raw);
               if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
-          } catch {}
+          } catch { }
           return INITIAL_CANDIDATES;
         })();
 
@@ -1615,7 +1702,12 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   const confirmDeleteSlot = () => {
     if (deletingSlot) {
-      setSlots(current => current.filter(slot => slot.id !== deletingSlot.id));
+      deleteInterviewSlot(deletingSlot.id).catch(err => console.warn('Backend slot delete error:', err));
+      setSlots(current => {
+        const next = current.filter(slot => slot.id !== deletingSlot.id);
+        saveInterviewSlots(next);
+        return next;
+      });
       setToast({ type: 'success', message: `Slot #${deletingSlot.id} deleted successfully.` });
       setDeletingSlot(null);
     }
@@ -1893,17 +1985,17 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     {editingSlotId
                       ? `Edit Interview Time Slot #${editingSlotId}`
                       : (activeZohoType === 'In-Person'
-                          ? 'Schedule In-person Physical Interview'
-                          : (activeZohoType === 'Log'
-                              ? 'Log Completed / Past Interview Data'
-                              : 'Schedule Online Video Interview'))}
+                        ? 'Schedule In-person Physical Interview'
+                        : (activeZohoType === 'Log'
+                          ? 'Log Completed / Past Interview Data'
+                          : 'Schedule Online Video Interview'))}
                   </h2>
                   <p style={{ fontSize: '0.86rem', color: '#9599A6', margin: '4px 0 0 0' }}>
                     {activeZohoType === 'In-Person'
                       ? 'Set up physical office venue, room location, building access & panel members'
                       : (activeZohoType === 'Log'
-                          ? 'Log past candidate interview outcome, ratings, and panel evaluation notes'
-                          : 'Configure Google Meet / MS Teams link, panel member emails, and calendar sync')}
+                        ? 'Log past candidate interview outcome, ratings, and panel evaluation notes'
+                        : 'Configure Google Meet / MS Teams link, panel member emails, and calendar sync')}
                   </p>
                 </div>
                 <button
@@ -2059,7 +2151,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         <option value="Portfolio Review">Portfolio Review</option>
                         <option value="Management Round">Management Round</option>
                         {roundTypes.filter(rt => !['Technical Interview', 'HR Screening', 'HR Portfolio Review', 'Technical / Live Coding', 'System Design Architecture', 'Final Management Round', 'Final Cultural Fit', 'Portfolio Review', 'Management Round'].includes(rt)).map((rt, i) => (
-                           <option key={i} value={rt}>{rt}</option>
+                          <option key={i} value={rt}>{rt}</option>
                         ))}
                       </select>
                     </div>
@@ -2106,7 +2198,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     return (
                       <div key={p.id} style={{ marginBottom: '16px', backgroundColor: '#1E222D', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.15)', overflow: 'hidden' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '380px' }}>
-                          
+
                           {/* Left Column: Panel Info */}
                           <div style={{ padding: '16px', borderRight: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
                             <div style={{ marginBottom: '12px' }}>
@@ -2213,24 +2305,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             <div style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ color: '#9599A6', fontWeight: 600, fontSize: '0.75rem' }}>CALENDAR DATE</span>
                               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                <input 
-                                  type="text" 
-                                  value={p.selectedDate} 
+                                <input
+                                  type="text"
+                                  value={p.selectedDate}
                                   placeholder="YYYY-MM-DD"
                                   onChange={(e) => {
                                     handlePanelDateChange(p.id, e.target.value);
-                                  }} 
-                                  style={{ 
-                                    backgroundColor: '#1E222D', 
-                                    color: '#FFFFFF', 
-                                    border: '1px solid rgba(255, 255, 255, 0.15)', 
-                                    padding: '4px 28px 4px 8px', 
-                                    borderRadius: '6px', 
+                                  }}
+                                  style={{
+                                    backgroundColor: '#1E222D',
+                                    color: '#FFFFFF',
+                                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                                    padding: '4px 28px 4px 8px',
+                                    borderRadius: '6px',
                                     fontSize: '0.8rem',
                                     colorScheme: 'dark',
                                     width: '135px',
                                     cursor: 'text'
-                                  }} 
+                                  }}
                                 />
                                 <input
                                   type="date"
@@ -2247,7 +2339,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   onClick={() => {
                                     const el = document.getElementById(`panel-native-date-${p.id}`);
                                     if (el && el.showPicker) {
-                                      try { el.showPicker(); } catch (_) {}
+                                      try { el.showPicker(); } catch (_) { }
                                     } else if (el) {
                                       el.click();
                                     }
@@ -2271,25 +2363,25 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                 const dayLabel = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][wd.getDay()];
                                 const dateNum = wd.getDate();
                                 return (
-                                  <div 
-                                    key={i} 
+                                  <div
+                                    key={i}
                                     onClick={() => {
                                       if (isPast) return;
                                       handlePanelDateChange(p.id, wdStr);
-                                    }} 
+                                    }}
                                     title={isPast ? 'Previous dates cannot be selected' : wdStr}
-                                    style={{ 
-                                      display: 'flex', 
-                                      flexDirection: 'column', 
-                                      alignItems: 'center', 
-                                      cursor: isPast ? 'not-allowed' : 'pointer', 
+                                    style={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      alignItems: 'center',
+                                      cursor: isPast ? 'not-allowed' : 'pointer',
                                       gap: '6px',
                                       opacity: isPast ? 0.35 : 1
                                     }}
                                   >
                                     <span style={{ fontSize: '0.75rem', color: isPast ? '#666' : isSelected ? '#FFFFFF' : '#9599A6', fontWeight: 600 }}>{dayLabel}</span>
                                     <div style={{
-                                      width: '28px', height: '28px', borderRadius: '50%', 
+                                      width: '28px', height: '28px', borderRadius: '50%',
                                       backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
                                       color: isSelected ? '#000000' : isPast ? '#666' : '#FFFFFF',
                                       textDecoration: isPast ? 'line-through' : 'none',
@@ -2305,7 +2397,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
                             {/* Simple Slots List for Selected Date */}
                             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                              
+
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1E222D', padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '8px' }}>
                                 <label className="form-label" style={{ fontSize: '0.8rem', color: '#9599A6', fontWeight: 700, margin: 0 }}>SLOTS FOR THIS DAY:</label>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -2367,9 +2459,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   const isPastTime = isSlotTimeInPast(s.date, s.startTime);
                                   return (
                                     <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                      <div style={{ 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         gap: '12px',
                                         backgroundColor: isConflict ? 'rgba(239, 68, 68, 0.12)' : (isPastTime ? 'rgba(255, 255, 255, 0.03)' : 'rgba(66, 133, 244, 0.1)'),
                                         borderLeft: `3px solid ${isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4')}`,
@@ -2380,21 +2472,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                       }}>
                                         <span style={{ color: isConflict ? '#EF4444' : '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #{idx + 1}</span>
                                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-                                          <input 
-                                            type="time" 
-                                            value={toTimeInputValue(s.startTime) || '09:00'} 
-                                            onChange={(e) => handleSlotTimeChange(p.id, s.id, 'startTime', e.target.value)} 
-                                            style={{ 
-                                              backgroundColor: '#1E222D', 
-                                              color: '#FFFFFF', 
-                                              border: `1px solid ${isConflict ? '#EF4444' : 'rgba(255, 255, 255, 0.15)'}`, 
-                                              padding: '6px 32px 6px 12px', 
-                                              borderRadius: '6px', 
+                                          <input
+                                            type="time"
+                                            value={toTimeInputValue(s.startTime) || '09:00'}
+                                            onChange={(e) => handleSlotTimeChange(p.id, s.id, 'startTime', e.target.value)}
+                                            style={{
+                                              backgroundColor: '#1E222D',
+                                              color: '#FFFFFF',
+                                              border: `1px solid ${isConflict ? '#EF4444' : 'rgba(255, 255, 255, 0.15)'}`,
+                                              padding: '6px 32px 6px 12px',
+                                              borderRadius: '6px',
                                               fontSize: '0.85rem',
                                               colorScheme: 'dark',
                                               width: '100%',
                                               cursor: 'pointer'
-                                            }} 
+                                            }}
                                           />
                                           <Clock size={14} style={{ position: 'absolute', right: '12px', color: isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4'), pointerEvents: 'none' }} />
                                         </div>
@@ -2403,15 +2495,15 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                             Past Time
                                           </span>
                                         )}
-                                        <button 
-                                          onClick={() => handleRemoveManualSlot(p.id, s.id)} 
-                                          style={{ 
-                                            background: 'rgba(239, 68, 68, 0.1)', 
-                                            border: '1px solid rgba(239, 68, 68, 0.3)', 
-                                            color: '#EF4444', 
-                                            cursor: 'pointer', 
-                                            fontSize: '1.1rem', 
-                                            lineHeight: 1, 
+                                        <button
+                                          onClick={() => handleRemoveManualSlot(p.id, s.id)}
+                                          style={{
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                                            color: '#EF4444',
+                                            cursor: 'pointer',
+                                            fontSize: '1.1rem',
+                                            lineHeight: 1,
                                             width: '28px',
                                             height: '28px',
                                             borderRadius: '6px',
@@ -2419,7 +2511,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             transition: 'all 0.2s'
-                                          }} 
+                                          }}
                                           onMouseEnter={(e) => {
                                             e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
                                           }}
@@ -2608,8 +2700,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         {activeZohoType === 'In-Person'
                           ? 'SECURITY & BUILDING INSTRUCTIONS'
                           : (activeZohoType === 'Log'
-                              ? 'PANEL EVALUATION FEEDBACK NOTES & REMARKS'
-                              : 'ADDITIONAL INSTRUCTIONS')}
+                            ? 'PANEL EVALUATION FEEDBACK NOTES & REMARKS'
+                            : 'ADDITIONAL INSTRUCTIONS')}
                       </label>
                       <input
                         type="text"
@@ -2618,8 +2710,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           activeZohoType === 'In-Person'
                             ? 'e.g. Show ID at main reception, visitor pass required...'
                             : (activeZohoType === 'Log'
-                                ? 'e.g. Excellent problem solving skills, strong technical depth...'
-                                : 'Instructions for panel members or candidates...')
+                              ? 'e.g. Excellent problem solving skills, strong technical depth...'
+                              : 'Instructions for panel members or candidates...')
                         }
                         value={formData.additionalNotes}
                         onChange={handleFieldChange}
@@ -2638,7 +2730,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         5. CANDIDATE MATCHING &amp; ALLOCATION
                       </h4>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
+                        <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
@@ -2673,7 +2765,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                           <Sparkles size={14} />
                           {showPreview ? 'Hide Candidate Matches' : 'Auto-Assign Candidates'}
                         </button>
-                        <button 
+                        <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
@@ -2705,9 +2797,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               There are currently no shortlisted candidates available for {formData.jobPosition}. Proceed to the Applicants section to review and shortlist candidates.
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'center' }}>
-                              <button 
-                                type="button" 
-                                className="btn-primary-accent" 
+                              <button
+                                type="button"
+                                className="btn-primary-accent"
                                 onClick={() => navigate('/recruiter/applicants/ranked')}
                                 style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '0.8rem' }}
                               >
@@ -2725,74 +2817,74 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               The following top-ranked shortlisted candidates will be matched and assigned to your configured panels upon saving. You can modify assignments if needed.
                             </p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {panels.map((p, idx) => (
-                            <div key={p.id} style={{ padding: '12px', backgroundColor: '#1E222D', borderRadius: '8px', border: '1px solid #2A2C38' }}>
-                              <strong style={{ color: '#F0B90B', fontSize: '0.75rem', display: 'block', marginBottom: '10px' }}>{p.name}</strong>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {p.slots.map((s, sIdx) => {
-                                  const c = s.assignedCandidate;
-                                  return (
-                                    <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', paddingBottom: '6px', borderBottom: sIdx < p.slots.length - 1 ? '1px solid #2A2C38' : 'none' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9599A6', minWidth: '150px' }}>
-                                        <Clock size={12} />
-                                        <span>{formatTime(s.startTime || '09:00')} – {formatTime(s.endTime || getEndTime(s.startTime || '09:00'))}</span>
-                                      </div>
-                                      
-                                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <select
-                                          value={c?.name || ''}
-                                          onChange={(e) => {
-                                            const newCandName = e.target.value;
-                                            const selectedCand = currentShortlisted.find(cand => cand.name === newCandName) || null;
-                                            const nextPanels = panels.map(pan => pan.id === p.id ? {
-                                              ...pan,
-                                              slots: pan.slots.map(slot => slot.id === s.id ? { ...slot, assignedCandidate: selectedCand } : slot)
-                                            } : pan);
-                                            setPanels(nextPanels);
-                                            syncCandidateAllocations(nextPanels);
-                                          }}
-                                          style={{ 
-                                            backgroundColor: '#1E222D', color: '#FFFFFF', 
-                                            border: '1px solid #2A2C38', borderRadius: '6px', 
-                                            padding: '6px 8px', fontSize: '0.75rem', outline: 'none',
-                                            flex: 1
-                                          }}
-                                        >
-                                          <option value="">Select Candidate...</option>
-                                          {currentShortlisted.filter(cand => !panels.some(pan => pan.slots.some(slot => slot.id !== s.id && slot.assignedCandidate?.name === cand.name))).map(cand => (
-                                            <option key={cand.name} value={cand.name}>{cand.name} ({cand.score}%)</option>
-                                          ))}
-                                        </select>
-                                        
-                                        {c && (
-                                          <span style={{ color: '#22C55E', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
-                                            {c.score || 90}% Match
-                                          </span>
-                                        )}
-                                      </div>
+                              {panels.map((p, idx) => (
+                                <div key={p.id} style={{ padding: '12px', backgroundColor: '#1E222D', borderRadius: '8px', border: '1px solid #2A2C38' }}>
+                                  <strong style={{ color: '#F0B90B', fontSize: '0.75rem', display: 'block', marginBottom: '10px' }}>{p.name}</strong>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {p.slots.map((s, sIdx) => {
+                                      const c = s.assignedCandidate;
+                                      return (
+                                        <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', paddingBottom: '6px', borderBottom: sIdx < p.slots.length - 1 ? '1px solid #2A2C38' : 'none' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9599A6', minWidth: '150px' }}>
+                                            <Clock size={12} />
+                                            <span>{formatTime(s.startTime || '09:00')} – {formatTime(s.endTime || getEndTime(s.startTime || '09:00'))}</span>
+                                          </div>
 
-                                      <div style={{ marginLeft: '16px' }}>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.preventDefault(); setViewingCandidate(c); }}
-                                          disabled={!c}
-                                          style={{
-                                            background: 'none', border: '1px solid rgba(96, 165, 250, 0.3)', color: c ? '#60A5FA' : '#9599A6',
-                                            fontSize: '0.7rem', cursor: c ? 'pointer' : 'not-allowed', padding: '4px 10px', borderRadius: '4px',
-                                            backgroundColor: c ? 'rgba(96, 165, 250, 0.05)' : 'transparent', fontWeight: 600
-                                          }}
-                                        >
-                                          View Details
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <select
+                                              value={c?.name || ''}
+                                              onChange={(e) => {
+                                                const newCandName = e.target.value;
+                                                const selectedCand = currentShortlisted.find(cand => cand.name === newCandName) || null;
+                                                const nextPanels = panels.map(pan => pan.id === p.id ? {
+                                                  ...pan,
+                                                  slots: pan.slots.map(slot => slot.id === s.id ? { ...slot, assignedCandidate: selectedCand } : slot)
+                                                } : pan);
+                                                setPanels(nextPanels);
+                                                syncCandidateAllocations(nextPanels);
+                                              }}
+                                              style={{
+                                                backgroundColor: '#1E222D', color: '#FFFFFF',
+                                                border: '1px solid #2A2C38', borderRadius: '6px',
+                                                padding: '6px 8px', fontSize: '0.75rem', outline: 'none',
+                                                flex: 1
+                                              }}
+                                            >
+                                              <option value="">Select Candidate...</option>
+                                              {currentShortlisted.filter(cand => !panels.some(pan => pan.slots.some(slot => slot.id !== s.id && slot.assignedCandidate?.name === cand.name))).map(cand => (
+                                                <option key={cand.name} value={cand.name}>{cand.name} ({cand.score}%)</option>
+                                              ))}
+                                            </select>
+
+                                            {c && (
+                                              <span style={{ color: '#22C55E', fontWeight: 500, fontSize: '0.7rem', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                                                {c.score || 90}% Match
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          <div style={{ marginLeft: '16px' }}>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => { e.preventDefault(); setViewingCandidate(c); }}
+                                              disabled={!c}
+                                              style={{
+                                                background: 'none', border: '1px solid rgba(96, 165, 250, 0.3)', color: c ? '#60A5FA' : '#9599A6',
+                                                fontSize: '0.7rem', cursor: c ? 'pointer' : 'not-allowed', padding: '4px 10px', borderRadius: '4px',
+                                                backgroundColor: c ? 'rgba(96, 165, 250, 0.05)' : 'transparent', fontWeight: 600
+                                              }}
+                                            >
+                                              View Details
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                        </>
+                          </>
                         )}
                       </div>
                     )}
@@ -2800,7 +2892,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     {showManualAssign && (
                       <div style={{ padding: '16px', backgroundColor: '#13141C', border: '1px solid #2A2C38', borderRadius: '12px', marginTop: '16px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '0.85fr auto 1.15fr', gap: '20px', alignItems: 'flex-start' }}>
-                          
+
                           {/* Left side: Shortlisted Candidates */}
                           <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', height: '100%' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -2812,14 +2904,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                 {unallocatedShortlisted.length} REMAINING
                               </span>
                             </div>
-                            
+
                             <div style={{ display: 'grid', gridTemplateColumns: '36px 1.6fr 1fr 1fr', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
                               <div></div>
                               <div>Candidate Name</div>
                               <div>Score</div>
                               <div></div>
                             </div>
-                            
+
                             <div>
                               {unallocatedShortlisted.length === 0 ? (
                                 <div style={{ padding: '24px 0', textAlign: 'center', color: '#9599A6', fontSize: '0.82rem' }}>
@@ -2832,8 +2924,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   return (
                                     <div key={cand.id || idx} style={{ display: 'grid', gridTemplateColumns: '36px 1.6fr 1fr 1fr', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38' }}>
                                       <div>
-                                        <input 
-                                          type="radio" 
+                                        <input
+                                          type="radio"
                                           name="candidateSelect"
                                           checked={selectedCandidates.includes(cand.name)}
                                           onChange={(e) => {
@@ -2870,7 +2962,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Middle side: Allocate/Remove buttons */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', marginTop: '40px' }}>
                             <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', width: '140px', textAlign: 'center' }}>
@@ -2880,8 +2972,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               </div>
                               <div style={{ color: '#9599A6', fontSize: '0.65rem' }}>{selectedSlotKey ? 'Slot selected' : 'No slot selected'}</div>
                             </div>
-                            
-                            <button 
+
+                            <button
                               type="button"
                               onClick={(e) => {
                                 e.preventDefault();
@@ -2925,8 +3017,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             >
                               Allocate <ArrowRight size={14} />
                             </button>
-                            
-                            <button 
+
+                            <button
                               type="button"
                               onClick={(e) => {
                                 e.preventDefault();
@@ -2988,7 +3080,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               <ArrowLeft size={14} /> Remove
                             </button>
                           </div>
-                          
+
                           {/* Right side: Available Time Slots */}
                           <div style={{ backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', padding: '16px', height: '100%' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -2997,7 +3089,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                 <h5 style={{ margin: 0, color: '#FFFFFF', fontSize: '0.9rem' }}>Available Time Slots</h5>
                               </div>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <button 
+                                <button
                                   type="button"
                                   onClick={(e) => {
                                     e.preventDefault();
@@ -3020,7 +3112,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                           return { ...s, assignedCandidate: c };
                                         })
                                       }));
-                                      
+
                                       while (candIdx < shortlisted.length) {
                                         summary.push({ candidate: shortlisted[candIdx], slot: null, panelName: 'Unassigned Candidates' });
                                         candIdx++;
@@ -3050,7 +3142,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                 })()}
                               </div>
                             </div>
-                            
+
                             <div style={{ display: 'grid', gridTemplateColumns: '32px 0.8fr 1.6fr 0.9fr 0.8fr 0.45fr 0.45fr 36px', paddingBottom: '12px', borderBottom: '1px solid #2A2C38', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, textTransform: 'uppercase' }}>
                               <div></div>
                               <div>Date</div>
@@ -3058,12 +3150,16 @@ function RecruiterInterviewTimeSlotManagementPage() {
                               <div>Panel</div>
                               <div>Type</div>
                               <div style={{ textAlign: 'center' }}>Cap.</div>
-                              <div style={{ textAlign: 'center' }}>Rem.</div>
+                              <div style={{
+                                textAlign:
+                                  'center'
+                              }}>Rem.</div>
                               <div style={{ textAlign: 'center' }}>Act.</div>
                             </div>
-                            
+
                             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                               {(() => {
+                                const currentSlotType = formData.interviewType || (activeZohoType === 'In-Person' || formData.interviewMedia === 'In-Person' ? 'Physical' : 'Online');
                                 const availableSlots = panels.flatMap((p, pIdx) =>
                                   p.slots
                                     .filter(slot => !slot.assignedCandidate)
@@ -3072,7 +3168,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                       panelId: p.id,
                                       panelNo: pIdx + 1,
                                       panelActualName: p.name,
-                                      type: slot.type || (p.id === 1 ? (slot.id % 2 === 0 ? 'Physical' : 'Online') : (slot.id % 2 === 0 ? 'Online' : 'Physical'))
+                                      type: slot.type || currentSlotType
                                     }))
                                 );
 
@@ -3101,8 +3197,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   return (
                                     <div key={slotKey} style={{ display: 'grid', gridTemplateColumns: '32px 0.8fr 1.6fr 0.9fr 0.8fr 0.45fr 0.45fr 36px', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #2A2C38', backgroundColor: isSelected ? 'rgba(240, 185, 11, 0.05)' : 'transparent', opacity: isPast ? 0.45 : 1 }}>
                                       <div>
-                                        <input 
-                                          type="radio" 
+                                        <input
+                                          type="radio"
                                           name="selectedSlot"
                                           checked={isSelected}
                                           disabled={isPast}
@@ -3126,10 +3222,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                       </div>
                                       <div style={{ color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 600 }}>{formatPanelDisplayName(slot.panelActualName || `Panel ${slot.panelNo}`)}</div>
                                       <div>
-                                        <span style={{ 
-                                          backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)', 
-                                          color: slot.type === 'Online' ? '#60A5FA' : '#A855F7', 
-                                          padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 
+                                        <span style={{
+                                          backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)',
+                                          color: slot.type === 'Online' ? '#60A5FA' : '#A855F7',
+                                          padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600
                                         }}>
                                           {slot.type}
                                         </span>
@@ -3186,7 +3282,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             <p style={{ color: '#9599A6', fontSize: '0.8rem', marginBottom: '20px', lineHeight: 1.5 }}>
                               Candidates have been optimally matched to available time slots based on their ranking score and earliest availability.
                             </p>
-                            
+
                             <div>
                               {(() => {
                                 const allShortlisted = currentShortlisted;
@@ -3226,9 +3322,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                                     onChange={(e) => {
                                                       const newCandName = e.target.value;
                                                       if (newCandName === match.candidate.name) return;
-                                                      
+
                                                       const selectedCand = allShortlisted.find(c => c.name === newCandName) || null;
-                                                      
+
                                                       let oldSlotId = null;
                                                       let oldPanelId = null;
                                                       if (selectedCand) {
@@ -3258,7 +3354,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                                           return s;
                                                         })
                                                       }));
-                                                      
+
                                                       let newSummary = [];
                                                       newPanels.forEach(p => {
                                                         p.slots.forEach(s => {
@@ -3568,47 +3664,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
             </div>
 
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Choice 1: In-person Interview */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('In-Person')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid #2A2C38',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
-                    color: '#F0B90B',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Building size={24} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                    In-person Interview
-                  </h4>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct Interviews with Candidates, Interviewers, Recruiters and Contacts.
-                  </p>
-                </div>
-              </div>
-
-              {/* Choice 2: Video Interview */}
+              {/* Choice 1: Video Interview (Online) */}
               <div
                 className="zoho-modal-choice-card"
                 onClick={() => handleChooseZohoType('Google Meet')}
@@ -3618,7 +3674,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                   gap: '18px',
                   padding: '18px 20px',
                   backgroundColor: '#1E222D',
-                  border: '1px solid #2A2C38',
+                  border: '1px solid rgba(66, 133, 244, 0.35)',
                   borderRadius: '14px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -3629,8 +3685,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     width: '46px',
                     height: '46px',
                     borderRadius: '12px',
-                    backgroundColor: 'rgba(240, 185, 11, 0.12)',
-                    color: '#F0B90B',
+                    backgroundColor: 'rgba(66, 133, 244, 0.15)',
+                    color: '#60A5FA',
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,
@@ -3638,12 +3694,62 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 >
                   <Video size={24} />
                 </div>
-                <div>
-                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                    Video Interview
-                  </h4>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                      Video Interview
+                    </h4>
+                    <span style={{ backgroundColor: 'rgba(66, 133, 244, 0.15)', color: '#60A5FA', border: '1px solid rgba(66, 133, 244, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                      🌐 Online
+                    </span>
+                  </div>
                   <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct both recorded and live video Interviews with Candidates, Recruiters and Interviewers.
+                    Schedule and conduct online video interviews via Google Meet or Microsoft Teams with panel calendar sync.
+                  </p>
+                </div>
+              </div>
+
+              {/* Choice 2: In-person Interview (Physical) */}
+              <div
+                className="zoho-modal-choice-card"
+                onClick={() => handleChooseZohoType('In-Person')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '18px',
+                  padding: '18px 20px',
+                  backgroundColor: '#1E222D',
+                  border: '1px solid rgba(168, 85, 247, 0.35)',
+                  borderRadius: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div
+                  style={{
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+                    color: '#C084FC',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Building size={24} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
+                      In-person Interview
+                    </h4>
+                    <span style={{ backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#C084FC', border: '1px solid rgba(168, 85, 247, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                      🏢 Physical
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
+                    Schedule and conduct on-site physical office interviews with room location and panel members.
                   </p>
                 </div>
               </div>
@@ -4026,12 +4132,12 @@ function RecruiterInterviewTimeSlotManagementPage() {
       {/* ── Modal 2: Candidate Detail View ── */}
       {viewingCandidate && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--bg-dark, #0D0E12)', zIndex: 9999, overflowY: 'auto', padding: '24px' }}>
-          <CandidateDetailView 
+          <CandidateDetailView
             candidate={enrichCandidateDetails(viewingCandidate)}
             onBack={() => setViewingCandidate(null)}
-            onShortlist={() => {}}
-            onReject={() => {}}
-            onApprove={() => {}}
+            onShortlist={() => { }}
+            onReject={() => { }}
+            onApprove={() => { }}
           />
         </div>
       )}

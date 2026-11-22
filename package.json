@@ -1,9 +1,17 @@
 {
+  "name": "intellihire",
+  "version": "1.0.0",
+  "description": "IntelliHire - AI-Powered Recruitment Platform",
   "scripts": {
+    "test": "npm run test:backend",
+    "test:backend": "npm --prefix backend test",
+    "test:backend:unit": "npm --prefix backend run test:unit",
+    "test:backend:integration": "npm --prefix backend run test:integration",
+    "test:backend:coverage": "npm --prefix backend run test:coverage",
+    "test:e2e": "npm --prefix e2e test",
     "test:cv-insights": "npm --prefix e2e run test:cv-insights",
     "test:login": "npm --prefix e2e run test:login",
     "test:signup": "npm --prefix e2e run test:signup",
-    "test:e2e": "npm --prefix e2e test",
     "test:report": "npm --prefix e2e run test:report"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -14,9 +14,12 @@ import {
   TrendingUp,
   Search,
   RotateCcw,
+  Printer,
+  Clock,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
+import { getInterviewSlots } from '../../../services/interviewService';
 import '../../../style.css';
 import './RecruitmentProgress.css';
 
@@ -28,22 +31,22 @@ const PROGRESS_STATS = [
 ];
 
 const FUNNEL_STAGES = [
-  { stage: 'Applied', count: 1284, pct: 100, color: '#6B8CFF' },
-  { stage: 'CV Screened', count: 875, pct: 68, color: '#F0B90B' },
-  { stage: 'Shortlisted', count: 418, pct: 33, color: '#F0B90B' },
-  { stage: 'Assessment', count: 312, pct: 24, color: '#22C55E' },
-  { stage: 'Interview', count: 156, pct: 12, color: '#22C55E' },
-  { stage: 'Final Round', count: 72, pct: 6, color: '#22C55E' },
-  { stage: 'Hired', count: 48, pct: 4, color: '#22C55E' },
+  { stage: 'Applied', count: 48, pct: 100, color: '#6B8CFF' },
+  { stage: 'CV Screened', count: 32, pct: 67, color: '#F0B90B' },
+  { stage: 'Shortlisted', count: 9, pct: 19, color: '#F0B90B' },
+  { stage: 'Assessment', count: 9, pct: 19, color: '#22C55E' },
+  { stage: 'Interview Allocated', count: 3, pct: 6, color: '#22C55E' },
+  { stage: 'Interview Completed', count: 1, pct: 2, color: '#22C55E' },
+  { stage: 'Hired', count: 1, pct: 2, color: '#22C55E' },
 ];
 
 const STAGE_PROGRESS_RECORDS = [
-  { id: 'P-1', candidate: 'Alice Fernando', role: 'Senior Fullstack Engineer', slotId: 'SLOT-101', date: '03 Aug 2026', time: '09:00 AM', type: 'Online', stage: 'Technical Round', status: 'ALLOCATED' },
-  { id: 'P-2', candidate: 'Kamal Perera', role: 'UI/UX Designer', slotId: 'SLOT-103', date: '04 Aug 2026', time: '11:00 AM', type: 'Physical', stage: 'HR Portfolio', status: 'ALLOCATED' },
-  { id: 'P-3', candidate: 'Nimal Silva', role: 'QA Automation Engineer', slotId: 'SLOT-104', date: '05 Aug 2026', time: '02:00 PM', type: 'Online', stage: 'Cultural Fit', status: 'COMPLETED' },
-  { id: 'P-4', candidate: 'Sara Jayawardena', role: 'Business Analyst', slotId: 'SLOT-105', date: '06 Aug 2026', time: '10:00 AM', type: 'Physical', stage: 'Case Study', status: 'ALLOCATED' },
-  { id: 'P-5', candidate: 'Ruwan Bandara', role: 'Product Manager', slotId: 'SLOT-106', date: '07 Aug 2026', time: '09:00 AM', type: 'Online', stage: 'HR Screening', status: 'PENDING' },
-  { id: 'P-6', candidate: 'Dilhani Wickramasinghe', role: 'DevOps Lead', slotId: 'SLOT-107', date: '10 Aug 2026', time: '03:00 PM', type: 'Physical', stage: 'Architecture Final', status: 'COMPLETED' },
+  { id: 'P-1', candidate: 'Alice Fernando', role: 'Senior Software Engineer', date: '22 Oct 2026', time: '09:30 AM – 10:30 AM', type: 'Online', stage: 'Technical Interview', status: 'COMPLETED' },
+  { id: 'P-2', candidate: 'Kamal Perera', role: 'Senior Software Engineer', date: '02 Nov 2026', time: '02:00 PM – 03:00 PM', type: 'Physical', stage: 'HR Portfolio Review', status: 'RESCHEDULE_REQUESTED' },
+  { id: 'P-3', candidate: 'Nimal Silva', role: 'Senior Software Engineer', date: '04 Nov 2026', time: '11:00 AM – 12:00 PM', type: 'Online', stage: 'System Architecture', status: 'ALLOCATED' },
+  { id: 'P-4', candidate: 'Dinesh Mendis', role: 'Senior Software Engineer', date: '05 Nov 2026', time: '10:00 AM – 11:00 AM', type: 'Online', stage: 'Technical Interview', status: 'PENDING' },
+  { id: 'P-5', candidate: 'Sanduni Wickramasinghe', role: 'Senior Software Engineer', date: '06 Nov 2026', time: '01:30 PM – 02:30 PM', type: 'Physical', stage: 'HR Screening', status: 'PENDING' },
+  { id: 'P-6', candidate: 'Malith Senanayake', role: 'UI/UX Designer', date: '10 Nov 2026', time: '03:00 PM – 04:00 PM', type: 'Online', stage: 'Design Portfolio Review', status: 'PENDING' },
 ];
 
 const TABS = [
@@ -53,9 +56,59 @@ const TABS = [
   { id: 'progress', label: 'Recruitment Progress', path: '/recruiter/analytics/progress' },
 ];
 
+const formatCleanTime = (startStr, endStr) => {
+  if (!startStr) return '09:30 AM – 10:30 AM';
+  const clean = String(startStr).trim();
+  if (clean.includes('–') || clean.includes(' - ')) {
+    const parts = clean.split(/[–-]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0]} – ${parts[1]}`;
+    }
+    return parts[0];
+  }
+  if (endStr && endStr !== clean) {
+    return `${clean} – ${String(endStr).trim()}`;
+  }
+  return clean;
+};
+
+const loadProgressRecords = () => {
+  try {
+    const slots = getInterviewSlots();
+    if (Array.isArray(slots) && slots.length > 0) {
+      const liveRecords = slots
+        .filter((s) => s.candidate && s.candidate.name)
+        .map((s) => {
+          const isCompleted = s.status === 'COMPLETED';
+          const isRescheduled = s.status === 'RESCHEDULE_REQUESTED';
+          return {
+            id: `SLOT-${s.id}`,
+            candidate: s.candidate.name,
+            role: s.jobPosition || 'Senior Software Engineer',
+            date: s.displayDate || s.interviewDate || '02 Nov 2026',
+            time: formatCleanTime(s.startTime, s.endTime),
+            type: s.interviewType || 'Online',
+            stage: s.round || 'Technical Interview',
+            status: isCompleted ? 'COMPLETED' : isRescheduled ? 'RESCHEDULE_REQUESTED' : 'ALLOCATED',
+          };
+        });
+
+      const existingNames = new Set(liveRecords.map((r) => r.candidate.toLowerCase()));
+      const remainingBaseline = STAGE_PROGRESS_RECORDS.filter(
+        (b) => !existingNames.has(b.candidate.toLowerCase())
+      );
+      return [...liveRecords, ...remainingBaseline];
+    }
+  } catch (err) {
+    console.error('Failed to load slots in RecruitmentProgress:', err);
+  }
+  return STAGE_PROGRESS_RECORDS;
+};
+
 export default function RecruitmentProgress() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [allRecords, setAllRecords] = useState(loadProgressRecords);
   const [stageFilter, setStageFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -63,34 +116,52 @@ export default function RecruitmentProgress() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  const filteredRecords = STAGE_PROGRESS_RECORDS.filter((r) => {
+  useEffect(() => {
+    const handleSync = () => {
+      setAllRecords(loadProgressRecords());
+    };
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+    };
+  }, []);
+
+  const filteredRecords = allRecords.filter((r) => {
     const query = searchQuery.trim().toLowerCase();
-    return (stageFilter === 'all' || r.stage === stageFilter)
-      && (roleFilter === 'all' || r.role === roleFilter)
-      && (statusFilter === 'all' || r.status === statusFilter)
-      && (!query || r.candidate.toLowerCase().includes(query) || r.role.toLowerCase().includes(query));
+    const matchStage = stageFilter === 'all' || r.stage.toLowerCase() === stageFilter.toLowerCase() || r.stage.toLowerCase().includes(stageFilter.toLowerCase());
+    const matchRole = roleFilter === 'all' || r.role.toLowerCase() === roleFilter.toLowerCase() || r.role.toLowerCase().includes(roleFilter.toLowerCase());
+    const matchStatus = statusFilter === 'all' || r.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchSearch = !query || r.candidate.toLowerCase().includes(query) || r.role.toLowerCase().includes(query) || r.date.toLowerCase().includes(query);
+    return matchStage && matchRole && matchStatus && matchSearch;
   });
 
   const completed = filteredRecords.filter((record) => record.status === 'COMPLETED').length;
   const scheduled = filteredRecords.filter((record) => record.status === 'ALLOCATED').length;
-  const pending = filteredRecords.filter((record) => record.status === 'PENDING').length;
-  const completionRate = filteredRecords.length ? Math.round((completed / filteredRecords.length) * 100) : 0;
+  const reschedules = filteredRecords.filter((record) => record.status === 'RESCHEDULE_REQUESTED').length;
+  const totalAllocated = completed + scheduled + reschedules;
+  const completionRate = totalAllocated ? Math.round((completed / totalAllocated) * 100) : 0;
   const progressStats = [
-    { ...PROGRESS_STATS[0], value: `${completionRate}%`, change: `${completed} completed` },
-    { ...PROGRESS_STATS[1], label: 'Completed Interviews', value: completed, change: `${filteredRecords.length} total records` },
-    { ...PROGRESS_STATS[2], label: 'Scheduled Interviews', value: scheduled, change: 'Interview scheduled' },
-    { ...PROGRESS_STATS[3], label: 'Pending Scheduling', value: pending, change: 'Requires attention' },
+    { ...PROGRESS_STATS[0], value: `${completionRate}%`, change: `${completed} of ${totalAllocated} completed` },
+    { ...PROGRESS_STATS[1], label: 'Completed Interviews', value: completed, change: `${totalAllocated} allocated candidates` },
+    { ...PROGRESS_STATS[2], label: 'Scheduled Interviews', value: scheduled, change: 'Upcoming sessions' },
+    { ...PROGRESS_STATS[3], label: 'Pending Reschedule', value: reschedules, change: reschedules > 0 ? 'Requires attention' : 'All confirmed' },
   ];
-  const scale = filteredRecords.length / STAGE_PROGRESS_RECORDS.length;
-  const funnelStages = FUNNEL_STAGES.map((stage, index) => {
-    const count = Math.round(stage.count * scale);
-    const previous = index ? Math.round(FUNNEL_STAGES[index - 1].count * scale) : count;
-    return { ...stage, count, conversion: index ? (previous ? Math.round((count / previous) * 100) : 0) : 100, dropOff: index ? Math.max(previous - count, 0) : 0 };
-  });
-  const filtersActive = stageFilter !== 'all' || roleFilter !== 'all' || statusFilter !== 'all' || searchQuery.trim();
+  const funnelStages = [
+    { stage: 'Applied', count: 48, conversion: 100, dropOff: 0, color: '#6B8CFF' },
+    { stage: 'CV Screened', count: 32, conversion: 67, dropOff: 16, color: '#F0B90B' },
+    { stage: 'Shortlisted', count: 9, conversion: 28, dropOff: 23, color: '#F0B90B' },
+    { stage: 'Assessment', count: 9, conversion: 100, dropOff: 0, color: '#22C55E' },
+    { stage: 'Interview Allocated', count: totalAllocated, conversion: Math.round((totalAllocated / 9) * 100), dropOff: 9 - totalAllocated, color: '#22C55E' },
+    { stage: 'Interview Completed', count: completed, conversion: totalAllocated ? Math.round((completed / totalAllocated) * 100) : 0, dropOff: totalAllocated - completed, color: '#22C55E' },
+    { stage: 'Hired', count: completed, conversion: completed ? 100 : 0, dropOff: 0, color: '#22C55E' },
+  ];
+  const activeFilterCount = [stageFilter !== 'all', roleFilter !== 'all', statusFilter !== 'all', Boolean(searchQuery.trim())].filter(Boolean).length;
+  const filtersActive = activeFilterCount > 0;
   const clearFilters = () => { setStageFilter('all'); setRoleFilter('all'); setStatusFilter('all'); setSearchQuery(''); setCurrentPage(1); };
   const exportReport = () => {
-    const rows = [['Candidate', 'Role', 'Interview Stage', 'Slot ID', 'Date', 'Time', 'Type', 'Status'], ...filteredRecords.map((r) => [r.candidate, r.role, r.stage, r.slotId, r.date, r.time, r.type, r.status === 'ALLOCATED' ? 'INTERVIEW SCHEDULED' : r.status])];
+    const rows = [['Candidate', 'Role', 'Interview Stage', 'Date', 'Time', 'Type', 'Status'], ...filteredRecords.map((r) => [r.candidate, r.role, r.stage, r.date, r.time, r.type, r.status === 'ALLOCATED' ? 'INTERVIEW SCHEDULED' : r.status])];
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); const link = document.createElement('a'); link.href = url; link.download = 'recruitment-progress-report.csv'; link.click(); URL.revokeObjectURL(url);
   };
@@ -101,7 +172,11 @@ export default function RecruitmentProgress() {
 
   return (
     <div className="create-vacancy app-analytics-shell">
-      <RecruiterSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <RecruiterSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeItem="Hiring Progress"
+      />
 
       <div className="create-vacancy__main">
         <TopBar
@@ -136,10 +211,16 @@ export default function RecruitmentProgress() {
               <h1 className="an-page-title">Recruitment Progress &amp; Hiring Funnel</h1>
               <p className="an-page-subtitle">Monitor pipeline stage conversion, interview allocations, and hiring completion metrics.</p>
             </div>
-            <button className="an-export-btn" type="button" onClick={exportReport}>
-              <Download size={16} />
-              Export Report
-            </button>
+            <div className="an-header-actions">
+              <button className="an-print-btn" type="button" onClick={() => window.print()} title="Print or save PDF report">
+                <Printer size={16} />
+                Print / Save PDF
+              </button>
+              <button className="an-export-btn" type="button" onClick={exportReport} title="Export CSV report">
+                <Download size={16} />
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* KPI Stat Cards */}
@@ -174,18 +255,34 @@ export default function RecruitmentProgress() {
                 onChange={(e) => { setStageFilter(e.target.value); setCurrentPage(1); }}
               >
                 <option value="all">All Stages</option>
-                <option value="Technical Round">Technical Round</option>
-                <option value="HR Portfolio">HR Portfolio</option>
-                <option value="Cultural Fit">Cultural Fit</option>
-                <option value="Case Study">Case Study</option>
-                <option value="HR Screening">HR Screening</option>
-                <option value="Architecture Final">Architecture Final</option>
+                {[...new Set(allRecords.map((r) => r.stage))].map((stage) => (
+                  <option key={stage} value={stage}>{stage}</option>
+                ))}
               </select>
               <ChevronDown size={14} className="an-select-caret" />
             </div>
-            <div className="an-select-wrap"><select className="an-select" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}><option value="all">All Roles</option>{[...new Set(STAGE_PROGRESS_RECORDS.map((r) => r.role))].map((role) => <option key={role}>{role}</option>)}</select><ChevronDown size={14} className="an-select-caret" /></div>
-            <div className="an-select-wrap"><select className="an-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}><option value="all">All Statuses</option><option value="ALLOCATED">Interview Scheduled</option><option value="COMPLETED">Completed</option><option value="PENDING">Pending</option></select><ChevronDown size={14} className="an-select-caret" /></div>
-            {filtersActive && <button type="button" className="an-clear-filter" onClick={clearFilters}><RotateCcw size={14} /> Clear Filters</button>}
+            <div className="an-select-wrap">
+              <select className="an-select" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}>
+                <option value="all">All Roles</option>
+                {[...new Set(allRecords.map((r) => r.role))].map((role) => <option key={role}>{role}</option>)}
+              </select>
+              <ChevronDown size={14} className="an-select-caret" />
+            </div>
+            <div className="an-select-wrap">
+              <select className="an-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
+                <option value="all">All Statuses</option>
+                <option value="ALLOCATED">Interview Scheduled</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="PENDING">Pending</option>
+                <option value="RESCHEDULE_REQUESTED">Reschedule Requested</option>
+              </select>
+              <ChevronDown size={14} className="an-select-caret" />
+            </div>
+            {filtersActive && (
+              <button type="button" className="an-clear-filter is-active" onClick={clearFilters}>
+                <RotateCcw size={14} /> Clear Filters ({activeFilterCount})
+              </button>
+            )}
           </div>
 
           {/* Clean Hiring Funnel Card */}
@@ -194,6 +291,25 @@ export default function RecruitmentProgress() {
               <span className="an-chart-gold-bar" />
               <span className="an-overview-title">HIRING PIPELINE &amp; FUNNEL STAGES</span>
             </div>
+
+            {/* Interactive Milestone Step Pipeline */}
+            <div className="an-pipeline-flow">
+              {funnelStages.map((stage, i) => (
+                <div key={stage.stage} className="an-pipeline-step-wrap">
+                  <div className="an-pipeline-step">
+                    <span className="an-pipeline-step-dot" style={{ background: stage.color }} />
+                    <div className="an-pipeline-step-info">
+                      <span className="an-pipeline-step-name">{stage.stage}</span>
+                      <strong className="an-pipeline-step-count">{stage.count.toLocaleString()}</strong>
+                    </div>
+                  </div>
+                  {i < funnelStages.length - 1 && (
+                    <span className="an-pipeline-arrow">➔</span>
+                  )}
+                </div>
+              ))}
+            </div>
+
             <div className="an-funnel">
               {funnelStages.map((stage, i) => (
                 <div key={i} className="an-funnel-stage">
@@ -228,7 +344,6 @@ export default function RecruitmentProgress() {
                     <th>CANDIDATE NAME</th>
                     <th>ROLE</th>
                     <th>INTERVIEW STAGE</th>
-                    <th>SLOT ID</th>
                     <th>DATE &amp; TIME</th>
                     <th>TYPE</th>
                     <th>STATUS</th>
@@ -238,8 +353,9 @@ export default function RecruitmentProgress() {
                   {paginatedRecords.map((r) => {
                     const isCompleted = r.status === 'COMPLETED';
                     const isAllocated = r.status === 'ALLOCATED';
-                    const stBg = isCompleted ? 'rgba(120,185,139,0.10)' : isAllocated ? 'rgba(183,164,106,0.10)' : 'rgba(143,167,232,0.10)';
-                    const stColor = isCompleted ? '#78B98B' : isAllocated ? '#B7A46A' : '#8FA7E8';
+                    const isResched = r.status === 'RESCHEDULE_REQUESTED';
+                    const stBg = isCompleted ? 'rgba(120,185,139,0.10)' : isAllocated ? 'rgba(183,164,106,0.10)' : isResched ? 'rgba(230,57,70,0.12)' : 'rgba(143,167,232,0.10)';
+                    const stColor = isCompleted ? '#78B98B' : isAllocated ? '#B7A46A' : isResched ? '#E63946' : '#8FA7E8';
 
                     return (
                       <tr key={r.id}>
@@ -250,13 +366,23 @@ export default function RecruitmentProgress() {
                             {r.stage}
                           </span>
                         </td>
-                        <td className="an-td-muted">{r.slotId}</td>
-                        <td className="an-td-muted">{r.date} ({r.time})</td>
+                        <td>
+                          <div className="an-td-datetime">
+                            <div className="an-date-pill">
+                              <Calendar size={13} className="an-date-icon" />
+                              <span className="an-date-text">{r.date}</span>
+                            </div>
+                            <div className="an-time-pill">
+                              <Clock size={12} className="an-time-icon" />
+                              <span className="an-time-text">{r.time}</span>
+                            </div>
+                          </div>
+                        </td>
                         <td className="an-td-muted">{r.type}</td>
                         <td>
                           <span className="an-status-pill" style={{ background: stBg, color: stColor }}>
                             {isCompleted && <CheckCircle2 size={12} style={{ marginRight: 4 }} />}
-                            {isAllocated ? 'INTERVIEW SCHEDULED' : r.status}
+                            {isAllocated ? 'INTERVIEW SCHEDULED' : isResched ? 'RESCHEDULE REQ' : r.status}
                           </span>
                         </td>
                       </tr>
@@ -264,7 +390,7 @@ export default function RecruitmentProgress() {
                   })}
                   {paginatedRecords.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="an-td-empty">
+                      <td colSpan="6" className="an-td-empty">
                         <span>No progress records match your search and filters.</span><button type="button" onClick={clearFilters}>Clear Filters</button>
                       </td>
                     </tr>
@@ -273,7 +399,7 @@ export default function RecruitmentProgress() {
               </table>
             </div>
 
-            <div className="an-mobile-cards">{paginatedRecords.map((r) => <article className="an-mobile-card" key={r.id}><div className="an-mobile-card__head"><div><strong>{r.candidate}</strong><span>{r.role}</span></div><b>{r.status === 'ALLOCATED' ? 'Scheduled' : r.status}</b></div><p>{r.stage}</p><div className="an-mobile-meta"><span>{r.date} · {r.time}</span><span>{r.type} · {r.slotId}</span></div></article>)}{!paginatedRecords.length && <div className="an-mobile-empty"><p>No records match your search and filters.</p><button type="button" onClick={clearFilters}>Clear Filters</button></div>}</div>
+            <div className="an-mobile-cards">{paginatedRecords.map((r) => <article className="an-mobile-card" key={r.id}><div className="an-mobile-card__head"><div><strong>{r.candidate}</strong><span>{r.role}</span></div><b>{r.status === 'ALLOCATED' ? 'Scheduled' : r.status}</b></div><p>{r.stage}</p><div className="an-mobile-meta"><span>{r.date} · {r.time}</span><span>{r.type}</span></div></article>)}{!paginatedRecords.length && <div className="an-mobile-empty"><p>No records match your search and filters.</p><button type="button" onClick={clearFilters}>Clear Filters</button></div>}</div>
 
             {/* Pagination Controls */}
             {filteredRecords.length > pageSize && <div className="an-pagination">

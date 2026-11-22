@@ -324,7 +324,7 @@ function RecruiterSignupPage() {
                 <span className="auth-role-tab active">Recruiter</span>
               </div>
 
-              <form className="auth-form" onSubmit={handleSubmit}>
+              <form className="auth-form" onSubmit={handleSubmit} noValidate>
                 {/* --- Company Information --- */}
                 <h3 style={{ color: '#fff', fontSize: '1rem', marginTop: '1rem', marginBottom: '0.5rem', borderBottom: '1px solid #333', paddingBottom: '0.25rem' }}>Company Information</h3>
                 
@@ -628,7 +628,6 @@ function RecruiterSignupPage() {
                     onChange={handleChange}
                     className="auth-checkbox-input"
                     onClick={e => e.stopPropagation()} // Prevent double trigger
-                    required
                   />
                   <span className="auth-checkbox-label">
                     I agree to the <Link to="/terms" className="auth-link" onClick={e => e.stopPropagation()}>Terms of Service</Link> and <Link to="/privacy" className="auth-link" onClick={e => e.stopPropagation()}>Privacy Policy</Link>.
