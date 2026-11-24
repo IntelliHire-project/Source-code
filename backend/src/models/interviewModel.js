@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// Default Panel Members
+// Default Panel Members with Availability Constraints
 const DEFAULT_PANEL_MEMBERS = [
   {
     id: 'pm-1',
@@ -10,6 +10,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Engineering',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     specialties: ['React', 'Node.js', 'System Architecture'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-2',
@@ -19,6 +23,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Human Resources',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     specialties: ['HR Screening', 'Culture Fit', 'Portfolio Review'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 5,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-3',
@@ -28,6 +36,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Talent Acquisition',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
     specialties: ['Talent Sourcing', 'Behavioral Interview', 'Leadership'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-4',
@@ -37,6 +49,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Platform Engineering',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     specialties: ['Distributed Systems', 'Cloud & DevOps', 'Database Architecture'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
 ];
 

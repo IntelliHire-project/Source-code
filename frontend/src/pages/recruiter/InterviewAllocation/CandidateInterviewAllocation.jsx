@@ -34,7 +34,7 @@ import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { INTERVIEWS } from '../../../data/interviews';
 import { VACANCIES } from '../../../data/vacancies';
-import { getRescheduleRequests, getEndTime } from '../../../services/interviewService';
+import { getRescheduleRequests, getEndTime, checkPanelMemberAvailability, DEFAULT_PANEL_MEMBERS } from '../../../services/interviewService';
 import {
   fetchInterviewSlots,
   fetchAllocations,
@@ -1129,6 +1129,21 @@ export const mergeWithInitialAllocations = (incomingList) => {
         showToast(`Slot ${slotToAssign.time} (${slotToAssign.dateShort}) is fully booked!`, 'error');
         return;
       }
+
+      // Mandatory Panel Member Availability Check before assignment
+      const availCheck = checkPanelMemberAvailability(
+        slotToAssign.panelName || 'Panel A',
+        slotToAssign.dateKey || slotToAssign.date,
+        slotToAssign.time || slotToAssign.startTime
+      );
+      if (availCheck.status === 'CONFLICT') {
+        showToast(`Cannot allocate: ${availCheck.message}`, 'error');
+        return;
+      }
+      if (availCheck.status === 'OFF_DUTY') {
+        showToast(`Cannot allocate: ${availCheck.message}`, 'error');
+        return;
+      }
       const reallocations = selectedCands.filter((candidate) => {
         const existing = allocationByCandidate.get(candidate.id);
         return existing?.status === 'ALLOCATED' && existing.slotId !== slotToAssign.id;
@@ -2148,6 +2163,31 @@ export const mergeWithInitialAllocations = (incomingList) => {
               <span>candidate{selectedVisibleCandidates.length === 1 ? '' : 's'}</span>
               <small>{selectedSlot ? `${selectedSlot.dateShort}, ${selectedSlot.time}` : 'No slot selected'}</small>
             </div>
+            {selectedSlot && (
+              <div style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '6px',
+                padding: '6px 8px',
+                fontSize: '0.72rem',
+                color: '#22C55E',
+                textAlign: 'center',
+                margin: '6px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px'
+              }}>
+                <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={12} /> Panel Confirmed Available
+                </span>
+                <span style={{ fontSize: '0.68rem', color: '#FFFFFF', fontWeight: 600 }}>
+                  {formatPanelDisplayName(selectedSlot.panelName || 'Panel A')}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: '#9599A6' }}>
+                  Hours: 09:00 AM – 05:00 PM
+                </span>
+              </div>
+            )}
             <button
               type="button"
               className="btn-primary-accent btn-allocate"
@@ -2192,6 +2232,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                     <th>DATE</th>
                     <th>TIME</th>
                     <th>TYPE</th>
+                    <th>PANEL &amp; AVAILABILITY</th>
                     <th>CAP.</th>
                     <th>REM.</th>
                   </tr>
@@ -2199,7 +2240,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                 <tbody>
                   {filteredSlots.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="allocation-empty-cell">No available upcoming slots match the selected filters.</td>
+                      <td colSpan="7" className="allocation-empty-cell">No available upcoming slots match the selected filters.</td>
                     </tr>
                   )}
                   {paginatedSlots.map((slot) => {
@@ -2236,6 +2277,27 @@ export const mergeWithInitialAllocations = (incomingList) => {
                           <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
                             {slot.type}
                           </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontWeight: 600, color: '#F0B90B', fontSize: '0.78rem' }}>
+                              {formatPanelDisplayName(slot.panelName || 'Panel A (Technical Leads)')}
+                            </span>
+                            {slot.rem === 0 ? (
+                              <span style={{ color: '#EF4444', fontSize: '0.68rem', fontWeight: 700 }}>
+                                🔴 Slot Full
+                              </span>
+                            ) : isPast ? (
+                              <span style={{ color: '#9599A6', fontSize: '0.68rem', fontWeight: 600 }}>
+                                Past Schedule
+                              </span>
+                            ) : (
+                              <span style={{ color: '#22C55E', fontSize: '0.68rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22C55E' }}></span>
+                                Available ({slot.rem} left)
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="font-bold">{slot.cap}</td>
                         <td>
@@ -2309,6 +2371,9 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   <span>
                     <strong>{slot.dateShort}</strong>
                     <small>{formatDisplayTime(slot.time || slot.startTime)} – {formatDisplayTime(slot.end || slot.endTime)}</small>
+                    <small style={{ color: '#F0B90B', display: 'block', marginTop: '2px' }}>
+                      {formatPanelDisplayName(slot.panelName || 'Panel A')}
+                    </small>
                   </span>
                   <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
                     {slot.type}

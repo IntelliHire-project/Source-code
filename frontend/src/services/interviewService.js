@@ -12,7 +12,7 @@ const STORAGE_KEYS = {
   PANEL_MEMBERS: 'intellihire_panel_members',
 };
 
-// Initial Mock Panel Members - Single Consistent List
+// Initial Mock Panel Members - Single Consistent List with Availability Metadata
 export const DEFAULT_PANEL_MEMBERS = [
   {
     id: 'pm-1',
@@ -22,6 +22,10 @@ export const DEFAULT_PANEL_MEMBERS = [
     department: 'Engineering',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     specialties: ['React', 'Node.js', 'System Architecture'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-2',
@@ -31,6 +35,10 @@ export const DEFAULT_PANEL_MEMBERS = [
     department: 'Human Resources',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     specialties: ['HR Screening', 'Culture Fit', 'Portfolio Review'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 5,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-3',
@@ -40,6 +48,10 @@ export const DEFAULT_PANEL_MEMBERS = [
     department: 'Talent Acquisition',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
     specialties: ['Talent Sourcing', 'Behavioral Interview', 'Leadership'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-4',
@@ -49,6 +61,10 @@ export const DEFAULT_PANEL_MEMBERS = [
     department: 'Platform Engineering',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     specialties: ['Distributed Systems', 'Cloud & DevOps', 'Database Architecture'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
 ];
 
@@ -611,7 +627,7 @@ export const getPanelMembers = () => {
     const stored = localStorage.getItem(STORAGE_KEYS.PANEL_MEMBERS);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.some(p => p.name?.includes('Watson') || p.name?.includes('Vance'))) {
+      if (Array.isArray(parsed) && (parsed.some(p => p.name?.includes('Watson') || p.name?.includes('Vance')) || !parsed[0]?.availableHours)) {
         localStorage.removeItem(STORAGE_KEYS.PANEL_MEMBERS);
       } else {
         return parsed;
@@ -622,6 +638,302 @@ export const getPanelMembers = () => {
   }
   localStorage.setItem(STORAGE_KEYS.PANEL_MEMBERS, JSON.stringify(DEFAULT_PANEL_MEMBERS));
   return DEFAULT_PANEL_MEMBERS;
+};
+
+/**
+ * Check availability of a panel member for a given date and optional time.
+ * Validates against:
+ * - Working days (Monday to Friday)
+ * - Standard working hours (09:00 AM - 05:00 PM)
+ * - Daily interview capacity (maxDailyInterviews, typically 4-5)
+ * - Time overlap/conflicts with existing scheduled interviews
+ *
+ * @param {string|object} panelMemberOrEmail - Panel member object, ID ('pm-1'), or email
+ * @param {string} dateStr - Date string (YYYY-MM-DD or display date)
+ * @param {string|null} timeStr - Optional start time (e.g. '09:30 AM' or '09:30')
+ * @param {Array|null} existingSlots - Optional list of slots; defaults to stored slots
+ * @returns {object} Availability details & status indicators
+ */
+export const checkPanelMemberAvailability = (
+  panelMemberOrEmail,
+  dateStr,
+  timeStr = null,
+  existingSlots = null
+) => {
+  // 1. Resolve panel member
+  let member = null;
+  if (typeof panelMemberOrEmail === 'object' && panelMemberOrEmail !== null) {
+    member = panelMemberOrEmail;
+  } else if (typeof panelMemberOrEmail === 'string') {
+    const query = panelMemberOrEmail.trim().toLowerCase();
+    member = DEFAULT_PANEL_MEMBERS.find(
+      (m) =>
+        m.id.toLowerCase() === query ||
+        m.email.toLowerCase() === query ||
+        m.name.toLowerCase() === query ||
+        m.name.toLowerCase().includes(query)
+    );
+  }
+
+  if (!member) {
+    member = {
+      id: 'pm-custom',
+      name: typeof panelMemberOrEmail === 'string' ? panelMemberOrEmail : 'Panel Evaluator',
+      email: typeof panelMemberOrEmail === 'string' && panelMemberOrEmail.includes('@') ? panelMemberOrEmail : 'evaluator@company.com',
+      role: 'Interview Panel Member',
+      department: 'Hiring Team',
+      availableHours: '09:00 AM – 05:00 PM',
+      workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      maxDailyInterviews: 4,
+      status: 'AVAILABLE',
+    };
+  }
+
+  const maxDaily = member.maxDailyInterviews || 4;
+  const targetIso = toIsoDateString(dateStr);
+
+  // 2. Check Day of Week (Weekend check)
+  const dParts = targetIso.split('-').map(Number);
+  const dObj = new Date(dParts[0], dParts[1] - 1, dParts[2]);
+  const dayIndex = isNaN(dObj.getTime()) ? 1 : dObj.getDay(); // 0 is Sunday, 6 is Saturday
+  const isWeekend = dayIndex === 0 || dayIndex === 6;
+
+  // 3. Resolve existing slots
+  const allSlots = Array.isArray(existingSlots) ? existingSlots : getInterviewSlots();
+
+  // Find all slots scheduled for this panel member on this date
+  const memberSlotsOnDate = allSlots.filter((s) => {
+    if (!s) return false;
+    const sDateIso = toIsoDateString(s.interviewDate || s.date || s.dateKey);
+    if (sDateIso !== targetIso) return false;
+
+    // Check if slot belongs to this member
+    const slotMemberId = s.panelMember?.id;
+    const slotMemberEmail = (s.panelMember?.email || s.panelEmails || '').toLowerCase();
+    const slotMemberName = (s.panelMember?.name || s.panelName || '').toLowerCase();
+    const targetEmail = (member.email || '').toLowerCase();
+    const targetName = (member.name || '').toLowerCase();
+
+    const matchesId = slotMemberId && slotMemberId === member.id;
+    const matchesEmail = targetEmail && slotMemberEmail.includes(targetEmail);
+    const matchesName = targetName && (slotMemberName.includes(targetName) || (member.id && s.panelName?.toLowerCase().includes(member.name.toLowerCase())));
+
+    return matchesId || matchesEmail || matchesName;
+  });
+
+  const bookedCount = memberSlotsOnDate.length;
+  const remainingCount = Math.max(0, maxDaily - bookedCount);
+
+  // Extract booked time ranges for display
+  const bookedTimeSlots = memberSlotsOnDate.map((s) => ({
+    id: s.id,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    candidateName: s.candidate?.name || s.candidateName || 'Candidate',
+    round: s.round || 'Interview',
+    status: s.status,
+  }));
+
+  // 4. Time Check (if timeStr is provided)
+  let timeConflict = null;
+  let isOutsideHours = false;
+
+  if (timeStr) {
+    const timing = splitTimeRange(timeStr);
+    const cleanStart = timing.startTime;
+
+    // Check standard hours (09:00 AM to 05:00 PM)
+    const match = cleanStart.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const period = match[3] ? match[3].toUpperCase() : '';
+      if (period === 'PM' && h < 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      const minutesFromMidnight = h * 60 + m;
+
+      // 9:00 AM is 540 min, 5:00 PM (17:00) is 1020 min
+      if (minutesFromMidnight < 540 || minutesFromMidnight >= 1020) {
+        isOutsideHours = true;
+      }
+    }
+
+    // Check direct time overlap
+    timeConflict = memberSlotsOnDate.find((s) => {
+      const sTiming = splitTimeRange(s.startTime);
+      return sTiming.startTime.toLowerCase() === cleanStart.toLowerCase();
+    });
+  }
+
+  // 5. Determine status, badge color, and message
+  if (isWeekend) {
+    return {
+      available: false,
+      status: 'OFF_DUTY',
+      badgeColor: '#EF4444',
+      badgeText: '🔴 Non-working Day (Weekend)',
+      message: `${member.name} is off-duty on weekends. Standard working days: Monday – Friday.`,
+      bookedCount,
+      maxDaily,
+      remainingCount: 0,
+      availableHours: member.availableHours || '09:00 AM – 05:00 PM',
+      hasConflict: false,
+      timeConflict: null,
+      bookedTimeSlots,
+      member,
+    };
+  }
+
+  if (timeConflict) {
+    return {
+      available: false,
+      status: 'CONFLICT',
+      badgeColor: '#EF4444',
+      badgeText: '🔴 Schedule Conflict',
+      message: `Schedule Conflict: ${member.name} is already assigned at ${timeConflict.startTime} with ${timeConflict.candidate?.name || 'another candidate'}.`,
+      bookedCount,
+      maxDaily,
+      remainingCount,
+      availableHours: member.availableHours || '09:00 AM – 05:00 PM',
+      hasConflict: true,
+      timeConflict,
+      bookedTimeSlots,
+      member,
+    };
+  }
+
+  if (isOutsideHours) {
+    return {
+      available: false,
+      status: 'OUTSIDE_HOURS',
+      badgeColor: '#F0B90B',
+      badgeText: '⚠️ Outside Working Hours',
+      message: `Time is outside ${member.name}'s standard working hours (${member.availableHours || '09:00 AM – 05:00 PM'}).`,
+      bookedCount,
+      maxDaily,
+      remainingCount,
+      availableHours: member.availableHours || '09:00 AM – 05:00 PM',
+      hasConflict: false,
+      timeConflict: null,
+      bookedTimeSlots,
+      member,
+    };
+  }
+
+  if (bookedCount >= maxDaily) {
+    return {
+      available: false,
+      status: 'FULLY_BOOKED',
+      badgeColor: '#EF4444',
+      badgeText: `🔴 Fully Booked (${bookedCount}/${maxDaily})`,
+      message: `${member.name} has reached maximum daily interview capacity (${maxDaily}/${maxDaily} slots filled).`,
+      bookedCount,
+      maxDaily,
+      remainingCount: 0,
+      availableHours: member.availableHours || '09:00 AM – 05:00 PM',
+      hasConflict: false,
+      timeConflict: null,
+      bookedTimeSlots,
+      member,
+    };
+  }
+
+  if (bookedCount > 0) {
+    return {
+      available: true,
+      status: 'PARTIALLY_BOOKED',
+      badgeColor: '#F0B90B',
+      badgeText: `🟡 Partially Available (${remainingCount} slot${remainingCount > 1 ? 's' : ''} left)`,
+      message: `${member.name} is available (${bookedCount}/${maxDaily} booked, ${remainingCount} slot${remainingCount > 1 ? 's' : ''} remaining).`,
+      bookedCount,
+      maxDaily,
+      remainingCount,
+      availableHours: member.availableHours || '09:00 AM – 05:00 PM',
+      hasConflict: false,
+      timeConflict: null,
+      bookedTimeSlots,
+      member,
+    };
+  }
+
+  return {
+    available: true,
+    status: 'AVAILABLE',
+    badgeColor: '#22C55E',
+    badgeText: `🟢 Available (${maxDaily}/${maxDaily} slots free)`,
+    message: `${member.name} is fully available on this date (${member.availableHours || '09:00 AM – 05:00 PM'}).`,
+    bookedCount: 0,
+    maxDaily,
+    remainingCount: maxDaily,
+    availableHours: member.availableHours || '09:00 AM – 05:00 PM',
+    hasConflict: false,
+    timeConflict: null,
+    bookedTimeSlots: [],
+    member,
+  };
+};
+
+/**
+ * Get overall availability for a panel (which may contain multiple emails/members).
+ */
+export const getPanelAvailabilitySummary = (
+  panelOrEmails,
+  dateStr,
+  timeStr = null,
+  existingSlots = null
+) => {
+  let emails = [];
+  if (typeof panelOrEmails === 'string') {
+    emails = panelOrEmails.split(',').map((e) => e.trim()).filter(Boolean);
+  } else if (panelOrEmails && panelOrEmails.emails) {
+    emails = panelOrEmails.emails.split(',').map((e) => e.trim()).filter(Boolean);
+  }
+
+  if (emails.length === 0) {
+    emails = ['saman.tech@company.com'];
+  }
+
+  const membersAvailability = emails.map((email) =>
+    checkPanelMemberAvailability(email, dateStr, timeStr, existingSlots)
+  );
+
+  const hasConflict = membersAvailability.some((a) => a.status === 'CONFLICT');
+  const hasOutsideHours = membersAvailability.some((a) => a.status === 'OUTSIDE_HOURS');
+  const allFullyBooked = membersAvailability.every((a) => a.status === 'FULLY_BOOKED');
+  const anyWeekend = membersAvailability.some((a) => a.status === 'OFF_DUTY');
+
+  let overallStatus = 'AVAILABLE';
+  let overallBadgeColor = '#22C55E';
+  let overallBadgeText = '🟢 Available';
+
+  if (hasConflict) {
+    overallStatus = 'CONFLICT';
+    overallBadgeColor = '#EF4444';
+    overallBadgeText = '🔴 Schedule Conflict';
+  } else if (anyWeekend) {
+    overallStatus = 'OFF_DUTY';
+    overallBadgeColor = '#EF4444';
+    overallBadgeText = '🔴 Weekend / Non-working Day';
+  } else if (allFullyBooked) {
+    overallStatus = 'FULLY_BOOKED';
+    overallBadgeColor = '#EF4444';
+    overallBadgeText = '🔴 Fully Booked';
+  } else if (hasOutsideHours) {
+    overallStatus = 'OUTSIDE_HOURS';
+    overallBadgeColor = '#F0B90B';
+    overallBadgeText = '⚠️ Outside Working Hours';
+  } else if (membersAvailability.some((a) => a.status === 'PARTIALLY_BOOKED')) {
+    overallStatus = 'PARTIALLY_BOOKED';
+    overallBadgeColor = '#F0B90B';
+    overallBadgeText = '🟡 Partially Available';
+  }
+
+  return {
+    overallStatus,
+    overallBadgeColor,
+    overallBadgeText,
+    membersAvailability,
+  };
 };
 
 /**

@@ -41,6 +41,9 @@ import {
   getInterviewSlots,
   saveInterviewSlots,
   getEndTime,
+  DEFAULT_PANEL_MEMBERS,
+  checkPanelMemberAvailability,
+  getPanelAvailabilitySummary,
 } from '../../../services/interviewService';
 import {
   fetchInterviewSlots,
@@ -1261,12 +1264,65 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setToast({ type: 'success', message: 'Time slot form reset to default values.' });
   };
 
-  const hasTimeConflict = (panel, slot) => {
-    if (!panel || !slot || !slot.startTime) return false;
+  const checkSlotAvailability = (panel, slot) => {
+    if (!panel || !slot || !slot.startTime) return { available: true, status: 'AVAILABLE', message: 'Ready' };
     const sNorm = toTimeInputValue(slot.startTime);
-    return panel.slots.some(
+    const targetDate = slot.date || panel.selectedDate || formData.interviewDate || getTodayInputValue();
+
+    // 1. Direct duplicate within same panel
+    const hasSamePanelDuplicate = panel.slots.some(
       other => other.id !== slot.id && other.date === slot.date && toTimeInputValue(other.startTime) === sNorm
     );
+    if (hasSamePanelDuplicate) {
+      return {
+        available: false,
+        status: 'CONFLICT',
+        badgeColor: '#EF4444',
+        message: `Time conflict: another slot in ${panel.name || 'this panel'} is set to ${sNorm}`,
+      };
+    }
+
+    // 2. Cross-panel or existing scheduled slots conflict
+    const panelSummary = getPanelAvailabilitySummary(panel.emails, targetDate, sNorm, slots);
+    if (panelSummary.overallStatus === 'CONFLICT') {
+      const conflictMember = panelSummary.membersAvailability.find(m => m.status === 'CONFLICT');
+      return {
+        available: false,
+        status: 'CONFLICT',
+        badgeColor: '#EF4444',
+        message: conflictMember ? conflictMember.message : 'Schedule conflict detected for panel member',
+      };
+    }
+
+    if (panelSummary.overallStatus === 'OUTSIDE_HOURS') {
+      return {
+        available: false,
+        status: 'OUTSIDE_HOURS',
+        badgeColor: '#F0B90B',
+        message: 'Outside standard working hours (09:00 AM – 05:00 PM)',
+      };
+    }
+
+    if (panelSummary.overallStatus === 'OFF_DUTY') {
+      return {
+        available: false,
+        status: 'OFF_DUTY',
+        badgeColor: '#EF4444',
+        message: 'Selected date falls on a weekend / non-working day',
+      };
+    }
+
+    return {
+      available: true,
+      status: 'AVAILABLE',
+      badgeColor: '#22C55E',
+      message: 'Panel member is available at this time',
+    };
+  };
+
+  const hasTimeConflict = (panel, slot) => {
+    const res = checkSlotAvailability(panel, slot);
+    return res.status === 'CONFLICT';
   };
 
   const handlePanelEmailChange = (panelId, emailVal) => {
@@ -1311,12 +1367,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const handleAddPanel = () => {
     const nextId = panels.length + 1;
     const today = getTodayInputValue();
+    let defaultName = `Panel ${String.fromCharCode(64 + nextId)} (Senior Panel)`;
+    let defaultEmails = 'saman.tech@company.com';
+    if (nextId === 2) {
+      defaultName = 'Panel B (Talent Acquisition & Design)';
+      defaultEmails = 'dilhani.w@company.com';
+    } else if (nextId === 3) {
+      defaultName = 'Panel C (Principal Platform Engineering)';
+      defaultEmails = 'ruwan.b@company.com';
+    }
     setPanels(prev => [
       ...prev,
       {
         id: nextId,
-        name: `Panel ${String.fromCharCode(64 + nextId)} (Senior Panel)`,
-        emails: 'evaluator@company.com, hr@company.com',
+        name: defaultName,
+        emails: defaultEmails,
         capacity: 2,
         selectedDate: today,
         slots: [
@@ -1565,6 +1630,18 @@ function RecruiterInterviewTimeSlotManagementPage() {
     const roundSummary = roundTypes.join(', ');
 
     const currentSlotInterviewType = formData.interviewType || (formData.interviewMedia === 'In-Person' || activeZohoType === 'In-Person' ? 'Physical' : 'Online');
+
+    // Mandatory Panel Member Availability Check before assignment/creation
+    for (const p of panels) {
+      for (const s of (p.slots || [])) {
+        const avail = checkSlotAvailability(p, s);
+        if (avail.status === 'CONFLICT') {
+          setToast({ type: 'error', message: `Cannot save: ${avail.message}` });
+          setFormError(`Cannot save: ${avail.message}`);
+          return;
+        }
+      }
+    }
 
     if (editingSlotId) {
       const updatedPayload = {
@@ -2361,7 +2438,61 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             </div>
 
                             <div style={{ flex: 1 }}>
-                              <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '8px' }}>PANEL MEMBER EMAILS (ATTENDEES)</label>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  PANEL MEMBER EMAILS (ATTENDEES)
+                                </label>
+                                <span style={{ fontSize: '0.68rem', color: '#6E7079' }}>
+                                  Standard Hours: 09:00 AM – 05:00 PM
+                                </span>
+                              </div>
+
+                              {/* Quick-Assign Predefined Interviewers */}
+                              <div style={{ marginBottom: '10px' }}>
+                                <span style={{ fontSize: '0.68rem', color: '#8E92A0', display: 'block', marginBottom: '5px' }}>
+                                  Quick-Add Panelist:
+                                </span>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                  {DEFAULT_PANEL_MEMBERS.map(m => {
+                                    const isIncluded = (p.emails || '').toLowerCase().includes(m.email.toLowerCase());
+                                    return (
+                                      <button
+                                        key={m.id}
+                                        type="button"
+                                        onClick={() => {
+                                          const currentEmails = (p.emails ? p.emails.split(',') : []).map(e => e.trim()).filter(Boolean);
+                                          if (isIncluded) {
+                                            const updated = currentEmails.filter(e => e.toLowerCase() !== m.email.toLowerCase());
+                                            handlePanelEmailChange(p.id, updated.join(', '));
+                                          } else {
+                                            currentEmails.push(m.email);
+                                            handlePanelEmailChange(p.id, currentEmails.join(', '));
+                                          }
+                                        }}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          padding: '3px 8px',
+                                          borderRadius: '14px',
+                                          border: isIncluded ? '1px solid #22C55E' : '1px solid rgba(255, 255, 255, 0.15)',
+                                          backgroundColor: isIncluded ? 'rgba(34, 197, 94, 0.15)' : '#16171F',
+                                          color: isIncluded ? '#4ADE80' : '#C5C7D0',
+                                          fontSize: '0.72rem',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.15s ease',
+                                        }}
+                                        title={`${m.name} (${m.role}) — ${m.availableHours}`}
+                                      >
+                                        <img src={m.avatar} alt={m.name} style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }} />
+                                        <span>{m.name.split(' ')[0]}</span>
+                                        {isIncluded && <Check size={11} />}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {(p.emails ? p.emails.split(',') : ['']).map((emailStr, eIdx) => (
                                   <div key={eIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -2417,6 +2548,88 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   <Plus size={13} style={{ color: '#F0B90B' }} />
                                   <span>Add Email</span>
                                 </button>
+                              </div>
+
+                              {/* Mandatory Panelist Availability Check Status Display */}
+                              <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                  <label className="form-label" style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Users size={12} style={{ color: '#F0B90B' }} />
+                                    <span>PANELIST AVAILABILITY STATUS</span>
+                                  </label>
+                                  <span style={{ fontSize: '0.68rem', color: '#6E7079' }}>Date: {p.selectedDate}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {(p.emails ? p.emails.split(',') : []).map(e => e.trim()).filter(Boolean).map((emailStr, idx) => {
+                                    const avail = checkPanelMemberAvailability(emailStr, p.selectedDate, null, slots);
+                                    return (
+                                      <div
+                                        key={idx}
+                                        style={{
+                                          backgroundColor: '#16171F',
+                                          border: `1px solid ${avail.hasConflict ? '#EF4444' : avail.status === 'AVAILABLE' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                          borderRadius: '8px',
+                                          padding: '8px 10px',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '6px',
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <img
+                                              src={avail.member?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                                              alt={avail.member?.name || emailStr}
+                                              style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
+                                            />
+                                            <div>
+                                              <span style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '0.78rem', display: 'block', lineHeight: 1.2 }}>
+                                                {avail.member?.name || emailStr}
+                                              </span>
+                                              <span style={{ fontSize: '0.67rem', color: '#9599A6' }}>
+                                                {avail.member?.role || 'Interview Panel Member'}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <span
+                                            style={{
+                                              backgroundColor: `${avail.badgeColor}20`,
+                                              color: avail.badgeColor,
+                                              border: `1px solid ${avail.badgeColor}50`,
+                                              borderRadius: '12px',
+                                              padding: '2px 8px',
+                                              fontSize: '0.68rem',
+                                              fontWeight: 700,
+                                              whiteSpace: 'nowrap',
+                                            }}
+                                          >
+                                            {avail.badgeText}
+                                          </span>
+                                        </div>
+
+                                        {/* Working Hours & Capacity Info */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#8E92A0', borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: '4px' }}>
+                                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            <Clock size={11} style={{ color: '#F0B90B' }} />
+                                            <span>Hours: {avail.availableHours}</span>
+                                          </span>
+                                          <span>
+                                            Capacity: <strong style={{ color: '#FFFFFF' }}>{avail.bookedCount} / {avail.maxDaily}</strong> daily slots
+                                          </span>
+                                        </div>
+
+                                        {/* Conflict or Booking Warnings */}
+                                        {avail.bookedTimeSlots && avail.bookedTimeSlots.length > 0 && (
+                                          <div style={{ fontSize: '0.66rem', color: '#F0B90B', backgroundColor: 'rgba(240, 185, 11, 0.08)', borderRadius: '4px', padding: '3px 6px' }}>
+                                            Booked on this day: {avail.bookedTimeSlots.map(b => `${b.startTime} (${b.candidateName})`).join(', ')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
 
@@ -2587,7 +2800,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {p.slots.filter(s => s.date === p.selectedDate).map((s, idx) => {
-                                  const isConflict = hasTimeConflict(p, s);
+                                  const slotAvail = checkSlotAvailability(p, s);
+                                  const isConflict = slotAvail.status === 'CONFLICT';
+                                  const isOutsideHours = slotAvail.status === 'OUTSIDE_HOURS';
                                   const isPastTime = isSlotTimeInPast(s.date, s.startTime);
                                   return (
                                     <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -2595,14 +2810,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '12px',
-                                        backgroundColor: isConflict ? 'rgba(239, 68, 68, 0.12)' : (isPastTime ? 'rgba(255, 255, 255, 0.03)' : 'rgba(66, 133, 244, 0.1)'),
-                                        borderLeft: `3px solid ${isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4')}`,
+                                        backgroundColor: isConflict ? 'rgba(239, 68, 68, 0.12)' : (isOutsideHours ? 'rgba(240, 185, 11, 0.1)' : (isPastTime ? 'rgba(255, 255, 255, 0.03)' : 'rgba(66, 133, 244, 0.1)')),
+                                        borderLeft: `3px solid ${isConflict ? '#EF4444' : (isOutsideHours ? '#F0B90B' : (isPastTime ? '#6E7079' : '#22C55E'))}`,
                                         padding: '12px 16px',
                                         borderRadius: '6px',
                                         opacity: isPastTime ? 0.6 : 1,
                                         transition: 'all 0.2s'
                                       }}>
-                                        <span style={{ color: isConflict ? '#EF4444' : '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #{idx + 1}</span>
+                                        <span style={{ color: isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #${idx + 1}</span>
                                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
                                           <input
                                             type="time"
@@ -2611,7 +2826,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                             style={{
                                               backgroundColor: '#1E222D',
                                               color: '#FFFFFF',
-                                              border: `1px solid ${isConflict ? '#EF4444' : 'rgba(255, 255, 255, 0.15)'}`,
+                                              border: `1px solid ${isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : 'rgba(255, 255, 255, 0.15)'}`,
                                               padding: '6px 32px 6px 12px',
                                               borderRadius: '6px',
                                               fontSize: '0.85rem',
@@ -2620,7 +2835,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                               cursor: 'pointer'
                                             }}
                                           />
-                                          <Clock size={14} style={{ position: 'absolute', right: '12px', color: isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4'), pointerEvents: 'none' }} />
+                                          <Clock size={14} style={{ position: 'absolute', right: '12px', color: isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : (isPastTime ? '#6E7079' : '#22C55E'), pointerEvents: 'none' }} />
                                         </div>
                                         {isPastTime && (
                                           <span style={{ color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -2655,7 +2870,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                           ×
                                         </button>
                                       </div>
-                                      {isConflict && (
+                                      {isConflict ? (
                                         <div style={{
                                           display: 'flex',
                                           alignItems: 'center',
@@ -2669,9 +2884,42 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                           fontWeight: 600
                                         }}>
                                           <AlertCircle size={13} style={{ flexShrink: 0 }} />
-                                          <span>⚠️ {p.name || 'This Panel'} is already assigned at this time</span>
+                                          <span>⚠️ {slotAvail.message}</span>
                                         </div>
-                                      )}
+                                      ) : isOutsideHours ? (
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          color: '#F0B90B',
+                                          backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                                          border: '1px solid rgba(240, 185, 11, 0.3)',
+                                          borderRadius: '6px',
+                                          padding: '4px 10px',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <Clock size={13} style={{ flexShrink: 0 }} />
+                                          <span>⚠️ Outside standard working hours (09:00 AM – 05:00 PM)</span>
+                                        </div>
+                                      ) : !isPastTime ? (
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          color: '#22C55E',
+                                          backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                                          borderRadius: '6px',
+                                          padding: '3px 8px',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600,
+                                          width: 'fit-content'
+                                        }}>
+                                          <CheckCircle2 size={12} style={{ flexShrink: 0 }} />
+                                          <span>✓ Panel members available at this time</span>
+                                        </div>
+                                      ) : null}
                                     </div>
                                   );
                                 })}
