@@ -17,10 +17,12 @@ const {
   approveRescheduleRequestHandler,
   rejectRescheduleRequestHandler,
   customRescheduleHandler,
+  directRescheduleHandler,
   submitEvaluationHandler,
   getEvaluationsHandler,
   getPanelMembersHandler,
   clearAllSlotsHandler,
+  sendRemindersHandler,
 } = require('../controllers/interviewController');
 
 const router = express.Router();
@@ -74,10 +76,14 @@ router.post('/reschedule-requests', optionalAuth, createRescheduleRequestHandler
 router.put('/reschedule-requests/:id/approve', optionalAuth, approveRescheduleRequestHandler);
 router.put('/reschedule-requests/:id/reject', optionalAuth, rejectRescheduleRequestHandler);
 router.put('/reschedule-requests/:id/custom', optionalAuth, customRescheduleHandler);
+router.post('/reschedule-direct', optionalAuth, directRescheduleHandler);
 
 // Evaluations
 router.get('/evaluations', optionalAuth, getEvaluationsHandler);
 router.post('/evaluations', optionalAuth, submitEvaluationHandler);
+
+// Interview Reminders (Automated Email & Google Calendar Notifications)
+router.post('/reminders/send', optionalAuth, sendRemindersHandler);
 
 module.exports = router;
 

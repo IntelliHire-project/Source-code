@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  Bell,
+  BellRing,
   BriefcaseBusiness,
   Calendar,
   CalendarDays,
@@ -12,12 +14,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Download,
   ExternalLink,
   Mail,
   MapPin,
   Pencil,
   Phone,
   Plus,
+  RefreshCw,
   RotateCcw,
   Save,
   Search,
@@ -34,13 +38,25 @@ import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { INTERVIEWS } from '../../../data/interviews';
 import { VACANCIES } from '../../../data/vacancies';
-import { getRescheduleRequests, getEndTime } from '../../../services/interviewService';
+import {
+  getRescheduleRequests,
+  getEndTime,
+  checkPanelMemberAvailability,
+  DEFAULT_PANEL_MEMBERS,
+  checkUpcomingInterviewReminders,
+  sendInterviewReminder,
+  sendBulkInterviewReminders,
+  generateGoogleCalendarLink,
+  downloadIcsCalendarFile,
+  getInterviewRemindersLog,
+} from '../../../services/interviewService';
 import {
   fetchInterviewSlots,
   fetchAllocations,
   allocateCandidate,
   deleteAllocation,
   resetAllocations,
+  directRescheduleInterviewApi,
 } from '../../../api/interviewApi';
 import '../../../style.css';
 import './CandidateInterviewAllocation.css';
@@ -681,6 +697,16 @@ export const mergeWithInitialAllocations = (incomingList) => {
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [reschedulingAllocation, setReschedulingAllocation] = useState(null);
     const [rescheduleSlotId, setRescheduleSlotId] = useState('');
+    const [rescheduleMode, setRescheduleMode] = useState('slot'); // 'slot' | 'custom'
+    const [rescheduleCustomDate, setRescheduleCustomDate] = useState(() => {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      return t.toISOString().split('T')[0];
+    });
+    const [rescheduleCustomStart, setRescheduleCustomStart] = useState('10:00');
+    const [rescheduleCustomEnd, setRescheduleCustomEnd] = useState('11:00');
+    const [rescheduleReason, setRescheduleReason] = useState('Adjusted schedule directly through IntelliHire');
+    const [rescheduleAutoNotify, setRescheduleAutoNotify] = useState(true);
     const [viewingSlotModal, setViewingSlotModal] = useState(null);
     const [showNoCandidatesModal, setShowNoCandidatesModal] = useState(false);
     const [assignedPanels, setAssignedPanels] = useState(() =>
@@ -1129,6 +1155,21 @@ export const mergeWithInitialAllocations = (incomingList) => {
         showToast(`Slot ${slotToAssign.time} (${slotToAssign.dateShort}) is fully booked!`, 'error');
         return;
       }
+
+      // Mandatory Panel Member Availability Check before assignment
+      const availCheck = checkPanelMemberAvailability(
+        slotToAssign.panelName || 'Panel A',
+        slotToAssign.dateKey || slotToAssign.date,
+        slotToAssign.time || slotToAssign.startTime
+      );
+      if (availCheck.status === 'CONFLICT') {
+        showToast(`Cannot allocate: ${availCheck.message}`, 'error');
+        return;
+      }
+      if (availCheck.status === 'OFF_DUTY') {
+        showToast(`Cannot allocate: ${availCheck.message}`, 'error');
+        return;
+      }
       const reallocations = selectedCands.filter((candidate) => {
         const existing = allocationByCandidate.get(candidate.id);
         return existing?.status === 'ALLOCATED' && existing.slotId !== slotToAssign.id;
@@ -1317,21 +1358,48 @@ export const mergeWithInitialAllocations = (incomingList) => {
     };
     const handleResetAllocations = handleResetAllAllocations;
 
+    const handleOpenDirectReschedule = (item) => {
+      if (!item) return;
+      if (item.allowDirectReschedule === false) {
+        showToast('Direct rescheduling is locked by the initial scheduling policy for this session.', 'error');
+        return;
+      }
+      const maxAllowed = item.maxReschedulesAllowed;
+      const usedCount = Number(item.rescheduleCount || 0);
+      if (maxAllowed && maxAllowed !== 'unlimited' && usedCount >= Number(maxAllowed)) {
+        showToast(`Maximum allowed reschedules (${maxAllowed}) reached for ${item.candidateName}.`, 'error');
+        return;
+      }
+
+      setReschedulingAllocation(item);
+      setRescheduleMode('slot');
+      setRescheduleSlotId(item.slotId ? String(item.slotId) : '');
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      const parsedDate = (() => {
+        if (!item.interviewDate) return t.toISOString().split('T')[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(item.interviewDate)) return item.interviewDate;
+        const d = new Date(item.interviewDate);
+        return Number.isNaN(d.getTime()) ? t.toISOString().split('T')[0] : d.toISOString().split('T')[0];
+      })();
+      setRescheduleCustomDate(parsedDate);
+      setRescheduleCustomStart('10:00');
+      setRescheduleCustomEnd('11:00');
+      setRescheduleReason('Adjusted schedule directly through IntelliHire');
+      setRescheduleAutoNotify(item.autoNotifyOnReschedule !== false);
+    };
+
     const handleConfirmReschedule = () => {
-      if (!reschedulingAllocation || !rescheduleSlotId) {
-        showToast('Select an available slot to reschedule this candidate.', 'error');
-        return;
-      }
-      const targetSlot = slotsWithRemaining.find((slot) => String(slot.id) === String(rescheduleSlotId));
-      if (!targetSlot) {
-        showToast('Selected time slot not found.', 'error');
-        return;
-      }
-      const isCurrentSlot = String(reschedulingAllocation.slotId) === String(targetSlot.id);
-      if (!isCurrentSlot && targetSlot.rem <= 0) {
-        showToast('The selected slot is fully booked.', 'error');
-        return;
-      }
+      if (!reschedulingAllocation) return;
+
+      const to12HourStr = (hhmm) => {
+        if (!hhmm || !hhmm.includes(':')) return hhmm;
+        const [hRaw, mRaw] = hhmm.split(':');
+        let h = parseInt(hRaw, 10);
+        const period = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${String(h).padStart(2, '0')}:${mRaw} ${period}`;
+      };
 
       const candidateRecord = rescheduleCandidate || {
         id: reschedulingAllocation.candidateId,
@@ -1340,7 +1408,133 @@ export const mergeWithInitialAllocations = (incomingList) => {
         jobPosition: reschedulingAllocation.jobPosition || jobPosition,
       };
 
-      const newRecord = buildAllocationRecord(candidateRecord, targetSlot);
+      let newRecord = null;
+      let summaryLabel = '';
+
+      if (rescheduleMode === 'slot') {
+        if (!rescheduleSlotId) {
+          showToast('Select an available slot to reschedule this candidate.', 'error');
+          return;
+        }
+        const targetSlot = slotsWithRemaining.find((slot) => String(slot.id) === String(rescheduleSlotId));
+        if (!targetSlot) {
+          showToast('Selected time slot not found.', 'error');
+          return;
+        }
+        const isCurrentSlot = String(reschedulingAllocation.slotId) === String(targetSlot.id);
+        if (!isCurrentSlot && targetSlot.rem <= 0) {
+          showToast('The selected slot is fully booked.', 'error');
+          return;
+        }
+
+        // Mandatory Panel Member Availability Check before rescheduling
+        const availCheck = checkPanelMemberAvailability(
+          targetSlot.panelName || 'Panel A',
+          targetSlot.dateKey || targetSlot.date,
+          targetSlot.time || targetSlot.startTime
+        );
+        if (availCheck.status === 'CONFLICT') {
+          showToast(`Cannot reschedule: ${availCheck.message}`, 'error');
+          return;
+        }
+
+        const built = buildAllocationRecord(candidateRecord, targetSlot);
+        newRecord = {
+          ...reschedulingAllocation,
+          ...built,
+          rescheduleCount: Number(reschedulingAllocation.rescheduleCount || 0) + 1,
+          lastRescheduledAt: new Date().toISOString(),
+          rescheduledReason: rescheduleReason || 'Moved to available slot',
+          status: 'ALLOCATED',
+        };
+        summaryLabel = `${targetSlot.date} at ${targetSlot.time || targetSlot.startTime}`;
+
+        // Persist backend direct reschedule
+        directRescheduleInterviewApi({
+          slotId: reschedulingAllocation.slotId,
+          targetSlotId: targetSlot.id,
+          candidateId: reschedulingAllocation.candidateId,
+          candidateName: reschedulingAllocation.candidateName,
+          reason: rescheduleReason,
+        }).catch(() => {});
+      } else {
+        // Custom direct date/time mode
+        if (!rescheduleCustomDate || !rescheduleCustomStart || !rescheduleCustomEnd) {
+          showToast('Select date, start time, and end time for direct reschedule.', 'error');
+          return;
+        }
+        if (rescheduleCustomStart >= rescheduleCustomEnd) {
+          showToast('End time must be strictly after start time.', 'error');
+          return;
+        }
+
+        const start12 = to12HourStr(rescheduleCustomStart);
+        const end12 = to12HourStr(rescheduleCustomEnd);
+
+        // Mandatory Panel Member Availability Check for custom timing
+        const availCheck = checkPanelMemberAvailability(
+          reschedulingAllocation.panelName || 'Panel A',
+          rescheduleCustomDate,
+          start12
+        );
+        if (availCheck.status === 'CONFLICT') {
+          showToast(`Cannot reschedule: ${availCheck.message}`, 'error');
+          return;
+        }
+
+        const dObj = new Date(rescheduleCustomDate);
+        const displayDate = Number.isNaN(dObj.getTime())
+          ? rescheduleCustomDate
+          : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeRange = `${start12} – ${end12}`;
+
+        newRecord = {
+          ...reschedulingAllocation,
+          interviewDate: displayDate,
+          assignedDate: rescheduleCustomDate,
+          assignedTime: timeRange,
+          assignedEndTime: end12,
+          rescheduleCount: Number(reschedulingAllocation.rescheduleCount || 0) + 1,
+          lastRescheduledAt: new Date().toISOString(),
+          rescheduledReason: rescheduleReason || 'Direct custom reschedule',
+          status: 'ALLOCATED',
+        };
+        summaryLabel = `${displayDate} (${timeRange})`;
+
+        // Sync intellihire_interview_slots & intellihire_custom_slots so Panel Schedule reflects immediately
+        try {
+          const cleanSlotId = String(reschedulingAllocation.slotId || '').replace('SLOT-', '');
+          const storedSlots = JSON.parse(localStorage.getItem('intellihire_interview_slots') || '[]');
+          if (Array.isArray(storedSlots) && storedSlots.length > 0) {
+            const nextStored = storedSlots.map((s) => {
+              const candMatch = (s.candidate?.name || s.candidateName || '').toLowerCase() === (reschedulingAllocation.candidateName || '').toLowerCase();
+              if (String(s.id) === cleanSlotId || candMatch) {
+                return {
+                  ...s,
+                  rawDate: rescheduleCustomDate,
+                  interviewDate: displayDate,
+                  startTime: start12,
+                  endTime: end12,
+                  status: 'RESCHEDULED',
+                  lastRescheduledAt: new Date().toISOString(),
+                };
+              }
+              return s;
+            });
+            localStorage.setItem('intellihire_interview_slots', JSON.stringify(nextStored));
+          }
+        } catch { }
+
+        directRescheduleInterviewApi({
+          slotId: reschedulingAllocation.slotId,
+          candidateId: reschedulingAllocation.candidateId,
+          candidateName: reschedulingAllocation.candidateName,
+          newDate: rescheduleCustomDate,
+          newStartTime: start12,
+          newEndTime: end12,
+          reason: rescheduleReason,
+        }).catch(() => {});
+      }
 
       setAllocations((current) => {
         const next = current.map((allocation) => {
@@ -1357,10 +1551,21 @@ export const mergeWithInitialAllocations = (incomingList) => {
         return next;
       });
 
+      if (rescheduleAutoNotify && newRecord) {
+        sendInterviewReminder({
+          allocation: newRecord,
+          type: 'RESCHEDULED',
+          customNotes: rescheduleReason,
+        }).catch(() => {});
+        setRemindersLogTick((t) => t + 1);
+      }
+
       setReschedulingAllocation(null);
       setRescheduleSlotId('');
       window.dispatchEvent(new Event('intellihire_slots_updated'));
-      showToast(`${reschedulingAllocation.candidateName}'s interview was rescheduled to ${targetSlot.date} at ${targetSlot.time || targetSlot.startTime}!`);
+      showToast(
+        `${reschedulingAllocation.candidateName}'s interview rescheduled directly to ${summaryLabel}${rescheduleAutoNotify ? ' & updated reminders dispatched!' : '!'}`
+      );
     };
 
     // Save Allocations
@@ -1445,6 +1650,38 @@ export const mergeWithInitialAllocations = (incomingList) => {
       if (currentPage > totalPages) setCurrentPage(totalPages);
     }, [currentPage, totalPages]);
 
+    // ── Interview Reminders & Pop-up Alarms State ──
+    const [showRemindersModal, setShowRemindersModal] = useState(false);
+    const [dismissedAlertBanner, setDismissedAlertBanner] = useState(false);
+    const [remindersLogTick, setRemindersLogTick] = useState(0);
+
+    const upcomingRemindersData = useMemo(() => {
+      return checkUpcomingInterviewReminders(filteredAllocations);
+    }, [filteredAllocations, remindersLogTick]);
+
+    const handleSendSingleReminder = async (item, type = '24h') => {
+      const res = await sendInterviewReminder({ allocation: item, type });
+      setRemindersLogTick((t) => t + 1);
+      setToast({
+        type: 'success',
+        message: `Automated ${type} reminder dispatched to ${item.candidateName} & panel (${item.panelEmails || item.panelMembers || 'panel members'})!`,
+      });
+    };
+
+    const handleSendAllReminders = async (type = '24h') => {
+      const allocated = filteredAllocations.filter((a) => a.status === 'ALLOCATED');
+      if (allocated.length === 0) {
+        setToast({ type: 'warning', message: 'No allocated interviews found to send reminders.' });
+        return;
+      }
+      await sendBulkInterviewReminders(allocated, type);
+      setRemindersLogTick((t) => t + 1);
+      setToast({
+        type: 'success',
+        message: `Automated ${type} reminders & Google Calendar notifications dispatched to ${allocated.length} candidates and panel members!`,
+      });
+    };
+
     const selectedVisibleCandidates = filteredCandidates.filter((candidate) => candidate.selected);
     const selectedSlot = filteredSlots.find((slot) => slot.id === selectedSlotId);
     const rescheduleCandidate = reschedulingAllocation
@@ -1505,6 +1742,112 @@ export const mergeWithInitialAllocations = (incomingList) => {
         {/* Standard IntelliHire Toast Notification */}
         <AdminToast toast={toast} onDismiss={() => setToast(null)} />
 
+        {/* ── Upcoming Interview Pop-up Alert Banner ── */}
+        {!dismissedAlertBanner && upcomingRemindersData.hasUpcomingAlerts && (
+          <div
+            style={{
+              backgroundColor: '#1E222D',
+              border: '1px solid rgba(240, 185, 11, 0.4)',
+              borderLeft: '4px solid #F0B90B',
+              borderRadius: '10px',
+              padding: '14px 18px',
+              marginBottom: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <BellRing size={20} style={{ color: '#F0B90B' }} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>
+                    🔔 Upcoming Interview Pop-up Alert
+                  </span>
+                  <span
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                      color: '#EF4444',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {upcomingRemindersData.upcomingWithin24h.length} Session(s) in next 24 hours
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#9599A6' }}>
+                  Next upcoming session:{' '}
+                  <strong style={{ color: '#F0B90B' }}>
+                    {upcomingRemindersData.upcomingWithin24h[0]?.candidateName}
+                  </strong>{' '}
+                  ({upcomingRemindersData.upcomingWithin24h[0]?.jobPosition}) —{' '}
+                  <span style={{ color: '#4ADE80', fontWeight: 600 }}>
+                    {upcomingRemindersData.upcomingWithin24h[0]?.countdownText}
+                  </span>{' '}
+                  ({upcomingRemindersData.upcomingWithin24h[0]?.assignedTime || upcomingRemindersData.upcomingWithin24h[0]?.startTime})
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowRemindersModal(true)}
+                style={{
+                  backgroundColor: '#F0B90B',
+                  color: '#000000',
+                  border: 'none',
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Bell size={13} />
+                <span>Review &amp; Dispatch Reminders</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedAlertBanner(true)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#9599A6',
+                  padding: '7px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                }}
+                title="Dismiss alert banner"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── Filter Controls Card ── */}
         <div
           className="card-surface"
@@ -1512,18 +1855,17 @@ export const mergeWithInitialAllocations = (incomingList) => {
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
-            flexWrap: 'nowrap',
+            flexWrap: 'wrap',
             gap: '12px',
-            padding: '12px 18px',
-            marginBottom: '20px',
+            padding: '14px 18px',
+            marginBottom: '18px',
             borderRadius: '10px',
             border: '1px solid #2A2C38',
             backgroundColor: '#16171F',
-            overflowX: 'auto'
           }}
         >
           {/* Left: Position & Round Filters */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px', minWidth: 0 }}>
             {!embeddedVacancy && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '0.68rem', color: '#9599A6', fontWeight: 700, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1536,7 +1878,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                     onChange={(e) => setJobPosition(e.target.value)}
                     style={{
                       height: '35px',
-                      minWidth: '190px',
+                      minWidth: '175px',
                       padding: '0 26px 0 10px',
                       fontSize: '0.82rem',
                       fontWeight: 600,
@@ -1570,7 +1912,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   onChange={(e) => setInterviewRound(e.target.value)}
                   style={{
                     height: '35px',
-                    minWidth: '180px',
+                    minWidth: '170px',
                     padding: '0 26px 0 10px',
                     fontSize: '0.82rem',
                     fontWeight: 600,
@@ -1600,8 +1942,8 @@ export const mergeWithInitialAllocations = (incomingList) => {
             </div>
           </div>
 
-          {/* Right: Parallel badges & compact buttons on the same single line */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {/* Right: Parallel badges & compact buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             {/* Quick Metrics Badge */}
             <div style={{
               display: 'flex',
@@ -1698,7 +2040,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
               <h2 className="card-title">Allocation Results</h2>
             </div>
 
-            <div className="action-buttons-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="action-buttons-group" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <div className="allocation-results-search">
                 <Search size={15} />
                 <input
@@ -1717,12 +2059,13 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  height: '34px',
                   backgroundColor: 'rgba(239, 68, 68, 0.12)',
                   border: '1px solid rgba(239, 68, 68, 0.35)',
                   color: '#EF4444',
-                  padding: '6px 14px',
+                  padding: '0 12px',
                   borderRadius: '8px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -1746,12 +2089,13 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  height: '34px',
                   backgroundColor: 'rgba(59, 130, 246, 0.12)',
                   border: '1px solid rgba(59, 130, 246, 0.35)',
                   color: '#60A5FA',
-                  padding: '6px 14px',
+                  padding: '0 12px',
                   borderRadius: '8px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -1767,6 +2111,52 @@ export const mergeWithInitialAllocations = (incomingList) => {
                 <Send size={13} />
                 <span>Preview &amp; Send Invites</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setShowRemindersModal(true)}
+                title="Manage automated reminders and pop-up alarms for candidates and panel"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '34px',
+                  backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                  border: '1px solid rgba(240, 185, 11, 0.4)',
+                  color: '#F0B90B',
+                  padding: '0 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(240, 185, 11, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(240, 185, 11, 0.15)';
+                }}
+              >
+                <Bell size={13} style={{ color: '#F0B90B' }} />
+                <span>Reminders &amp; Pop-ups</span>
+                {upcomingRemindersData.upcomingWithin24h.length > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: '#EF4444',
+                      color: '#FFFFFF',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      borderRadius: '10px',
+                      padding: '1px 6px',
+                      marginLeft: '2px',
+                    }}
+                  >
+                    {upcomingRemindersData.upcomingWithin24h.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -1775,14 +2165,14 @@ export const mergeWithInitialAllocations = (incomingList) => {
             <table className="results-table">
               <thead>
                 <tr>
-                  <th style={{ width: '15%', whiteSpace: 'nowrap' }}>CANDIDATE NAME</th>
-                  <th style={{ width: '15%', whiteSpace: 'nowrap' }}>INTERVIEW ROUND</th>
-                  <th style={{ width: '16%', whiteSpace: 'nowrap' }}>PANEL NAME</th>
-                  <th style={{ width: '13%', whiteSpace: 'nowrap' }}>ASSIGNED TIME SLOT</th>
-                  <th style={{ width: '11%', whiteSpace: 'nowrap' }}>INTERVIEW DATE</th>
-                  <th style={{ width: '8%', whiteSpace: 'nowrap' }}>INTERVIEW TYPE</th>
-                  <th style={{ width: '11%', whiteSpace: 'nowrap' }}>ALLOCATION STATUS</th>
-                  <th style={{ width: '11%', textAlign: 'right', whiteSpace: 'nowrap' }}>ACTION</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>CANDIDATE NAME</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>INTERVIEW ROUND</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>PANEL NAME</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>ASSIGNED TIME SLOT</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>INTERVIEW DATE</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>TYPE</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>STATUS</th>
+                  <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -1910,10 +2300,28 @@ export const mergeWithInitialAllocations = (incomingList) => {
                             </button>
                             <button
                               type="button"
+                              className="btn-reschedule-row"
+                              onClick={() => handleOpenDirectReschedule(item)}
+                              title="Reschedule this candidate directly through the system"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '0 7px',
+                                height: '26px',
+                                fontSize: '0.69rem',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <RefreshCw size={10} />
+                              <span>Reschedule</span>
+                            </button>
+                            <button
+                              type="button"
                               className="btn-unassign-row"
                               onClick={() => handleRemoveAllocation(item.candidateId, item.candidateName)}
                               title="Unassign this candidate"
-                              style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 8px', fontSize: '0.70rem' }}
+                              style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 7px', fontSize: '0.69rem' }}
                             >
                               Unassign
                             </button>
@@ -1978,6 +2386,15 @@ export const mergeWithInitialAllocations = (incomingList) => {
                           </>
                         )}
                       </button>
+                      <button
+                        type="button"
+                        className="btn-reschedule-row"
+                        onClick={() => handleOpenDirectReschedule(item)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <RefreshCw size={11} />
+                        <span>Reschedule</span>
+                      </button>
                       <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId, item.candidateName)}>
                         Unassign
                       </button>
@@ -2032,29 +2449,29 @@ export const mergeWithInitialAllocations = (incomingList) => {
         <div className="allocation-workspace-grid">
           {/* Left Card: Shortlisted Candidates */}
           <div className="card-surface candidate-list-card">
-            <div className="card-header-bar flex-between" style={{ padding: '12px 16px' }}>
+            <div className="card-header-bar flex-between" style={{ paddingBottom: '12px', borderBottom: '1px solid #2A2C38', gap: '8px' }}>
               <div className="card-title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={16} style={{ color: '#F0B90B' }} />
-                <h3 className="card-title" style={{ margin: 0, fontSize: '0.95rem' }}>Shortlisted Candidates</h3>
+                <Users size={16} style={{ color: '#F0B90B', flexShrink: 0 }} />
+                <h3 className="card-title" style={{ margin: 0, fontSize: '0.92rem' }}>Shortlisted Candidates</h3>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Search size={12} style={{ position: 'absolute', left: '8px', color: '#9599A6', pointerEvents: 'none' }} />
                   <input
                     type="search"
-                    placeholder="Filter candidate..."
+                    placeholder="Filter candidate"
                     value={candidateSearchQuery}
                     onChange={(e) => setCandidateSearchQuery(e.target.value)}
                     style={{
                       height: '28px',
                       padding: '0 8px 0 24px',
-                      fontSize: '0.74rem',
+                      fontSize: '0.73rem',
                       backgroundColor: '#0D0E13',
                       border: '1px solid #2A2C38',
                       borderRadius: '6px',
                       color: '#FFFFFF',
                       outline: 'none',
-                      width: '130px',
+                      width: '126px',
                     }}
                   />
                 </div>
@@ -2063,7 +2480,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
             </div>
 
             {filteredCandidates.length === 0 ? (
-              <div style={{ padding: '48px 20px', textAlign: 'center', color: '#9599A6', borderTop: '1px solid #2A2C38' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center', color: '#9599A6' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#4ADE80', marginBottom: '12px' }}>
                   <CheckCircle2 size={24} />
                 </div>
@@ -2148,6 +2565,31 @@ export const mergeWithInitialAllocations = (incomingList) => {
               <span>candidate{selectedVisibleCandidates.length === 1 ? '' : 's'}</span>
               <small>{selectedSlot ? `${selectedSlot.dateShort}, ${selectedSlot.time}` : 'No slot selected'}</small>
             </div>
+            {selectedSlot && (
+              <div style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: '6px',
+                padding: '6px 8px',
+                fontSize: '0.72rem',
+                color: '#22C55E',
+                textAlign: 'center',
+                margin: '6px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px'
+              }}>
+                <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={12} /> Panel Confirmed Available
+                </span>
+                <span style={{ fontSize: '0.68rem', color: '#FFFFFF', fontWeight: 600 }}>
+                  {formatPanelDisplayName(selectedSlot.panelName || 'Panel A')}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: '#9599A6' }}>
+                  Hours: 09:00 AM – 05:00 PM
+                </span>
+              </div>
+            )}
             <button
               type="button"
               className="btn-primary-accent btn-allocate"
@@ -2161,23 +2603,23 @@ export const mergeWithInitialAllocations = (incomingList) => {
 
           {/* Right Card: Available Time Slots */}
           <div className="card-surface slots-list-card">
-            <div className="card-header-bar flex-between">
+            <div className="card-header-bar flex-between" style={{ paddingBottom: '12px', borderBottom: '1px solid #2A2C38', gap: '8px' }}>
               <div className="card-title-group">
-                <CalendarDays size={16} />
-                <h3 className="card-title">Available Time Slots</h3>
+                <CalendarDays size={16} style={{ flexShrink: 0 }} />
+                <h3 className="card-title" style={{ fontSize: '0.92rem' }}>Available Time Slots</h3>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={handleAutoAllocate}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 12px', borderRadius: '6px',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    height: '28px', padding: '0 10px', borderRadius: '6px',
                     backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
-                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                    fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
                   }}
                 >
-                  <Sparkles size={14} />
+                  <Sparkles size={13} />
                   Auto-Assign
                 </button>
                 <span className="count-badge">{filteredSlots.length} SLOTS</span>
@@ -2188,18 +2630,19 @@ export const mergeWithInitialAllocations = (incomingList) => {
               <table className="alloc-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '36px', textAlign: 'center' }}></th>
+                    <th style={{ width: '28px', textAlign: 'center' }}></th>
                     <th>DATE</th>
                     <th>TIME</th>
                     <th>TYPE</th>
-                    <th>CAP.</th>
-                    <th>REM.</th>
+                    <th>PANEL &amp; AVAILABILITY</th>
+                    <th style={{ textAlign: 'center' }}>CAP.</th>
+                    <th style={{ textAlign: 'center' }}>REM.</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSlots.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="allocation-empty-cell">No available upcoming slots match the selected filters.</td>
+                      <td colSpan="7" className="allocation-empty-cell">No available upcoming slots match the selected filters.</td>
                     </tr>
                   )}
                   {paginatedSlots.map((slot) => {
@@ -2223,22 +2666,45 @@ export const mergeWithInitialAllocations = (incomingList) => {
                           />
                         </td>
                         <td className="slot-date-cell">{slot.dateShort}</td>
-                        <td className="slot-time-cell">
-                          <Clock3 size={12} />
-                          <span>{formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime)}</span>
-                          {isPast && (
-                            <span style={{ marginLeft: '4px', color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
-                              Past
-                            </span>
-                          )}
-                        </td>
                         <td>
+                          <div className="slot-time-cell">
+                            <Clock3 size={12} style={{ flexShrink: 0, color: '#9599A6' }} />
+                            <span>{formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime)}</span>
+                            {isPast && (
+                              <span style={{ marginLeft: '4px', color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
+                                Past
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
                           <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
                             {slot.type}
                           </span>
                         </td>
-                        <td className="font-bold">{slot.cap}</td>
-                        <td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontWeight: 600, color: '#F0B90B', fontSize: '0.76rem' }}>
+                              {formatPanelDisplayName(slot.panelName || 'Panel A (Technical Leads)')}
+                            </span>
+                            {slot.rem === 0 ? (
+                              <span style={{ color: '#EF4444', fontSize: '0.66rem', fontWeight: 700 }}>
+                                🔴 Slot Full
+                              </span>
+                            ) : isPast ? (
+                              <span style={{ color: '#9599A6', fontSize: '0.66rem', fontWeight: 600 }}>
+                                Past Schedule
+                              </span>
+                            ) : (
+                              <span style={{ color: '#22C55E', fontSize: '0.66rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22C55E', flexShrink: 0 }}></span>
+                                Available ({slot.rem} left)
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="font-bold" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{slot.cap}</td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {slot.rem === 0 ? (
                             <span className="slot-full-badge">FULL</span>
                           ) : (
@@ -2309,6 +2775,9 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   <span>
                     <strong>{slot.dateShort}</strong>
                     <small>{formatDisplayTime(slot.time || slot.startTime)} – {formatDisplayTime(slot.end || slot.endTime)}</small>
+                    <small style={{ color: '#F0B90B', display: 'block', marginTop: '2px' }}>
+                      {formatPanelDisplayName(slot.panelName || 'Panel A')}
+                    </small>
                   </span>
                   <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
                     {slot.type}
@@ -2357,32 +2826,166 @@ export const mergeWithInitialAllocations = (incomingList) => {
 
         {reschedulingAllocation && (
           <div className="allocation-modal-backdrop" onClick={() => setReschedulingAllocation(null)}>
-            <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="allocation-modal" style={{ width: 'min(540px, 100%)' }} onClick={(event) => event.stopPropagation()}>
               <div className="allocation-modal__header">
-                <h3>Reschedule Interview</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <RefreshCw size={18} style={{ color: '#F0B90B' }} />
+                  <h3>Reschedule Interview Directly</h3>
+                </div>
                 <button type="button" onClick={() => setReschedulingAllocation(null)} aria-label="Close">
                   <X size={18} />
                 </button>
               </div>
               <div className="allocation-modal__body">
-                <p>Select a new slot for <strong>{reschedulingAllocation.candidateName}</strong>.</p>
-                <label className="reschedule-slot-label" htmlFor="reschedule-slot">Available time slot</label>
-                <select
-                  id="reschedule-slot"
-                  className="form-control"
-                  value={rescheduleSlotId}
-                  onChange={(event) => setRescheduleSlotId(event.target.value)}
+                {/* Current Session Info & Policy Pill */}
+                <div
+                  style={{
+                    backgroundColor: '#0D0E13',
+                    border: '1px solid #2A2C38',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    marginBottom: '14px',
+                  }}
                 >
-                  <option value="">Select a slot</option>
-                  {rescheduleOptions.map((slot) => (
-                    <option key={slot.id} value={slot.id}>
-                      {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available {String(slot.id) === String(reschedulingAllocation.slotId) ? '(Current Slot)' : ''}
-                    </option>
-                  ))}
-                  {rescheduleOptions.length === 0 && (
-                    <option value="" disabled>No other available slots for this position</option>
-                  )}
-                </select>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '4px' }}>
+                    <strong style={{ color: '#FFFFFF', fontSize: '0.88rem' }}>{reschedulingAllocation.candidateName}</strong>
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                        color: '#4ADE80',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✓ Direct Reschedule Enabled • Min {reschedulingAllocation.rescheduleNoticeHours || '24'}h Notice
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#9599A6' }}>
+                    Current: <span style={{ color: '#F0B90B', fontWeight: 600 }}>{reschedulingAllocation.interviewDate} ({formatDisplayTime(reschedulingAllocation.assignedTime)})</span> • {formatPanelDisplayName(reschedulingAllocation.panelName || 'Panel A')}
+                  </div>
+                </div>
+
+                {/* Mode Switcher: Move to Open Slot vs Pick Custom Date & Time */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRescheduleMode('slot')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: rescheduleMode === 'slot' ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                      backgroundColor: rescheduleMode === 'slot' ? 'rgba(240, 185, 11, 0.14)' : '#0D0E13',
+                      color: rescheduleMode === 'slot' ? '#F0B90B' : '#9599A6',
+                    }}
+                  >
+                    Move to Open Slot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRescheduleMode('custom')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: rescheduleMode === 'custom' ? '1px solid #60A5FA' : '1px solid #2A2C38',
+                      backgroundColor: rescheduleMode === 'custom' ? 'rgba(59, 130, 246, 0.14)' : '#0D0E13',
+                      color: rescheduleMode === 'custom' ? '#60A5FA' : '#9599A6',
+                    }}
+                  >
+                    Set New Date &amp; Time Directly
+                  </button>
+                </div>
+
+                {rescheduleMode === 'slot' ? (
+                  <>
+                    <label className="reschedule-slot-label" htmlFor="reschedule-slot" style={{ marginTop: 0 }}>
+                      Select Available Time Slot
+                    </label>
+                    <select
+                      id="reschedule-slot"
+                      className="form-control"
+                      value={rescheduleSlotId}
+                      onChange={(event) => setRescheduleSlotId(event.target.value)}
+                    >
+                      <option value="">Select a slot</option>
+                      {rescheduleOptions.map((slot) => (
+                        <option key={slot.id} value={slot.id}>
+                          {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available {String(slot.id) === String(reschedulingAllocation.slotId) ? '(Current Slot)' : ''}
+                        </option>
+                      ))}
+                      {rescheduleOptions.length === 0 && (
+                        <option value="" disabled>No other available slots for this position — use Custom Date &amp; Time</option>
+                      )}
+                    </select>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div>
+                      <label className="reschedule-slot-label" style={{ marginTop: 0 }}>New Interview Date</label>
+                      <input
+                        type="date"
+                        value={rescheduleCustomDate}
+                        onChange={(e) => setRescheduleCustomDate(e.target.value)}
+                        className="form-control"
+                        style={{ colorScheme: 'dark', padding: '0 12px' }}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label className="reschedule-slot-label" style={{ marginTop: 0 }}>Start Time</label>
+                        <input
+                          type="time"
+                          value={rescheduleCustomStart}
+                          onChange={(e) => setRescheduleCustomStart(e.target.value)}
+                          className="form-control"
+                          style={{ colorScheme: 'dark', padding: '0 12px' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="reschedule-slot-label" style={{ marginTop: 0 }}>End Time</label>
+                        <input
+                          type="time"
+                          value={rescheduleCustomEnd}
+                          onChange={(e) => setRescheduleCustomEnd(e.target.value)}
+                          className="form-control"
+                          style={{ colorScheme: 'dark', padding: '0 12px' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: '12px' }}>
+                  <label className="reschedule-slot-label" style={{ marginTop: 0 }}>Reschedule Reason / Note</label>
+                  <input
+                    type="text"
+                    value={rescheduleReason}
+                    onChange={(e) => setRescheduleReason(e.target.value)}
+                    placeholder="Reason for rescheduling (optional)"
+                    className="form-control"
+                    style={{ padding: '0 12px' }}
+                  />
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={rescheduleAutoNotify}
+                    onChange={(e) => setRescheduleAutoNotify(e.target.checked)}
+                    style={{ accentColor: '#22C55E', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.78rem', color: '#D1D5DB' }}>
+                    Auto-send updated Google Calendar &amp; email reminder to candidate &amp; panel
+                  </span>
+                </label>
               </div>
               <div className="allocation-modal__actions">
                 <button type="button" className="allocation-modal-cancel" onClick={() => setReschedulingAllocation(null)}>Cancel</button>
@@ -2714,6 +3317,475 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   <Send size={14} />
                   <span>Send All ({filteredAllocations.filter((a) => a.status === 'ALLOCATED').length}) Invites</span>
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Automated Interview Reminders & Pop-up Alarms ── */}
+        {showRemindersModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.82)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: '#1E222D',
+                borderRadius: '14px',
+                border: '1px solid #2A2C38',
+                width: '100%',
+                maxWidth: '940px',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+              }}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: '18px 24px',
+                  backgroundColor: '#16171F',
+                  borderBottom: '1px solid #2A2C38',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <BellRing size={20} style={{ color: '#F0B90B' }} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                      Automated Interview Reminders &amp; Pop-up Alerts
+                    </h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.76rem', color: '#9599A6' }}>
+                      Automated reminders for candidates &amp; panel members via email and Google Calendar integrations
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRemindersModal(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9599A6',
+                    cursor: 'pointer',
+                    padding: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div
+                style={{
+                  padding: '20px 24px',
+                  overflowY: 'auto',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                }}
+              >
+                {/* Automation Rules Summary */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '12px',
+                  }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: '#13141C',
+                      border: '1px solid rgba(34, 197, 94, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                      24-HOUR REMINDER
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#4ADE80', fontWeight: 700 }}>
+                      ✓ Email &amp; Calendar Alarm
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#9599A6', marginTop: '2px' }}>
+                      Sent 1 day before to Candidate &amp; Panel
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: '#13141C',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                      1-HOUR URGENT REMINDER
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#60A5FA', fontWeight: 700 }}>
+                      ✓ Direct Meeting Link Alert
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#9599A6', marginTop: '2px' }}>
+                      Dispatched 60 mins before session starts
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: '#13141C',
+                      border: '1px solid rgba(240, 185, 11, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                      CALENDAR POP-UP ALARMS
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#F0B90B', fontWeight: 700 }}>
+                      ✓ 15m Native Pop-up Alerts
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#9599A6', marginTop: '2px' }}>
+                      Google Calendar &amp; .ics VALARM alarms
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section Title */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#FFFFFF', fontWeight: 700, letterSpacing: '0.03em' }}>
+                    SCHEDULED SESSIONS &amp; AUTOMATION STATUS ({upcomingRemindersData.allWithStatus.filter((a) => a.status === 'ALLOCATED').length})
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: '#F0B90B', fontWeight: 600 }}>
+                    {upcomingRemindersData.upcomingWithin24h.length} session(s) due within 24h
+                  </span>
+                </div>
+
+                {/* Sessions Cards List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {upcomingRemindersData.allWithStatus.filter((a) => a.status === 'ALLOCATED').length === 0 ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: '#9599A6', backgroundColor: '#13141C', borderRadius: '8px' }}>
+                      No allocated candidate sessions found. Allocate candidates to slots to manage automated reminders.
+                    </div>
+                  ) : (
+                    upcomingRemindersData.allWithStatus
+                      .filter((a) => a.status === 'ALLOCATED')
+                      .map((item) => {
+                        const candEmail = item.candidateEmail || `${(item.candidateName || 'candidate').toLowerCase().replace(/\s+/g, '.')}@example.com`;
+                        const panelEmailList = item.panelEmails || item.panelMembers || 'saman.tech@company.com';
+                        const gcalUrl = generateGoogleCalendarLink({
+                          title: `${item.jobPosition || 'Job Position'} Interview - ${item.candidateName}`,
+                          description: `Candidate: ${item.candidateName}\nRound: ${item.interviewRound || 'Round'}\nVenue/Link: ${item.meetingLocation || 'Online'}`,
+                          date: item.assignedDate || item.interviewDate || '2026-11-25',
+                          startTime: item.assignedTime || item.startTime || '10:00 AM',
+                          location: item.meetingLocation,
+                          candidateEmail: candEmail,
+                          panelEmails: panelEmailList,
+                        });
+
+                        return (
+                          <div
+                            key={item.id || item.candidateId}
+                            style={{
+                              backgroundColor: '#16171F',
+                              border: item.isDue24h ? '1px solid rgba(240, 185, 11, 0.4)' : '1px solid #2A2C38',
+                              borderRadius: '10px',
+                              padding: '14px 16px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '12px',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            {/* Candidate & Job Info */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 200px', minWidth: '180px' }}>
+                              <img
+                                src={item.candidateAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                alt={item.candidateName}
+                                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #2A2C38', flexShrink: 0 }}
+                              />
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>
+                                  {item.candidateName}
+                                </div>
+                                <div style={{ fontSize: '0.74rem', color: '#9599A6' }}>
+                                  {item.jobPosition} • <span style={{ color: '#F0B90B' }}>{item.interviewRound || 'Round 1'}</span>
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: '1px', wordBreak: 'break-word' }}>
+                                  Panel: {panelEmailList}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Timing & Countdown Status */}
+                            <div style={{ minWidth: '140px', flex: '0 1 auto' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#FFFFFF', fontWeight: 600 }}>
+                                📅 {item.assignedDate || item.interviewDate}
+                              </div>
+                              <div style={{ fontSize: '0.84rem', color: '#F0B90B', fontWeight: 700 }}>
+                                ⏰ {formatDisplayTime(item.assignedTime || item.startTime)}
+                              </div>
+                              <div style={{ marginTop: '3px' }}>
+                                <span
+                                  style={{
+                                    backgroundColor: item.isDue1h
+                                      ? 'rgba(239, 68, 68, 0.2)'
+                                      : item.isDue24h
+                                        ? 'rgba(240, 185, 11, 0.2)'
+                                        : 'rgba(34, 197, 94, 0.15)',
+                                    color: item.isDue1h ? '#EF4444' : item.isDue24h ? '#F0B90B' : '#4ADE80',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {item.countdownText}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Reminder Status Badges */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '115px' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  color: item.reminder24hSent ? '#4ADE80' : '#9599A6',
+                                }}
+                              >
+                                {item.reminder24hSent ? '✓ 24h Reminder Sent' : '⏰ 24h Scheduled'}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  color: item.reminder1hSent ? '#60A5FA' : '#6B7280',
+                                }}
+                              >
+                                {item.reminder1hSent ? '✓ 1h Urgent Sent' : '⏰ 1h Pending'}
+                              </span>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleSendSingleReminder(item, '24h')}
+                                title="Dispatch 24-Hour Reminder Email to Candidate and Panel"
+                                style={{
+                                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                                  color: '#60A5FA',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Mail size={12} />
+                                <span>24h Remind</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSendSingleReminder(item, '1h')}
+                                title="Dispatch 1-Hour Urgent Reminder Email to Candidate and Panel"
+                                style={{
+                                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                                  color: '#EF4444',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Clock3 size={12} />
+                                <span>1h Alert</span>
+                              </button>
+
+                              {/* Google Calendar Link with Guest Emails */}
+                              <a
+                                href={gcalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Add to Google Calendar with Pop-up Alarms"
+                                style={{
+                                  backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                                  border: '1px solid rgba(240, 185, 11, 0.35)',
+                                  color: '#F0B90B',
+                                  padding: '5px 9px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Calendar size={12} />
+                                <span>G-Cal</span>
+                              </a>
+
+                              {/* Download .ics with Native VALARM Pop-ups */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  downloadIcsCalendarFile({
+                                    title: `${item.jobPosition || 'Job'} Interview - ${item.candidateName}`,
+                                    description: `Candidate: ${item.candidateName}\nRound: ${item.interviewRound || 'Round'}\nVenue: ${item.meetingLocation || 'Online Google Meet'}\nPanel: ${panelEmailList}`,
+                                    date: item.assignedDate || item.interviewDate || '2026-11-25',
+                                    startTime: item.assignedTime || item.startTime || '10:00 AM',
+                                    location: item.meetingLocation,
+                                    candidateEmail: candEmail,
+                                    panelEmails: panelEmailList,
+                                  });
+                                  setToast({
+                                    type: 'success',
+                                    message: `Calendar invitation (.ics) with 15-min and 24-hr pop-up alarms downloaded!`,
+                                  });
+                                }}
+                                title="Download .ics file with native pop-up alarms for Google Calendar / Outlook"
+                                style={{
+                                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                                  color: '#FFFFFF',
+                                  padding: '5px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                              >
+                                <Download size={12} />
+                                <span>.ics</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  padding: '16px 24px',
+                  backgroundColor: '#16171F',
+                  borderTop: '1px solid #2A2C38',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowRemindersModal(false)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#FFFFFF',
+                    padding: '8px 18px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close
+                </button>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSendAllReminders('1h')}
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.18)',
+                      border: '1px solid rgba(239, 68, 68, 0.45)',
+                      color: '#EF4444',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Clock3 size={13} />
+                    <span>Send 1h Urgent Reminders to All</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSendAllReminders('24h')}
+                    style={{
+                      backgroundColor: '#F0B90B',
+                      border: 'none',
+                      color: '#000000',
+                      padding: '8px 20px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Bell size={13} />
+                    <span>⚡ Send 24h Reminders to All (Candidates &amp; Panel)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -41,10 +41,14 @@ import {
   getInterviewSlots,
   saveInterviewSlots,
   getEndTime,
+  DEFAULT_PANEL_MEMBERS,
+  checkPanelMemberAvailability,
+  getPanelAvailabilitySummary,
 } from '../../../services/interviewService';
 import {
   fetchInterviewSlots,
   createInterviewSlot,
+  bulkCreateInterviewSlots,
   updateInterviewSlot,
   deleteInterviewSlot,
 } from '../../../api/interviewApi';
@@ -408,6 +412,10 @@ const emptyForm = {
   meetingId: '284 912 049 192',
   meetingPasscode: 'inTelli#2026',
   additionalNotes: '',
+  allowDirectReschedule: true,
+  rescheduleNoticeHours: '24',
+  maxReschedulesAllowed: '2',
+  autoNotifyOnReschedule: true,
 };
 
 export const CANDIDATES_BY_ROLE = {
@@ -801,6 +809,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   // Dynamic Panels & Time Slots Generator State (Default to tomorrow if today's business hours are past)
   // Only Panel A is created by default. Recruiter can add more panels using "+ Add Panel" if needed.
+  const [bulkModalPanelId, setBulkModalPanelId] = useState(null);
+  const [bulkConfig, setBulkConfig] = useState({
+    startTime: '09:00',
+    endTime: '17:00',
+    slotDuration: 45,
+    bufferDuration: 15,
+    hasLunchBreak: true,
+    lunchStart: '12:00',
+    lunchEnd: '13:00',
+    autoAssignCandidates: true,
+    interviewType: 'Online',
+    replaceExisting: true,
+  });
+
   const [panels, setPanels] = useState(() => {
     const today = getTodayInputValue();
     const tomorrow = getTomorrowInputValue();
@@ -1261,12 +1283,65 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setToast({ type: 'success', message: 'Time slot form reset to default values.' });
   };
 
-  const hasTimeConflict = (panel, slot) => {
-    if (!panel || !slot || !slot.startTime) return false;
+  const checkSlotAvailability = (panel, slot) => {
+    if (!panel || !slot || !slot.startTime) return { available: true, status: 'AVAILABLE', message: 'Ready' };
     const sNorm = toTimeInputValue(slot.startTime);
-    return panel.slots.some(
+    const targetDate = slot.date || panel.selectedDate || formData.interviewDate || getTodayInputValue();
+
+    // 1. Direct duplicate within same panel
+    const hasSamePanelDuplicate = panel.slots.some(
       other => other.id !== slot.id && other.date === slot.date && toTimeInputValue(other.startTime) === sNorm
     );
+    if (hasSamePanelDuplicate) {
+      return {
+        available: false,
+        status: 'CONFLICT',
+        badgeColor: '#EF4444',
+        message: `Time conflict: another slot in ${panel.name || 'this panel'} is set to ${sNorm}`,
+      };
+    }
+
+    // 2. Cross-panel or existing scheduled slots conflict
+    const panelSummary = getPanelAvailabilitySummary(panel.emails, targetDate, sNorm, slots);
+    if (panelSummary.overallStatus === 'CONFLICT') {
+      const conflictMember = panelSummary.membersAvailability.find(m => m.status === 'CONFLICT');
+      return {
+        available: false,
+        status: 'CONFLICT',
+        badgeColor: '#EF4444',
+        message: conflictMember ? conflictMember.message : 'Schedule conflict detected for panel member',
+      };
+    }
+
+    if (panelSummary.overallStatus === 'OUTSIDE_HOURS') {
+      return {
+        available: false,
+        status: 'OUTSIDE_HOURS',
+        badgeColor: '#F0B90B',
+        message: 'Outside standard working hours (09:00 AM – 05:00 PM)',
+      };
+    }
+
+    if (panelSummary.overallStatus === 'OFF_DUTY') {
+      return {
+        available: false,
+        status: 'OFF_DUTY',
+        badgeColor: '#EF4444',
+        message: 'Selected date falls on a weekend / non-working day',
+      };
+    }
+
+    return {
+      available: true,
+      status: 'AVAILABLE',
+      badgeColor: '#22C55E',
+      message: 'Panel member is available at this time',
+    };
+  };
+
+  const hasTimeConflict = (panel, slot) => {
+    const res = checkSlotAvailability(panel, slot);
+    return res.status === 'CONFLICT';
   };
 
   const handlePanelEmailChange = (panelId, emailVal) => {
@@ -1311,12 +1386,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const handleAddPanel = () => {
     const nextId = panels.length + 1;
     const today = getTodayInputValue();
+    let defaultName = `Panel ${String.fromCharCode(64 + nextId)} (Senior Panel)`;
+    let defaultEmails = 'saman.tech@company.com';
+    if (nextId === 2) {
+      defaultName = 'Panel B (Talent Acquisition & Design)';
+      defaultEmails = 'dilhani.w@company.com';
+    } else if (nextId === 3) {
+      defaultName = 'Panel C (Principal Platform Engineering)';
+      defaultEmails = 'ruwan.b@company.com';
+    }
     setPanels(prev => [
       ...prev,
       {
         id: nextId,
-        name: `Panel ${String.fromCharCode(64 + nextId)} (Senior Panel)`,
-        emails: 'evaluator@company.com, hr@company.com',
+        name: defaultName,
+        emails: defaultEmails,
         capacity: 2,
         selectedDate: today,
         slots: [
@@ -1330,6 +1414,131 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const handleRemovePanel = panelId => {
     if (panels.length <= 1) return;
     setPanels(prev => prev.filter(p => p.id !== panelId));
+  };
+
+  const generateBulkSlots = (config, targetDate) => {
+    const toMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const match = timeStr.match(/^(\d{1,2}):(\d{2})/);
+      if (!match) return 0;
+      return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+    };
+
+    const toTimeString = (totalMinutes) => {
+      const h24 = Math.floor(totalMinutes / 60) % 24;
+      const m = totalMinutes % 60;
+      return `${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
+    const startMin = toMinutes(config.startTime);
+    const endMin = toMinutes(config.endTime);
+    const dur = parseInt(config.slotDuration, 10) || 45;
+    const buf = parseInt(config.bufferDuration, 10) || 0;
+    const lunchS = config.hasLunchBreak ? toMinutes(config.lunchStart) : -1;
+    const lunchE = config.hasLunchBreak ? toMinutes(config.lunchEnd) : -1;
+
+    const generated = [];
+    let curr = startMin;
+    let slotCounter = 1;
+
+    while (curr + dur <= endMin) {
+      const sStart = curr;
+      const sEnd = curr + dur;
+
+      const overlapsLunch = config.hasLunchBreak && !(sEnd <= lunchS || sStart >= lunchE);
+      if (!overlapsLunch) {
+        generated.push({
+          id: Date.now() + slotCounter,
+          date: targetDate,
+          startTime: toTimeString(sStart),
+          endTime: toTimeString(sEnd),
+          type: config.interviewType || 'Online',
+          assignedCandidate: null,
+        });
+        slotCounter++;
+        curr = sEnd + buf;
+      } else {
+        curr = Math.max(curr + 15, lunchE);
+      }
+    }
+
+    return generated;
+  };
+
+  const handleApplyBulkSlots = (panelId) => {
+    const targetPanel = panels.find(p => p.id === panelId);
+    if (!targetPanel) return;
+
+    const targetDate = targetPanel.selectedDate || formData.interviewDate || getTodayInputValue();
+    const newSlots = generateBulkSlots(bulkConfig, targetDate);
+
+    if (newSlots.length === 0) {
+      setToast({ type: 'error', message: 'No valid slots could be generated with the given time window and duration.' });
+      return;
+    }
+
+    const panelForCheck = bulkConfig.replaceExisting
+      ? { ...targetPanel, slots: (targetPanel.slots || []).filter(existing => existing.date !== targetDate) }
+      : targetPanel;
+
+    let conflictFound = false;
+    let conflictMsg = '';
+    for (const s of newSlots) {
+      const check = checkSlotAvailability(panelForCheck, s);
+      if (check.status === 'CONFLICT') {
+        conflictFound = true;
+        conflictMsg = check.message;
+        break;
+      }
+    }
+
+    if (conflictFound) {
+      setToast({ type: 'error', message: `Cannot assign slots at once: ${conflictMsg}` });
+      return;
+    }
+
+    if (bulkConfig.autoAssignCandidates) {
+      const alreadyAllocatedNames = new Set();
+      panels.forEach(p => {
+        if (bulkConfig.replaceExisting && p.id === panelId) return;
+        (p.slots || []).forEach(s => {
+          if (s.assignedCandidate?.name) {
+            alreadyAllocatedNames.add(s.assignedCandidate.name.toLowerCase().trim());
+          }
+        });
+      });
+
+      const unallocatedShortlisted = currentShortlisted.filter(c => !alreadyAllocatedNames.has(c.name.toLowerCase().trim()));
+
+      newSlots.forEach((s, idx) => {
+        if (idx < unallocatedShortlisted.length) {
+          s.assignedCandidate = unallocatedShortlisted[idx];
+        }
+      });
+    }
+
+    setPanels(prev => {
+      const next = prev.map(p => {
+        if (p.id !== panelId) return p;
+        const finalSlots = bulkConfig.replaceExisting
+          ? newSlots
+          : [...p.slots.filter(s => s.date !== targetDate), ...newSlots];
+        return {
+          ...p,
+          capacity: Math.max(p.capacity || 1, newSlots.length),
+          slots: finalSlots,
+        };
+      });
+      syncCandidateAllocations(next);
+      return next;
+    });
+
+    const assignedCount = newSlots.filter(s => s.assignedCandidate).length;
+    setToast({
+      type: 'success',
+      message: `Assigned ${newSlots.length} time slots at once for ${targetPanel.name}! ${assignedCount > 0 ? `(${assignedCount} candidates allocated)` : ''}`,
+    });
+    setBulkModalPanelId(null);
   };
 
   const jobPositions = useMemo(
@@ -1566,6 +1775,18 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
     const currentSlotInterviewType = formData.interviewType || (formData.interviewMedia === 'In-Person' || activeZohoType === 'In-Person' ? 'Physical' : 'Online');
 
+    // Mandatory Panel Member Availability Check before assignment/creation
+    for (const p of panels) {
+      for (const s of (p.slots || [])) {
+        const avail = checkSlotAvailability(p, s);
+        if (avail.status === 'CONFLICT') {
+          setToast({ type: 'error', message: `Cannot save: ${avail.message}` });
+          setFormError(`Cannot save: ${avail.message}`);
+          return;
+        }
+      }
+    }
+
     if (editingSlotId) {
       const updatedPayload = {
         jobPosition: formData.jobPosition,
@@ -1649,6 +1870,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             additionalNotes: formData.additionalNotes || 'N/A',
             bookedCount: sRow.assignedCandidate ? 1 : 0,
             assignedCandidate: sRow.assignedCandidate || null,
+            allowDirectReschedule: formData.allowDirectReschedule !== false,
+            rescheduleNoticeHours: formData.rescheduleNoticeHours || '24',
+            maxReschedulesAllowed: formData.maxReschedulesAllowed || '2',
+            autoNotifyOnReschedule: formData.autoNotifyOnReschedule !== false,
           });
         });
       });
@@ -1659,33 +1884,62 @@ function RecruiterInterviewTimeSlotManagementPage() {
         return next;
       });
 
-      // Send to backend PostgreSQL API
-      createdSlots.forEach(s => {
-        const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
-          id: s.assignedCandidate.id,
-          name: s.assignedCandidate.name,
-          email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-          score: s.assignedCandidate.score || 85,
-          avatar: s.assignedCandidate.avatar || '',
-        } : null;
+      // Send to backend PostgreSQL API (supports bulk generation and single slot creation)
+      if (createdSlots.length > 1) {
+        const bulkPayload = createdSlots.map(s => {
+          const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
+            id: s.assignedCandidate.id,
+            name: s.assignedCandidate.name,
+            email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+            score: s.assignedCandidate.score || 85,
+            avatar: s.assignedCandidate.avatar || '',
+          } : null;
+          return {
+            jobPosition: s.jobPosition,
+            round: s.round,
+            interviewDate: s.rawDate || effectiveDate,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            interviewType: s.interviewType,
+            meetingLocation: s.meetingLocation,
+            capacity: s.capacity,
+            panelName: s.panelName,
+            panelEmails: s.panelEmails,
+            additionalNotes: s.additionalNotes,
+            candidate: candidatePayload,
+            status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
+            bookedCount: candidatePayload ? 1 : 0,
+          };
+        });
+        bulkCreateInterviewSlots(bulkPayload).catch(err => console.error('Error bulk saving slots to database:', err));
+      } else {
+        createdSlots.forEach(s => {
+          const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
+            id: s.assignedCandidate.id,
+            name: s.assignedCandidate.name,
+            email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+            score: s.assignedCandidate.score || 85,
+            avatar: s.assignedCandidate.avatar || '',
+          } : null;
 
-        createInterviewSlot({
-          jobPosition: s.jobPosition,
-          round: s.round,
-          interviewDate: s.rawDate || effectiveDate,
-          startTime: s.startTime,
-          endTime: s.endTime,
-          interviewType: s.interviewType,
-          meetingLocation: s.meetingLocation,
-          capacity: s.capacity,
-          panelName: s.panelName,
-          panelEmails: s.panelEmails,
-          additionalNotes: s.additionalNotes,
-          candidate: candidatePayload,
-          status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
-          bookedCount: candidatePayload ? 1 : 0,
-        }).catch(err => console.error('Error saving slot to database:', err));
-      });
+          createInterviewSlot({
+            jobPosition: s.jobPosition,
+            round: s.round,
+            interviewDate: s.rawDate || effectiveDate,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            interviewType: s.interviewType,
+            meetingLocation: s.meetingLocation,
+            capacity: s.capacity,
+            panelName: s.panelName,
+            panelEmails: s.panelEmails,
+            additionalNotes: s.additionalNotes,
+            candidate: candidatePayload,
+            status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
+            bookedCount: candidatePayload ? 1 : 0,
+          }).catch(err => console.error('Error saving slot to database:', err));
+        });
+      }
 
       // Synchronize directly with Candidate Interview Allocation
       try {
@@ -1713,6 +1967,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             panelName: s.panelName,
             panelEmails: s.panelEmails,
             meetingLocation: s.meetingLocation,
+            allowDirectReschedule: s.allowDirectReschedule !== false,
+            rescheduleNoticeHours: s.rescheduleNoticeHours || '24',
+            maxReschedulesAllowed: s.maxReschedulesAllowed || '2',
+            autoNotifyOnReschedule: s.autoNotifyOnReschedule !== false,
             isCustom: true,
           };
         });
@@ -1755,6 +2013,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
               jobPosition: cand.jobPosition || cand.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
               status: 'ALLOCATED',
               score: cand.score || 85,
+              allowDirectReschedule: s.allowDirectReschedule !== false,
+              rescheduleNoticeHours: s.rescheduleNoticeHours || '24',
+              maxReschedulesAllowed: s.maxReschedulesAllowed || '2',
+              autoNotifyOnReschedule: s.autoNotifyOnReschedule !== false,
             };
             const exIdx = currentAllocations.findIndex(a =>
               (a.candidateId && String(a.candidateId) === String(candId)) ||
@@ -2361,7 +2623,61 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             </div>
 
                             <div style={{ flex: 1 }}>
-                              <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '8px' }}>PANEL MEMBER EMAILS (ATTENDEES)</label>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  PANEL MEMBER EMAILS (ATTENDEES)
+                                </label>
+                                <span style={{ fontSize: '0.68rem', color: '#6E7079' }}>
+                                  Standard Hours: 09:00 AM – 05:00 PM
+                                </span>
+                              </div>
+
+                              {/* Quick-Assign Predefined Interviewers */}
+                              <div style={{ marginBottom: '10px' }}>
+                                <span style={{ fontSize: '0.68rem', color: '#8E92A0', display: 'block', marginBottom: '5px' }}>
+                                  Quick-Add Panelist:
+                                </span>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                  {DEFAULT_PANEL_MEMBERS.map(m => {
+                                    const isIncluded = (p.emails || '').toLowerCase().includes(m.email.toLowerCase());
+                                    return (
+                                      <button
+                                        key={m.id}
+                                        type="button"
+                                        onClick={() => {
+                                          const currentEmails = (p.emails ? p.emails.split(',') : []).map(e => e.trim()).filter(Boolean);
+                                          if (isIncluded) {
+                                            const updated = currentEmails.filter(e => e.toLowerCase() !== m.email.toLowerCase());
+                                            handlePanelEmailChange(p.id, updated.join(', '));
+                                          } else {
+                                            currentEmails.push(m.email);
+                                            handlePanelEmailChange(p.id, currentEmails.join(', '));
+                                          }
+                                        }}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          padding: '3px 8px',
+                                          borderRadius: '14px',
+                                          border: isIncluded ? '1px solid #22C55E' : '1px solid rgba(255, 255, 255, 0.15)',
+                                          backgroundColor: isIncluded ? 'rgba(34, 197, 94, 0.15)' : '#16171F',
+                                          color: isIncluded ? '#4ADE80' : '#C5C7D0',
+                                          fontSize: '0.72rem',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.15s ease',
+                                        }}
+                                        title={`${m.name} (${m.role}) — ${m.availableHours}`}
+                                      >
+                                        <img src={m.avatar} alt={m.name} style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }} />
+                                        <span>{m.name.split(' ')[0]}</span>
+                                        {isIncluded && <Check size={11} />}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {(p.emails ? p.emails.split(',') : ['']).map((emailStr, eIdx) => (
                                   <div key={eIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -2417,6 +2733,88 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   <Plus size={13} style={{ color: '#F0B90B' }} />
                                   <span>Add Email</span>
                                 </button>
+                              </div>
+
+                              {/* Mandatory Panelist Availability Check Status Display */}
+                              <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                  <label className="form-label" style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Users size={12} style={{ color: '#F0B90B' }} />
+                                    <span>PANELIST AVAILABILITY STATUS</span>
+                                  </label>
+                                  <span style={{ fontSize: '0.68rem', color: '#6E7079' }}>Date: {p.selectedDate}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {(p.emails ? p.emails.split(',') : []).map(e => e.trim()).filter(Boolean).map((emailStr, idx) => {
+                                    const avail = checkPanelMemberAvailability(emailStr, p.selectedDate, null, slots);
+                                    return (
+                                      <div
+                                        key={idx}
+                                        style={{
+                                          backgroundColor: '#16171F',
+                                          border: `1px solid ${avail.hasConflict ? '#EF4444' : avail.status === 'AVAILABLE' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                          borderRadius: '8px',
+                                          padding: '8px 10px',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '6px',
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <img
+                                              src={avail.member?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                                              alt={avail.member?.name || emailStr}
+                                              style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
+                                            />
+                                            <div>
+                                              <span style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '0.78rem', display: 'block', lineHeight: 1.2 }}>
+                                                {avail.member?.name || emailStr}
+                                              </span>
+                                              <span style={{ fontSize: '0.67rem', color: '#9599A6' }}>
+                                                {avail.member?.role || 'Interview Panel Member'}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <span
+                                            style={{
+                                              backgroundColor: `${avail.badgeColor}20`,
+                                              color: avail.badgeColor,
+                                              border: `1px solid ${avail.badgeColor}50`,
+                                              borderRadius: '12px',
+                                              padding: '2px 8px',
+                                              fontSize: '0.68rem',
+                                              fontWeight: 700,
+                                              whiteSpace: 'nowrap',
+                                            }}
+                                          >
+                                            {avail.badgeText}
+                                          </span>
+                                        </div>
+
+                                        {/* Working Hours & Capacity Info */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#8E92A0', borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: '4px' }}>
+                                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            <Clock size={11} style={{ color: '#F0B90B' }} />
+                                            <span>Hours: {avail.availableHours}</span>
+                                          </span>
+                                          <span>
+                                            Capacity: <strong style={{ color: '#FFFFFF' }}>{avail.bookedCount} / {avail.maxDaily}</strong> daily slots
+                                          </span>
+                                        </div>
+
+                                        {/* Conflict or Booking Warnings */}
+                                        {avail.bookedTimeSlots && avail.bookedTimeSlots.length > 0 && (
+                                          <div style={{ fontSize: '0.66rem', color: '#F0B90B', backgroundColor: 'rgba(240, 185, 11, 0.08)', borderRadius: '4px', padding: '3px 6px' }}>
+                                            Booked on this day: {avail.bookedTimeSlots.map(b => `${b.startTime} (${b.candidateName})`).join(', ')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
 
@@ -2563,6 +2961,28 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                     <Plus size={13} />
                                     <span>Add Slot</span>
                                   </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setBulkModalPanelId(p.id)}
+                                    style={{
+                                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                                      color: '#4ADE80',
+                                      border: '1px solid rgba(34, 197, 94, 0.4)',
+                                      borderRadius: '6px',
+                                      padding: '5px 12px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Automatically generate and assign a full batch of non-conflicting time slots at once"
+                                  >
+                                    <Sparkles size={13} style={{ color: '#4ADE80' }} />
+                                    <span>Assign Slots at Once</span>
+                                  </button>
                                 </div>
                               </div>
 
@@ -2587,7 +3007,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {p.slots.filter(s => s.date === p.selectedDate).map((s, idx) => {
-                                  const isConflict = hasTimeConflict(p, s);
+                                  const slotAvail = checkSlotAvailability(p, s);
+                                  const isConflict = slotAvail.status === 'CONFLICT';
+                                  const isOutsideHours = slotAvail.status === 'OUTSIDE_HOURS';
                                   const isPastTime = isSlotTimeInPast(s.date, s.startTime);
                                   return (
                                     <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -2595,14 +3017,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '12px',
-                                        backgroundColor: isConflict ? 'rgba(239, 68, 68, 0.12)' : (isPastTime ? 'rgba(255, 255, 255, 0.03)' : 'rgba(66, 133, 244, 0.1)'),
-                                        borderLeft: `3px solid ${isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4')}`,
+                                        backgroundColor: isConflict ? 'rgba(239, 68, 68, 0.12)' : (isOutsideHours ? 'rgba(240, 185, 11, 0.1)' : (isPastTime ? 'rgba(255, 255, 255, 0.03)' : 'rgba(66, 133, 244, 0.1)')),
+                                        borderLeft: `3px solid ${isConflict ? '#EF4444' : (isOutsideHours ? '#F0B90B' : (isPastTime ? '#6E7079' : '#22C55E'))}`,
                                         padding: '12px 16px',
                                         borderRadius: '6px',
                                         opacity: isPastTime ? 0.6 : 1,
                                         transition: 'all 0.2s'
                                       }}>
-                                        <span style={{ color: isConflict ? '#EF4444' : '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #{idx + 1}</span>
+                                        <span style={{ color: isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #${idx + 1}</span>
                                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
                                           <input
                                             type="time"
@@ -2611,7 +3033,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                             style={{
                                               backgroundColor: '#1E222D',
                                               color: '#FFFFFF',
-                                              border: `1px solid ${isConflict ? '#EF4444' : 'rgba(255, 255, 255, 0.15)'}`,
+                                              border: `1px solid ${isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : 'rgba(255, 255, 255, 0.15)'}`,
                                               padding: '6px 32px 6px 12px',
                                               borderRadius: '6px',
                                               fontSize: '0.85rem',
@@ -2620,7 +3042,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                               cursor: 'pointer'
                                             }}
                                           />
-                                          <Clock size={14} style={{ position: 'absolute', right: '12px', color: isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4'), pointerEvents: 'none' }} />
+                                          <Clock size={14} style={{ position: 'absolute', right: '12px', color: isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : (isPastTime ? '#6E7079' : '#22C55E'), pointerEvents: 'none' }} />
                                         </div>
                                         {isPastTime && (
                                           <span style={{ color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -2655,7 +3077,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                           ×
                                         </button>
                                       </div>
-                                      {isConflict && (
+                                      {isConflict ? (
                                         <div style={{
                                           display: 'flex',
                                           alignItems: 'center',
@@ -2669,9 +3091,42 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                           fontWeight: 600
                                         }}>
                                           <AlertCircle size={13} style={{ flexShrink: 0 }} />
-                                          <span>⚠️ {p.name || 'This Panel'} is already assigned at this time</span>
+                                          <span>⚠️ {slotAvail.message}</span>
                                         </div>
-                                      )}
+                                      ) : isOutsideHours ? (
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          color: '#F0B90B',
+                                          backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                                          border: '1px solid rgba(240, 185, 11, 0.3)',
+                                          borderRadius: '6px',
+                                          padding: '4px 10px',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <Clock size={13} style={{ flexShrink: 0 }} />
+                                          <span>⚠️ Outside standard working hours (09:00 AM – 05:00 PM)</span>
+                                        </div>
+                                      ) : !isPastTime ? (
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          color: '#22C55E',
+                                          backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                                          borderRadius: '6px',
+                                          padding: '3px 8px',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600,
+                                          width: 'fit-content'
+                                        }}>
+                                          <CheckCircle2 size={12} style={{ flexShrink: 0 }} />
+                                          <span>✓ Panel members available at this time</span>
+                                        </div>
+                                      ) : null}
                                     </div>
                                   );
                                 })}
@@ -3247,6 +3702,103 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         }}
                       />
                     </div>
+
+                    {/* Direct System Rescheduling Policy (Configured during Initial Scheduling) */}
+                    {activeZohoType !== 'Log' && (
+                      <div
+                        style={{
+                          gridColumn: 'span 2',
+                          backgroundColor: '#1E222D',
+                          border: '1px solid rgba(107, 140, 255, 0.25)',
+                          borderRadius: '10px',
+                          padding: '14px 16px',
+                          marginTop: '4px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <RefreshCw size={15} style={{ color: '#60A5FA' }} />
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.03em' }}>
+                              RESCHEDULING WORKFLOW &amp; POLICY (INITIAL SCHEDULING SETUP)
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '2px 9px',
+                              borderRadius: '10px',
+                              backgroundColor: formData.allowDirectReschedule !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                              color: formData.allowDirectReschedule !== false ? '#4ADE80' : '#94A3B8',
+                            }}
+                          >
+                            {formData.allowDirectReschedule !== false ? '✓ Direct System Rescheduling Enabled' : 'Rescheduling Locked'}
+                          </span>
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: formData.allowDirectReschedule !== false ? '12px' : 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={formData.allowDirectReschedule !== false}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, allowDirectReschedule: e.target.checked }))}
+                            style={{ accentColor: '#F0B90B', width: '15px', height: '15px', cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: '0.8rem', color: '#E5E7EB', fontWeight: 600 }}>
+                            Enable direct rescheduling through the IntelliHire system for this schedule
+                          </span>
+                        </label>
+
+                        {formData.allowDirectReschedule !== false && (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                                MINIMUM NOTICE WINDOW
+                              </label>
+                              <select
+                                value={formData.rescheduleNoticeHours || '24'}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, rescheduleNoticeHours: e.target.value }))}
+                                className="form-control"
+                                style={{ backgroundColor: '#13141C', color: '#FFFFFF', height: '36px', fontSize: '0.8rem' }}
+                              >
+                                <option value="12">At least 12 Hours Prior</option>
+                                <option value="24">At least 24 Hours Prior</option>
+                                <option value="48">At least 48 Hours Prior</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                                MAX RESCHEDULES ALLOWED
+                              </label>
+                              <select
+                                value={formData.maxReschedulesAllowed || '2'}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, maxReschedulesAllowed: e.target.value }))}
+                                className="form-control"
+                                style={{ backgroundColor: '#13141C', color: '#FFFFFF', height: '36px', fontSize: '0.8rem' }}
+                              >
+                                <option value="1">1 Reschedule</option>
+                                <option value="2">Up to 2 Reschedules</option>
+                                <option value="unlimited">Unlimited (Recruiter Approval)</option>
+                              </select>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={formData.autoNotifyOnReschedule !== false}
+                                  onChange={(e) => setFormData((prev) => ({ ...prev, autoNotifyOnReschedule: e.target.checked }))}
+                                  style={{ accentColor: '#22C55E', width: '15px', height: '15px', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '0.76rem', color: '#9CA3AF', lineHeight: 1.35 }}>
+                                  Auto-sync Google Calendar &amp; send email alerts upon reschedule
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -4690,6 +5242,355 @@ function RecruiterInterviewTimeSlotManagementPage() {
           />
         </div>
       )}
+
+      {/* ── Modal 3: Assign Time Slots at Once (Bulk Generator) ── */}
+      {bulkModalPanelId !== null && (() => {
+        const panel = panels.find(p => p.id === bulkModalPanelId) || panels[0];
+        const targetDate = panel?.selectedDate || formData.interviewDate || getTodayInputValue();
+        const previewSlots = generateBulkSlots(bulkConfig, targetDate);
+        const panelSummary = getPanelAvailabilitySummary(panel?.emails, targetDate, null, slots);
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+            }}
+            onClick={() => setBulkModalPanelId(null)}
+          >
+            <div
+              style={{
+                backgroundColor: '#1E222D',
+                border: '1px solid #F0B90B',
+                borderRadius: '14px',
+                width: '100%',
+                maxWidth: '680px',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+                overflow: 'hidden',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: '18px 24px',
+                  backgroundColor: '#16171F',
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                      color: '#F0B90B',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#FFFFFF', fontWeight: 700 }}>
+                      Assign Time Slots at Once
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.74rem', color: '#9599A6' }}>
+                      Batch generate non-conflicting interview slots for <strong>{panel?.name}</strong> on <strong>{targetDate}</strong>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBulkModalPanelId(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9599A6',
+                    cursor: 'pointer',
+                    padding: '6px',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                {/* Panel Availability Status Banner */}
+                <div
+                  style={{
+                    backgroundColor: '#13141C',
+                    border: `1px solid ${panelSummary.overallBadgeColor}40`,
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={16} style={{ color: '#F0B90B' }} />
+                    <span style={{ fontSize: '0.78rem', color: '#FFFFFF', fontWeight: 600 }}>
+                      Panelists: {panel?.emails}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      backgroundColor: `${panelSummary.overallBadgeColor}20`,
+                      color: panelSummary.overallBadgeColor,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {panelSummary.overallBadgeText}
+                  </span>
+                </div>
+
+                {/* Configuration Form */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                      WINDOW START TIME:
+                    </label>
+                    <input
+                      type="time"
+                      value={bulkConfig.startTime}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, startTime: e.target.value }))}
+                      className="form-control"
+                      style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '100%', padding: '8px 12px', borderRadius: '6px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                      WINDOW END TIME:
+                    </label>
+                    <input
+                      type="time"
+                      value={bulkConfig.endTime}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, endTime: e.target.value }))}
+                      className="form-control"
+                      style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '100%', padding: '8px 12px', borderRadius: '6px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Slot Duration Chips */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                    SLOT DURATION:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[30, 45, 60, 90].map((dur) => (
+                      <button
+                        key={dur}
+                        type="button"
+                        onClick={() => setBulkConfig(c => ({ ...c, slotDuration: dur }))}
+                        style={{
+                          backgroundColor: bulkConfig.slotDuration === dur ? '#F0B90B' : '#13141C',
+                          color: bulkConfig.slotDuration === dur ? '#000000' : '#FFFFFF',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '6px 14px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {dur} Minutes
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Buffer / Break Duration */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                    BREAK / BUFFER BETWEEN SESSIONS:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'No Break (0m)', val: 0 },
+                      { label: '10 mins', val: 10 },
+                      { label: '15 mins', val: 15 },
+                      { label: '30 mins', val: 30 },
+                    ].map((item) => (
+                      <button
+                        key={item.val}
+                        type="button"
+                        onClick={() => setBulkConfig(c => ({ ...c, bufferDuration: item.val }))}
+                        style={{
+                          backgroundColor: bulkConfig.bufferDuration === item.val ? 'rgba(66, 133, 244, 0.2)' : '#13141C',
+                          color: bulkConfig.bufferDuration === item.val ? '#4285F4' : '#FFFFFF',
+                          border: bulkConfig.bufferDuration === item.val ? '1px solid #4285F4' : '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Lunch Break Toggle */}
+                <div style={{ backgroundColor: '#13141C', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkConfig.hasLunchBreak}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, hasLunchBreak: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', color: '#FFFFFF', fontWeight: 600 }}>
+                      Include 1-Hour Lunch Break (12:00 PM – 01:00 PM)
+                    </span>
+                  </label>
+                </div>
+
+                {/* Candidate Allocation & Overwrite Options */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#16171F', padding: '12px 14px', borderRadius: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkConfig.autoAssignCandidates}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, autoAssignCandidates: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#4ADE80', fontWeight: 600 }}>
+                      ⚡ Automatically allocate shortlisted candidates to generated slots at once by rank
+                    </span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkConfig.replaceExisting}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, replaceExisting: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.76rem', color: '#C5C7D0' }}>
+                      Replace previously configured slots for this date
+                    </span>
+                  </label>
+                </div>
+
+                {/* Generated Slots Live Preview */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#9599A6', fontWeight: 700 }}>
+                      LIVE PREVIEW: <strong style={{ color: '#F0B90B' }}>{previewSlots.length} SLOTS</strong> WILL BE CREATED AT ONCE
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#22C55E', fontWeight: 600 }}>
+                      ✓ 09:00 AM – 05:00 PM Compliant
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxHeight: '110px', overflowY: 'auto', padding: '8px', backgroundColor: '#13141C', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    {previewSlots.length === 0 ? (
+                      <span style={{ fontSize: '0.75rem', color: '#EF4444' }}>No slots fit the selected window. Please adjust start/end time.</span>
+                    ) : (
+                      previewSlots.map((s, idx) => (
+                        <span
+                          key={idx}
+                          style={{
+                            backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                            color: '#F0B90B',
+                            border: '1px solid rgba(240, 185, 11, 0.25)',
+                            borderRadius: '4px',
+                            padding: '3px 8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          #{idx + 1}: {s.startTime} – {s.endTime}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  padding: '16px 24px',
+                  backgroundColor: '#16171F',
+                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setBulkModalPanelId(null)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: '#FFFFFF',
+                    padding: '8px 18px',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyBulkSlots(panel.id)}
+                  disabled={previewSlots.length === 0}
+                  style={{
+                    backgroundColor: previewSlots.length > 0 ? '#F0B90B' : '#555',
+                    color: '#000000',
+                    border: 'none',
+                    padding: '9px 24px',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: previewSlots.length > 0 ? 'pointer' : 'not-allowed',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Sparkles size={15} />
+                  <span>⚡ Assign {previewSlots.length} Time Slots at Once</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

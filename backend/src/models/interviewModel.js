@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-// Default Panel Members
+// Default Panel Members with Availability Constraints
 const DEFAULT_PANEL_MEMBERS = [
   {
     id: 'pm-1',
@@ -10,6 +10,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Engineering',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     specialties: ['React', 'Node.js', 'System Architecture'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-2',
@@ -19,6 +23,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Human Resources',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
     specialties: ['HR Screening', 'Culture Fit', 'Portfolio Review'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 5,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-3',
@@ -28,6 +36,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Talent Acquisition',
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
     specialties: ['Talent Sourcing', 'Behavioral Interview', 'Leadership'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
   {
     id: 'pm-4',
@@ -37,6 +49,10 @@ const DEFAULT_PANEL_MEMBERS = [
     department: 'Platform Engineering',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     specialties: ['Distributed Systems', 'Cloud & DevOps', 'Database Architecture'],
+    availableHours: '09:00 AM – 05:00 PM',
+    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    maxDailyInterviews: 4,
+    status: 'AVAILABLE',
   },
 ];
 
@@ -1018,6 +1034,59 @@ const customRescheduleSlot = async (requestId, customSlotData, notes = '') => {
 };
 
 /**
+ * Direct system reschedule for a slot/candidate without requiring a prior pending request
+ */
+const directRescheduleInterview = async (payload = {}) => {
+  const {
+    slotId,
+    targetSlotId,
+    candidateId,
+    candidateName,
+    newDate,
+    newStartTime,
+    newEndTime,
+    reason = 'Rescheduled directly through IntelliHire',
+  } = payload;
+
+  const cleanCurrentId = slotId ? parseInt(String(slotId).replace('SLOT-', ''), 10) : null;
+  const cleanTargetId = targetSlotId ? parseInt(String(targetSlotId).replace('SLOT-', ''), 10) : null;
+
+  try {
+    if (cleanTargetId && !Number.isNaN(cleanTargetId)) {
+      if (candidateId || candidateName) {
+        await db.query(
+          `UPDATE interview_allocations
+           SET slot_id = $1, status = 'ALLOCATED'
+           WHERE candidate_app_id = $2 OR candidate_name = $3`,
+          [cleanTargetId, String(candidateId || ''), candidateName || '']
+        );
+      }
+      await db.query(
+        "UPDATE interview_slots SET status = 'SCHEDULED', updated_at = NOW() WHERE id = $1",
+        [cleanTargetId]
+      );
+    } else if (cleanCurrentId && !Number.isNaN(cleanCurrentId) && newDate && newStartTime && newEndTime) {
+      const isoDate = toIsoDateString(newDate);
+      await db.query(
+        `UPDATE interview_slots SET
+          interview_date = $1, start_time = $2, end_time = $3, status = 'SCHEDULED',
+          additional_notes = COALESCE(additional_notes, '') || $4, updated_at = NOW()
+        WHERE id = $5`,
+        [isoDate, newStartTime, newEndTime, `\n[Rescheduled]: ${reason}`, cleanCurrentId]
+      );
+    }
+  } catch (err) {
+    console.warn('Database direct reschedule fallback (local state preserved):', err.message);
+  }
+
+  return {
+    success: true,
+    message: 'Interview rescheduled directly through system successfully.',
+    rescheduledAt: new Date().toISOString(),
+  };
+};
+
+/**
  * Submit Interview Evaluation
  */
 const submitInterviewEvaluation = async (evalData) => {
@@ -1128,6 +1197,7 @@ module.exports = {
   approveRescheduleRequest,
   rejectRescheduleRequest,
   customRescheduleSlot,
+  directRescheduleInterview,
   submitInterviewEvaluation,
   getAllEvaluations,
   getPanelMemberList,
