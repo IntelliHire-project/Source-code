@@ -1575,11 +1575,15 @@ export const mergeWithInitialAllocations = (incomingList) => {
               borderLeft: '4px solid #F0B90B',
               borderRadius: '10px',
               padding: '14px 18px',
-              marginBottom: '20px',
+              marginBottom: '18px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -1675,18 +1679,17 @@ export const mergeWithInitialAllocations = (incomingList) => {
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'space-between',
-            flexWrap: 'nowrap',
+            flexWrap: 'wrap',
             gap: '12px',
-            padding: '12px 18px',
-            marginBottom: '20px',
+            padding: '14px 18px',
+            marginBottom: '18px',
             borderRadius: '10px',
             border: '1px solid #2A2C38',
             backgroundColor: '#16171F',
-            overflowX: 'auto'
           }}
         >
           {/* Left: Position & Round Filters */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px', minWidth: 0 }}>
             {!embeddedVacancy && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '0.68rem', color: '#9599A6', fontWeight: 700, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1699,7 +1702,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                     onChange={(e) => setJobPosition(e.target.value)}
                     style={{
                       height: '35px',
-                      minWidth: '190px',
+                      minWidth: '175px',
                       padding: '0 26px 0 10px',
                       fontSize: '0.82rem',
                       fontWeight: 600,
@@ -1733,7 +1736,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   onChange={(e) => setInterviewRound(e.target.value)}
                   style={{
                     height: '35px',
-                    minWidth: '180px',
+                    minWidth: '170px',
                     padding: '0 26px 0 10px',
                     fontSize: '0.82rem',
                     fontWeight: 600,
@@ -1763,8 +1766,8 @@ export const mergeWithInitialAllocations = (incomingList) => {
             </div>
           </div>
 
-          {/* Right: Parallel badges & compact buttons on the same single line */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          {/* Right: Parallel badges & compact buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             {/* Quick Metrics Badge */}
             <div style={{
               display: 'flex',
@@ -1861,7 +1864,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
               <h2 className="card-title">Allocation Results</h2>
             </div>
 
-            <div className="action-buttons-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="action-buttons-group" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <div className="allocation-results-search">
                 <Search size={15} />
                 <input
@@ -1880,12 +1883,13 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  height: '34px',
                   backgroundColor: 'rgba(239, 68, 68, 0.12)',
                   border: '1px solid rgba(239, 68, 68, 0.35)',
                   color: '#EF4444',
-                  padding: '6px 14px',
+                  padding: '0 12px',
                   borderRadius: '8px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -1909,12 +1913,13 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  height: '34px',
                   backgroundColor: 'rgba(59, 130, 246, 0.12)',
                   border: '1px solid rgba(59, 130, 246, 0.35)',
                   color: '#60A5FA',
-                  padding: '6px 14px',
+                  padding: '0 12px',
                   borderRadius: '8px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -1938,12 +1943,13 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  height: '34px',
                   backgroundColor: 'rgba(240, 185, 11, 0.15)',
                   border: '1px solid rgba(240, 185, 11, 0.4)',
                   color: '#F0B90B',
-                  padding: '6px 14px',
+                  padding: '0 12px',
                   borderRadius: '8px',
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -1983,14 +1989,14 @@ export const mergeWithInitialAllocations = (incomingList) => {
             <table className="results-table">
               <thead>
                 <tr>
-                  <th style={{ width: '15%', whiteSpace: 'nowrap' }}>CANDIDATE NAME</th>
-                  <th style={{ width: '15%', whiteSpace: 'nowrap' }}>INTERVIEW ROUND</th>
-                  <th style={{ width: '16%', whiteSpace: 'nowrap' }}>PANEL NAME</th>
-                  <th style={{ width: '13%', whiteSpace: 'nowrap' }}>ASSIGNED TIME SLOT</th>
-                  <th style={{ width: '11%', whiteSpace: 'nowrap' }}>INTERVIEW DATE</th>
-                  <th style={{ width: '8%', whiteSpace: 'nowrap' }}>INTERVIEW TYPE</th>
-                  <th style={{ width: '11%', whiteSpace: 'nowrap' }}>ALLOCATION STATUS</th>
-                  <th style={{ width: '11%', textAlign: 'right', whiteSpace: 'nowrap' }}>ACTION</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>CANDIDATE NAME</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>INTERVIEW ROUND</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>PANEL NAME</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>ASSIGNED TIME SLOT</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>INTERVIEW DATE</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>TYPE</th>
+                  <th style={{ whiteSpace: 'nowrap' }}>STATUS</th>
+                  <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -2240,29 +2246,29 @@ export const mergeWithInitialAllocations = (incomingList) => {
         <div className="allocation-workspace-grid">
           {/* Left Card: Shortlisted Candidates */}
           <div className="card-surface candidate-list-card">
-            <div className="card-header-bar flex-between" style={{ padding: '12px 16px' }}>
+            <div className="card-header-bar flex-between" style={{ paddingBottom: '12px', borderBottom: '1px solid #2A2C38', gap: '8px' }}>
               <div className="card-title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Users size={16} style={{ color: '#F0B90B' }} />
-                <h3 className="card-title" style={{ margin: 0, fontSize: '0.95rem' }}>Shortlisted Candidates</h3>
+                <Users size={16} style={{ color: '#F0B90B', flexShrink: 0 }} />
+                <h3 className="card-title" style={{ margin: 0, fontSize: '0.92rem' }}>Shortlisted Candidates</h3>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Search size={12} style={{ position: 'absolute', left: '8px', color: '#9599A6', pointerEvents: 'none' }} />
                   <input
                     type="search"
-                    placeholder="Filter candidate..."
+                    placeholder="Filter candidate"
                     value={candidateSearchQuery}
                     onChange={(e) => setCandidateSearchQuery(e.target.value)}
                     style={{
                       height: '28px',
                       padding: '0 8px 0 24px',
-                      fontSize: '0.74rem',
+                      fontSize: '0.73rem',
                       backgroundColor: '#0D0E13',
                       border: '1px solid #2A2C38',
                       borderRadius: '6px',
                       color: '#FFFFFF',
                       outline: 'none',
-                      width: '130px',
+                      width: '126px',
                     }}
                   />
                 </div>
@@ -2271,7 +2277,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
             </div>
 
             {filteredCandidates.length === 0 ? (
-              <div style={{ padding: '48px 20px', textAlign: 'center', color: '#9599A6', borderTop: '1px solid #2A2C38' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', textAlign: 'center', color: '#9599A6' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#4ADE80', marginBottom: '12px' }}>
                   <CheckCircle2 size={24} />
                 </div>
@@ -2394,23 +2400,23 @@ export const mergeWithInitialAllocations = (incomingList) => {
 
           {/* Right Card: Available Time Slots */}
           <div className="card-surface slots-list-card">
-            <div className="card-header-bar flex-between">
+            <div className="card-header-bar flex-between" style={{ paddingBottom: '12px', borderBottom: '1px solid #2A2C38', gap: '8px' }}>
               <div className="card-title-group">
-                <CalendarDays size={16} />
-                <h3 className="card-title">Available Time Slots</h3>
+                <CalendarDays size={16} style={{ flexShrink: 0 }} />
+                <h3 className="card-title" style={{ fontSize: '0.92rem' }}>Available Time Slots</h3>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <button
                   type="button"
                   onClick={handleAutoAllocate}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 12px', borderRadius: '6px',
+                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                    height: '28px', padding: '0 10px', borderRadius: '6px',
                     backgroundColor: 'rgba(240, 185, 11, 0.1)', border: '1px solid #F0B90B', color: '#F0B90B',
-                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                    fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
                   }}
                 >
-                  <Sparkles size={14} />
+                  <Sparkles size={13} />
                   Auto-Assign
                 </button>
                 <span className="count-badge">{filteredSlots.length} SLOTS</span>
@@ -2421,13 +2427,13 @@ export const mergeWithInitialAllocations = (incomingList) => {
               <table className="alloc-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '36px', textAlign: 'center' }}></th>
+                    <th style={{ width: '28px', textAlign: 'center' }}></th>
                     <th>DATE</th>
                     <th>TIME</th>
                     <th>TYPE</th>
                     <th>PANEL &amp; AVAILABILITY</th>
-                    <th>CAP.</th>
-                    <th>REM.</th>
+                    <th style={{ textAlign: 'center' }}>CAP.</th>
+                    <th style={{ textAlign: 'center' }}>REM.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2457,43 +2463,45 @@ export const mergeWithInitialAllocations = (incomingList) => {
                           />
                         </td>
                         <td className="slot-date-cell">{slot.dateShort}</td>
-                        <td className="slot-time-cell">
-                          <Clock3 size={12} />
-                          <span>{formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime)}</span>
-                          {isPast && (
-                            <span style={{ marginLeft: '4px', color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
-                              Past
-                            </span>
-                          )}
-                        </td>
                         <td>
+                          <div className="slot-time-cell">
+                            <Clock3 size={12} style={{ flexShrink: 0, color: '#9599A6' }} />
+                            <span>{formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime)}</span>
+                            {isPast && (
+                              <span style={{ marginLeft: '4px', color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
+                                Past
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
                           <span className={`type-tag ${slot.type === 'Online' ? 'type-online' : 'type-physical'}`}>
                             {slot.type}
                           </span>
                         </td>
-                        <td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{ fontWeight: 600, color: '#F0B90B', fontSize: '0.78rem' }}>
+                            <span style={{ fontWeight: 600, color: '#F0B90B', fontSize: '0.76rem' }}>
                               {formatPanelDisplayName(slot.panelName || 'Panel A (Technical Leads)')}
                             </span>
                             {slot.rem === 0 ? (
-                              <span style={{ color: '#EF4444', fontSize: '0.68rem', fontWeight: 700 }}>
+                              <span style={{ color: '#EF4444', fontSize: '0.66rem', fontWeight: 700 }}>
                                 🔴 Slot Full
                               </span>
                             ) : isPast ? (
-                              <span style={{ color: '#9599A6', fontSize: '0.68rem', fontWeight: 600 }}>
+                              <span style={{ color: '#9599A6', fontSize: '0.66rem', fontWeight: 600 }}>
                                 Past Schedule
                               </span>
                             ) : (
-                              <span style={{ color: '#22C55E', fontSize: '0.68rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22C55E' }}></span>
+                              <span style={{ color: '#22C55E', fontSize: '0.66rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22C55E', flexShrink: 0 }}></span>
                                 Available ({slot.rem} left)
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="font-bold">{slot.cap}</td>
-                        <td>
+                        <td className="font-bold" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{slot.cap}</td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {slot.rem === 0 ? (
                             <span className="slot-full-badge">FULL</span>
                           ) : (
@@ -3001,7 +3009,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                 borderRadius: '14px',
                 border: '1px solid #2A2C38',
                 width: '100%',
-                maxWidth: '860px',
+                maxWidth: '940px',
                 maxHeight: '90vh',
                 display: 'flex',
                 flexDirection: 'column',
@@ -3181,31 +3189,33 @@ export const mergeWithInitialAllocations = (incomingList) => {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              gap: '14px',
+                              flexWrap: 'wrap',
+                              gap: '12px',
+                              boxSizing: 'border-box',
                             }}
                           >
                             {/* Candidate & Job Info */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 200px', minWidth: '180px' }}>
                               <img
                                 src={item.candidateAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
                                 alt={item.candidateName}
-                                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #2A2C38' }}
+                                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #2A2C38', flexShrink: 0 }}
                               />
-                              <div>
+                              <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>
                                   {item.candidateName}
                                 </div>
                                 <div style={{ fontSize: '0.74rem', color: '#9599A6' }}>
                                   {item.jobPosition} • <span style={{ color: '#F0B90B' }}>{item.interviewRound || 'Round 1'}</span>
                                 </div>
-                                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: '1px' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: '1px', wordBreak: 'break-word' }}>
                                   Panel: {panelEmailList}
                                 </div>
                               </div>
                             </div>
 
                             {/* Timing & Countdown Status */}
-                            <div style={{ minWidth: '160px' }}>
+                            <div style={{ minWidth: '140px', flex: '0 1 auto' }}>
                               <div style={{ fontSize: '0.8rem', color: '#FFFFFF', fontWeight: 600 }}>
                                 📅 {item.assignedDate || item.interviewDate}
                               </div>
@@ -3233,7 +3243,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                             </div>
 
                             {/* Reminder Status Badges */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '115px' }}>
                               <span
                                 style={{
                                   fontSize: '0.72rem',
@@ -3255,7 +3265,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
                             </div>
 
                             {/* Action Buttons */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                               <button
                                 type="button"
                                 onClick={() => handleSendSingleReminder(item, '24h')}

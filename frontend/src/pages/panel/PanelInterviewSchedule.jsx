@@ -878,7 +878,11 @@ export const sanitizePanelSlots = (rawList) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
                   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
