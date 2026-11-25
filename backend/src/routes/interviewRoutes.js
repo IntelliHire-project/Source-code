@@ -21,6 +21,7 @@ const {
   getEvaluationsHandler,
   getPanelMembersHandler,
   clearAllSlotsHandler,
+  sendRemindersHandler,
 } = require('../controllers/interviewController');
 
 const router = express.Router();
@@ -78,6 +79,9 @@ router.put('/reschedule-requests/:id/custom', optionalAuth, customRescheduleHand
 // Evaluations
 router.get('/evaluations', optionalAuth, getEvaluationsHandler);
 router.post('/evaluations', optionalAuth, submitEvaluationHandler);
+
+// Interview Reminders (Automated Email & Google Calendar Notifications)
+router.post('/reminders/send', optionalAuth, sendRemindersHandler);
 
 module.exports = router;
 

@@ -6,6 +6,9 @@ import {
   Video,
   User,
   AlertCircle,
+  Bell,
+  BellRing,
+  Download,
   CheckCircle2,
   CalendarPlus,
   RefreshCw,
@@ -32,6 +35,8 @@ import {
   getPanelMembers,
   submitRescheduleRequest,
   generateGoogleCalendarLink,
+  downloadIcsCalendarFile,
+  checkUpcomingInterviewReminders,
   isPastOrToday,
   toIsoDateString,
   splitTimeRange,
@@ -394,6 +399,12 @@ export const sanitizePanelSlots = (rawList) => {
       const completed = panelistSlots.filter((s) => s.status === 'COMPLETED').length;
       const pendingReschedules = panelistSlots.filter((s) => s.status === 'RESCHEDULE_REQUESTED').length;
       return { total, upcoming, completed, pendingReschedules };
+    }, [panelistSlots]);
+
+    // Upcoming interview reminders check for panelist
+    const [dismissedAlertBanner, setDismissedAlertBanner] = useState(false);
+    const upcomingRemindersData = useMemo(() => {
+      return checkUpcomingInterviewReminders(panelistSlots);
     }, [panelistSlots]);
 
     const showToast = (msg) => {
@@ -854,6 +865,144 @@ export const sanitizePanelSlots = (rawList) => {
               </div>
             </div>
 
+            {/* ── Upcoming Interview Pop-up Alert Banner for Panelist ── */}
+            {!dismissedAlertBanner && upcomingRemindersData.hasUpcomingAlerts && (
+              <div
+                style={{
+                  backgroundColor: '#1E222D',
+                  border: '1px solid rgba(240, 185, 11, 0.4)',
+                  borderLeft: '4px solid #F0B90B',
+                  borderRadius: '12px',
+                  padding: '14px 18px',
+                  marginBottom: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <BellRing size={20} style={{ color: '#F0B90B' }} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>
+                        🔔 Upcoming Interview Pop-up Alert
+                      </span>
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                          color: '#EF4444',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {upcomingRemindersData.upcomingWithin24h.length} Session(s) in next 24 hours
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#9599A6' }}>
+                      Upcoming Session:{' '}
+                      <strong style={{ color: '#F0B90B' }}>
+                        {upcomingRemindersData.upcomingWithin24h[0]?.candidate?.name || upcomingRemindersData.upcomingWithin24h[0]?.candidateName || 'Candidate'}
+                      </strong>{' '}
+                      ({upcomingRemindersData.upcomingWithin24h[0]?.jobPosition}) —{' '}
+                      <span style={{ color: '#4ADE80', fontWeight: 600 }}>
+                        {upcomingRemindersData.upcomingWithin24h[0]?.countdownText}
+                      </span>{' '}
+                      ({upcomingRemindersData.upcomingWithin24h[0]?.startTime})
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {upcomingRemindersData.upcomingWithin24h[0]?.meetingLocation && (
+                    <a
+                      href={upcomingRemindersData.upcomingWithin24h[0].meetingLocation}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        backgroundColor: '#22C55E',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '7px 16px',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <Video size={13} />
+                      <span>Join Meeting</span>
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const first = upcomingRemindersData.upcomingWithin24h[0];
+                      if (first) {
+                        downloadIcsCalendarFile({
+                          title: `${first.jobPosition} Interview - ${first.candidate?.name || first.candidateName}`,
+                          description: `Candidate: ${first.candidate?.name || first.candidateName}\nRound: ${first.round}\nVenue: ${first.meetingLocation}`,
+                          date: first.interviewDate,
+                          startTime: first.startTime,
+                          location: first.meetingLocation,
+                          candidateEmail: first.candidate?.email || first.candidateEmail,
+                          panelEmails: currentPanelist?.email,
+                        });
+                        showToast('Calendar invitation (.ics) with 15-min and 24-hr pop-up alarms downloaded!');
+                      }
+                    }}
+                    style={{
+                      backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                      border: '1px solid rgba(240, 185, 11, 0.4)',
+                      color: '#F0B90B',
+                      padding: '7px 14px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <Download size={13} />
+                    <span>Download .ics Alarms</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedAlertBanner(true)}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      color: '#9599A6',
+                      padding: '7px 12px',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Interview Cards List */}
             {filteredSlots.length === 0 ? (
               <div style={{
@@ -885,6 +1034,8 @@ export const sanitizePanelSlots = (rawList) => {
                     startTime: slot.startTime,
                     endTime: slot.endTime,
                     location: slot.meetingLocation,
+                    candidateEmail: slot.candidate?.email || slot.candidateEmail,
+                    panelEmails: currentPanelist?.email,
                   });
 
                   const statusClass = slot.status === 'COMPLETED'
@@ -1033,6 +1184,26 @@ export const sanitizePanelSlots = (rawList) => {
                               >
                                 <CalendarPlus size={13} /> Calendar
                               </a>
+                              <button
+                                type="button"
+                                className="subrow-action-btn"
+                                onClick={() => {
+                                  downloadIcsCalendarFile({
+                                    title: `${slot.jobPosition} - ${slot.round} Interview (${candidateDisplayName})`,
+                                    description: `Candidate: ${candidateDisplayName}\nRound: ${slot.round}\nVenue: ${slot.meetingLocation}\nNotes: ${slot.additionalNotes || 'N/A'}`,
+                                    date: slot.interviewDate,
+                                    startTime: slot.startTime,
+                                    endTime: slot.endTime,
+                                    location: slot.meetingLocation,
+                                    candidateEmail: slot.candidate?.email || slot.candidateEmail,
+                                    panelEmails: currentPanelist?.email,
+                                  });
+                                  showToast('Downloaded .ics with native 15m and 24h pop-up alarms!');
+                                }}
+                                title="Download calendar file (.ics) with native pop-up alarms"
+                              >
+                                <Download size={12} /> Pop-up .ics
+                              </button>
                               <button
                                 type="button"
                                 className="subrow-action-btn reschedule"

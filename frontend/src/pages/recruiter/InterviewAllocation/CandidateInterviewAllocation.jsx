@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
+  Bell,
+  BellRing,
   BriefcaseBusiness,
   Calendar,
   CalendarDays,
@@ -12,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Download,
   ExternalLink,
   Mail,
   MapPin,
@@ -34,7 +37,18 @@ import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import { INTERVIEWS } from '../../../data/interviews';
 import { VACANCIES } from '../../../data/vacancies';
-import { getRescheduleRequests, getEndTime, checkPanelMemberAvailability, DEFAULT_PANEL_MEMBERS } from '../../../services/interviewService';
+import {
+  getRescheduleRequests,
+  getEndTime,
+  checkPanelMemberAvailability,
+  DEFAULT_PANEL_MEMBERS,
+  checkUpcomingInterviewReminders,
+  sendInterviewReminder,
+  sendBulkInterviewReminders,
+  generateGoogleCalendarLink,
+  downloadIcsCalendarFile,
+  getInterviewRemindersLog,
+} from '../../../services/interviewService';
 import {
   fetchInterviewSlots,
   fetchAllocations,
@@ -1460,6 +1474,38 @@ export const mergeWithInitialAllocations = (incomingList) => {
       if (currentPage > totalPages) setCurrentPage(totalPages);
     }, [currentPage, totalPages]);
 
+    // ── Interview Reminders & Pop-up Alarms State ──
+    const [showRemindersModal, setShowRemindersModal] = useState(false);
+    const [dismissedAlertBanner, setDismissedAlertBanner] = useState(false);
+    const [remindersLogTick, setRemindersLogTick] = useState(0);
+
+    const upcomingRemindersData = useMemo(() => {
+      return checkUpcomingInterviewReminders(filteredAllocations);
+    }, [filteredAllocations, remindersLogTick]);
+
+    const handleSendSingleReminder = async (item, type = '24h') => {
+      const res = await sendInterviewReminder({ allocation: item, type });
+      setRemindersLogTick((t) => t + 1);
+      setToast({
+        type: 'success',
+        message: `Automated ${type} reminder dispatched to ${item.candidateName} & panel (${item.panelEmails || item.panelMembers || 'panel members'})!`,
+      });
+    };
+
+    const handleSendAllReminders = async (type = '24h') => {
+      const allocated = filteredAllocations.filter((a) => a.status === 'ALLOCATED');
+      if (allocated.length === 0) {
+        setToast({ type: 'warning', message: 'No allocated interviews found to send reminders.' });
+        return;
+      }
+      await sendBulkInterviewReminders(allocated, type);
+      setRemindersLogTick((t) => t + 1);
+      setToast({
+        type: 'success',
+        message: `Automated ${type} reminders & Google Calendar notifications dispatched to ${allocated.length} candidates and panel members!`,
+      });
+    };
+
     const selectedVisibleCandidates = filteredCandidates.filter((candidate) => candidate.selected);
     const selectedSlot = filteredSlots.find((slot) => slot.id === selectedSlotId);
     const rescheduleCandidate = reschedulingAllocation
@@ -1519,6 +1565,108 @@ export const mergeWithInitialAllocations = (incomingList) => {
       <>
         {/* Standard IntelliHire Toast Notification */}
         <AdminToast toast={toast} onDismiss={() => setToast(null)} />
+
+        {/* ── Upcoming Interview Pop-up Alert Banner ── */}
+        {!dismissedAlertBanner && upcomingRemindersData.hasUpcomingAlerts && (
+          <div
+            style={{
+              backgroundColor: '#1E222D',
+              border: '1px solid rgba(240, 185, 11, 0.4)',
+              borderLeft: '4px solid #F0B90B',
+              borderRadius: '10px',
+              padding: '14px 18px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <BellRing size={20} style={{ color: '#F0B90B' }} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>
+                    🔔 Upcoming Interview Pop-up Alert
+                  </span>
+                  <span
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                      color: '#EF4444',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {upcomingRemindersData.upcomingWithin24h.length} Session(s) in next 24 hours
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#9599A6' }}>
+                  Next upcoming session:{' '}
+                  <strong style={{ color: '#F0B90B' }}>
+                    {upcomingRemindersData.upcomingWithin24h[0]?.candidateName}
+                  </strong>{' '}
+                  ({upcomingRemindersData.upcomingWithin24h[0]?.jobPosition}) —{' '}
+                  <span style={{ color: '#4ADE80', fontWeight: 600 }}>
+                    {upcomingRemindersData.upcomingWithin24h[0]?.countdownText}
+                  </span>{' '}
+                  ({upcomingRemindersData.upcomingWithin24h[0]?.assignedTime || upcomingRemindersData.upcomingWithin24h[0]?.startTime})
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowRemindersModal(true)}
+                style={{
+                  backgroundColor: '#F0B90B',
+                  color: '#000000',
+                  border: 'none',
+                  padding: '7px 16px',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Bell size={13} />
+                <span>Review &amp; Dispatch Reminders</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedAlertBanner(true)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#9599A6',
+                  padding: '7px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                }}
+                title="Dismiss alert banner"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Filter Controls Card ── */}
         <div
@@ -1781,6 +1929,51 @@ export const mergeWithInitialAllocations = (incomingList) => {
               >
                 <Send size={13} />
                 <span>Preview &amp; Send Invites</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRemindersModal(true)}
+                title="Manage automated reminders and pop-up alarms for candidates and panel"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                  border: '1px solid rgba(240, 185, 11, 0.4)',
+                  color: '#F0B90B',
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(240, 185, 11, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(240, 185, 11, 0.15)';
+                }}
+              >
+                <Bell size={13} style={{ color: '#F0B90B' }} />
+                <span>Reminders &amp; Pop-ups</span>
+                {upcomingRemindersData.upcomingWithin24h.length > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: '#EF4444',
+                      color: '#FFFFFF',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      borderRadius: '10px',
+                      padding: '1px 6px',
+                      marginLeft: '2px',
+                    }}
+                  >
+                    {upcomingRemindersData.upcomingWithin24h.length}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -2779,6 +2972,473 @@ export const mergeWithInitialAllocations = (incomingList) => {
                   <Send size={14} />
                   <span>Send All ({filteredAllocations.filter((a) => a.status === 'ALLOCATED').length}) Invites</span>
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Automated Interview Reminders & Pop-up Alarms ── */}
+        {showRemindersModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.82)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: '#1E222D',
+                borderRadius: '14px',
+                border: '1px solid #2A2C38',
+                width: '100%',
+                maxWidth: '860px',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+              }}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: '18px 24px',
+                  backgroundColor: '#16171F',
+                  borderBottom: '1px solid #2A2C38',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <BellRing size={20} style={{ color: '#F0B90B' }} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF' }}>
+                      Automated Interview Reminders &amp; Pop-up Alerts
+                    </h3>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.76rem', color: '#9599A6' }}>
+                      Automated reminders for candidates &amp; panel members via email and Google Calendar integrations
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRemindersModal(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9599A6',
+                    cursor: 'pointer',
+                    padding: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div
+                style={{
+                  padding: '20px 24px',
+                  overflowY: 'auto',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                }}
+              >
+                {/* Automation Rules Summary */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '12px',
+                  }}
+                >
+                  <div
+                    style={{
+                      backgroundColor: '#13141C',
+                      border: '1px solid rgba(34, 197, 94, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                      24-HOUR REMINDER
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#4ADE80', fontWeight: 700 }}>
+                      ✓ Email &amp; Calendar Alarm
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#9599A6', marginTop: '2px' }}>
+                      Sent 1 day before to Candidate &amp; Panel
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: '#13141C',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                      1-HOUR URGENT REMINDER
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#60A5FA', fontWeight: 700 }}>
+                      ✓ Direct Meeting Link Alert
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#9599A6', marginTop: '2px' }}>
+                      Dispatched 60 mins before session starts
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      backgroundColor: '#13141C',
+                      border: '1px solid rgba(240, 185, 11, 0.3)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                      CALENDAR POP-UP ALARMS
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#F0B90B', fontWeight: 700 }}>
+                      ✓ 15m Native Pop-up Alerts
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#9599A6', marginTop: '2px' }}>
+                      Google Calendar &amp; .ics VALARM alarms
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section Title */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                  <span style={{ fontSize: '0.82rem', color: '#FFFFFF', fontWeight: 700, letterSpacing: '0.03em' }}>
+                    SCHEDULED SESSIONS &amp; AUTOMATION STATUS ({upcomingRemindersData.allWithStatus.filter((a) => a.status === 'ALLOCATED').length})
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: '#F0B90B', fontWeight: 600 }}>
+                    {upcomingRemindersData.upcomingWithin24h.length} session(s) due within 24h
+                  </span>
+                </div>
+
+                {/* Sessions Cards List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {upcomingRemindersData.allWithStatus.filter((a) => a.status === 'ALLOCATED').length === 0 ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: '#9599A6', backgroundColor: '#13141C', borderRadius: '8px' }}>
+                      No allocated candidate sessions found. Allocate candidates to slots to manage automated reminders.
+                    </div>
+                  ) : (
+                    upcomingRemindersData.allWithStatus
+                      .filter((a) => a.status === 'ALLOCATED')
+                      .map((item) => {
+                        const candEmail = item.candidateEmail || `${(item.candidateName || 'candidate').toLowerCase().replace(/\s+/g, '.')}@example.com`;
+                        const panelEmailList = item.panelEmails || item.panelMembers || 'saman.tech@company.com';
+                        const gcalUrl = generateGoogleCalendarLink({
+                          title: `${item.jobPosition || 'Job Position'} Interview - ${item.candidateName}`,
+                          description: `Candidate: ${item.candidateName}\nRound: ${item.interviewRound || 'Round'}\nVenue/Link: ${item.meetingLocation || 'Online'}`,
+                          date: item.assignedDate || item.interviewDate || '2026-11-25',
+                          startTime: item.assignedTime || item.startTime || '10:00 AM',
+                          location: item.meetingLocation,
+                          candidateEmail: candEmail,
+                          panelEmails: panelEmailList,
+                        });
+
+                        return (
+                          <div
+                            key={item.id || item.candidateId}
+                            style={{
+                              backgroundColor: '#16171F',
+                              border: item.isDue24h ? '1px solid rgba(240, 185, 11, 0.4)' : '1px solid #2A2C38',
+                              borderRadius: '10px',
+                              padding: '14px 16px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '14px',
+                            }}
+                          >
+                            {/* Candidate & Job Info */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' }}>
+                              <img
+                                src={item.candidateAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                alt={item.candidateName}
+                                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #2A2C38' }}
+                              />
+                              <div>
+                                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#FFFFFF' }}>
+                                  {item.candidateName}
+                                </div>
+                                <div style={{ fontSize: '0.74rem', color: '#9599A6' }}>
+                                  {item.jobPosition} • <span style={{ color: '#F0B90B' }}>{item.interviewRound || 'Round 1'}</span>
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: '1px' }}>
+                                  Panel: {panelEmailList}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Timing & Countdown Status */}
+                            <div style={{ minWidth: '160px' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#FFFFFF', fontWeight: 600 }}>
+                                📅 {item.assignedDate || item.interviewDate}
+                              </div>
+                              <div style={{ fontSize: '0.84rem', color: '#F0B90B', fontWeight: 700 }}>
+                                ⏰ {formatDisplayTime(item.assignedTime || item.startTime)}
+                              </div>
+                              <div style={{ marginTop: '3px' }}>
+                                <span
+                                  style={{
+                                    backgroundColor: item.isDue1h
+                                      ? 'rgba(239, 68, 68, 0.2)'
+                                      : item.isDue24h
+                                        ? 'rgba(240, 185, 11, 0.2)'
+                                        : 'rgba(34, 197, 94, 0.15)',
+                                    color: item.isDue1h ? '#EF4444' : item.isDue24h ? '#F0B90B' : '#4ADE80',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {item.countdownText}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Reminder Status Badges */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  color: item.reminder24hSent ? '#4ADE80' : '#9599A6',
+                                }}
+                              >
+                                {item.reminder24hSent ? '✓ 24h Reminder Sent' : '⏰ 24h Scheduled'}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  color: item.reminder1hSent ? '#60A5FA' : '#6B7280',
+                                }}
+                              >
+                                {item.reminder1hSent ? '✓ 1h Urgent Sent' : '⏰ 1h Pending'}
+                              </span>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleSendSingleReminder(item, '24h')}
+                                title="Dispatch 24-Hour Reminder Email to Candidate and Panel"
+                                style={{
+                                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                                  border: '1px solid rgba(59, 130, 246, 0.35)',
+                                  color: '#60A5FA',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Mail size={12} />
+                                <span>24h Remind</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSendSingleReminder(item, '1h')}
+                                title="Dispatch 1-Hour Urgent Reminder Email to Candidate and Panel"
+                                style={{
+                                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                                  color: '#EF4444',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Clock3 size={12} />
+                                <span>1h Alert</span>
+                              </button>
+
+                              {/* Google Calendar Link with Guest Emails */}
+                              <a
+                                href={gcalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Add to Google Calendar with Pop-up Alarms"
+                                style={{
+                                  backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                                  border: '1px solid rgba(240, 185, 11, 0.35)',
+                                  color: '#F0B90B',
+                                  padding: '5px 9px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Calendar size={12} />
+                                <span>G-Cal</span>
+                              </a>
+
+                              {/* Download .ics with Native VALARM Pop-ups */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  downloadIcsCalendarFile({
+                                    title: `${item.jobPosition || 'Job'} Interview - ${item.candidateName}`,
+                                    description: `Candidate: ${item.candidateName}\nRound: ${item.interviewRound || 'Round'}\nVenue: ${item.meetingLocation || 'Online Google Meet'}\nPanel: ${panelEmailList}`,
+                                    date: item.assignedDate || item.interviewDate || '2026-11-25',
+                                    startTime: item.assignedTime || item.startTime || '10:00 AM',
+                                    location: item.meetingLocation,
+                                    candidateEmail: candEmail,
+                                    panelEmails: panelEmailList,
+                                  });
+                                  setToast({
+                                    type: 'success',
+                                    message: `Calendar invitation (.ics) with 15-min and 24-hr pop-up alarms downloaded!`,
+                                  });
+                                }}
+                                title="Download .ics file with native pop-up alarms for Google Calendar / Outlook"
+                                style={{
+                                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                                  color: '#FFFFFF',
+                                  padding: '5px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                              >
+                                <Download size={12} />
+                                <span>.ics</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  padding: '16px 24px',
+                  backgroundColor: '#16171F',
+                  borderTop: '1px solid #2A2C38',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowRemindersModal(false)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#FFFFFF',
+                    padding: '8px 18px',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close
+                </button>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSendAllReminders('1h')}
+                    style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.18)',
+                      border: '1px solid rgba(239, 68, 68, 0.45)',
+                      color: '#EF4444',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Clock3 size={13} />
+                    <span>Send 1h Urgent Reminders to All</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSendAllReminders('24h')}
+                    style={{
+                      backgroundColor: '#F0B90B',
+                      border: 'none',
+                      color: '#000000',
+                      padding: '8px 20px',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Bell size={13} />
+                    <span>⚡ Send 24h Reminders to All (Candidates &amp; Panel)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

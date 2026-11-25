@@ -190,3 +190,13 @@ export const fetchPanelMembers = async () => {
   return response.data;
 };
 
+/**
+ * Send automated interview reminder via email and Google Calendar notifications
+ * @param {object} payload - { slotId, candidateId, candidateName, candidateEmail, panelEmails, type, reminderMethod }
+ * @returns {Promise<object>}
+ */
+export const sendInterviewRemindersApi = async (payload) => {
+  const response = await apiInstance.post('/interviews/reminders/send', payload);
+  return response.data;
+};
+
