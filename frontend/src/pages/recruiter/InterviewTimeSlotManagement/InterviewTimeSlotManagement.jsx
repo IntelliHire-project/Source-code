@@ -1477,10 +1477,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
       return;
     }
 
+    const panelForCheck = bulkConfig.replaceExisting
+      ? { ...targetPanel, slots: (targetPanel.slots || []).filter(existing => existing.date !== targetDate) }
+      : targetPanel;
+
     let conflictFound = false;
     let conflictMsg = '';
     for (const s of newSlots) {
-      const check = checkSlotAvailability(targetPanel, s);
+      const check = checkSlotAvailability(panelForCheck, s);
       if (check.status === 'CONFLICT') {
         conflictFound = true;
         conflictMsg = check.message;
