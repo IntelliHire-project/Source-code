@@ -17,6 +17,7 @@ const {
   approveRescheduleRequestHandler,
   rejectRescheduleRequestHandler,
   customRescheduleHandler,
+  directRescheduleHandler,
   submitEvaluationHandler,
   getEvaluationsHandler,
   getPanelMembersHandler,
@@ -75,6 +76,7 @@ router.post('/reschedule-requests', optionalAuth, createRescheduleRequestHandler
 router.put('/reschedule-requests/:id/approve', optionalAuth, approveRescheduleRequestHandler);
 router.put('/reschedule-requests/:id/reject', optionalAuth, rejectRescheduleRequestHandler);
 router.put('/reschedule-requests/:id/custom', optionalAuth, customRescheduleHandler);
+router.post('/reschedule-direct', optionalAuth, directRescheduleHandler);
 
 // Evaluations
 router.get('/evaluations', optionalAuth, getEvaluationsHandler);

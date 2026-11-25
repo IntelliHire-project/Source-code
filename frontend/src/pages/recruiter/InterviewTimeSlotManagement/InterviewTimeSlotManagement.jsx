@@ -412,6 +412,10 @@ const emptyForm = {
   meetingId: '284 912 049 192',
   meetingPasscode: 'inTelli#2026',
   additionalNotes: '',
+  allowDirectReschedule: true,
+  rescheduleNoticeHours: '24',
+  maxReschedulesAllowed: '2',
+  autoNotifyOnReschedule: true,
 };
 
 export const CANDIDATES_BY_ROLE = {
@@ -1862,6 +1866,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             additionalNotes: formData.additionalNotes || 'N/A',
             bookedCount: sRow.assignedCandidate ? 1 : 0,
             assignedCandidate: sRow.assignedCandidate || null,
+            allowDirectReschedule: formData.allowDirectReschedule !== false,
+            rescheduleNoticeHours: formData.rescheduleNoticeHours || '24',
+            maxReschedulesAllowed: formData.maxReschedulesAllowed || '2',
+            autoNotifyOnReschedule: formData.autoNotifyOnReschedule !== false,
           });
         });
       });
@@ -1955,6 +1963,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             panelName: s.panelName,
             panelEmails: s.panelEmails,
             meetingLocation: s.meetingLocation,
+            allowDirectReschedule: s.allowDirectReschedule !== false,
+            rescheduleNoticeHours: s.rescheduleNoticeHours || '24',
+            maxReschedulesAllowed: s.maxReschedulesAllowed || '2',
+            autoNotifyOnReschedule: s.autoNotifyOnReschedule !== false,
             isCustom: true,
           };
         });
@@ -1997,6 +2009,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
               jobPosition: cand.jobPosition || cand.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
               status: 'ALLOCATED',
               score: cand.score || 85,
+              allowDirectReschedule: s.allowDirectReschedule !== false,
+              rescheduleNoticeHours: s.rescheduleNoticeHours || '24',
+              maxReschedulesAllowed: s.maxReschedulesAllowed || '2',
+              autoNotifyOnReschedule: s.autoNotifyOnReschedule !== false,
             };
             const exIdx = currentAllocations.findIndex(a =>
               (a.candidateId && String(a.candidateId) === String(candId)) ||
@@ -3682,6 +3698,103 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         }}
                       />
                     </div>
+
+                    {/* Direct System Rescheduling Policy (Configured during Initial Scheduling) */}
+                    {activeZohoType !== 'Log' && (
+                      <div
+                        style={{
+                          gridColumn: 'span 2',
+                          backgroundColor: '#1E222D',
+                          border: '1px solid rgba(107, 140, 255, 0.25)',
+                          borderRadius: '10px',
+                          padding: '14px 16px',
+                          marginTop: '4px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <RefreshCw size={15} style={{ color: '#60A5FA' }} />
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.03em' }}>
+                              RESCHEDULING WORKFLOW &amp; POLICY (INITIAL SCHEDULING SETUP)
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '2px 9px',
+                              borderRadius: '10px',
+                              backgroundColor: formData.allowDirectReschedule !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                              color: formData.allowDirectReschedule !== false ? '#4ADE80' : '#94A3B8',
+                            }}
+                          >
+                            {formData.allowDirectReschedule !== false ? '✓ Direct System Rescheduling Enabled' : 'Rescheduling Locked'}
+                          </span>
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: formData.allowDirectReschedule !== false ? '12px' : 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={formData.allowDirectReschedule !== false}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, allowDirectReschedule: e.target.checked }))}
+                            style={{ accentColor: '#F0B90B', width: '15px', height: '15px', cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: '0.8rem', color: '#E5E7EB', fontWeight: 600 }}>
+                            Enable direct rescheduling through the IntelliHire system for this schedule
+                          </span>
+                        </label>
+
+                        {formData.allowDirectReschedule !== false && (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                                MINIMUM NOTICE WINDOW
+                              </label>
+                              <select
+                                value={formData.rescheduleNoticeHours || '24'}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, rescheduleNoticeHours: e.target.value }))}
+                                className="form-control"
+                                style={{ backgroundColor: '#13141C', color: '#FFFFFF', height: '36px', fontSize: '0.8rem' }}
+                              >
+                                <option value="12">At least 12 Hours Prior</option>
+                                <option value="24">At least 24 Hours Prior</option>
+                                <option value="48">At least 48 Hours Prior</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                                MAX RESCHEDULES ALLOWED
+                              </label>
+                              <select
+                                value={formData.maxReschedulesAllowed || '2'}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, maxReschedulesAllowed: e.target.value }))}
+                                className="form-control"
+                                style={{ backgroundColor: '#13141C', color: '#FFFFFF', height: '36px', fontSize: '0.8rem' }}
+                              >
+                                <option value="1">1 Reschedule</option>
+                                <option value="2">Up to 2 Reschedules</option>
+                                <option value="unlimited">Unlimited (Recruiter Approval)</option>
+                              </select>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={formData.autoNotifyOnReschedule !== false}
+                                  onChange={(e) => setFormData((prev) => ({ ...prev, autoNotifyOnReschedule: e.target.checked }))}
+                                  style={{ accentColor: '#22C55E', width: '15px', height: '15px', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '0.76rem', color: '#9CA3AF', lineHeight: 1.35 }}>
+                                  Auto-sync Google Calendar &amp; send email alerts upon reschedule
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

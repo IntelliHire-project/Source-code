@@ -200,3 +200,13 @@ export const sendInterviewRemindersApi = async (payload) => {
   return response.data;
 };
 
+/**
+ * Directly reschedule an interview slot or allocated candidate through the system
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const directRescheduleInterviewApi = async (payload) => {
+  const response = await apiInstance.post('/interviews/reschedule-direct', payload);
+  return response.data;
+};
+

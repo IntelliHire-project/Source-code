@@ -21,6 +21,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  RefreshCw,
   RotateCcw,
   Save,
   Search,
@@ -55,6 +56,7 @@ import {
   allocateCandidate,
   deleteAllocation,
   resetAllocations,
+  directRescheduleInterviewApi,
 } from '../../../api/interviewApi';
 import '../../../style.css';
 import './CandidateInterviewAllocation.css';
@@ -695,6 +697,16 @@ export const mergeWithInitialAllocations = (incomingList) => {
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [reschedulingAllocation, setReschedulingAllocation] = useState(null);
     const [rescheduleSlotId, setRescheduleSlotId] = useState('');
+    const [rescheduleMode, setRescheduleMode] = useState('slot'); // 'slot' | 'custom'
+    const [rescheduleCustomDate, setRescheduleCustomDate] = useState(() => {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      return t.toISOString().split('T')[0];
+    });
+    const [rescheduleCustomStart, setRescheduleCustomStart] = useState('10:00');
+    const [rescheduleCustomEnd, setRescheduleCustomEnd] = useState('11:00');
+    const [rescheduleReason, setRescheduleReason] = useState('Adjusted schedule directly through IntelliHire');
+    const [rescheduleAutoNotify, setRescheduleAutoNotify] = useState(true);
     const [viewingSlotModal, setViewingSlotModal] = useState(null);
     const [showNoCandidatesModal, setShowNoCandidatesModal] = useState(false);
     const [assignedPanels, setAssignedPanels] = useState(() =>
@@ -1346,21 +1358,48 @@ export const mergeWithInitialAllocations = (incomingList) => {
     };
     const handleResetAllocations = handleResetAllAllocations;
 
+    const handleOpenDirectReschedule = (item) => {
+      if (!item) return;
+      if (item.allowDirectReschedule === false) {
+        showToast('Direct rescheduling is locked by the initial scheduling policy for this session.', 'error');
+        return;
+      }
+      const maxAllowed = item.maxReschedulesAllowed;
+      const usedCount = Number(item.rescheduleCount || 0);
+      if (maxAllowed && maxAllowed !== 'unlimited' && usedCount >= Number(maxAllowed)) {
+        showToast(`Maximum allowed reschedules (${maxAllowed}) reached for ${item.candidateName}.`, 'error');
+        return;
+      }
+
+      setReschedulingAllocation(item);
+      setRescheduleMode('slot');
+      setRescheduleSlotId(item.slotId ? String(item.slotId) : '');
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      const parsedDate = (() => {
+        if (!item.interviewDate) return t.toISOString().split('T')[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(item.interviewDate)) return item.interviewDate;
+        const d = new Date(item.interviewDate);
+        return Number.isNaN(d.getTime()) ? t.toISOString().split('T')[0] : d.toISOString().split('T')[0];
+      })();
+      setRescheduleCustomDate(parsedDate);
+      setRescheduleCustomStart('10:00');
+      setRescheduleCustomEnd('11:00');
+      setRescheduleReason('Adjusted schedule directly through IntelliHire');
+      setRescheduleAutoNotify(item.autoNotifyOnReschedule !== false);
+    };
+
     const handleConfirmReschedule = () => {
-      if (!reschedulingAllocation || !rescheduleSlotId) {
-        showToast('Select an available slot to reschedule this candidate.', 'error');
-        return;
-      }
-      const targetSlot = slotsWithRemaining.find((slot) => String(slot.id) === String(rescheduleSlotId));
-      if (!targetSlot) {
-        showToast('Selected time slot not found.', 'error');
-        return;
-      }
-      const isCurrentSlot = String(reschedulingAllocation.slotId) === String(targetSlot.id);
-      if (!isCurrentSlot && targetSlot.rem <= 0) {
-        showToast('The selected slot is fully booked.', 'error');
-        return;
-      }
+      if (!reschedulingAllocation) return;
+
+      const to12HourStr = (hhmm) => {
+        if (!hhmm || !hhmm.includes(':')) return hhmm;
+        const [hRaw, mRaw] = hhmm.split(':');
+        let h = parseInt(hRaw, 10);
+        const period = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${String(h).padStart(2, '0')}:${mRaw} ${period}`;
+      };
 
       const candidateRecord = rescheduleCandidate || {
         id: reschedulingAllocation.candidateId,
@@ -1369,7 +1408,133 @@ export const mergeWithInitialAllocations = (incomingList) => {
         jobPosition: reschedulingAllocation.jobPosition || jobPosition,
       };
 
-      const newRecord = buildAllocationRecord(candidateRecord, targetSlot);
+      let newRecord = null;
+      let summaryLabel = '';
+
+      if (rescheduleMode === 'slot') {
+        if (!rescheduleSlotId) {
+          showToast('Select an available slot to reschedule this candidate.', 'error');
+          return;
+        }
+        const targetSlot = slotsWithRemaining.find((slot) => String(slot.id) === String(rescheduleSlotId));
+        if (!targetSlot) {
+          showToast('Selected time slot not found.', 'error');
+          return;
+        }
+        const isCurrentSlot = String(reschedulingAllocation.slotId) === String(targetSlot.id);
+        if (!isCurrentSlot && targetSlot.rem <= 0) {
+          showToast('The selected slot is fully booked.', 'error');
+          return;
+        }
+
+        // Mandatory Panel Member Availability Check before rescheduling
+        const availCheck = checkPanelMemberAvailability(
+          targetSlot.panelName || 'Panel A',
+          targetSlot.dateKey || targetSlot.date,
+          targetSlot.time || targetSlot.startTime
+        );
+        if (availCheck.status === 'CONFLICT') {
+          showToast(`Cannot reschedule: ${availCheck.message}`, 'error');
+          return;
+        }
+
+        const built = buildAllocationRecord(candidateRecord, targetSlot);
+        newRecord = {
+          ...reschedulingAllocation,
+          ...built,
+          rescheduleCount: Number(reschedulingAllocation.rescheduleCount || 0) + 1,
+          lastRescheduledAt: new Date().toISOString(),
+          rescheduledReason: rescheduleReason || 'Moved to available slot',
+          status: 'ALLOCATED',
+        };
+        summaryLabel = `${targetSlot.date} at ${targetSlot.time || targetSlot.startTime}`;
+
+        // Persist backend direct reschedule
+        directRescheduleInterviewApi({
+          slotId: reschedulingAllocation.slotId,
+          targetSlotId: targetSlot.id,
+          candidateId: reschedulingAllocation.candidateId,
+          candidateName: reschedulingAllocation.candidateName,
+          reason: rescheduleReason,
+        }).catch(() => {});
+      } else {
+        // Custom direct date/time mode
+        if (!rescheduleCustomDate || !rescheduleCustomStart || !rescheduleCustomEnd) {
+          showToast('Select date, start time, and end time for direct reschedule.', 'error');
+          return;
+        }
+        if (rescheduleCustomStart >= rescheduleCustomEnd) {
+          showToast('End time must be strictly after start time.', 'error');
+          return;
+        }
+
+        const start12 = to12HourStr(rescheduleCustomStart);
+        const end12 = to12HourStr(rescheduleCustomEnd);
+
+        // Mandatory Panel Member Availability Check for custom timing
+        const availCheck = checkPanelMemberAvailability(
+          reschedulingAllocation.panelName || 'Panel A',
+          rescheduleCustomDate,
+          start12
+        );
+        if (availCheck.status === 'CONFLICT') {
+          showToast(`Cannot reschedule: ${availCheck.message}`, 'error');
+          return;
+        }
+
+        const dObj = new Date(rescheduleCustomDate);
+        const displayDate = Number.isNaN(dObj.getTime())
+          ? rescheduleCustomDate
+          : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeRange = `${start12} – ${end12}`;
+
+        newRecord = {
+          ...reschedulingAllocation,
+          interviewDate: displayDate,
+          assignedDate: rescheduleCustomDate,
+          assignedTime: timeRange,
+          assignedEndTime: end12,
+          rescheduleCount: Number(reschedulingAllocation.rescheduleCount || 0) + 1,
+          lastRescheduledAt: new Date().toISOString(),
+          rescheduledReason: rescheduleReason || 'Direct custom reschedule',
+          status: 'ALLOCATED',
+        };
+        summaryLabel = `${displayDate} (${timeRange})`;
+
+        // Sync intellihire_interview_slots & intellihire_custom_slots so Panel Schedule reflects immediately
+        try {
+          const cleanSlotId = String(reschedulingAllocation.slotId || '').replace('SLOT-', '');
+          const storedSlots = JSON.parse(localStorage.getItem('intellihire_interview_slots') || '[]');
+          if (Array.isArray(storedSlots) && storedSlots.length > 0) {
+            const nextStored = storedSlots.map((s) => {
+              const candMatch = (s.candidate?.name || s.candidateName || '').toLowerCase() === (reschedulingAllocation.candidateName || '').toLowerCase();
+              if (String(s.id) === cleanSlotId || candMatch) {
+                return {
+                  ...s,
+                  rawDate: rescheduleCustomDate,
+                  interviewDate: displayDate,
+                  startTime: start12,
+                  endTime: end12,
+                  status: 'RESCHEDULED',
+                  lastRescheduledAt: new Date().toISOString(),
+                };
+              }
+              return s;
+            });
+            localStorage.setItem('intellihire_interview_slots', JSON.stringify(nextStored));
+          }
+        } catch { }
+
+        directRescheduleInterviewApi({
+          slotId: reschedulingAllocation.slotId,
+          candidateId: reschedulingAllocation.candidateId,
+          candidateName: reschedulingAllocation.candidateName,
+          newDate: rescheduleCustomDate,
+          newStartTime: start12,
+          newEndTime: end12,
+          reason: rescheduleReason,
+        }).catch(() => {});
+      }
 
       setAllocations((current) => {
         const next = current.map((allocation) => {
@@ -1386,10 +1551,21 @@ export const mergeWithInitialAllocations = (incomingList) => {
         return next;
       });
 
+      if (rescheduleAutoNotify && newRecord) {
+        sendInterviewReminder({
+          allocation: newRecord,
+          type: 'RESCHEDULED',
+          customNotes: rescheduleReason,
+        }).catch(() => {});
+        setRemindersLogTick((t) => t + 1);
+      }
+
       setReschedulingAllocation(null);
       setRescheduleSlotId('');
       window.dispatchEvent(new Event('intellihire_slots_updated'));
-      showToast(`${reschedulingAllocation.candidateName}'s interview was rescheduled to ${targetSlot.date} at ${targetSlot.time || targetSlot.startTime}!`);
+      showToast(
+        `${reschedulingAllocation.candidateName}'s interview rescheduled directly to ${summaryLabel}${rescheduleAutoNotify ? ' & updated reminders dispatched!' : '!'}`
+      );
     };
 
     // Save Allocations
@@ -2124,10 +2300,28 @@ export const mergeWithInitialAllocations = (incomingList) => {
                             </button>
                             <button
                               type="button"
+                              className="btn-reschedule-row"
+                              onClick={() => handleOpenDirectReschedule(item)}
+                              title="Reschedule this candidate directly through the system"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '0 7px',
+                                height: '26px',
+                                fontSize: '0.69rem',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <RefreshCw size={10} />
+                              <span>Reschedule</span>
+                            </button>
+                            <button
+                              type="button"
                               className="btn-unassign-row"
                               onClick={() => handleRemoveAllocation(item.candidateId, item.candidateName)}
                               title="Unassign this candidate"
-                              style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 8px', fontSize: '0.70rem' }}
+                              style={{ whiteSpace: 'nowrap', height: '26px', padding: '0 7px', fontSize: '0.69rem' }}
                             >
                               Unassign
                             </button>
@@ -2191,6 +2385,15 @@ export const mergeWithInitialAllocations = (incomingList) => {
                             <span>Notify</span>
                           </>
                         )}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-reschedule-row"
+                        onClick={() => handleOpenDirectReschedule(item)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <RefreshCw size={11} />
+                        <span>Reschedule</span>
                       </button>
                       <button type="button" className="btn-unassign-row" onClick={() => handleRemoveAllocation(item.candidateId, item.candidateName)}>
                         Unassign
@@ -2623,32 +2826,166 @@ export const mergeWithInitialAllocations = (incomingList) => {
 
         {reschedulingAllocation && (
           <div className="allocation-modal-backdrop" onClick={() => setReschedulingAllocation(null)}>
-            <div className="allocation-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="allocation-modal" style={{ width: 'min(540px, 100%)' }} onClick={(event) => event.stopPropagation()}>
               <div className="allocation-modal__header">
-                <h3>Reschedule Interview</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <RefreshCw size={18} style={{ color: '#F0B90B' }} />
+                  <h3>Reschedule Interview Directly</h3>
+                </div>
                 <button type="button" onClick={() => setReschedulingAllocation(null)} aria-label="Close">
                   <X size={18} />
                 </button>
               </div>
               <div className="allocation-modal__body">
-                <p>Select a new slot for <strong>{reschedulingAllocation.candidateName}</strong>.</p>
-                <label className="reschedule-slot-label" htmlFor="reschedule-slot">Available time slot</label>
-                <select
-                  id="reschedule-slot"
-                  className="form-control"
-                  value={rescheduleSlotId}
-                  onChange={(event) => setRescheduleSlotId(event.target.value)}
+                {/* Current Session Info & Policy Pill */}
+                <div
+                  style={{
+                    backgroundColor: '#0D0E13',
+                    border: '1px solid #2A2C38',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    marginBottom: '14px',
+                  }}
                 >
-                  <option value="">Select a slot</option>
-                  {rescheduleOptions.map((slot) => (
-                    <option key={slot.id} value={slot.id}>
-                      {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available {String(slot.id) === String(reschedulingAllocation.slotId) ? '(Current Slot)' : ''}
-                    </option>
-                  ))}
-                  {rescheduleOptions.length === 0 && (
-                    <option value="" disabled>No other available slots for this position</option>
-                  )}
-                </select>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '4px' }}>
+                    <strong style={{ color: '#FFFFFF', fontSize: '0.88rem' }}>{reschedulingAllocation.candidateName}</strong>
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                        color: '#4ADE80',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✓ Direct Reschedule Enabled • Min {reschedulingAllocation.rescheduleNoticeHours || '24'}h Notice
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#9599A6' }}>
+                    Current: <span style={{ color: '#F0B90B', fontWeight: 600 }}>{reschedulingAllocation.interviewDate} ({formatDisplayTime(reschedulingAllocation.assignedTime)})</span> • {formatPanelDisplayName(reschedulingAllocation.panelName || 'Panel A')}
+                  </div>
+                </div>
+
+                {/* Mode Switcher: Move to Open Slot vs Pick Custom Date & Time */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRescheduleMode('slot')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: rescheduleMode === 'slot' ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                      backgroundColor: rescheduleMode === 'slot' ? 'rgba(240, 185, 11, 0.14)' : '#0D0E13',
+                      color: rescheduleMode === 'slot' ? '#F0B90B' : '#9599A6',
+                    }}
+                  >
+                    Move to Open Slot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRescheduleMode('custom')}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: rescheduleMode === 'custom' ? '1px solid #60A5FA' : '1px solid #2A2C38',
+                      backgroundColor: rescheduleMode === 'custom' ? 'rgba(59, 130, 246, 0.14)' : '#0D0E13',
+                      color: rescheduleMode === 'custom' ? '#60A5FA' : '#9599A6',
+                    }}
+                  >
+                    Set New Date &amp; Time Directly
+                  </button>
+                </div>
+
+                {rescheduleMode === 'slot' ? (
+                  <>
+                    <label className="reschedule-slot-label" htmlFor="reschedule-slot" style={{ marginTop: 0 }}>
+                      Select Available Time Slot
+                    </label>
+                    <select
+                      id="reschedule-slot"
+                      className="form-control"
+                      value={rescheduleSlotId}
+                      onChange={(event) => setRescheduleSlotId(event.target.value)}
+                    >
+                      <option value="">Select a slot</option>
+                      {rescheduleOptions.map((slot) => (
+                        <option key={slot.id} value={slot.id}>
+                          {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available {String(slot.id) === String(reschedulingAllocation.slotId) ? '(Current Slot)' : ''}
+                        </option>
+                      ))}
+                      {rescheduleOptions.length === 0 && (
+                        <option value="" disabled>No other available slots for this position — use Custom Date &amp; Time</option>
+                      )}
+                    </select>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div>
+                      <label className="reschedule-slot-label" style={{ marginTop: 0 }}>New Interview Date</label>
+                      <input
+                        type="date"
+                        value={rescheduleCustomDate}
+                        onChange={(e) => setRescheduleCustomDate(e.target.value)}
+                        className="form-control"
+                        style={{ colorScheme: 'dark', padding: '0 12px' }}
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div>
+                        <label className="reschedule-slot-label" style={{ marginTop: 0 }}>Start Time</label>
+                        <input
+                          type="time"
+                          value={rescheduleCustomStart}
+                          onChange={(e) => setRescheduleCustomStart(e.target.value)}
+                          className="form-control"
+                          style={{ colorScheme: 'dark', padding: '0 12px' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="reschedule-slot-label" style={{ marginTop: 0 }}>End Time</label>
+                        <input
+                          type="time"
+                          value={rescheduleCustomEnd}
+                          onChange={(e) => setRescheduleCustomEnd(e.target.value)}
+                          className="form-control"
+                          style={{ colorScheme: 'dark', padding: '0 12px' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: '12px' }}>
+                  <label className="reschedule-slot-label" style={{ marginTop: 0 }}>Reschedule Reason / Note</label>
+                  <input
+                    type="text"
+                    value={rescheduleReason}
+                    onChange={(e) => setRescheduleReason(e.target.value)}
+                    placeholder="Reason for rescheduling (optional)"
+                    className="form-control"
+                    style={{ padding: '0 12px' }}
+                  />
+                </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={rescheduleAutoNotify}
+                    onChange={(e) => setRescheduleAutoNotify(e.target.checked)}
+                    style={{ accentColor: '#22C55E', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '0.78rem', color: '#D1D5DB' }}>
+                    Auto-send updated Google Calendar &amp; email reminder to candidate &amp; panel
+                  </span>
+                </label>
               </div>
               <div className="allocation-modal__actions">
                 <button type="button" className="allocation-modal-cancel" onClick={() => setReschedulingAllocation(null)}>Cancel</button>
