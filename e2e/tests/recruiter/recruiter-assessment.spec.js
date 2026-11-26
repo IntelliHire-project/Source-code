@@ -205,19 +205,20 @@ test.describe('Recruiter Assessment Module — End-to-End Test Suite', () => {
   test('TC-RA-07: Dynamically adds and removes questions in the assessment builder', async ({ page }) => {
     await loginAndNavigateAsRecruiter(page, '/recruiter/assessments/new');
 
-    const initialCount = await page.locator('article.ca-question').count();
+    const questionCards = page.locator('article.ca-question');
+    await expect(questionCards.first()).toBeVisible({ timeout: 10_000 });
+    const initialCount = await questionCards.count();
 
     // Click "+ Add Question"
     await page.locator('button:has-text("Add Question")').click();
-    const newCount = await page.locator('article.ca-question').count();
-    expect(newCount).toBe(initialCount + 1);
+    await expect(questionCards).toHaveCount(initialCount + 1);
 
     // Remove the newly added question
-    const removeBtn = page.locator('article.ca-question').last().locator('button.ca-remove');
+    const removeBtn = questionCards.last().locator('button.ca-remove');
+    await expect(removeBtn).toBeVisible();
     await removeBtn.click();
 
-    const finalCount = await page.locator('article.ca-question').count();
-    expect(finalCount).toBe(initialCount);
+    await expect(questionCards).toHaveCount(initialCount);
   });
 
   // -------------------------------------------------------------------------
