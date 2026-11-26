@@ -15,7 +15,25 @@
   overflow: hidden;
 }
 
-/* ── Header ── */
+.cv-insights__privacy {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 12px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.cv-insights__privacy-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.cv-insights__privacy p {
+  margin: 0;
+  color: var(--text-muted);
+}
 
 /* ── CV Selector ── */
 
@@ -666,6 +684,19 @@
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--text-on-dark);
+}
+
+.chat-panel__header-info {
+  min-width: 0;
+}
+
+.chat-panel__selected-cv {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-panel__header-status {

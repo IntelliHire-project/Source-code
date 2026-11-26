@@ -1,7 +1,12 @@
 const candidateModel = require("../models/candidateModel");
+const { createHash } = require("crypto");
 const { extractTextFromUrl } = require("../services/cvTextService");
+const { buildCVInsightsInput } = require("../services/cvInsightsInput");
 const { generateCVInsights, chatWithCVAssistant } = require("../services/geminiService");
 const { successResponse, errorResponse } = require("../utils/response");
+
+const getCVSourceHash = (cv, text) =>
+  createHash("sha256").update(JSON.stringify([cv.cv_url || "", text])).digest("hex");
 
 /**
  * Retrieves or generates AI insights for a candidate's CV.
@@ -26,14 +31,8 @@ const getCVInsights = async (req, res, next) => {
 
     // Return cached insights if already generated and force re-analysis not requested
     const forceRefresh = req.query.refresh === "true";
-    const isOldGenericFallback =
-      cv.insights &&
-      cv.insights.atsScore === 82 &&
-      Array.isArray(cv.insights.presentKeywords) &&
-      cv.insights.presentKeywords[0] === "JavaScript" &&
-      !cv.cv_name.toLowerCase().includes("javascript");
-
-    if (cv.insights && !forceRefresh && !isOldGenericFallback) {
+    if (cv.insights && cv.insights.insightsVersion === 2 && cv.raw_text &&
+        cv.insights.sourceHash === getCVSourceHash(cv, cv.raw_text) && !forceRefresh) {
       return successResponse(res, "CV insights retrieved successfully.", {
         insights: cv.insights,
         cvId: cv.id,
@@ -51,7 +50,12 @@ const getCVInsights = async (req, res, next) => {
     }
 
     // Generate insights with Gemini
-    const insights = await generateCVInsights(cvText, cv.cv_name);
+    const input = await buildCVInsightsInput(cvText, candidate);
+    const insights = {
+      ...(await generateCVInsights(input)),
+      insightsVersion: 2,
+      sourceHash: getCVSourceHash(cv, cvText),
+    };
 
     // Cache insights in DB
     await candidateModel.updateCVInsights(cv.id, candidate.id, insights);
@@ -72,14 +76,20 @@ const getCVInsights = async (req, res, next) => {
 const chatWithCV = async (req, res, next) => {
   try {
     const cvId = parseInt(req.params.id, 10);
-    const { message, history } = req.body;
+    const { message, history = [] } = req.body || {};
 
     if (!cvId) {
       return errorResponse(res, "Valid CV ID is required.", 400);
     }
 
-    if (!message || !message.trim()) {
-      return errorResponse(res, "Message is required.", 400);
+    if (typeof message !== "string" || !message.trim() || message.length > 2000) {
+      return errorResponse(res, "Message must be between 1 and 2000 characters.", 400);
+    }
+
+    if (!Array.isArray(history) || history.length > 6 ||
+        !history.every((item) => item && ["user", "ai"].includes(item.role) &&
+          typeof item.text === "string" && item.text.length <= 2000)) {
+      return errorResponse(res, "Invalid chat history.", 400);
     }
 
     const candidate = await candidateModel.findCandidateByUserId(req.user.id);
@@ -101,7 +111,11 @@ const chatWithCV = async (req, res, next) => {
       }
     }
 
-    const reply = await chatWithCVAssistant(cvText, message.trim(), history || []);
+    const input = await buildCVInsightsInput(cvText, candidate, {
+      message: message.trim(),
+      history: history.map(({ role, text }) => ({ role, text })),
+    });
+    const reply = await chatWithCVAssistant(input);
 
     return successResponse(res, "Chat response generated successfully.", {
       reply,
