@@ -151,4 +151,61 @@ export const deleteJobDescription = async (id) => {
   return response.data;
 };
 
+/**
+ * Retrieves the integrated job description template and any saved JD for a specific job role.
+ * @param {string} roleId
+ * @returns {Promise<object>}
+ */
+export const fetchRoleIntegratedJobDescription = async (roleId) => {
+  const response = await apiInstance.get(`/mock-interviews/roles/${roleId}/job-description`);
+  return response.data;
+};
+
+/**
+ * Attaches and integrates a job description directly to the candidate's selected job role.
+ * @param {object} integrationData - { roleId, jobDescription, roleTitle, category, skills }
+ * @returns {Promise<object>}
+ */
+export const attachJobDescriptionToSelectedRole = async (integrationData) => {
+  try {
+    const response = await apiInstance.post('/mock-interviews/roles/selected/job-description', integrationData);
+    return response.data;
+  } catch (error) {
+    // Fallback to storing via selected role endpoint
+    const fallback = await apiInstance.post('/mock-interviews/roles/selected', integrationData);
+    return fallback.data;
+  }
+};
+
+/**
+ * Retrieves the currently active job description for the candidate's selected role session.
+ * @returns {Promise<object>}
+ */
+export const fetchSelectedRoleJobDescription = async () => {
+  try {
+    const response = await apiInstance.get('/mock-interviews/roles/selected/job-description');
+    return response.data;
+  } catch (error) {
+    const fallback = await apiInstance.get('/mock-interviews/job-descriptions/latest');
+    return fallback.data;
+  }
+};
+
+/**
+ * Updates the job description attached to the currently selected role.
+ * @param {object} updateData - { roleId, jobDescription, roleTitle, category }
+ * @returns {Promise<object>}
+ */
+export const updateSelectedRoleJobDescription = async (updateData) => {
+  try {
+    const response = await apiInstance.put('/mock-interviews/roles/selected/job-description', updateData);
+    return response.data;
+  } catch (error) {
+    const fallback = await apiInstance.post('/mock-interviews/roles/selected/job-description', updateData);
+    return fallback.data;
+  }
+};
+
+
+
 

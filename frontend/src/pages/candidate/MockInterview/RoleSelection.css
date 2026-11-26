@@ -640,4 +640,295 @@
   border-color: #FFC107;
 }
 
+.jd-retrieve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  color: #c0c0c0;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.jd-retrieve-btn:hover:not(:disabled) {
+  background: #2a2a2a;
+  border-color: #666;
+  color: #ffffff;
+}
+
+.jd-retrieve-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.jd-update-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFC107;
+  border: 1px solid #FFC107;
+  color: #000000;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jd-update-btn:hover:not(:disabled) {
+  background: #e5ac00;
+  border-color: #e5ac00;
+}
+
+.jd-update-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.jd-last-saved-time {
+  color: #4caf50;
+  font-size: 0.8rem;
+}
+
+/* ── Job Description Status Notice ── */
+.jd-status-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  animation: fadeInNotice 0.25s ease-out;
+}
+
+.jd-status-notice.success {
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.35);
+  color: #81c784;
+}
+
+.jd-status-notice.info {
+  background: rgba(33, 150, 243, 0.12);
+  border: 1px solid rgba(33, 150, 243, 0.35);
+  color: #64b5f6;
+}
+
+.jd-status-notice.error {
+  background: rgba(244, 67, 54, 0.12);
+  border: 1px solid rgba(244, 67, 54, 0.35);
+  color: #e57373;
+}
+
+.jd-status-notice-text {
+  font-weight: 500;
+}
+
+.jd-notice-dismiss {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s ease;
+}
+
+.jd-notice-dismiss:hover {
+  opacity: 1;
+}
+
+@keyframes fadeInNotice {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spinning {
+  animation: spinAround 1s linear infinite;
+}
+
+@keyframes spinAround {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Selected Role Integration Banner & Chips ── */
+.selected-role-summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-left: 4px solid #FFC107;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.selected-role-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.selected-role-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: rgba(255, 193, 7, 0.1);
+  color: #FFC107;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.selected-role-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selected-role-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selected-role-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.selected-role-category-pill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #222;
+  color: #FFC107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.selected-role-desc {
+  font-size: 0.85rem;
+  color: #999;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.change-role-btn {
+  background: transparent;
+  border: 1px solid #444;
+  color: #bbb;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.change-role-btn:hover {
+  background: #222;
+  border-color: #FFC107;
+  color: #fff;
+}
+
+/* Role Skills Integration Section */
+.role-skills-integration-section {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 8px;
+}
+
+.role-skills-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.role-skills-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-skills-status {
+  font-size: 0.75rem;
+  color: #FFC107;
+  font-weight: 500;
+}
+
+.role-skills-chips-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.role-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1c1c1c;
+  border: 1px solid #333;
+  color: #ccc;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.role-skill-chip:hover {
+  border-color: #666;
+  color: #fff;
+  background: #242424;
+}
+
+.role-skill-chip.active {
+  background: rgba(255, 193, 7, 0.12);
+  border-color: #FFC107;
+  color: #FFC107;
+}
+
+.skill-check-icon {
+  display: none;
+  color: #FFC107;
+}
+
+.skill-check-icon.visible {
+  display: inline-block;
+}
+
+
 

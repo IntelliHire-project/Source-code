@@ -123,7 +123,9 @@ export default function GeneratedQuestions() {
         
         <h1 className="page-heading">Generated Interview Questions</h1>
         <p className="page-subheading">
-          We've analyzed the job description and your profile to create these high-impact mock questions. Ready to practice?
+          {roleName !== 'Selected Role'
+            ? `We've integrated your selected role (${roleName}) with the job description to generate targeted, high-impact mock questions.`
+            : "We've analyzed the job description and your profile to create these high-impact mock questions. Ready to practice?"}
         </p>
 
         <div className="interview-mode-toggle">

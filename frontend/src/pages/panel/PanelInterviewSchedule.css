@@ -13,6 +13,8 @@
   margin: 0 auto;
   padding: 0 0 60px 0;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* ── Page Heading Block (Allocation UI Style) ── */
@@ -70,11 +72,14 @@
 .panel-selector-wrap {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   background: #0D0E13;
   padding: 10px 16px;
   border-radius: 12px;
   border: 1px solid #2A2C38;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-selector-label {
@@ -197,11 +202,14 @@
 
 .panel-tab-group {
   display: flex;
+  flex-wrap: wrap;
   background: #16171F;
   border: 1px solid #2A2C38;
   padding: 4px;
   border-radius: 10px;
   gap: 4px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-tab-btn {
@@ -245,6 +253,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  width: 100%;
 }
 
 /* ── Unified Interview Card ── */
@@ -252,11 +262,16 @@
   background: #1E222D;
   border: 1px solid #2A2C38;
   border-radius: 14px;
-  padding: 18px 22px;
+  padding: 16px 20px;
   display: grid;
-  grid-template-columns: minmax(320px, 1fr) 210px 280px;
+  grid-template-columns: minmax(220px, 1fr) 185px 276px;
   align-items: center;
-  gap: 22px;
+  gap: 18px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
   transition: all 0.2s ease;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
@@ -512,6 +527,8 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -522,7 +539,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
@@ -531,6 +548,10 @@
   transition: all 0.2s ease;
   box-sizing: border-box;
   text-align: center;
+}
+
+.btn-primary-action-cta svg {
+  flex-shrink: 0;
 }
 
 /* Join Call (Vibrant Blue Google Meet style) */
@@ -589,18 +610,21 @@
 /* Secondary utility actions row */
 .card-actions-subrow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .subrow-action-btn {
-  flex: 1;
+  flex: 1 1 calc(50% - 4px);
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 5px;
+  padding: 6px 8px;
   background: #16171F;
   border: 1px solid #2A2C38;
   color: #9599A6;
@@ -611,6 +635,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .subrow-action-btn:hover {
@@ -622,6 +647,23 @@
 .subrow-action-btn.reschedule:hover {
   color: #F0B90B;
   border-color: rgba(240, 185, 11, 0.4);
+}
+
+.subrow-action-btn.evaluate-locked-btn {
+  color: #D1D5DB;
+  background: rgba(240, 185, 11, 0.05);
+  border: 1px dashed rgba(240, 185, 11, 0.3);
+}
+
+.subrow-action-btn.evaluate-locked-btn:hover {
+  color: #F0B90B;
+  background: rgba(240, 185, 11, 0.12);
+  border-color: #F0B90B;
+  border-style: solid;
+}
+
+.subrow-action-btn.evaluate-locked-btn .lock-icon {
+  color: #F0B90B;
 }
 
 .subrow-status-pill {
