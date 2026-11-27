@@ -480,9 +480,15 @@ const initializeDatabase = async () => {
         experience_level TEXT DEFAULT 'mid',
         company TEXT,
         source TEXT DEFAULT 'custom',
+        analysis JSONB,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    await client.query(`
+      ALTER TABLE mock_interview_job_descriptions
+        ADD COLUMN IF NOT EXISTS analysis JSONB;
     `);
 
     // Seed default roles if not existing
