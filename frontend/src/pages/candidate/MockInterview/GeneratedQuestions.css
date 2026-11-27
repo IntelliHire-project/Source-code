@@ -584,3 +584,172 @@
   color: #8eaaff;
   border: 1px solid rgba(107, 140, 255, 0.28);
 }
+
+.jd-ref-badge {
+  font-size: 0.71rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background-color: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── AI Question Generator Controls ── */
+.gq-controls-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.gq-controls-toolbar .interview-mode-toggle {
+  margin-bottom: 0;
+}
+
+.gq-generator-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gq-params-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background-color: #1a1c23;
+  color: #d4d8e1;
+  border: 1px solid #2e323f;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gq-params-toggle-btn:hover,
+.gq-params-toggle-btn.active {
+  border-color: #ffc107;
+  color: #ffc107;
+  background-color: rgba(255, 193, 7, 0.08);
+}
+
+.gq-regen-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background-color: rgba(255, 193, 7, 0.14);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gq-regen-all-btn:hover:not(:disabled) {
+  background-color: rgba(255, 193, 7, 0.24);
+  border-color: #ffc107;
+}
+
+.gq-regen-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gq-regen-all-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+
+.gq-generator-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  align-items: end;
+  background-color: #16171b;
+  border: 1px solid #2b2d36;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.gq-param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gq-param-group label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ea4b0;
+}
+
+.gq-param-group select {
+  background-color: #1f2129;
+  color: #ffffff;
+  border: 1px solid #333744;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.86rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.gq-param-group select:focus {
+  border-color: #ffc107;
+}
+
+.gq-apply-params-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background-color: #ffc107;
+  color: #0c0d0e;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  height: 39px;
+  transition: background-color 0.2s ease;
+}
+
+.gq-apply-params-btn:hover:not(:disabled) {
+  background-color: #e0a800;
+}
+
+.gq-apply-params-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.banner-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.change-params-btn.secondary {
+  background-color: transparent;
+  color: #9ea4b0;
+}
+
+.change-params-btn.secondary:hover {
+  color: #ffffff;
+}

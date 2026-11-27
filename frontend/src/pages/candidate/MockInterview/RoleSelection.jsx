@@ -34,6 +34,7 @@ import {
   updateJobDescription,
   updateSelectedRoleJobDescription,
   analyzeMockInterviewJobDescription,
+  generateMockInterviewQuestions,
 } from '../../../api/mockInterviewApi';
 import './RoleSelection.css';
 
@@ -545,8 +546,10 @@ export default function MockInterviewRoleSelection() {
 
       let resolvedAnalysis =
         jdAnalysis && analyzedJdText === cleanJd ? jdAnalysis : null;
+      let generatedQuestions = null;
+      let generationSource = null;
 
-      // Submit and integrate with backend (supports both save, update, and AI JD analysis)
+      // Submit and integrate with backend (persist JD + run AI JD analysis & question generation)
       try {
         const persistCalls = [
           attachJobDescriptionToSelectedRole({
@@ -584,18 +587,51 @@ export default function MockInterviewRoleSelection() {
           );
         }
 
-        const analysisPromise =
-          !resolvedAnalysis && cleanJd.length >= 5
-            ? handleAnalyzeJobDescription(cleanJd, true)
-            : Promise.resolve(resolvedAnalysis);
+        const generatePromise =
+          cleanJd.length >= 5 || currentRole?.title
+            ? generateMockInterviewQuestions({
+                jobDescription: cleanJd || undefined,
+                jdAnalysis: resolvedAnalysis || undefined,
+                roleId: selectedRole,
+                roleTitle: currentRole?.title,
+                category: currentRole?.category,
+                skills: currentRole?.skills,
+                questionCount: 5,
+                focusType: 'balanced',
+                difficulty: 'mixed',
+                jdId: savedJdId || undefined,
+              }).catch(() => null)
+            : Promise.resolve(null);
 
-        const [, analyzedResult] = await Promise.all([
+        const [, generatedResult] = await Promise.all([
           Promise.allSettled(persistCalls),
-          analysisPromise,
+          generatePromise,
         ]);
 
-        if (analyzedResult) {
-          resolvedAnalysis = analyzedResult;
+        if (generatedResult) {
+          if (generatedResult.analysis) {
+            resolvedAnalysis = generatedResult.analysis;
+            setJdAnalysis(generatedResult.analysis);
+            setAnalyzedJdText(cleanJd);
+            try {
+              sessionStorage.setItem('mock_interview_jd_analysis', JSON.stringify(generatedResult.analysis));
+            } catch (e) {}
+          }
+          if (Array.isArray(generatedResult.questions) && generatedResult.questions.length > 0) {
+            generatedQuestions = generatedResult.questions;
+            generationSource = generatedResult.generationSource || null;
+            try {
+              sessionStorage.setItem(
+                'mock_interview_generated_questions',
+                JSON.stringify({
+                  jobDescription: cleanJd,
+                  roleId: selectedRole,
+                  questions: generatedResult.questions,
+                  generationSource,
+                })
+              );
+            } catch (e) {}
+          }
         }
       } catch (err) {
         console.warn('Could not store job description in backend:', err.message);
@@ -611,6 +647,8 @@ export default function MockInterviewRoleSelection() {
           skills: currentRole?.skills,
           jobDescription: cleanJd,
           jdAnalysis: resolvedAnalysis,
+          generatedQuestions,
+          generationSource,
         },
       });
     }
@@ -829,6 +867,7 @@ export default function MockInterviewRoleSelection() {
                     setAnalyzedJdText('');
                     try {
                       sessionStorage.removeItem('mock_interview_jd_analysis');
+                      sessionStorage.removeItem('mock_interview_generated_questions');
                     } catch (e) {}
                   }}
                   disabled={isUpdatingJd || isRetrievingJd || isAnalyzingJd}
