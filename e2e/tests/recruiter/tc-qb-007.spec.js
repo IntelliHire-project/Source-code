@@ -81,7 +81,7 @@ test.describe('TC-QB-007: Create Coding Challenge Question Suite', () => {
 
     // Step 4: Select Python language pill & verify editor updates
     await page.locator('.aq-lang-pill:has-text("Python")').click();
-    await expect(page.locator('.aq-code-editor__lang')).toHaveText('Python');
+    await expect(page.locator('.aq-code-editor .aq-code-editor__lang')).toHaveText('Python');
     await expect(page.locator('textarea.aq-code-editor__area')).toContainText('def solution');
 
     // Step 5: Fill Test Case #1 Input & Expected Output
