@@ -10,6 +10,13 @@ const {
   deleteAssessmentHandler,
   getAssessmentStatsHandler,
 } = require('../controllers/assessmentController');
+const {
+  submitAssessmentHandler,
+  getMySubmissionsHandler,
+  getAssessmentSubmissionsHandler,
+  getSubmissionReportHandler,
+  evaluateSubmissionHandler,
+} = require('../controllers/submissionController');
 
 const router = express.Router();
 
@@ -36,14 +43,22 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
-// 1. Aggregate Statistics (MUST be placed before /:id so 'stats' or 'meta' is not captured as an ID)
+// 1. Aggregate Statistics & Submission Static Routes (MUST be placed before /:id)
 router.get('/meta/stats', optionalAuth, getAssessmentStatsHandler);
 router.get('/stats', optionalAuth, getAssessmentStatsHandler);
+router.get('/my-submissions', authMiddleware, roleMiddleware('candidate', 'admin'), getMySubmissionsHandler);
+router.get('/submissions', authMiddleware, roleMiddleware('recruiter', 'admin'), getAssessmentSubmissionsHandler);
+router.get('/submissions/:submissionId', authMiddleware, roleMiddleware('recruiter', 'admin', 'candidate'), getSubmissionReportHandler);
+router.put('/submissions/:submissionId/evaluate', authMiddleware, roleMiddleware('recruiter', 'admin'), evaluateSubmissionHandler);
 
 // 2. List all assessments (with query filters, search, and pagination)
 router.get('/', optionalAuth, getAssessmentsHandler);
 
-// 3. Retrieve a single assessment by ID or code (e.g., A-1001)
+// 3. Candidate submission & recruiter per-assessment submissions
+router.post('/:id/submit', authMiddleware, roleMiddleware('candidate', 'admin'), submitAssessmentHandler);
+router.get('/:id/submissions', authMiddleware, roleMiddleware('recruiter', 'admin'), getAssessmentSubmissionsHandler);
+
+// 4. Retrieve a single assessment by ID or code (e.g., A-1001)
 router.get('/:id', optionalAuth, getAssessmentHandler);
 
 // 4. Create a new assessment (restricted to recruiter or admin)

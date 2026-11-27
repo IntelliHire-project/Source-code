@@ -6,6 +6,11 @@ import {
   updateAssessment,
   deleteAssessment,
   fetchAssessmentStats,
+  submitAssessment,
+  fetchMySubmissions,
+  fetchAssessmentSubmissions,
+  fetchSubmissionReport,
+  evaluateSubmission,
 } from '../api/assessmentApi';
 
 jest.mock('../api/apiInstance', () => ({
@@ -90,6 +95,68 @@ describe('assessmentApi', () => {
 
     expect(apiInstance.get).toHaveBeenCalledWith('/assessments/meta/stats');
     expect(result).toEqual({ working: true, stats: { total: 5 } });
+  });
+
+  test('submitAssessment sends POST to /assessments/:id/submit with payload', async () => {
+    const payload = { answers: { Q1: 1 }, timeSpentSeconds: 320 };
+    apiInstance.post.mockResolvedValueOnce({
+      data: { working: true, submission: { id: 'SUB-1001' } },
+    });
+
+    const result = await submitAssessment('A-1001', payload);
+
+    expect(apiInstance.post).toHaveBeenCalledWith('/assessments/A-1001/submit', payload);
+    expect(result).toEqual({ working: true, submission: { id: 'SUB-1001' } });
+  });
+
+  test('fetchMySubmissions sends GET to /assessments/my-submissions', async () => {
+    apiInstance.get.mockResolvedValueOnce({
+      data: { working: true, submissions: [] },
+    });
+
+    const result = await fetchMySubmissions();
+
+    expect(apiInstance.get).toHaveBeenCalledWith('/assessments/my-submissions');
+    expect(result).toEqual({ working: true, submissions: [] });
+  });
+
+  test('fetchAssessmentSubmissions sends GET to /assessments/:id/submissions or /assessments/submissions', async () => {
+    apiInstance.get.mockResolvedValueOnce({
+      data: { working: true, submissions: [{ id: 'SUB-1001' }] },
+    });
+    const byAssessment = await fetchAssessmentSubmissions('A-1001');
+    expect(apiInstance.get).toHaveBeenCalledWith('/assessments/A-1001/submissions');
+    expect(byAssessment).toEqual({ working: true, submissions: [{ id: 'SUB-1001' }] });
+
+    apiInstance.get.mockResolvedValueOnce({
+      data: { working: true, submissions: [] },
+    });
+    const allSubs = await fetchAssessmentSubmissions();
+    expect(apiInstance.get).toHaveBeenCalledWith('/assessments/submissions');
+    expect(allSubs).toEqual({ working: true, submissions: [] });
+  });
+
+  test('fetchSubmissionReport sends GET to /assessments/submissions/:submissionId', async () => {
+    apiInstance.get.mockResolvedValueOnce({
+      data: { working: true, submission: { id: 'SUB-1001' } },
+    });
+
+    const result = await fetchSubmissionReport('SUB-1001');
+
+    expect(apiInstance.get).toHaveBeenCalledWith('/assessments/submissions/SUB-1001');
+    expect(result).toEqual({ working: true, submission: { id: 'SUB-1001' } });
+  });
+
+  test('evaluateSubmission sends PUT to /assessments/submissions/:submissionId/evaluate', async () => {
+    const evalPayload = { manualScores: { Q2: 18 }, recommendation: 'Shortlist' };
+    apiInstance.put.mockResolvedValueOnce({
+      data: { working: true, submission: { id: 'SUB-1001', finalScore: 90 } },
+    });
+
+    const result = await evaluateSubmission('SUB-1001', evalPayload);
+
+    expect(apiInstance.put).toHaveBeenCalledWith('/assessments/submissions/SUB-1001/evaluate', evalPayload);
+    expect(result).toEqual({ working: true, submission: { id: 'SUB-1001', finalScore: 90 } });
   });
 });
 

@@ -356,6 +356,34 @@ const initializeDatabase = async () => {
       );
     `);
 
+    // Candidate Assessment Submissions & Evaluation Reports
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS assessment_submissions (
+        id SERIAL PRIMARY KEY,
+        submission_code TEXT UNIQUE,
+        assessment_id INTEGER NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+        candidate_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        candidate_id INTEGER REFERENCES candidates(id) ON DELETE SET NULL,
+        answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+        question_results JSONB NOT NULL DEFAULT '[]'::jsonb,
+        auto_score INTEGER NOT NULL DEFAULT 0,
+        manual_score INTEGER,
+        final_score INTEGER,
+        total_points INTEGER NOT NULL DEFAULT 0,
+        earned_points INTEGER NOT NULL DEFAULT 0,
+        time_spent_seconds INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'Needs Grading',
+        recommendation TEXT NOT NULL DEFAULT 'Pending',
+        evaluator_notes TEXT,
+        recruiter_scorecard JSONB DEFAULT '{}'::jsonb,
+        submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        evaluated_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (assessment_id, candidate_user_id)
+      );
+    `);
+
     // ----------------------------------------------------
     // Interview Management Tables (SCRUM-71)
     // ----------------------------------------------------
@@ -526,6 +554,10 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_assessments_recruiter_id ON assessments(recruiter_id);
       CREATE INDEX IF NOT EXISTS idx_assessments_vacancy_id ON assessments(vacancy_id);
       CREATE INDEX IF NOT EXISTS idx_assessments_status ON assessments(status);
+      CREATE INDEX IF NOT EXISTS idx_assessment_submissions_code ON assessment_submissions(submission_code);
+      CREATE INDEX IF NOT EXISTS idx_assessment_submissions_assessment_id ON assessment_submissions(assessment_id);
+      CREATE INDEX IF NOT EXISTS idx_assessment_submissions_candidate_user_id ON assessment_submissions(candidate_user_id);
+      CREATE INDEX IF NOT EXISTS idx_assessment_submissions_status ON assessment_submissions(status);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_vacancy_id ON interview_slots(vacancy_id);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_status ON interview_slots(status);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_date ON interview_slots(interview_date);
