@@ -11,6 +11,7 @@ const {
   validateCreateJobDescription,
   validateUpdateJobDescription,
   validateSaveJobDescription,
+  validateAnalyzeJobDescription,
   ALLOWED_CATEGORIES,
 } = require('../../middlewares/mockInterviewValidation');
 
@@ -606,6 +607,70 @@ describe('mockInterviewValidation Middleware', () => {
       expect(next).toHaveBeenCalledTimes(1);
       expect(req.body.title).toBe('DevOps Lead');
       expect(req.body.roleId).toBe('devops-1');
+    });
+  });
+
+  describe('validateAnalyzeJobDescription', () => {
+    test('passes with valid jobDescription and normalizes comma-separated skills', () => {
+      req.body = {
+        jobDescription: '  Senior React engineer with 4+ years experience.  ',
+        roleId: 'frontend',
+        roleTitle: 'Frontend Developer',
+        category: 'engineering',
+        skills: 'React, TypeScript, CSS',
+      };
+
+      validateAnalyzeJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(errorResponse).not.toHaveBeenCalled();
+      expect(req.body.jobDescription).toBe('Senior React engineer with 4+ years experience.');
+      expect(req.body.skills).toEqual(['React', 'TypeScript', 'CSS']);
+    });
+
+    test('accepts alternate description or content keys', () => {
+      req.body = { content: 'Backend engineer with Node.js and PostgreSQL.' };
+
+      validateAnalyzeJobDescription(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.body.jobDescription).toBe('Backend engineer with Node.js and PostgreSQL.');
+    });
+
+    test('rejects missing or short jobDescription', () => {
+      req.body = { jobDescription: '   ' };
+      validateAnalyzeJobDescription(req, res, next);
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Job description is required for analysis.', 400);
+
+      jest.clearAllMocks();
+      req.body = { jobDescription: 'Dev' };
+      validateAnalyzeJobDescription(req, res, next);
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description must be at least 5 characters long.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('rejects invalid skills type or non-string metadata', () => {
+      req.body = { jobDescription: 'Valid job description text.', skills: { react: true } };
+      validateAnalyzeJobDescription(req, res, next);
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Skills must be an array of strings or a comma-separated string.',
+        400
+      );
+
+      jest.clearAllMocks();
+      req.body = { jobDescription: 'Valid job description text.', roleId: 99 };
+      validateAnalyzeJobDescription(req, res, next);
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Role identifier (roleId) must be a string.',
+        400
+      );
+      expect(next).not.toHaveBeenCalled();
     });
   });
 });

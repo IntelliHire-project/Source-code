@@ -15,6 +15,12 @@ import {
   Save,
   RotateCcw,
   RefreshCw,
+  Brain,
+  Target,
+  Lightbulb,
+  AlertTriangle,
+  Briefcase,
+  Award,
 } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import {
@@ -27,6 +33,7 @@ import {
   fetchLatestJobDescription,
   updateJobDescription,
   updateSelectedRoleJobDescription,
+  analyzeMockInterviewJobDescription,
 } from '../../../api/mockInterviewApi';
 import './RoleSelection.css';
 
@@ -161,13 +168,24 @@ export default function MockInterviewRoleSelection() {
   const [isUpdatingJd, setIsUpdatingJd] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [updateNotice, setUpdateNotice] = useState(null);
+  const [jdAnalysis, setJdAnalysis] = useState(null);
+  const [isAnalyzingJd, setIsAnalyzingJd] = useState(false);
+  const [analyzedJdText, setAnalyzedJdText] = useState('');
 
-  // Restore stored job description and role from sessionStorage if available
+  // Restore stored job description, role, and analysis from sessionStorage if available
   useEffect(() => {
     try {
       const cachedJd = sessionStorage.getItem('mock_interview_job_description');
       if (cachedJd) {
         setJobDescription(cachedJd);
+      }
+      const cachedAnalysis = sessionStorage.getItem('mock_interview_jd_analysis');
+      if (cachedAnalysis) {
+        const parsedAnalysis = JSON.parse(cachedAnalysis);
+        if (parsedAnalysis && typeof parsedAnalysis === 'object') {
+          setJdAnalysis(parsedAnalysis);
+          if (cachedJd) setAnalyzedJdText(cachedJd.trim());
+        }
       }
       const cachedRole = sessionStorage.getItem('mock_interview_selected_role');
       if (cachedRole) {
@@ -262,6 +280,63 @@ export default function MockInterviewRoleSelection() {
     setJobDescription(template);
   };
 
+  const handleAnalyzeJobDescription = async (jdOverride = null, silent = false) => {
+    const targetText = (typeof jdOverride === 'string' ? jdOverride : jobDescription || '').trim();
+    if (targetText.length < 5) {
+      if (!silent) {
+        setUpdateNotice({
+          type: 'error',
+          text: 'Please provide at least 5 characters in the job description to analyze with AI.',
+        });
+      }
+      return null;
+    }
+
+    setIsAnalyzingJd(true);
+    if (!silent) setUpdateNotice(null);
+
+    try {
+      const res = await analyzeMockInterviewJobDescription({
+        jobDescription: targetText,
+        roleId: selectedRole,
+        roleTitle: currentRole?.title,
+        category: currentRole?.category,
+        skills: currentRole?.skills,
+        jdId: savedJdId || undefined,
+      });
+
+      const analysis = res?.analysis || null;
+      if (analysis) {
+        setJdAnalysis(analysis);
+        setAnalyzedJdText(targetText);
+        try {
+          sessionStorage.setItem('mock_interview_jd_analysis', JSON.stringify(analysis));
+        } catch (e) {}
+        if (!silent) {
+          setUpdateNotice({
+            type: 'success',
+            text:
+              analysis.analysisSource === 'gemini'
+                ? 'AI job description analysis completed using Gemini AI.'
+                : 'Job description analyzed and tailored focus areas extracted.',
+          });
+        }
+      }
+      return analysis;
+    } catch (err) {
+      console.warn('Could not analyze job description:', err.message);
+      if (!silent) {
+        setUpdateNotice({
+          type: 'error',
+          text: err.response?.data?.message || err.message || 'Failed to analyze job description.',
+        });
+      }
+      return null;
+    } finally {
+      setIsAnalyzingJd(false);
+    }
+  };
+
   const handleRetrieveSavedJd = async (roleIdToFetch, showNotification = false) => {
     const targetRoleId = roleIdToFetch || selectedRole;
     if (!targetRoleId) return;
@@ -274,6 +349,10 @@ export default function MockInterviewRoleSelection() {
           setJobDescription(saved.jobDescription);
           if (saved.id) setSavedJdId(saved.id);
           if (saved.updatedAt) setLastUpdated(saved.updatedAt);
+          if (saved.analysis) {
+            setJdAnalysis(saved.analysis);
+            setAnalyzedJdText(saved.jobDescription.trim());
+          }
           if (showNotification) {
             setUpdateNotice({ type: 'success', text: 'Saved job description reloaded.' });
           }
@@ -464,7 +543,10 @@ export default function MockInterviewRoleSelection() {
         // Storage unavailable or quota exceeded
       }
 
-      // Submit and integrate with backend (supports both save and update)
+      let resolvedAnalysis =
+        jdAnalysis && analyzedJdText === cleanJd ? jdAnalysis : null;
+
+      // Submit and integrate with backend (supports both save, update, and AI JD analysis)
       try {
         const persistCalls = [
           attachJobDescriptionToSelectedRole({
@@ -502,7 +584,19 @@ export default function MockInterviewRoleSelection() {
           );
         }
 
-        await Promise.allSettled(persistCalls);
+        const analysisPromise =
+          !resolvedAnalysis && cleanJd.length >= 5
+            ? handleAnalyzeJobDescription(cleanJd, true)
+            : Promise.resolve(resolvedAnalysis);
+
+        const [, analyzedResult] = await Promise.all([
+          Promise.allSettled(persistCalls),
+          analysisPromise,
+        ]);
+
+        if (analyzedResult) {
+          resolvedAnalysis = analyzedResult;
+        }
       } catch (err) {
         console.warn('Could not store job description in backend:', err.message);
       } finally {
@@ -510,13 +604,14 @@ export default function MockInterviewRoleSelection() {
       }
 
       navigate('/candidate/mock-interviews/questions', {
-        state: { 
-          roleId: selectedRole, 
+        state: {
+          roleId: selectedRole,
           roleTitle: currentRole?.title,
           category: currentRole?.category,
           skills: currentRole?.skills,
           jobDescription: cleanJd,
-        }
+          jdAnalysis: resolvedAnalysis,
+        },
       });
     }
   };
@@ -728,8 +823,15 @@ export default function MockInterviewRoleSelection() {
                 <button
                   type="button"
                   className="jd-clear-btn"
-                  onClick={() => setJobDescription('')}
-                  disabled={isUpdatingJd || isRetrievingJd}
+                  onClick={() => {
+                    setJobDescription('');
+                    setJdAnalysis(null);
+                    setAnalyzedJdText('');
+                    try {
+                      sessionStorage.removeItem('mock_interview_jd_analysis');
+                    } catch (e) {}
+                  }}
+                  disabled={isUpdatingJd || isRetrievingJd || isAnalyzingJd}
                 >
                   Clear
                 </button>
@@ -738,7 +840,7 @@ export default function MockInterviewRoleSelection() {
                 type="button"
                 className="jd-retrieve-btn"
                 onClick={() => handleRetrieveSavedJd(selectedRole, true)}
-                disabled={isRetrievingJd || isUpdatingJd}
+                disabled={isRetrievingJd || isUpdatingJd || isAnalyzingJd}
                 title="Reload saved job description from server"
               >
                 <RotateCcw size={13} className={isRetrievingJd ? 'spinning' : ''} />
@@ -749,16 +851,34 @@ export default function MockInterviewRoleSelection() {
                   type="button"
                   className="jd-template-btn"
                   onClick={handleLoadRoleTemplate}
-                  disabled={isUpdatingJd || isRetrievingJd}
+                  disabled={isUpdatingJd || isRetrievingJd || isAnalyzingJd}
                 >
                   Use Role Template
                 </button>
               )}
               <button
                 type="button"
+                className="jd-analyze-btn"
+                onClick={() => handleAnalyzeJobDescription(null, false)}
+                disabled={isAnalyzingJd || isUpdatingJd || isRetrievingJd || jobDescription.trim().length < 5}
+                title="Analyze job description with AI to extract key skills, focus areas, and tailored questions"
+              >
+                {isAnalyzingJd ? (
+                  <RefreshCw size={13} className="spinning" />
+                ) : (
+                  <Brain size={13} />
+                )}
+                {isAnalyzingJd
+                  ? 'Analyzing...'
+                  : jdAnalysis && analyzedJdText === jobDescription.trim()
+                    ? 'Re-analyze JD'
+                    : 'Analyze with AI'}
+              </button>
+              <button
+                type="button"
                 className="jd-update-btn"
                 onClick={handleUpdateJobDescription}
-                disabled={isUpdatingJd || isRetrievingJd || !jobDescription.trim()}
+                disabled={isUpdatingJd || isRetrievingJd || isAnalyzingJd || !jobDescription.trim()}
                 title="Update and save job description"
               >
                 {isUpdatingJd ? (
@@ -771,6 +891,194 @@ export default function MockInterviewRoleSelection() {
             </div>
           </div>
         </div>
+
+        {/* AI Job Description Analysis Panel */}
+        {(isAnalyzingJd || jdAnalysis) && (
+          <div className="jd-analysis-panel">
+            <div className="jd-analysis-header">
+              <div className="jd-analysis-title-group">
+                <div className="jd-analysis-icon-box">
+                  <Brain size={18} />
+                </div>
+                <div>
+                  <div className="jd-analysis-heading-row">
+                    <h3>AI Job Description Analysis</h3>
+                    {jdAnalysis && (
+                      <span className={`jd-source-pill ${jdAnalysis.analysisSource === 'gemini' ? 'gemini' : 'fallback'}`}>
+                        {jdAnalysis.analysisSource === 'gemini' ? 'Gemini AI' : 'Smart Analysis'}
+                      </span>
+                    )}
+                    {jdAnalysis && analyzedJdText && analyzedJdText !== jobDescription.trim() && (
+                      <span className="jd-stale-pill">JD edited — click Re-analyze JD</span>
+                    )}
+                  </div>
+                  {jdAnalysis && (
+                    <p className="jd-analysis-meta">
+                      Detected Role: <strong>{jdAnalysis.detectedRole}</strong> &bull; Seniority:{' '}
+                      <span className="jd-seniority-badge">{jdAnalysis.seniorityLevel}</span>
+                      {jdAnalysis.yearsOfExperience && (
+                        <>
+                          {' '}&bull; Experience:{' '}
+                          <span className="jd-seniority-badge">{jdAnalysis.yearsOfExperience}</span>
+                        </>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {isAnalyzingJd ? (
+              <div className="jd-analysis-loading">
+                <RefreshCw size={18} className="spinning" />
+                <span>Analyzing job requirements, competencies, and interview focus areas...</span>
+              </div>
+            ) : jdAnalysis && (
+              <div className="jd-analysis-body">
+                {jdAnalysis.summary && (
+                  <p className="jd-analysis-summary">{jdAnalysis.summary}</p>
+                )}
+
+                <div className="jd-analysis-grid">
+                  {/* Extracted Technical Skills */}
+                  {Array.isArray(jdAnalysis.technicalSkills) && jdAnalysis.technicalSkills.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title">
+                        <Sparkles size={14} />
+                        <span>Extracted Technical Skills</span>
+                      </div>
+                      <div className="jd-analysis-chips">
+                        {jdAnalysis.technicalSkills.map((skill) => {
+                          const inJd = jobDescription.toLowerCase().includes(skill.toLowerCase());
+                          return (
+                            <button
+                              key={skill}
+                              type="button"
+                              className={`jd-extracted-chip ${inJd ? 'in-jd' : ''}`}
+                              onClick={() => handleAddSkillToJd(skill)}
+                              title={inJd ? `"${skill}" is in your job description` : `Click to add "${skill}" to job description`}
+                            >
+                              {inJd && <Check size={11} />}
+                              <span>{skill}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Soft Skills & Competencies */}
+                  {Array.isArray(jdAnalysis.softSkills) && jdAnalysis.softSkills.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title">
+                        <Target size={14} />
+                        <span>Behavioral &amp; Soft Competencies</span>
+                      </div>
+                      <div className="jd-analysis-chips">
+                        {jdAnalysis.softSkills.map((skill) => (
+                          <span key={skill} className="jd-soft-chip">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Extracted Responsibilities & Experience Requirements */}
+                <div className="jd-analysis-grid">
+                  {Array.isArray(jdAnalysis.responsibilities) && jdAnalysis.responsibilities.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title">
+                        <Briefcase size={14} />
+                        <span>Key Responsibilities</span>
+                      </div>
+                      <ul className="jd-analysis-list">
+                        {jdAnalysis.responsibilities.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {Array.isArray(jdAnalysis.experienceRequirements) && jdAnalysis.experienceRequirements.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title jd-analysis-card-title--between">
+                        <span className="jd-card-title-left">
+                          <Award size={14} />
+                          <span>Experience Requirements</span>
+                        </span>
+                        {jdAnalysis.yearsOfExperience && (
+                          <span className="jd-experience-pill">{jdAnalysis.yearsOfExperience}</span>
+                        )}
+                      </div>
+                      <ul className="jd-analysis-list">
+                        {jdAnalysis.experienceRequirements.map((reqItem, idx) => (
+                          <li key={idx}>{reqItem}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Interview Focus Areas */}
+                {Array.isArray(jdAnalysis.focusAreas) && jdAnalysis.focusAreas.length > 0 && (
+                  <div className="jd-analysis-section">
+                    <div className="jd-analysis-card-title">
+                      <Target size={14} />
+                      <span>Key Interview Focus Areas</span>
+                    </div>
+                    <div className="jd-focus-list">
+                      {jdAnalysis.focusAreas.map((area, idx) => (
+                        <div key={`${area.topic}-${idx}`} className="jd-focus-item">
+                          <div className="jd-focus-top">
+                            <span className="jd-focus-topic">{area.topic}</span>
+                            <span className={`jd-priority-badge ${String(area.priority || 'High').toLowerCase()}`}>
+                              {area.priority || 'High'} Priority
+                            </span>
+                          </div>
+                          {area.reason && <p className="jd-focus-reason">{area.reason}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="jd-analysis-grid">
+                  {/* Watch-outs */}
+                  {Array.isArray(jdAnalysis.skillGapsToWatch) && jdAnalysis.skillGapsToWatch.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title">
+                        <AlertTriangle size={14} />
+                        <span>Areas to Watch</span>
+                      </div>
+                      <ul className="jd-analysis-list">
+                        {jdAnalysis.skillGapsToWatch.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Preparation Tips */}
+                  {Array.isArray(jdAnalysis.preparationTips) && jdAnalysis.preparationTips.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title">
+                        <Lightbulb size={14} />
+                        <span>AI Preparation Tips</span>
+                      </div>
+                      <ul className="jd-analysis-list">
+                        {jdAnalysis.preparationTips.map((tip, idx) => (
+                          <li key={idx}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       )}
 
@@ -787,9 +1095,15 @@ export default function MockInterviewRoleSelection() {
             type="button"
             className="continue-btn"
             onClick={handleContinue}
-            disabled={isSubmittingJd}
+            disabled={isSubmittingJd || isAnalyzingJd}
           >
-            {isSubmittingJd ? 'Saving...' : step === 2 ? 'Continue & Generate >' : 'Continue >'}
+            {isSubmittingJd
+              ? isAnalyzingJd
+                ? 'Analyzing & Generating...'
+                : 'Saving...'
+              : step === 2
+                ? 'Continue & Generate >'
+                : 'Continue >'}
           </button>
         </div>
       </div>

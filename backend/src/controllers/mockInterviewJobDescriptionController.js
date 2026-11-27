@@ -9,7 +9,9 @@ const {
   getRoleIntegratedJobDescription,
   attachJobDescriptionToSelectedRole,
   updateSelectedRoleJobDescription,
+  updateJobDescriptionAnalysis,
 } = require('../models/mockInterviewJobDescriptionModel');
+const { analyzeJobDescription } = require('../services/mockInterviewJdAnalysisService');
 const { successResponse, errorResponse } = require('../utils/response');
 
 /**
@@ -252,6 +254,34 @@ const updateSelectedRoleJobDescriptionHandler = async (req, res) => {
   }
 };
 
+/**
+ * Analyzes a mock interview job description using AI and returns structured insights
+ * plus tailored interview questions.
+ * POST /api/mock-interviews/job-descriptions/analyze or POST /api/mock-interviews/job-description/analyze
+ */
+const analyzeJobDescriptionHandler = async (req, res) => {
+  try {
+    const { jobDescription, description, content, jdId, id } = req.body || {};
+    const text = jobDescription || description || content;
+
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return errorResponse(res, 'Job description is required for analysis.', 400);
+    }
+
+    const analysis = await analyzeJobDescription(req.body);
+    const targetJdId = jdId || id;
+    if (targetJdId && typeof updateJobDescriptionAnalysis === 'function') {
+      await updateJobDescriptionAnalysis(targetJdId, analysis, req.user).catch(() => {});
+    }
+
+    return successResponse(res, 'Job description analyzed successfully.', { analysis }, 200);
+  } catch (error) {
+    console.error('Error analyzing job description:', error);
+    const statusCode = error.statusCode || error.status || 500;
+    return errorResponse(res, error.message || 'Failed to analyze job description.', statusCode);
+  }
+};
+
 module.exports = {
   createJobDescriptionHandler,
   getJobDescriptionsHandler,
@@ -263,5 +293,6 @@ module.exports = {
   getRoleIntegratedJobDescriptionHandler,
   attachJobDescriptionToSelectedRoleHandler,
   updateSelectedRoleJobDescriptionHandler,
+  analyzeJobDescriptionHandler,
 };
 

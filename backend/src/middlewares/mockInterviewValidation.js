@@ -392,6 +392,55 @@ const validateSaveJobDescription = (req, res, next) => {
   return next();
 };
 
+/**
+ * Validates the payload for AI job description analysis.
+ */
+const validateAnalyzeJobDescription = (req, res, next) => {
+  const { jobDescription, description, content, roleId, roleTitle, title, category, skills } = req.body || {};
+  const rawDescription =
+    jobDescription !== undefined ? jobDescription : description !== undefined ? description : content;
+
+  if (!rawDescription || typeof rawDescription !== 'string' || !rawDescription.trim()) {
+    return errorResponse(res, 'Job description is required for analysis.', 400);
+  }
+
+  const trimmed = rawDescription.trim();
+  if (trimmed.length < 5) {
+    return errorResponse(res, 'Job description must be at least 5 characters long.', 400);
+  }
+
+  if (trimmed.length > 50000) {
+    return errorResponse(res, 'Job description cannot exceed 50,000 characters.', 400);
+  }
+
+  if (roleId !== undefined && roleId !== null && typeof roleId !== 'string') {
+    return errorResponse(res, 'Role identifier (roleId) must be a string.', 400);
+  }
+
+  const resolvedTitle = roleTitle !== undefined ? roleTitle : title;
+  if (resolvedTitle !== undefined && resolvedTitle !== null && typeof resolvedTitle !== 'string') {
+    return errorResponse(res, 'Role title must be a string.', 400);
+  }
+
+  if (category !== undefined && category !== null && typeof category !== 'string') {
+    return errorResponse(res, 'Category must be a string.', 400);
+  }
+
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(parsedSkills)) {
+      return errorResponse(res, 'Skills must be an array of strings or a comma-separated string.', 400);
+    }
+    req.body.skills = parsedSkills.map((s) => String(s).trim()).filter(Boolean);
+  }
+
+  req.body.jobDescription = trimmed;
+  return next();
+};
+
 module.exports = {
   ALLOWED_CATEGORIES,
   validateCreateRole,
@@ -400,5 +449,6 @@ module.exports = {
   validateCreateJobDescription,
   validateUpdateJobDescription,
   validateSaveJobDescription,
+  validateAnalyzeJobDescription,
 };
 
