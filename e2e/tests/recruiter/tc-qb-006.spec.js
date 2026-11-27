@@ -93,7 +93,7 @@ test.describe('TC-QB-006: Create MCQ Question with Live Preview Suite', () => {
     // Step 7: Save Question and verify redirect & table persistence
     await page.locator('.aq-footer button.aq-btn--primary').click();
     await expect(page.locator('.aq-success-banner')).toBeVisible({ timeout: 8_000 });
-    await page.waitForURL('**/recruiter/assessments', { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/recruiter\/assessments/, { timeout: 10_000 });
     await expect(page.locator('.am-table')).toContainText(`[E2E-${uniqueId}]`, { timeout: 10_000 });
   });
 
