@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Clock, RotateCcw, Play, HelpCircle, Sparkles, Brain, ChevronDown, ChevronUp, Target, Lightbulb } from 'lucide-react';
+import { Clock, RotateCcw, Play, HelpCircle, Sparkles, Brain, ChevronDown, ChevronUp, Target, Lightbulb, Briefcase, Award } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import { analyzeMockInterviewJobDescription } from '../../../api/mockInterviewApi';
 import './GeneratedQuestions.css';
@@ -250,6 +250,12 @@ export default function GeneratedQuestions() {
                     <p className="gq-jd-meta">
                       Target Role: <strong>{jdAnalysis.detectedRole}</strong> &bull; Level:{' '}
                       <span className="gq-jd-seniority">{jdAnalysis.seniorityLevel}</span>
+                      {jdAnalysis.yearsOfExperience && (
+                        <>
+                          {' '}&bull; Experience:{' '}
+                          <span className="gq-jd-seniority">{jdAnalysis.yearsOfExperience}</span>
+                        </>
+                      )}
                     </p>
                   )}
                 </div>
@@ -295,6 +301,34 @@ export default function GeneratedQuestions() {
                 {showAnalysisDetails && (
                   <div className="gq-jd-details">
                     {jdAnalysis.summary && <p className="gq-jd-summary">{jdAnalysis.summary}</p>}
+                    <div className="gq-jd-details-grid">
+                      {Array.isArray(jdAnalysis.responsibilities) && jdAnalysis.responsibilities.length > 0 && (
+                        <div className="gq-jd-tips">
+                          <div className="gq-jd-tips-title">
+                            <Briefcase size={14} />
+                            <span>Key Responsibilities</span>
+                          </div>
+                          <ul>
+                            {jdAnalysis.responsibilities.map((resp, idx) => (
+                              <li key={idx}>{resp}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {Array.isArray(jdAnalysis.experienceRequirements) && jdAnalysis.experienceRequirements.length > 0 && (
+                        <div className="gq-jd-tips">
+                          <div className="gq-jd-tips-title">
+                            <Award size={14} />
+                            <span>Experience Requirements</span>
+                          </div>
+                          <ul>
+                            {jdAnalysis.experienceRequirements.map((exp, idx) => (
+                              <li key={idx}>{exp}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                     {Array.isArray(jdAnalysis.preparationTips) && jdAnalysis.preparationTips.length > 0 && (
                       <div className="gq-jd-tips">
                         <div className="gq-jd-tips-title">

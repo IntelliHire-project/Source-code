@@ -171,10 +171,12 @@ Return ONLY valid JSON with this exact schema:
 {
   "detectedRole": "Concise job title inferred from the JD or role context",
   "seniorityLevel": "Entry | Junior | Mid-Level | Senior | Lead | Principal",
+  "yearsOfExperience": "Concise years requirement from the JD such as '3+ years' or '2-4 years', or null if not stated",
   "summary": "2-3 sentence summary of what the role requires and what interviewers will evaluate",
-  "technicalSkills": ["up to 12 specific technical skills, tools, or domains from the JD"],
-  "softSkills": ["up to 6 communication, leadership, or collaboration competencies from the JD"],
-  "responsibilities": ["up to 5 key responsibilities extracted from the JD"],
+  "technicalSkills": ["up to 12 specific technical skills, tools, frameworks, or domains extracted from the JD"],
+  "softSkills": ["up to 6 communication, leadership, or collaboration skills extracted from the JD"],
+  "responsibilities": ["up to 6 key responsibilities and deliverables extracted from the JD"],
+  "experienceRequirements": ["up to 6 specific experience, years-of-experience, domain background, and qualification/education requirements extracted from the JD"],
   "focusAreas": [
     {
       "topic": "Interview topic name",

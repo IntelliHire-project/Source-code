@@ -19,6 +19,8 @@ import {
   Target,
   Lightbulb,
   AlertTriangle,
+  Briefcase,
+  Award,
 } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
 import {
@@ -914,6 +916,12 @@ export default function MockInterviewRoleSelection() {
                     <p className="jd-analysis-meta">
                       Detected Role: <strong>{jdAnalysis.detectedRole}</strong> &bull; Seniority:{' '}
                       <span className="jd-seniority-badge">{jdAnalysis.seniorityLevel}</span>
+                      {jdAnalysis.yearsOfExperience && (
+                        <>
+                          {' '}&bull; Experience:{' '}
+                          <span className="jd-seniority-badge">{jdAnalysis.yearsOfExperience}</span>
+                        </>
+                      )}
                     </p>
                   )}
                 </div>
@@ -973,6 +981,42 @@ export default function MockInterviewRoleSelection() {
                           </span>
                         ))}
                       </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Extracted Responsibilities & Experience Requirements */}
+                <div className="jd-analysis-grid">
+                  {Array.isArray(jdAnalysis.responsibilities) && jdAnalysis.responsibilities.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title">
+                        <Briefcase size={14} />
+                        <span>Key Responsibilities</span>
+                      </div>
+                      <ul className="jd-analysis-list">
+                        {jdAnalysis.responsibilities.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {Array.isArray(jdAnalysis.experienceRequirements) && jdAnalysis.experienceRequirements.length > 0 && (
+                    <div className="jd-analysis-card">
+                      <div className="jd-analysis-card-title jd-analysis-card-title--between">
+                        <span className="jd-card-title-left">
+                          <Award size={14} />
+                          <span>Experience Requirements</span>
+                        </span>
+                        {jdAnalysis.yearsOfExperience && (
+                          <span className="jd-experience-pill">{jdAnalysis.yearsOfExperience}</span>
+                        )}
+                      </div>
+                      <ul className="jd-analysis-list">
+                        {jdAnalysis.experienceRequirements.map((reqItem, idx) => (
+                          <li key={idx}>{reqItem}</li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>

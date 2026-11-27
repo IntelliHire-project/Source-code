@@ -1,14 +1,19 @@
 const geminiService = require('./geminiService');
 
 const TECH_KEYWORDS = [
-  'JavaScript', 'TypeScript', 'React', 'Next.js', 'Vue.js', 'Angular', 'HTML', 'CSS', 'Tailwind CSS',
+  'JavaScript', 'TypeScript', 'React', 'Next.js', 'Vue.js', 'Angular', 'Svelte', 'HTML', 'HTML5', 'CSS', 'CSS3',
+  'Tailwind CSS', 'Sass', 'SCSS', 'Redux', 'Webpack', 'Vite', 'React Native', 'Flutter',
   'Node.js', 'Express', 'NestJS', 'Python', 'Django', 'Flask', 'FastAPI', 'Java', 'Spring Boot',
-  'Go', 'Rust', 'C#', '.NET', 'SQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'GraphQL',
-  'REST APIs', 'Microservices', 'System Design', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP',
-  'CI/CD', 'Git', 'Jest', 'Cypress', 'Playwright', 'Selenium', 'Automated Testing', 'API Testing',
-  'Test Planning', 'Figma', 'User Research', 'Wireframing', 'Prototyping', 'Design Systems',
-  'Tableau', 'Power BI', 'Statistical Modeling', 'Data Visualization', 'Machine Learning',
-  'State Management', 'Web Performance', 'Kafka', 'RabbitMQ', 'Linux', 'Terraform',
+  'Go', 'Rust', 'C#', '.NET', 'PHP', 'Laravel', 'Ruby on Rails',
+  'SQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Elasticsearch', 'DynamoDB', 'Firebase', 'Supabase',
+  'Prisma', 'Sequelize', 'SQLAlchemy', 'Hibernate', 'GraphQL', 'REST APIs', 'gRPC', 'WebSockets',
+  'Microservices', 'System Design', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Terraform',
+  'CI/CD', 'GitHub Actions', 'Jenkins', 'Git', 'Linux', 'Nginx',
+  'Jest', 'Cypress', 'Playwright', 'Selenium', 'Automated Testing', 'API Testing', 'Unit Testing', 'Integration Testing',
+  'Test Planning', 'Figma', 'User Research', 'Wireframing', 'Prototyping', 'Design Systems', 'Accessibility',
+  'Tableau', 'Power BI', 'Statistical Modeling', 'Data Visualization', 'Machine Learning', 'Deep Learning',
+  'NLP', 'LLMs', 'Pandas', 'NumPy', 'PyTorch', 'TensorFlow', 'Scikit-Learn',
+  'State Management', 'Web Performance', 'Kafka', 'RabbitMQ', 'OAuth2', 'JWT', 'Agile', 'Scrum', 'TDD', 'OOP',
 ];
 
 const SOFT_SKILL_KEYWORDS = [
@@ -22,10 +27,19 @@ const SOFT_SKILL_KEYWORDS = [
 
 const toStringArray = (value, maxItems = 10) => {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => (typeof item === 'string' ? item.trim() : ''))
-    .filter(Boolean)
-    .slice(0, maxItems);
+  const seen = new Set();
+  const result = [];
+  for (const item of value) {
+    const trimmed = typeof item === 'string' ? item.trim() : '';
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(trimmed);
+      if (result.length >= maxItems) break;
+    }
+  }
+  return result;
 };
 
 const normalizeDifficulty = (value) => {
@@ -35,46 +49,221 @@ const normalizeDifficulty = (value) => {
   return 'Medium';
 };
 
+const cleanBulletLine = (line = '') =>
+  String(line)
+    .replace(/^[\s\-*•\d.)]+/, '')
+    .replace(/^\*\*|\*\*$/g, '')
+    .trim();
+
+const isHeadingLine = (line = '') => {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  if (/^#{1,4}\s+/.test(trimmed)) return true;
+  if (/^\*\*[^*]+\*\*:?$/.test(trimmed)) return true;
+  if (/^[A-Za-z][A-Za-z\s/&,-]{2,50}:$/.test(trimmed)) return true;
+  return false;
+};
+
+const classifySectionHeading = (heading = '') => {
+  const normalized = heading
+    .replace(/^#+\s*/, '')
+    .replace(/\*\*/g, '')
+    .replace(/:$/, '')
+    .trim()
+    .toLowerCase();
+
+  if (/(responsibilit|duties|what you('ll|\s+will)\s+do|accountabilit|day[- ]to[- ]day)/i.test(normalized)) {
+    return 'responsibilities';
+  }
+  if (/(experience|requirement|qualification|what we('re|\s+are)\s+looking for|who you are|must have|preferred|nice to have|education|background)/i.test(normalized)) {
+    return 'experience';
+  }
+  if (/(skill|competenc|tech\s*stack|tools|technologies)/i.test(normalized)) {
+    return 'skills';
+  }
+  return 'other';
+};
+
+/**
+ * Splits a job description into classified sections so skills, responsibilities,
+ * and experience requirements can be extracted with section awareness.
+ */
+const splitJobDescriptionSections = (text = '') => {
+  const sections = {
+    responsibilities: [],
+    experience: [],
+    skills: [],
+    other: [],
+  };
+
+  let currentSection = 'other';
+  const lines = String(text).split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+
+    if (isHeadingLine(trimmed)) {
+      currentSection = classifySectionHeading(trimmed);
+      continue;
+    }
+
+    const cleaned = cleanBulletLine(trimmed);
+    if (cleaned.length >= 3) {
+      sections[currentSection].push(cleaned);
+    }
+  }
+
+  return sections;
+};
+
 const detectSeniorityFromText = (text = '') => {
   const lower = text.toLowerCase();
   if (/\b(principal|staff|distinguished)\b/.test(lower)) return 'Principal';
   if (/\b(lead|architect|head of|manager)\b/.test(lower)) return 'Lead';
-  if (/\b(senior|sr\.?|5\+\s*years|6\+\s*years|7\+\s*years)\b/.test(lower)) return 'Senior';
+  if (/\b(senior|sr\.?|5\+\s*years|6\+\s*years|7\+\s*years|8\+\s*years)\b/.test(lower)) return 'Senior';
   if (/\b(junior|jr\.?|entry[- ]level|intern|graduate|0-2\s*years|1\+\s*year)\b/.test(lower)) return 'Junior';
   return 'Mid-Level';
 };
 
-const extractSkillsFromText = (text = '', roleSkills = []) => {
+const extractYearsOfExperience = (text = '') => {
+  const match = String(text).match(
+    /\b(\d+\s*(?:\+|plus)?(?:\s*[-–to]+\s*\d+\+?)?\s*(?:years?|yrs?)(?:\s+of)?(?:\s+(?:relevant|professional|industry|hands-on|practical|proven|related))?(?:\s+experience)?)/i
+  );
+  if (match && match[1]) {
+    const raw = match[1].trim();
+    const numMatch = raw.match(/\d+\s*(?:\+|plus)?(?:\s*[-–to]+\s*\d+\+?)?\s*(?:years?|yrs?)/i);
+    return numMatch ? numMatch[0].replace(/\s+/g, ' ').trim() : raw;
+  }
+  return null;
+};
+
+const extractSkillsFromText = (text = '', roleSkills = [], sections = null) => {
   const lowerText = text.toLowerCase();
   const candidates = [...new Set([...(Array.isArray(roleSkills) ? roleSkills : []), ...TECH_KEYWORDS])];
   const matched = [];
+  const seen = new Set();
+
+  const addSkill = (skill) => {
+    const clean = String(skill || '').trim();
+    if (!clean || clean.length > 45) return;
+    const key = clean.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      matched.push(clean);
+    }
+  };
 
   for (const skill of candidates) {
     if (!skill || typeof skill !== 'string') continue;
     const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, 'i');
-    if (regex.test(lowerText) && !matched.some((m) => m.toLowerCase() === skill.toLowerCase())) {
-      matched.push(skill);
+    if (regex.test(lowerText)) {
+      addSkill(skill);
+    }
+  }
+
+  // Also extract explicitly tagged skills like "Required Skill: GraphQL" or short skill bullets
+  const explicitLines = String(text).split(/\r?\n/);
+  for (const rawLine of explicitLines) {
+    const reqMatch = rawLine.match(/(?:required\s+skills?|technical\s+skills?|skills?)\s*:\s*(.+)$/i);
+    if (reqMatch && reqMatch[1]) {
+      reqMatch[1]
+        .split(/[,;|]/)
+        .map((s) => s.trim())
+        .filter((s) => s.length >= 2 && s.length <= 40)
+        .forEach(addSkill);
+    }
+  }
+
+  if (sections && Array.isArray(sections.skills)) {
+    for (const line of sections.skills) {
+      if (line.length <= 40 && !/[.!?]$/.test(line)) {
+        line
+          .split(/[,;|]/)
+          .map((s) => s.trim())
+          .filter((s) => s.length >= 2 && s.length <= 35)
+          .forEach(addSkill);
+      }
     }
   }
 
   return matched.slice(0, 12);
 };
 
-const extractResponsibilitiesFromText = (text = '') => {
-  const lines = String(text)
+const extractResponsibilitiesFromText = (text = '', sections = null) => {
+  const parsedSections = sections || splitJobDescriptionSections(text);
+  const candidates = [];
+
+  if (parsedSections.responsibilities.length > 0) {
+    for (const line of parsedSections.responsibilities) {
+      if (line.length >= 15 && line.length <= 240) {
+        candidates.push(line);
+      }
+    }
+  }
+
+  if (candidates.length < 3) {
+    const fallbackLines = [...parsedSections.other]
+      .filter(
+        (line) =>
+          line.length >= 20 &&
+          line.length <= 240 &&
+          !/^(?:track|mode|position|job title|role)\s*:/i.test(line) &&
+          /\b(design|build|develop|architect|implement|maintain|collaborate|optimize|lead|test|analyze|deliver|drive|debug|manage|ensure|create|diagnose|own|review|deploy)\b/i.test(line)
+      );
+    for (const line of fallbackLines) {
+      if (!candidates.some((c) => c.toLowerCase() === line.toLowerCase())) {
+        candidates.push(line);
+      }
+    }
+  }
+
+  const unique = toStringArray(candidates, 6);
+  return unique.length > 0
+    ? unique
+    : ['Deliver scalable, maintainable solutions aligned with role requirements and engineering standards.'];
+};
+
+const extractExperienceRequirementsFromText = (
+  text = '',
+  seniorityLevel = 'Mid-Level',
+  technicalSkills = [],
+  sections = null
+) => {
+  const parsedSections = sections || splitJobDescriptionSections(text);
+  const expPattern =
+    /\b(\d+\s*(?:\+|plus)?\s*(?:[-–to]+\s*\d+\s*)?(?:years?|yrs?)|experience(?:\s+(?:with|in|of|building|designing|leading|managing|developing|using))?|hands-on|proficiency|proficient|proven\s+track\s+record|solid\s+grounding|strong\s+understanding|familiarity\s+with|background\s+in|bachelor|master|phd|degree|diploma|certification|certified|equivalent\s+practical)\b/i;
+
+  const candidates = [];
+
+  for (const line of parsedSections.experience) {
+    if (line.length >= 12 && line.length <= 240) {
+      candidates.push(line);
+    }
+  }
+
+  const allLines = String(text)
     .split(/\r?\n/)
-    .map((line) => line.replace(/^[\s\-*•\d.)]+/, '').trim())
-    .filter((line) => line.length >= 20 && line.length <= 220 && !line.startsWith('#') && !line.startsWith('**'));
+    .map(cleanBulletLine)
+    .filter((line) => line.length >= 15 && line.length <= 240 && !isHeadingLine(line));
 
-  const actionLines = lines.filter((line) =>
-    /\b(design|build|develop|architect|implement|maintain|collaborate|optimize|lead|test|analyze|deliver|drive|debug|manage|ensure|create)\b/i.test(line)
-  );
+  for (const line of allLines) {
+    if (expPattern.test(line) && !candidates.some((c) => c.toLowerCase() === line.toLowerCase())) {
+      candidates.push(line);
+    }
+  }
 
-  const selected = (actionLines.length > 0 ? actionLines : lines).slice(0, 5);
-  return selected.length > 0
-    ? selected
-    : ['Deliver scalable, maintainable solutions aligned with role requirements and team standards.'];
+  const extracted = toStringArray(candidates, 6);
+  if (extracted.length > 0) {
+    return extracted;
+  }
+
+  const topSkills = technicalSkills.slice(0, 2).join(' and ') || 'core domain technologies';
+  return [
+    `${seniorityLevel}-level hands-on experience applying ${topSkills} in production environments.`,
+    'Demonstrated experience breaking down ambiguous requirements and justifying technical trade-offs.',
+  ];
 };
 
 const buildFallbackQuestions = (detectedRole, technicalSkills, focusAreas) => {
@@ -146,7 +335,10 @@ const buildFallbackJobDescriptionAnalysis = (input) => {
   const headingMatch = jobDescription.match(/^#\s*(?:Position|Job Title|Role)?\s*:?\s*(.+)$/im);
   const detectedRole = (headingMatch && headingMatch[1]?.trim()) || roleTitle || 'Target Role';
   const seniorityLevel = detectSeniorityFromText(jobDescription);
-  const extractedTech = extractSkillsFromText(jobDescription, roleSkills);
+  const yearsOfExperience = extractYearsOfExperience(jobDescription);
+  const sections = splitJobDescriptionSections(jobDescription);
+
+  const extractedTech = extractSkillsFromText(jobDescription, roleSkills, sections);
   const technicalSkills =
     extractedTech.length > 0
       ? extractedTech
@@ -161,7 +353,14 @@ const buildFallbackJobDescriptionAnalysis = (input) => {
     softSkills.push('Structured Communication', 'Cross-Functional Collaboration', 'Problem Solving');
   }
 
-  const responsibilities = extractResponsibilitiesFromText(jobDescription);
+  const skills = toStringArray([...technicalSkills, ...softSkills], 16);
+  const responsibilities = extractResponsibilitiesFromText(jobDescription, sections);
+  const experienceRequirements = extractExperienceRequirementsFromText(
+    jobDescription,
+    seniorityLevel,
+    technicalSkills,
+    sections
+  );
 
   const focusAreas = technicalSkills.slice(0, 3).map((skill, idx) => ({
     topic: skill,
@@ -185,10 +384,13 @@ const buildFallbackJobDescriptionAnalysis = (input) => {
   return {
     detectedRole,
     seniorityLevel,
+    yearsOfExperience,
     summary: `This ${seniorityLevel} ${detectedRole} description prioritizes ${technicalSkills.slice(0, 4).join(', ')} alongside structured technical communication and delivery ownership.`,
+    skills,
     technicalSkills,
     softSkills,
     responsibilities,
+    experienceRequirements,
     focusAreas,
     skillGapsToWatch,
     preparationTips,
@@ -206,9 +408,22 @@ const normalizeAnalysisResult = (raw, input, source = 'gemini') => {
 
   const technicalSkills = toStringArray(raw?.technicalSkills, 12);
   const softSkills = toStringArray(raw?.softSkills, 6);
-  const responsibilities = toStringArray(raw?.responsibilities, 5);
+  const responsibilities = toStringArray(raw?.responsibilities, 6);
+  const experienceRequirements = toStringArray(raw?.experienceRequirements, 6);
   const skillGapsToWatch = toStringArray(raw?.skillGapsToWatch, 4);
   const preparationTips = toStringArray(raw?.preparationTips, 4);
+
+  const resolvedTechnicalSkills = technicalSkills.length > 0 ? technicalSkills : fallback.technicalSkills;
+  const resolvedSoftSkills = softSkills.length > 0 ? softSkills : fallback.softSkills;
+  const resolvedSkills = toStringArray([...resolvedTechnicalSkills, ...resolvedSoftSkills], 16);
+
+  const yearsOfExperience =
+    typeof raw?.yearsOfExperience === 'string' &&
+    raw.yearsOfExperience.trim() &&
+    raw.yearsOfExperience.trim().toLowerCase() !== 'null' &&
+    raw.yearsOfExperience.trim().toLowerCase() !== 'not specified'
+      ? raw.yearsOfExperience.trim()
+      : fallback.yearsOfExperience;
 
   const focusAreas = Array.isArray(raw?.focusAreas)
     ? raw.focusAreas
@@ -249,13 +464,17 @@ const normalizeAnalysisResult = (raw, input, source = 'gemini') => {
       typeof raw?.seniorityLevel === 'string' && raw.seniorityLevel.trim()
         ? raw.seniorityLevel.trim()
         : fallback.seniorityLevel,
+    yearsOfExperience,
     summary:
       typeof raw?.summary === 'string' && raw.summary.trim()
         ? raw.summary.trim()
         : fallback.summary,
-    technicalSkills: technicalSkills.length > 0 ? technicalSkills : fallback.technicalSkills,
-    softSkills: softSkills.length > 0 ? softSkills : fallback.softSkills,
+    skills: resolvedSkills,
+    technicalSkills: resolvedTechnicalSkills,
+    softSkills: resolvedSoftSkills,
     responsibilities: responsibilities.length > 0 ? responsibilities : fallback.responsibilities,
+    experienceRequirements:
+      experienceRequirements.length > 0 ? experienceRequirements : fallback.experienceRequirements,
     focusAreas: focusAreas.length > 0 ? focusAreas : fallback.focusAreas,
     skillGapsToWatch: skillGapsToWatch.length > 0 ? skillGapsToWatch : fallback.skillGapsToWatch,
     preparationTips: preparationTips.length > 0 ? preparationTips : fallback.preparationTips,

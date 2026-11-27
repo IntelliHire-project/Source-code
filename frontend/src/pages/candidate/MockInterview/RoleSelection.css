@@ -1100,6 +1100,28 @@
   margin-bottom: 10px;
 }
 
+.jd-analysis-card-title--between {
+  justify-content: space-between;
+}
+
+.jd-card-title-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.jd-experience-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 193, 7, 0.14);
+  color: #FFC107;
+  border: 1px solid rgba(255, 193, 7, 0.35);
+}
+
 .jd-analysis-chips {
   display: flex;
   flex-wrap: wrap;
