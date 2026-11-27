@@ -60,3 +60,55 @@ export const fetchAssessmentStats = async () => {
   return response.data;
 };
 
+/**
+ * Submits candidate answers for an assessment and triggers auto-grading.
+ * @param {string|number} id - Assessment ID or code (e.g., A-1001)
+ * @param {object} submissionData - { answers, timeSpentSeconds }
+ * @returns {Promise<object>} Response containing created/updated submission record.
+ */
+export const submitAssessment = async (id, submissionData) => {
+  const response = await apiInstance.post(`/assessments/${id}/submit`, submissionData);
+  return response.data;
+};
+
+/**
+ * Fetches all assessment submissions made by the logged-in candidate.
+ * @returns {Promise<object>} Response containing candidate submissions array.
+ */
+export const fetchMySubmissions = async () => {
+  const response = await apiInstance.get('/assessments/my-submissions');
+  return response.data;
+};
+
+/**
+ * Fetches candidate submissions for a specific assessment or across all recruiter assessments.
+ * @param {string|number|null} [assessmentId=null] - Optional assessment ID or code
+ * @returns {Promise<object>} Response containing submissions array.
+ */
+export const fetchAssessmentSubmissions = async (assessmentId = null) => {
+  const url = assessmentId ? `/assessments/${assessmentId}/submissions` : '/assessments/submissions';
+  const response = await apiInstance.get(url);
+  return response.data;
+};
+
+/**
+ * Retrieves the detailed evaluation report for a single candidate submission.
+ * @param {string|number} submissionId - Submission ID or code (e.g., SUB-1001)
+ * @returns {Promise<object>} Response containing detailed submission report.
+ */
+export const fetchSubmissionReport = async (submissionId) => {
+  const response = await apiInstance.get(`/assessments/submissions/${submissionId}`);
+  return response.data;
+};
+
+/**
+ * Saves recruiter manual scores, feedback comments, scorecard, and Shortlist/Reject decision.
+ * @param {string|number} submissionId - Submission ID or code
+ * @param {object} evaluationData - { manualScores, comments, recommendation, evaluatorNotes, recruiterScorecard }
+ * @returns {Promise<object>} Response containing updated submission report.
+ */
+export const evaluateSubmission = async (submissionId, evaluationData) => {
+  const response = await apiInstance.put(`/assessments/submissions/${submissionId}/evaluate`, evaluationData);
+  return response.data;
+};
+
