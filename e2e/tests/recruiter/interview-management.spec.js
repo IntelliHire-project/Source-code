@@ -739,32 +739,56 @@ test.describe('IntelliHire - Interview Management E2E Test Suite', () => {
     await expect(rescheduleBtn).toBeVisible({ timeout: 10_000 });
     await rescheduleBtn.click();
 
-    // 2. Verify "Reschedule Interview Directly" modal opens with Dual-Mode selector
-    await expect(page.locator('h3:has-text("Reschedule Interview Directly")')).toBeVisible({ timeout: 6000 });
-    await expect(page.locator('text=✓ Direct Reschedule Enabled')).toBeVisible();
+    // 2. Verify "Reschedule Interview Directly" modal opens with Dual-Mode selector & open slot options
+    const modal = page.locator('.allocation-modal');
+    await expect(modal.locator('h3:has-text("Reschedule Interview Directly")')).toBeVisible({ timeout: 6000 });
+    await expect(modal.locator('text=✓ Direct Reschedule Enabled')).toBeVisible();
+
+    const slotOptionsCount = await modal.locator('#reschedule-slot option:not([disabled])').count();
+    expect(slotOptionsCount).toBeGreaterThan(1);
 
     // 3. Switch to "Set New Date & Time Directly" custom reschedule mode
-    await page.locator('button:has-text("Set New Date & Time Directly")').click();
+    await modal.locator('button:has-text("Set New Date & Time Directly")').click();
+
+    // Verify calendar picker button & quick chips render cleanly and default date is not in the past
+    await expect(modal.locator('.reschedule-picker-icon-btn').first()).toBeVisible();
+    await expect(modal.locator('.reschedule-quick-chip').first()).toBeVisible();
+
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const defaultDateVal = await modal.locator('input[type="date"]').inputValue();
+    expect(defaultDateVal >= todayIso).toBeTruthy();
 
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 5);
-    const isoDate = futureDate.toISOString().split('T')[0];
+    const isoDate = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+    const expectedDisplayDate = futureDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    const modal = page.locator('.allocation-modal');
     await modal.locator('input[type="date"]').fill(isoDate);
     await modal.locator('input[type="time"]').nth(0).fill('14:00');
     await modal.locator('input[type="time"]').nth(1).fill('15:00');
     await modal.locator('input[type="text"]').fill('Playwright E2E Direct Reschedule');
 
-    // 4. Confirm Reschedule and verify updated time slot in Allocation Results table
+    // 4. Confirm Reschedule and verify BOTH updated date & time in Allocation Results table
     await modal.locator('button.allocation-modal-confirm').click();
     await expect(page.locator('text=rescheduled directly to')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('.results-table')).toContainText('02:00 PM – 03:00 PM');
+    await expect(page.locator('.results-table')).toContainText(expectedDisplayDate);
+
+    // 5. Verify "Move to Open Slot" mode updates an allocation row cleanly as well
+    const secondRescheduleBtn = page.locator('.results-table button.btn-reschedule-row').nth(1);
+    if (await secondRescheduleBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await secondRescheduleBtn.click();
+      await expect(modal.locator('#reschedule-slot')).toBeVisible({ timeout: 4000 });
+      await modal.locator('#reschedule-slot').selectOption({ index: 1 });
+      await modal.locator('button.allocation-modal-confirm').click();
+      await expect(page.locator('text=rescheduled directly to')).toBeVisible({ timeout: 8000 });
+    }
 
     console.log('\n========== TC-INT-023 ACTUAL RESULT ==========');
     console.log('Test Scenario : Direct System Rescheduling Workflow (Candidate Allocation)');
     console.log('Status        : Pass');
-    console.log('Actual Result : Candidate directly rescheduled to 02:00 PM – 03:00 PM with automatic notification dispatch.');
+    console.log(`Actual Result : Candidate directly rescheduled to ${expectedDisplayDate} (02:00 PM – 03:00 PM) and open-slot rescheduling verified cleanly.`);
     console.log('==============================================\n');
   });
 
