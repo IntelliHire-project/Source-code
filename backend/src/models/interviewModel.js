@@ -57,13 +57,22 @@ const DEFAULT_PANEL_MEMBERS = [
 ];
 
 /**
- * Format date to 'YYYY-MM-DD'
+ * Format date to 'YYYY-MM-DD' cleanly without UTC timezone drift
  */
 const toIsoDateString = (d) => {
-  if (!d) return '2026-11-05';
-  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) return d.trim();
-  const dateObj = new Date(d);
-  if (isNaN(dateObj.getTime())) return '2026-11-05';
+  if (!d) return '2026-11-27';
+  if (d instanceof Date) {
+    if (isNaN(d.getTime())) return '2026-11-27';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  const str = String(d).trim();
+  const isoPrefix = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoPrefix) return `${isoPrefix[1]}-${isoPrefix[2]}-${isoPrefix[3]}`;
+  const dateObj = new Date(str);
+  if (isNaN(dateObj.getTime())) return '2026-11-27';
   const year = dateObj.getFullYear();
   const month = String(dateObj.getMonth() + 1).padStart(2, '0');
   const day = String(dateObj.getDate()).padStart(2, '0');
@@ -71,13 +80,35 @@ const toIsoDateString = (d) => {
 };
 
 /**
- * Format date to 'DD Mon YYYY'
+ * Format date to 'DD Mon YYYY' without UTC shift
  */
 const toDisplayDateString = (d) => {
   if (!d) return '';
-  const dateObj = new Date(d);
-  if (isNaN(dateObj.getTime())) return String(d);
+  if (d instanceof Date) {
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  const str = String(d).trim();
+  const isoPrefix = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dateObj = isoPrefix
+    ? new Date(Number(isoPrefix[1]), Number(isoPrefix[2]) - 1, Number(isoPrefix[3]))
+    : new Date(str);
+  if (isNaN(dateObj.getTime())) return str;
   return dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+/**
+ * Compute upcoming Mon-Fri date string N weekdays from today
+ */
+const getUpcomingWeekdayIso = (weekdayOffset = 1) => {
+  const d = new Date();
+  let remaining = Math.max(1, weekdayOffset);
+  while (remaining > 0) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) remaining -= 1;
+  }
+  return toIsoDateString(d);
 };
 
 /**
@@ -288,7 +319,7 @@ const seedInitialSlotsIfEmpty = async () => {
       {
         job_position: 'Senior Software Engineer',
         round: 'Technical Interview',
-        interview_date: '2026-11-05',
+        interview_date: getUpcomingWeekdayIso(1),
         start_time: '10:00 AM',
         end_time: '11:00 AM',
         interview_type: 'Online',
@@ -297,14 +328,14 @@ const seedInitialSlotsIfEmpty = async () => {
         capacity: 2,
         booked_count: 0,
         panel_name: 'Panel A (Technical Leads)',
-        panel_emails: 'techlead@company.com',
+        panel_emails: 'saman.tech@company.com',
         panel_member: JSON.stringify(DEFAULT_PANEL_MEMBERS[0]),
         additional_notes: 'Available open slot for technical screening.',
       },
       {
         job_position: 'Backend Engineer',
         round: 'API Design & Database',
-        interview_date: '2026-11-06',
+        interview_date: getUpcomingWeekdayIso(2),
         start_time: '01:30 PM',
         end_time: '02:30 PM',
         interview_type: 'Physical',
@@ -313,14 +344,14 @@ const seedInitialSlotsIfEmpty = async () => {
         capacity: 2,
         booked_count: 0,
         panel_name: 'Panel B (Backend Engineering)',
-        panel_emails: 'techlead@company.com',
+        panel_emails: 'ruwan.b@company.com',
         panel_member: JSON.stringify(DEFAULT_PANEL_MEMBERS[3]),
         additional_notes: 'In-person architecture and database design interview.',
       },
       {
         job_position: 'UI/UX Designer',
         round: 'Design Portfolio Review',
-        interview_date: '2026-11-10',
+        interview_date: getUpcomingWeekdayIso(3),
         start_time: '03:00 PM',
         end_time: '04:00 PM',
         interview_type: 'Online',
@@ -329,8 +360,8 @@ const seedInitialSlotsIfEmpty = async () => {
         capacity: 2,
         booked_count: 0,
         panel_name: 'Panel C (Product & Design)',
-        panel_emails: 'hr@company.com',
-        panel_member: JSON.stringify(DEFAULT_PANEL_MEMBERS[1]),
+        panel_emails: 'dilhani.w@company.com',
+        panel_member: JSON.stringify(DEFAULT_PANEL_MEMBERS[2]),
         additional_notes: 'Figma portfolio walkthrough and design system critique.',
       },
     ];
@@ -1042,9 +1073,15 @@ const directRescheduleInterview = async (payload = {}) => {
     targetSlotId,
     candidateId,
     candidateName,
+    candidateEmail = '',
     newDate,
     newStartTime,
     newEndTime,
+    panelName = 'Panel A (Technical Leads)',
+    interviewType = 'Online',
+    jobPosition = 'Senior Software Engineer',
+    round = 'Technical Interview',
+    meetingLocation = 'https://meet.google.com/new',
     reason = 'Rescheduled directly through IntelliHire',
   } = payload;
 
@@ -1052,28 +1089,132 @@ const directRescheduleInterview = async (payload = {}) => {
   const cleanTargetId = targetSlotId ? parseInt(String(targetSlotId).replace('SLOT-', ''), 10) : null;
 
   try {
+    // 1. Find existing allocation row for this candidate in DB (if any)
+    let existingAlloc = null;
+    if (candidateId || candidateName) {
+      const allocLookup = await db.query(
+        `SELECT id, slot_id FROM interview_allocations
+         WHERE ($1 <> '' AND candidate_app_id = $1)
+            OR ($2 <> '' AND LOWER(candidate_name) = LOWER($2))
+         ORDER BY id DESC LIMIT 1`,
+        [String(candidateId || '').trim(), String(candidateName || '').trim()]
+      );
+      existingAlloc = allocLookup.rows[0] || null;
+    }
+
     if (cleanTargetId && !Number.isNaN(cleanTargetId)) {
-      if (candidateId || candidateName) {
+      // Slot-move mode: check if cleanTargetId exists in DB
+      const targetSlotCheck = await db.query('SELECT id FROM interview_slots WHERE id = $1', [cleanTargetId]);
+      let dbTargetSlotId = targetSlotCheck.rows[0]?.id || null;
+
+      if (!dbTargetSlotId && newDate && newStartTime && newEndTime) {
+        const isoDate = toIsoDateString(newDate);
+        const insertedSlot = await db.query(
+          `INSERT INTO interview_slots (
+            job_position, round, interview_date, start_time, end_time,
+            interview_type, status, meeting_location, capacity, booked_count,
+            panel_name, additional_notes
+          ) VALUES ($1, $2, $3, $4, $5, $6, 'SCHEDULED', $7, 2, 1, $8, $9)
+          RETURNING id`,
+          [
+            jobPosition, round, isoDate, newStartTime, newEndTime,
+            interviewType, meetingLocation, panelName, `[Direct Reschedule]: ${reason}`,
+          ]
+        );
+        dbTargetSlotId = insertedSlot.rows[0].id;
+      }
+
+      if (dbTargetSlotId) {
+        if (existingAlloc) {
+          const oldSlotId = existingAlloc.slot_id;
+          await db.query(
+            `UPDATE interview_allocations
+             SET slot_id = $1, status = 'ALLOCATED', updated_at = NOW()
+             WHERE id = $2`,
+            [dbTargetSlotId, existingAlloc.id]
+          );
+          if (oldSlotId && oldSlotId !== dbTargetSlotId) {
+            await db.query(
+              `UPDATE interview_slots
+               SET booked_count = GREATEST(0, booked_count - 1),
+                   status = CASE WHEN booked_count - 1 <= 0 AND status != 'COMPLETED' THEN 'AVAILABLE' ELSE status END,
+                   updated_at = NOW()
+               WHERE id = $1`,
+              [oldSlotId]
+            );
+          }
+        } else if (candidateName) {
+          await db.query(
+            `INSERT INTO interview_allocations (
+              slot_id, candidate_app_id, candidate_name, candidate_email, status
+            ) VALUES ($1, $2, $3, $4, 'ALLOCATED')`,
+            [dbTargetSlotId, String(candidateId || ''), candidateName, candidateEmail]
+          );
+        }
+
         await db.query(
-          `UPDATE interview_allocations
-           SET slot_id = $1, status = 'ALLOCATED'
-           WHERE candidate_app_id = $2 OR candidate_name = $3`,
-          [cleanTargetId, String(candidateId || ''), candidateName || '']
+          "UPDATE interview_slots SET booked_count = GREATEST(1, booked_count), status = 'SCHEDULED', updated_at = NOW() WHERE id = $1",
+          [dbTargetSlotId]
         );
       }
-      await db.query(
-        "UPDATE interview_slots SET status = 'SCHEDULED', updated_at = NOW() WHERE id = $1",
-        [cleanTargetId]
-      );
-    } else if (cleanCurrentId && !Number.isNaN(cleanCurrentId) && newDate && newStartTime && newEndTime) {
+    } else if (newDate && newStartTime && newEndTime) {
+      // Custom direct date/time mode
       const isoDate = toIsoDateString(newDate);
-      await db.query(
-        `UPDATE interview_slots SET
-          interview_date = $1, start_time = $2, end_time = $3, status = 'SCHEDULED',
-          additional_notes = COALESCE(additional_notes, '') || $4, updated_at = NOW()
-        WHERE id = $5`,
-        [isoDate, newStartTime, newEndTime, `\n[Rescheduled]: ${reason}`, cleanCurrentId]
-      );
+      const candidateSlotId = existingAlloc?.slot_id || (cleanCurrentId && !Number.isNaN(cleanCurrentId) ? cleanCurrentId : null);
+
+      let slotUpdated = false;
+      if (candidateSlotId) {
+        const slotCheck = await db.query(
+          'SELECT id FROM interview_slots WHERE id = $1',
+          [candidateSlotId]
+        );
+        if (slotCheck.rows.length > 0) {
+          const shareCheck = await db.query(
+            'SELECT COUNT(*) AS cnt FROM interview_allocations WHERE slot_id = $1',
+            [candidateSlotId]
+          );
+          const occupantCount = parseInt(shareCheck.rows[0].cnt, 10) || 0;
+          if (occupantCount <= 1) {
+            await db.query(
+              `UPDATE interview_slots SET
+                interview_date = $1, start_time = $2, end_time = $3, status = 'SCHEDULED',
+                additional_notes = COALESCE(additional_notes, '') || $4, updated_at = NOW()
+              WHERE id = $5`,
+              [isoDate, newStartTime, newEndTime, `\n[Rescheduled]: ${reason}`, candidateSlotId]
+            );
+            slotUpdated = true;
+          }
+        }
+      }
+
+      if (!slotUpdated && candidateName) {
+        const insertedSlot = await db.query(
+          `INSERT INTO interview_slots (
+            job_position, round, interview_date, start_time, end_time,
+            interview_type, status, meeting_location, capacity, booked_count,
+            panel_name, additional_notes
+          ) VALUES ($1, $2, $3, $4, $5, $6, 'SCHEDULED', $7, 1, 1, $8, $9)
+          RETURNING id`,
+          [
+            jobPosition, round, isoDate, newStartTime, newEndTime,
+            interviewType, meetingLocation, panelName, `[Direct Reschedule]: ${reason}`,
+          ]
+        );
+        const newSlotId = insertedSlot.rows[0].id;
+        if (existingAlloc) {
+          await db.query(
+            "UPDATE interview_allocations SET slot_id = $1, status = 'ALLOCATED', updated_at = NOW() WHERE id = $2",
+            [newSlotId, existingAlloc.id]
+          );
+        } else {
+          await db.query(
+            `INSERT INTO interview_allocations (
+              slot_id, candidate_app_id, candidate_name, candidate_email, status
+            ) VALUES ($1, $2, $3, $4, 'ALLOCATED')`,
+            [newSlotId, String(candidateId || ''), candidateName, candidateEmail]
+          );
+        }
+      }
     }
   } catch (err) {
     console.warn('Database direct reschedule fallback (local state preserved):', err.message);

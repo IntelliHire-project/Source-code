@@ -90,6 +90,61 @@ export function formatTimeRange(startTime, endTime) {
   return `${formattedStart} – ${formattedEnd}`;
 }
 
+export function toLocalIsoDate(dateObj) {
+  if (!dateObj || Number.isNaN(dateObj.getTime())) return '';
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function parseLocalDateSafe(dateInput) {
+  if (!dateInput) return null;
+  if (dateInput instanceof Date) {
+    return Number.isNaN(dateInput.getTime())
+      ? null
+      : new Date(dateInput.getFullYear(), dateInput.getMonth(), dateInput.getDate());
+  }
+  const str = String(dateInput).trim();
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+  }
+  const parsed = new Date(/\d{4}/.test(str) ? str : `${str} ${new Date().getFullYear()}`);
+  return Number.isNaN(parsed.getTime())
+    ? null
+    : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+export function formatLocalDisplayDate(dateInput) {
+  const dObj = parseLocalDateSafe(dateInput);
+  if (!dObj) return String(dateInput || '');
+  return dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+export function formatLocalShortDate(dateInput) {
+  const dObj = parseLocalDateSafe(dateInput);
+  if (!dObj) return String(dateInput || '').slice(0, 6);
+  return dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+export function getUpcomingWeekdayDate(weekdayOffset = 1) {
+  const d = new Date();
+  let remaining = Math.max(1, weekdayOffset);
+  while (remaining > 0) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) {
+      remaining -= 1;
+    }
+  }
+  return {
+    dateKey: toLocalIsoDate(d),
+    date: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    dateShort: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+  };
+}
+
 // Initial Mock Candidates Data (3 allocated by default, 6 shortlisted)
 export const INITIAL_CANDIDATES = [
   // 3 candidates allocated by default (match INITIAL_ALLOCATIONS)
@@ -105,19 +160,27 @@ export const INITIAL_CANDIDATES = [
   { id: 'APP-009', name: 'Kasun Wijesinghe', score: 65, status: 'SHORTLISTED', jobPosition: 'Senior Software Engineer', role: 'Senior Software Engineer', round: 'Technical Interview', selected: false },
 ];
 
-// Clean Default Mock Time Slots (6 balanced slots across roles, upcoming November 2026)
+const UPCOMING_DAY_1 = getUpcomingWeekdayDate(1);
+const UPCOMING_DAY_2 = getUpcomingWeekdayDate(2);
+const UPCOMING_DAY_3 = getUpcomingWeekdayDate(3);
+
+// Clean Default Mock Time Slots (with live upcoming weekday slots always available)
 const INITIAL_SLOTS = [
-  // Senior Software Engineer
+  // Already assigned baseline slots
   { id: 'SLOT-101', dateKey: '2026-11-20', date: '20 Nov 2026', dateShort: '20 Nov', time: '09:30 AM', end: '10:30 AM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
   { id: 'SLOT-102', dateKey: '2026-11-20', date: '20 Nov 2026', dateShort: '20 Nov', time: '02:00 PM', end: '03:00 PM', type: 'Physical', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'HR Portfolio Review', panelName: 'Panel A (Technical Leads)' },
   { id: 'SLOT-103', dateKey: '2026-11-21', date: '21 Nov 2026', dateShort: '21 Nov', time: '11:00 AM', end: '12:00 PM', type: 'Online', cap: 1, rem: 0, jobPosition: 'Senior Software Engineer', round: 'System Architecture', panelName: 'Panel A (Technical Leads)' },
-  { id: 'SLOT-104', dateKey: '2026-11-22', date: '22 Nov 2026', dateShort: '22 Nov', time: '10:00 AM', end: '11:00 AM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
+
+  // Upcoming open slots for Senior Software Engineer (always >= tomorrow, Mon-Fri)
+  { id: 'SLOT-104', dateKey: UPCOMING_DAY_1.dateKey, date: UPCOMING_DAY_1.date, dateShort: UPCOMING_DAY_1.dateShort, time: '10:00 AM', end: '11:00 AM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'Technical Interview', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-107', dateKey: UPCOMING_DAY_2.dateKey, date: UPCOMING_DAY_2.date, dateShort: UPCOMING_DAY_2.dateShort, time: '02:00 PM', end: '03:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'System Architecture', panelName: 'Panel C (Ruwan Bandara)' },
+  { id: 'SLOT-108', dateKey: UPCOMING_DAY_3.dateKey, date: UPCOMING_DAY_3.date, dateShort: UPCOMING_DAY_3.dateShort, time: '03:30 PM', end: '04:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Senior Software Engineer', round: 'HR Portfolio Review', panelName: 'Panel B (Dilhani Wickramasinghe)' },
 
   // Backend Engineer
-  { id: 'SLOT-105', dateKey: '2026-11-23', date: '23 Nov 2026', dateShort: '23 Nov', time: '01:30 PM', end: '02:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Backend Engineer', round: 'API Design & Database', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-105', dateKey: UPCOMING_DAY_2.dateKey, date: UPCOMING_DAY_2.date, dateShort: UPCOMING_DAY_2.dateShort, time: '01:30 PM', end: '02:30 PM', type: 'Physical', cap: 2, rem: 2, jobPosition: 'Backend Engineer', round: 'API Design & Database', panelName: 'Panel A (Technical Leads)' },
 
   // UI/UX Designer
-  { id: 'SLOT-106', dateKey: '2026-11-24', date: '24 Nov 2026', dateShort: '24 Nov', time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'UI/UX Designer', round: 'Design Portfolio Review', panelName: 'Panel A (Technical Leads)' },
+  { id: 'SLOT-106', dateKey: UPCOMING_DAY_3.dateKey, date: UPCOMING_DAY_3.date, dateShort: UPCOMING_DAY_3.dateShort, time: '03:00 PM', end: '04:00 PM', type: 'Online', cap: 2, rem: 2, jobPosition: 'UI/UX Designer', round: 'Design Portfolio Review', panelName: 'Panel B (Dilhani Wickramasinghe)' },
 ];
 
 // Initial Allocation Results Data (3 mock allocations matching Panel Interview Schedule)
@@ -520,16 +583,31 @@ export const mergeWithInitialAllocations = (incomingList) => {
       fetchAllocations()
         .then((res) => {
           if (res && res.allocations && Array.isArray(res.allocations) && res.allocations.length > 0) {
+            let localStored = [];
+            try {
+              const rawLocal = JSON.parse(localStorage.getItem('intellihire_allocations') || '[]');
+              if (Array.isArray(rawLocal)) localStored = rawLocal;
+            } catch { }
+
             const combined = mergeWithInitialAllocations(res.allocations);
-            const enriched = combined.map((item, idx) => {
+            const enriched = combined.map((item) => {
+              const localMatch = localStored.find(
+                (l) =>
+                  (l.candidateId && item.candidateId && String(l.candidateId) === String(item.candidateId)) ||
+                  (l.candidateName && item.candidateName && l.candidateName.trim().toLowerCase() === item.candidateName.trim().toLowerCase())
+              );
               const isPhysical = item.interviewType === 'Physical';
               const media = isPhysical ? 'In-Person' : (item.interviewMedia || 'Google Meet');
               return {
                 ...item,
+                interviewDate: formatLocalDisplayDate(item.interviewDate),
                 interviewMedia: media,
                 meetingLocation: item.meetingLocation || (isPhysical ? 'Engineering Interview Room 1, HQ Building' : 'https://meet.google.com/new'),
                 meetingId: item.meetingId || (!isPhysical ? 'meet.google.com/new' : ''),
                 meetingPasscode: item.meetingPasscode || (!isPhysical ? 'Direct Video Link' : ''),
+                rescheduleCount: Math.max(Number(item.rescheduleCount || 0), Number(localMatch?.rescheduleCount || 0)),
+                lastRescheduledAt: item.lastRescheduledAt || localMatch?.lastRescheduledAt || null,
+                rescheduledReason: item.rescheduledReason || localMatch?.rescheduledReason || '',
               };
             });
             setAllocations(enriched);
@@ -546,17 +624,16 @@ export const mergeWithInitialAllocations = (incomingList) => {
         .then((res) => {
           if (res && res.slots && Array.isArray(res.slots) && res.slots.length > 0) {
             const mapped = res.slots.map((s) => {
-              const dObj = new Date(s.interviewDate || s.rawDate);
-              const shortDate = isNaN(dObj.getTime())
-                ? (s.interviewDate || '30 Oct').substring(0, 6)
-                : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+              const rawDateVal = s.interviewDate || s.rawDate;
+              const shortDate = formatLocalShortDate(rawDateVal);
+              const displayDate = formatLocalDisplayDate(s.displayDate || rawDateVal);
               const displayTime = formatDisplayTime(s.startTime);
               const displayEnd = formatDisplayTime(s.endTime || getEndTime(s.startTime));
               return {
                 id: `SLOT-${s.id}`,
                 rawSlotId: s.id,
                 dateKey: s.interviewDate,
-                date: s.displayDate || s.interviewDate,
+                date: displayDate || s.displayDate || s.interviewDate,
                 dateShort: shortDate,
                 time: displayTime,
                 end: displayEnd,
@@ -698,11 +775,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
     const [reschedulingAllocation, setReschedulingAllocation] = useState(null);
     const [rescheduleSlotId, setRescheduleSlotId] = useState('');
     const [rescheduleMode, setRescheduleMode] = useState('slot'); // 'slot' | 'custom'
-    const [rescheduleCustomDate, setRescheduleCustomDate] = useState(() => {
-      const t = new Date();
-      t.setDate(t.getDate() + 1);
-      return t.toISOString().split('T')[0];
-    });
+    const [rescheduleCustomDate, setRescheduleCustomDate] = useState(() => getUpcomingWeekdayDate(1).dateKey);
     const [rescheduleCustomStart, setRescheduleCustomStart] = useState('10:00');
     const [rescheduleCustomEnd, setRescheduleCustomEnd] = useState('11:00');
     const [rescheduleReason, setRescheduleReason] = useState('Adjusted schedule directly through IntelliHire');
@@ -789,17 +862,13 @@ export const mergeWithInitialAllocations = (incomingList) => {
       });
     };
 
-    // Helper to detect outdated slots from past dates/months (anything strictly before today 24 Oct 2026)
+    // Helper to detect outdated slots strictly before today
     function isOutdatedPastDate(dateVal) {
       if (!dateVal) return false;
-      const str = String(dateVal).trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-        return str < '2026-10-24';
-      }
-      const parsed = new Date(str);
-      if (!isNaN(parsed.getTime())) {
-        const today = new Date('2026-10-24T00:00:00');
-        return parsed < today;
+      const todayIso = toLocalIsoDate(new Date());
+      const parsed = parseLocalDateSafe(dateVal);
+      if (parsed) {
+        return toLocalIsoDate(parsed) < todayIso;
       }
       return false;
     }
@@ -885,8 +954,15 @@ export const mergeWithInitialAllocations = (incomingList) => {
             (slot.id && String(slot.id).replace('SLOT-', '') === String(allocation.slotId).replace('SLOT-', ''))
           )
         ).length;
-        const isBooked = Boolean(rawSlot.status === 'BOOKED' || rawSlot.assignedCandidate || allocatedCount >= slot.cap);
-        return { ...slot, rem: isBooked ? 0 : Math.max(0, slot.cap - allocatedCount) };
+        const stillAssignedHere = rawSlot.assignedCandidate && allocations.some(
+          (a) => a.status === 'ALLOCATED' && (
+            String(a.slotId) === String(slot.id) ||
+            (a.candidateName && rawSlot.assignedCandidate?.name && a.candidateName.toLowerCase() === rawSlot.assignedCandidate.name.toLowerCase() && String(a.slotId) === String(slot.id))
+          )
+        );
+        const effectiveCount = Math.max(allocatedCount, stillAssignedHere ? 1 : 0);
+        const isBooked = effectiveCount >= (slot.cap || 1);
+        return { ...slot, rem: isBooked ? 0 : Math.max(0, (slot.cap || 1) - effectiveCount) };
       });
     }, [allSlots, allocations, embeddedVacancy]);
 
@@ -1027,22 +1103,26 @@ export const mergeWithInitialAllocations = (incomingList) => {
 
     const buildAllocationRecord = (candidate, slot) => {
       const isPhysical = slot.type === 'Physical';
+      const normalizedDisplayDate = formatLocalDisplayDate(slot.dateKey || slot.date);
+      const normalizedIsoDate = slot.dateKey || toLocalIsoDate(parseLocalDateSafe(slot.date) || new Date());
       return {
         candidateId: candidate.id,
         candidateName: candidate.name,
         slotId: slot.id,
+        assignedDate: normalizedIsoDate,
         assignedTime: formatTimeRange(slot.time || slot.startTime, slot.end || slot.endTime),
-        interviewDate: slot.date,
-        interviewType: slot.type,
-        interviewMedia: isPhysical ? 'In-Person' : 'Google Meet',
+        assignedEndTime: slot.end || slot.endTime || '',
+        interviewDate: normalizedDisplayDate || slot.date,
+        interviewType: slot.type || 'Online',
+        interviewMedia: isPhysical ? 'In-Person' : (slot.interviewMedia || 'Google Meet'),
         meetingLocation: isPhysical
-          ? 'Engineering Interview Room 1, HQ Building'
+          ? (slot.meetingLocation || 'Engineering Interview Room 1, HQ Building')
           : (slot.meetingLocation || 'https://meet.google.com/new'),
-        meetingId: isPhysical ? '' : 'meet.google.com/new',
-        meetingPasscode: isPhysical ? '' : 'Direct Video Link',
+        meetingId: isPhysical ? '' : (slot.meetingId || 'meet.google.com/new'),
+        meetingPasscode: isPhysical ? '' : (slot.meetingPasscode || 'Direct Video Link'),
         panelName: slot.panelName || assignedPanels[0]?.name || 'Panel A (Technical Leads)',
-        interviewRound: (interviewRound && interviewRound !== 'All Rounds') ? interviewRound : (slot.round || candidate.round || 'Technical Interview'),
-        jobPosition: jobPosition || slot.jobPosition || candidate.jobPosition || candidate.role || 'Senior Software Engineer',
+        interviewRound: slot.round || (interviewRound && interviewRound !== 'All Rounds' ? interviewRound : candidate.round || 'Technical Interview'),
+        jobPosition: slot.jobPosition || jobPosition || candidate.jobPosition || candidate.role || 'Senior Software Engineer',
         score: candidate.score || 85,
         status: 'ALLOCATED',
       };
@@ -1358,6 +1438,25 @@ export const mergeWithInitialAllocations = (incomingList) => {
     };
     const handleResetAllocations = handleResetAllAllocations;
 
+    const to24HourInput = (tStr) => {
+      if (!tStr) return '';
+      const match = String(tStr).trim().match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (!match) return '';
+      let h = parseInt(match[1], 10);
+      const m = match[2];
+      const period = match[3] ? match[3].toUpperCase() : '';
+      if (period === 'PM' && h < 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      return `${String(h).padStart(2, '0')}:${m}`;
+    };
+
+    const addOneHour24 = (hhmm) => {
+      const m = String(hhmm || '').match(/^(\d{2}):(\d{2})$/);
+      if (!m) return '11:00';
+      const nextH = Math.min(23, parseInt(m[1], 10) + 1);
+      return `${String(nextH).padStart(2, '0')}:${m[2]}`;
+    };
+
     const handleOpenDirectReschedule = (item) => {
       if (!item) return;
       if (item.allowDirectReschedule === false) {
@@ -1371,20 +1470,33 @@ export const mergeWithInitialAllocations = (incomingList) => {
         return;
       }
 
+      const todayIso = toLocalIsoDate(new Date());
+      const defaultNextWeekday = getUpcomingWeekdayDate(1).dateKey;
+      const parsedObj = parseLocalDateSafe(item.assignedDate || item.interviewDate);
+      const candidateIso = parsedObj ? toLocalIsoDate(parsedObj) : '';
+      const dayOfWeek = parsedObj ? parsedObj.getDay() : 0;
+      const isValidUpcomingWeekday = candidateIso && candidateIso >= todayIso && dayOfWeek !== 0 && dayOfWeek !== 6;
+      const initialCustomDate = isValidUpcomingWeekday ? candidateIso : defaultNextWeekday;
+
+      // Extract current start & end time cleanly into HH:mm
+      let initialStart = '10:00';
+      let initialEnd = '11:00';
+      if (item.assignedTime && item.assignedTime !== '—') {
+        const parts = String(item.assignedTime).split(/[–-]/).map((p) => p.trim());
+        const parsedStart = to24HourInput(parts[0]);
+        const parsedEnd = parts[1] ? to24HourInput(parts[1]) : '';
+        if (parsedStart) {
+          initialStart = parsedStart;
+          initialEnd = parsedEnd && parsedEnd > parsedStart ? parsedEnd : addOneHour24(parsedStart);
+        }
+      }
+
       setReschedulingAllocation(item);
       setRescheduleMode('slot');
-      setRescheduleSlotId(item.slotId ? String(item.slotId) : '');
-      const t = new Date();
-      t.setDate(t.getDate() + 1);
-      const parsedDate = (() => {
-        if (!item.interviewDate) return t.toISOString().split('T')[0];
-        if (/^\d{4}-\d{2}-\d{2}$/.test(item.interviewDate)) return item.interviewDate;
-        const d = new Date(item.interviewDate);
-        return Number.isNaN(d.getTime()) ? t.toISOString().split('T')[0] : d.toISOString().split('T')[0];
-      })();
-      setRescheduleCustomDate(parsedDate);
-      setRescheduleCustomStart('10:00');
-      setRescheduleCustomEnd('11:00');
+      setRescheduleSlotId('');
+      setRescheduleCustomDate(initialCustomDate);
+      setRescheduleCustomStart(initialStart);
+      setRescheduleCustomEnd(initialEnd);
       setRescheduleReason('Adjusted schedule directly through IntelliHire');
       setRescheduleAutoNotify(item.autoNotifyOnReschedule !== false);
     };
@@ -1447,14 +1559,22 @@ export const mergeWithInitialAllocations = (incomingList) => {
           rescheduledReason: rescheduleReason || 'Moved to available slot',
           status: 'ALLOCATED',
         };
-        summaryLabel = `${targetSlot.date} at ${targetSlot.time || targetSlot.startTime}`;
+        summaryLabel = `${built.interviewDate} at ${built.assignedTime}`;
 
-        // Persist backend direct reschedule
+        // Persist backend direct reschedule with full target slot fallback metadata
         directRescheduleInterviewApi({
           slotId: reschedulingAllocation.slotId,
           targetSlotId: targetSlot.id,
           candidateId: reschedulingAllocation.candidateId,
           candidateName: reschedulingAllocation.candidateName,
+          newDate: built.assignedDate,
+          newStartTime: formatDisplayTime(targetSlot.time || targetSlot.startTime),
+          newEndTime: formatDisplayTime(targetSlot.end || targetSlot.endTime || getEndTime(targetSlot.time || targetSlot.startTime)),
+          panelName: built.panelName,
+          interviewType: built.interviewType,
+          jobPosition: built.jobPosition,
+          round: built.interviewRound,
+          meetingLocation: built.meetingLocation,
           reason: rescheduleReason,
         }).catch(() => {});
       } else {
@@ -1482,10 +1602,7 @@ export const mergeWithInitialAllocations = (incomingList) => {
           return;
         }
 
-        const dObj = new Date(rescheduleCustomDate);
-        const displayDate = Number.isNaN(dObj.getTime())
-          ? rescheduleCustomDate
-          : dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const displayDate = formatLocalDisplayDate(rescheduleCustomDate);
         const timeRange = `${start12} – ${end12}`;
 
         newRecord = {
@@ -1532,24 +1649,33 @@ export const mergeWithInitialAllocations = (incomingList) => {
           newDate: rescheduleCustomDate,
           newStartTime: start12,
           newEndTime: end12,
+          panelName: reschedulingAllocation.panelName || 'Panel A (Technical Leads)',
+          interviewType: reschedulingAllocation.interviewType || 'Online',
+          jobPosition: reschedulingAllocation.jobPosition || 'Senior Software Engineer',
+          round: reschedulingAllocation.interviewRound || 'Technical Interview',
+          meetingLocation: reschedulingAllocation.meetingLocation || 'https://meet.google.com/new',
           reason: rescheduleReason,
         }).catch(() => {});
       }
 
-      setAllocations((current) => {
-        const next = current.map((allocation) => {
-          const isTarget =
-            allocation.candidateId === reschedulingAllocation.candidateId ||
-            (allocation.candidateName &&
-              reschedulingAllocation.candidateName &&
-              allocation.candidateName.toLowerCase() === reschedulingAllocation.candidateName.toLowerCase());
-          return isTarget ? newRecord : allocation;
-        });
-        try {
-          localStorage.setItem('intellihire_allocations', JSON.stringify(next));
-        } catch { }
-        return next;
+      // Compute synchronously & persist to localStorage BEFORE updating React state or dispatching sync event
+      const nextAllocations = allocations.map((allocation) => {
+        const sameId =
+          Boolean(allocation.candidateId) &&
+          Boolean(reschedulingAllocation.candidateId) &&
+          String(allocation.candidateId) === String(reschedulingAllocation.candidateId);
+        const sameName =
+          Boolean(allocation.candidateName) &&
+          Boolean(reschedulingAllocation.candidateName) &&
+          allocation.candidateName.trim().toLowerCase() === reschedulingAllocation.candidateName.trim().toLowerCase();
+        return (sameId || sameName) ? newRecord : allocation;
       });
+
+      try {
+        localStorage.setItem('intellihire_allocations', JSON.stringify(nextAllocations));
+      } catch { }
+
+      setAllocations(nextAllocations);
 
       if (rescheduleAutoNotify && newRecord) {
         sendInterviewReminder({
@@ -1562,7 +1688,11 @@ export const mergeWithInitialAllocations = (incomingList) => {
 
       setReschedulingAllocation(null);
       setRescheduleSlotId('');
-      window.dispatchEvent(new Event('intellihire_slots_updated'));
+      window.dispatchEvent(
+        new CustomEvent('intellihire_slots_updated', {
+          detail: { source: 'CandidateInterviewAllocation' },
+        })
+      );
       showToast(
         `${reschedulingAllocation.candidateName}'s interview rescheduled directly to ${summaryLabel}${rescheduleAutoNotify ? ' & updated reminders dispatched!' : '!'}`
       );
@@ -1700,21 +1830,21 @@ export const mergeWithInitialAllocations = (incomingList) => {
     const rescheduleOptions = useMemo(() => {
       if (!reschedulingAllocation) return [];
 
-      return slotsWithRemaining.filter((slot) => {
+      const upcomingOpen = slotsWithRemaining.filter((slot) => {
         if (isOutdatedPastDate(slot.dateKey || slot.date)) return false;
         if (slot.isPast || isSlotTimeInPast(slot.dateKey || slot.date, slot.time || slot.startTime)) return false;
-
-        const targetPos = (rescheduleCandidate?.jobPosition || reschedulingAllocation.jobPosition || jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const slotPos = (slot.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (targetPos && slotPos) {
-          const matchesPos = slotPos === targetPos || slotPos.includes(targetPos) || targetPos.includes(slotPos)
-            || ((slotPos.includes('software') || slotPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack')));
-          if (!matchesPos) return false;
-        }
-
-        const isCurrentSlot = String(slot.id) === String(reschedulingAllocation.slotId);
-        return slot.rem > 0 || isCurrentSlot;
+        return slot.rem > 0 && String(slot.id) !== String(reschedulingAllocation.slotId);
       });
+
+      const targetPos = (rescheduleCandidate?.jobPosition || reschedulingAllocation.jobPosition || jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const posFiltered = upcomingOpen.filter((slot) => {
+        const slotPos = (slot.jobPosition || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!targetPos || !slotPos) return true;
+        return slotPos === targetPos || slotPos.includes(targetPos) || targetPos.includes(slotPos)
+          || ((slotPos.includes('software') || slotPos.includes('fullstack')) && (targetPos.includes('software') || targetPos.includes('fullstack')));
+      });
+
+      return posFiltered.length > 0 ? posFiltered : upcomingOpen;
     }, [reschedulingAllocation, rescheduleCandidate, slotsWithRemaining, jobPosition]);
     const allCandidatesSelected =
       filteredCandidates.length > 0 && filteredCandidates.every((candidate) => candidate.selected);
@@ -2915,53 +3045,175 @@ export const mergeWithInitialAllocations = (incomingList) => {
                       value={rescheduleSlotId}
                       onChange={(event) => setRescheduleSlotId(event.target.value)}
                     >
-                      <option value="">Select a slot</option>
+                      <option value="">Select a slot ({rescheduleOptions.length} open)</option>
                       {rescheduleOptions.map((slot) => (
                         <option key={slot.id} value={slot.id}>
-                          {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {slot.type} · {slot.rem} available {String(slot.id) === String(reschedulingAllocation.slotId) ? '(Current Slot)' : ''}
+                          {slot.date} · {formatDisplayTime(slot.time || slot.startTime)}–{formatDisplayTime(slot.end || slot.endTime)} · {formatPanelDisplayName(slot.panelName)} · {slot.type} ({slot.rem} left)
                         </option>
                       ))}
                       {rescheduleOptions.length === 0 && (
-                        <option value="" disabled>No other available slots for this position — use Custom Date &amp; Time</option>
+                        <option value="" disabled>No other available slots — use Set New Date &amp; Time Directly</option>
                       )}
                     </select>
                   </>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div>
-                      <label className="reschedule-slot-label" style={{ marginTop: 0 }}>New Interview Date</label>
-                      <input
-                        type="date"
-                        value={rescheduleCustomDate}
-                        onChange={(e) => setRescheduleCustomDate(e.target.value)}
-                        className="form-control"
-                        style={{ colorScheme: 'dark', padding: '0 12px' }}
-                      />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                ) : (() => {
+                  const quickDays = [1, 2, 3].map((offset) => getUpcomingWeekdayDate(offset));
+                  const quickTimes = [
+                    { label: '09:00 – 10:00 AM', start: '09:00', end: '10:00' },
+                    { label: '10:30 – 11:30 AM', start: '10:30', end: '11:30' },
+                    { label: '02:00 – 03:00 PM', start: '14:00', end: '15:00' },
+                    { label: '03:30 – 04:30 PM', start: '15:30', end: '16:30' },
+                  ];
+                  const customAvail = rescheduleCustomDate
+                    ? checkPanelMemberAvailability(
+                      reschedulingAllocation.panelName || 'Panel A',
+                      rescheduleCustomDate,
+                      formatDisplayTime(rescheduleCustomStart)
+                    )
+                    : null;
+
+                  const triggerNativePicker = (inputId) => {
+                    const el = document.getElementById(inputId);
+                    if (el && typeof el.showPicker === 'function') {
+                      try { el.showPicker(); return; } catch { }
+                    }
+                    el?.focus();
+                  };
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div>
-                        <label className="reschedule-slot-label" style={{ marginTop: 0 }}>Start Time</label>
-                        <input
-                          type="time"
-                          value={rescheduleCustomStart}
-                          onChange={(e) => setRescheduleCustomStart(e.target.value)}
-                          className="form-control"
-                          style={{ colorScheme: 'dark', padding: '0 12px' }}
-                        />
+                        <label className="reschedule-slot-label" htmlFor="direct-reschedule-date" style={{ marginTop: 0 }}>
+                          New Interview Date
+                        </label>
+                        <div className="reschedule-picker-wrap">
+                          <input
+                            id="direct-reschedule-date"
+                            type="date"
+                            min={toLocalIsoDate(new Date())}
+                            value={rescheduleCustomDate}
+                            onChange={(e) => setRescheduleCustomDate(e.target.value)}
+                            className="form-control reschedule-native-input"
+                          />
+                          <button
+                            type="button"
+                            className="reschedule-picker-icon-btn"
+                            title="Open Calendar Date Picker"
+                            onClick={() => triggerNativePicker('direct-reschedule-date')}
+                          >
+                            <Calendar size={15} />
+                          </button>
+                        </div>
+                        <div className="reschedule-quick-chips">
+                          {quickDays.map((qd) => (
+                            <button
+                              key={qd.dateKey}
+                              type="button"
+                              className={`reschedule-quick-chip ${rescheduleCustomDate === qd.dateKey ? 'is-active' : ''}`}
+                              onClick={() => setRescheduleCustomDate(qd.dateKey)}
+                            >
+                              📅 {qd.dateShort}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div>
-                        <label className="reschedule-slot-label" style={{ marginTop: 0 }}>End Time</label>
-                        <input
-                          type="time"
-                          value={rescheduleCustomEnd}
-                          onChange={(e) => setRescheduleCustomEnd(e.target.value)}
-                          className="form-control"
-                          style={{ colorScheme: 'dark', padding: '0 12px' }}
-                        />
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div>
+                          <label className="reschedule-slot-label" htmlFor="direct-reschedule-start" style={{ marginTop: 0 }}>
+                            Start Time
+                          </label>
+                          <div className="reschedule-picker-wrap">
+                            <input
+                              id="direct-reschedule-start"
+                              type="time"
+                              value={rescheduleCustomStart}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setRescheduleCustomStart(val);
+                                if (val && (!rescheduleCustomEnd || val >= rescheduleCustomEnd)) {
+                                  setRescheduleCustomEnd(addOneHour24(val));
+                                }
+                              }}
+                              className="form-control reschedule-native-input"
+                            />
+                            <button
+                              type="button"
+                              className="reschedule-picker-icon-btn"
+                              title="Pick Start Time"
+                              onClick={() => triggerNativePicker('direct-reschedule-start')}
+                            >
+                              <Clock3 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="reschedule-slot-label" htmlFor="direct-reschedule-end" style={{ marginTop: 0 }}>
+                            End Time
+                          </label>
+                          <div className="reschedule-picker-wrap">
+                            <input
+                              id="direct-reschedule-end"
+                              type="time"
+                              value={rescheduleCustomEnd}
+                              onChange={(e) => setRescheduleCustomEnd(e.target.value)}
+                              className="form-control reschedule-native-input"
+                            />
+                            <button
+                              type="button"
+                              className="reschedule-picker-icon-btn"
+                              title="Pick End Time"
+                              onClick={() => triggerNativePicker('direct-reschedule-end')}
+                            >
+                              <Clock3 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="reschedule-quick-chips" style={{ marginTop: '-2px' }}>
+                        {quickTimes.map((qt) => (
+                          <button
+                            key={qt.label}
+                            type="button"
+                            className={`reschedule-quick-chip ${rescheduleCustomStart === qt.start && rescheduleCustomEnd === qt.end ? 'is-active' : ''}`}
+                            onClick={() => {
+                              setRescheduleCustomStart(qt.start);
+                              setRescheduleCustomEnd(qt.end);
+                            }}
+                          >
+                            ⏰ {qt.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Live Reschedule Schedule & Availability Preview */}
+                      <div
+                        style={{
+                          backgroundColor: '#0D0E13',
+                          border: `1px solid ${customAvail?.status === 'CONFLICT' || customAvail?.status === 'OFF_DUTY' ? 'rgba(239, 68, 68, 0.45)' : 'rgba(34, 197, 94, 0.35)'}`,
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '6px',
+                          fontSize: '0.74rem',
+                        }}
+                      >
+                        <span style={{ color: '#E5E7EB', fontWeight: 600 }}>
+                          Preview: <strong style={{ color: '#F0B90B' }}>{formatLocalDisplayDate(rescheduleCustomDate)}</strong> · {formatDisplayTime(rescheduleCustomStart)} – {formatDisplayTime(rescheduleCustomEnd)}
+                        </span>
+                        {customAvail && (
+                          <span style={{ color: customAvail.badgeColor, fontWeight: 700, fontSize: '0.71rem' }}>
+                            {customAvail.badgeText}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <div style={{ marginTop: '12px' }}>
                   <label className="reschedule-slot-label" style={{ marginTop: 0 }}>Reschedule Reason / Note</label>
