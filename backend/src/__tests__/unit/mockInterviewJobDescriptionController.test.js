@@ -9,6 +9,11 @@ jest.mock('../../models/mockInterviewJobDescriptionModel', () => ({
   getRoleIntegratedJobDescription: jest.fn(),
   attachJobDescriptionToSelectedRole: jest.fn(),
   updateSelectedRoleJobDescription: jest.fn(),
+  updateJobDescriptionAnalysis: jest.fn(),
+}));
+
+jest.mock('../../services/mockInterviewJdAnalysisService', () => ({
+  analyzeJobDescription: jest.fn(),
 }));
 
 jest.mock('../../utils/response', () => ({
@@ -27,7 +32,9 @@ const {
   getRoleIntegratedJobDescription,
   attachJobDescriptionToSelectedRole,
   updateSelectedRoleJobDescription,
+  updateJobDescriptionAnalysis,
 } = require('../../models/mockInterviewJobDescriptionModel');
+const { analyzeJobDescription } = require('../../services/mockInterviewJdAnalysisService');
 const { successResponse, errorResponse } = require('../../utils/response');
 const {
   createJobDescriptionHandler,
@@ -40,6 +47,7 @@ const {
   getRoleIntegratedJobDescriptionHandler,
   attachJobDescriptionToSelectedRoleHandler,
   updateSelectedRoleJobDescriptionHandler,
+  analyzeJobDescriptionHandler,
 } = require('../../controllers/mockInterviewJobDescriptionController');
 
 describe('mockInterviewJobDescriptionController Unit Tests', () => {
@@ -565,6 +573,91 @@ describe('mockInterviewJobDescriptionController Unit Tests', () => {
       await updateSelectedRoleJobDescriptionHandler(req, res);
 
       expect(errorResponse).toHaveBeenCalledWith(res, 'Database write error', 503);
+    });
+  });
+
+  // =========================================================================
+  // 10. analyzeJobDescriptionHandler
+  // =========================================================================
+  describe('analyzeJobDescriptionHandler', () => {
+    test('rejects request if job description is missing or empty', async () => {
+      req.body = { jobDescription: '   ' };
+
+      await analyzeJobDescriptionHandler(req, res);
+
+      expect(errorResponse).toHaveBeenCalledWith(
+        res,
+        'Job description is required for analysis.',
+        400
+      );
+      expect(analyzeJobDescription).not.toHaveBeenCalled();
+    });
+
+    test('analyzes job description and returns extracted analysis with 200', async () => {
+      const mockAnalysis = {
+        detectedRole: 'Backend Developer',
+        seniorityLevel: 'Senior',
+        yearsOfExperience: '5+ years',
+        technicalSkills: ['Node.js', 'PostgreSQL'],
+        softSkills: ['Technical Communication'],
+        responsibilities: ['Build scalable REST APIs'],
+        experienceRequirements: ['5+ years of Node.js backend development'],
+        analysisSource: 'gemini',
+      };
+      req.body = {
+        jobDescription: 'Senior Backend Developer with 5+ years of Node.js and PostgreSQL.',
+        roleId: 'backend',
+      };
+      req.user = { id: 10, role: 'candidate' };
+      analyzeJobDescription.mockResolvedValue(mockAnalysis);
+
+      await analyzeJobDescriptionHandler(req, res);
+
+      expect(analyzeJobDescription).toHaveBeenCalledWith(req.body);
+      expect(updateJobDescriptionAnalysis).not.toHaveBeenCalled();
+      expect(successResponse).toHaveBeenCalledWith(
+        res,
+        'Job description analyzed successfully.',
+        { analysis: mockAnalysis },
+        200
+      );
+    });
+
+    test('persists analysis to job description record when jdId is provided', async () => {
+      const mockAnalysis = {
+        detectedRole: 'Frontend Developer',
+        technicalSkills: ['React'],
+        responsibilities: ['Build UI components'],
+        experienceRequirements: ['2+ years React experience'],
+      };
+      req.body = {
+        jdId: 42,
+        description: 'Frontend Developer building React applications with 2+ years experience.',
+      };
+      req.user = { id: 12, role: 'candidate' };
+      analyzeJobDescription.mockResolvedValue(mockAnalysis);
+      updateJobDescriptionAnalysis.mockResolvedValue({ id: 42, analysis: mockAnalysis });
+
+      await analyzeJobDescriptionHandler(req, res);
+
+      expect(updateJobDescriptionAnalysis).toHaveBeenCalledWith(42, mockAnalysis, req.user);
+      expect(successResponse).toHaveBeenCalledWith(
+        res,
+        'Job description analyzed successfully.',
+        { analysis: mockAnalysis },
+        200
+      );
+    });
+
+    test('handles analysis failure with status code', async () => {
+      req.body = { jobDescription: 'Valid job description for analysis.' };
+      const err = new Error('Analysis service failed');
+      err.statusCode = 502;
+      analyzeJobDescription.mockRejectedValue(err);
+
+      await analyzeJobDescriptionHandler(req, res);
+
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Analysis service failed', 502);
     });
   });
 });

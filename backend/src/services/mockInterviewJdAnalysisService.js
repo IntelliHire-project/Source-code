@@ -51,7 +51,7 @@ const normalizeDifficulty = (value) => {
 
 const cleanBulletLine = (line = '') =>
   String(line)
-    .replace(/^[\s\-*•\d.)]+/, '')
+    .replace(/^\s*(?:[-*•]+|\d+[.)])\s*/, '')
     .replace(/^\*\*|\*\*$/g, '')
     .trim();
 
@@ -117,13 +117,25 @@ const splitJobDescriptionSections = (text = '') => {
   return sections;
 };
 
-const detectSeniorityFromText = (text = '') => {
-  const lower = text.toLowerCase();
-  if (/\b(principal|staff|distinguished)\b/.test(lower)) return 'Principal';
-  if (/\b(lead|architect|head of|manager)\b/.test(lower)) return 'Lead';
-  if (/\b(senior|sr\.?|5\+\s*years|6\+\s*years|7\+\s*years|8\+\s*years)\b/.test(lower)) return 'Senior';
-  if (/\b(junior|jr\.?|entry[- ]level|intern|graduate|0-2\s*years|1\+\s*year)\b/.test(lower)) return 'Junior';
-  return 'Mid-Level';
+const detectSeniorityFromText = (text = '', detectedRole = '') => {
+  const roleLower = String(detectedRole || '').toLowerCase();
+  const lower = String(text || '').toLowerCase();
+
+  const matchLevel = (target) => {
+    if (/\b(principal|staff|distinguished)\b/.test(target)) return 'Principal';
+    if (
+      /\b(tech\s+lead|team\s+lead|engineering\s+lead|lead\s+(?:software\s+|frontend\s+|backend\s+|full[- ]?stack\s+|qa\s+|data\s+)?(?:engineer|developer|architect|designer|analyst)|software\s+architect|solutions?\s+architect|head\s+of|engineering\s+manager)\b/.test(
+        target
+      )
+    ) {
+      return 'Lead';
+    }
+    if (/\b(senior|sr\.?|5\+\s*years|6\+\s*years|7\+\s*years|8\+\s*years)\b/.test(target)) return 'Senior';
+    if (/\b(junior|jr\.?|entry[- ]level|intern|graduate|0-2\s*years|1\+\s*year)\b/.test(target)) return 'Junior';
+    return null;
+  };
+
+  return matchLevel(roleLower) || matchLevel(lower) || 'Mid-Level';
 };
 
 const extractYearsOfExperience = (text = '') => {
@@ -159,6 +171,11 @@ const extractSkillsFromText = (text = '', roleSkills = [], sections = null) => {
     const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, 'i');
     if (regex.test(lowerText)) {
+      // Avoid matching generic "CSS" solely from "Tailwind CSS"
+      if (skill.toLowerCase() === 'css') {
+        const withoutTailwind = lowerText.replace(/tailwind\s+css/gi, '');
+        if (!regex.test(withoutTailwind)) continue;
+      }
       addSkill(skill);
     }
   }
@@ -188,7 +205,7 @@ const extractSkillsFromText = (text = '', roleSkills = [], sections = null) => {
     }
   }
 
-  return matched.slice(0, 12);
+  return matched.slice(0, 15);
 };
 
 const extractResponsibilitiesFromText = (text = '', sections = null) => {
@@ -334,7 +351,7 @@ const buildFallbackJobDescriptionAnalysis = (input) => {
   const { jobDescription, roleTitle, category, skills: roleSkills } = input;
   const headingMatch = jobDescription.match(/^#\s*(?:Position|Job Title|Role)?\s*:?\s*(.+)$/im);
   const detectedRole = (headingMatch && headingMatch[1]?.trim()) || roleTitle || 'Target Role';
-  const seniorityLevel = detectSeniorityFromText(jobDescription);
+  const seniorityLevel = detectSeniorityFromText(jobDescription, detectedRole);
   const yearsOfExperience = extractYearsOfExperience(jobDescription);
   const sections = splitJobDescriptionSections(jobDescription);
 
@@ -353,7 +370,7 @@ const buildFallbackJobDescriptionAnalysis = (input) => {
     softSkills.push('Structured Communication', 'Cross-Functional Collaboration', 'Problem Solving');
   }
 
-  const skills = toStringArray([...technicalSkills, ...softSkills], 16);
+  const skills = toStringArray([...technicalSkills, ...softSkills], 21);
   const responsibilities = extractResponsibilitiesFromText(jobDescription, sections);
   const experienceRequirements = extractExperienceRequirementsFromText(
     jobDescription,
@@ -415,7 +432,7 @@ const normalizeAnalysisResult = (raw, input, source = 'gemini') => {
 
   const resolvedTechnicalSkills = technicalSkills.length > 0 ? technicalSkills : fallback.technicalSkills;
   const resolvedSoftSkills = softSkills.length > 0 ? softSkills : fallback.softSkills;
-  const resolvedSkills = toStringArray([...resolvedTechnicalSkills, ...resolvedSoftSkills], 16);
+  const resolvedSkills = toStringArray([...resolvedTechnicalSkills, ...resolvedSoftSkills], 21);
 
   const yearsOfExperience =
     typeof raw?.yearsOfExperience === 'string' &&
