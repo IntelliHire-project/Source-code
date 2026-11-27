@@ -1,7 +1,8 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Clock, RotateCcw, Play, ArrowLeft, HelpCircle, Sparkles } from 'lucide-react';
+import { Clock, RotateCcw, Play, HelpCircle, Sparkles, Brain, ChevronDown, ChevronUp, Target, Lightbulb } from 'lucide-react';
 import { CandidatePageContext } from '../CandidateDashboard/CandidateDashboard';
+import { analyzeMockInterviewJobDescription } from '../../../api/mockInterviewApi';
 import './GeneratedQuestions.css';
 
 const DEFAULT_QUESTIONS = [
@@ -63,18 +64,108 @@ export default function GeneratedQuestions() {
     }
   }, [pageCtx]);
 
+  const roleId = location.state?.roleId || null;
   const roleName = location.state?.roleTitle || 'Selected Role';
+  const roleCategory = location.state?.category || null;
+  const roleSkills = location.state?.skills || [];
   const jobDescription =
     location.state?.jobDescription ||
     (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('mock_interview_job_description') : '') ||
     '';
-  
-  const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);
+
+  const getInitialAnalysis = () => {
+    if (location.state?.jdAnalysis && typeof location.state.jdAnalysis === 'object') {
+      return location.state.jdAnalysis;
+    }
+    try {
+      const cached = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('mock_interview_jd_analysis') : null;
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const [jdAnalysis, setJdAnalysis] = useState(getInitialAnalysis);
+  const [isAnalyzingJd, setIsAnalyzingJd] = useState(false);
+  const [showAnalysisDetails, setShowAnalysisDetails] = useState(false);
+  const hasAutoAnalyzedRef = useRef(false);
+  const [questions, setQuestions] = useState(() => {
+    const initial = getInitialAnalysis();
+    if (initial && Array.isArray(initial.recommendedQuestions) && initial.recommendedQuestions.length > 0) {
+      return initial.recommendedQuestions;
+    }
+    return DEFAULT_QUESTIONS;
+  });
   const [generatingId, setGeneratingId] = useState(null);
   const [interviewMode, setInterviewMode] = useState('text');
 
-  const handleRegenerateQuestion = (qId) => {
+  useEffect(() => {
+    let isMounted = true;
+    const cleanJd = (jobDescription || '').trim();
+    if (!jdAnalysis && !hasAutoAnalyzedRef.current && cleanJd.length >= 5) {
+      hasAutoAnalyzedRef.current = true;
+      setIsAnalyzingJd(true);
+      analyzeMockInterviewJobDescription({
+        jobDescription: cleanJd,
+        roleId,
+        roleTitle: roleName !== 'Selected Role' ? roleName : undefined,
+        category: roleCategory || undefined,
+        skills: Array.isArray(roleSkills) ? roleSkills : undefined,
+      })
+        .then((res) => {
+          if (!isMounted) return;
+          const analysis = res?.analysis || null;
+          if (analysis) {
+            setJdAnalysis(analysis);
+            if (Array.isArray(analysis.recommendedQuestions) && analysis.recommendedQuestions.length > 0) {
+              setQuestions(analysis.recommendedQuestions);
+            }
+            try {
+              sessionStorage.setItem('mock_interview_jd_analysis', JSON.stringify(analysis));
+            } catch {}
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not fetch AI JD analysis on questions page:', err.message);
+        })
+        .finally(() => {
+          if (isMounted) setIsAnalyzingJd(false);
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobDescription, roleId, roleName, roleCategory]);
+
+  const handleRegenerateQuestion = async (qId) => {
     setGeneratingId(qId);
+    const cleanJd = (jobDescription || '').trim();
+    if (cleanJd.length >= 5) {
+      try {
+        const res = await analyzeMockInterviewJobDescription({
+          jobDescription: cleanJd,
+          roleId,
+          roleTitle: roleName !== 'Selected Role' ? roleName : undefined,
+          category: roleCategory || undefined,
+          skills: Array.isArray(roleSkills) ? roleSkills : undefined,
+        });
+        const refreshed = res?.analysis?.recommendedQuestions;
+        const replacement = Array.isArray(refreshed)
+          ? refreshed.find((item) => item.id === qId) || refreshed[0]
+          : null;
+        if (replacement && replacement.description) {
+          setQuestions((prev) =>
+            prev.map((q) => (q.id === qId ? { ...q, ...replacement, id: q.id, number: q.number } : q))
+          );
+          setGeneratingId(null);
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not regenerate question via AI, using local variant:', err.message);
+      }
+    }
+
     setTimeout(() => {
       setQuestions((prev) =>
         prev.map((q) => {
@@ -98,17 +189,25 @@ export default function GeneratedQuestions() {
   const handleStartInterview = (question, mode = 'text') => {
     navigate('/candidate/mock-interviews/session', {
       state: {
-        roleTitle: roleName !== 'Selected Role' ? `${roleName} Interview` : 'Technical Strategy Lead Interview',
+        roleTitle:
+          roleName !== 'Selected Role'
+            ? `${roleName} Interview`
+            : jdAnalysis?.detectedRole
+              ? `${jdAnalysis.detectedRole} Interview`
+              : 'Technical Strategy Lead Interview',
         selectedQuestion: question,
         questionsList: questions.map((q) => ({
           id: q.id,
           category: q.topic || 'Scenario Based',
           question: q.description,
-          hint: `Focus on technical depth, trade-off analysis, and clear communication strategy for ${q.topic}.`
+          hint:
+            q.hint ||
+            `Focus on technical depth, trade-off analysis, and clear communication strategy for ${q.topic}.`,
         })),
         startIndex: question ? questions.findIndex((q) => q.id === question.id) : 0,
         interviewMode: mode,
         jobDescription,
+        jdAnalysis,
       },
     });
   };
@@ -124,9 +223,97 @@ export default function GeneratedQuestions() {
         <h1 className="page-heading">Generated Interview Questions</h1>
         <p className="page-subheading">
           {roleName !== 'Selected Role'
-            ? `We've integrated your selected role (${roleName}) with the job description to generate targeted, high-impact mock questions.`
+            ? `We've integrated your selected role (${roleName}) with the AI job description analysis to generate targeted, high-impact mock questions.`
             : "We've analyzed the job description and your profile to create these high-impact mock questions. Ready to practice?"}
         </p>
+
+        {/* AI Job Description Analysis Summary */}
+        {(isAnalyzingJd || jdAnalysis) && (
+          <div className="gq-jd-analysis-card">
+            <div className="gq-jd-analysis-top">
+              <div className="gq-jd-analysis-title-wrap">
+                <div className="gq-jd-icon-box">
+                  <Brain size={18} />
+                </div>
+                <div>
+                  <div className="gq-jd-title-row">
+                    <h3>AI Job Description Analysis</h3>
+                    {jdAnalysis && (
+                      <span className={`gq-jd-source-pill ${jdAnalysis.analysisSource === 'gemini' ? 'gemini' : 'fallback'}`}>
+                        {jdAnalysis.analysisSource === 'gemini' ? 'Gemini AI' : 'Smart Analysis'}
+                      </span>
+                    )}
+                  </div>
+                  {isAnalyzingJd ? (
+                    <p className="gq-jd-meta">Analyzing job description and tailoring interview questions...</p>
+                  ) : (
+                    <p className="gq-jd-meta">
+                      Target Role: <strong>{jdAnalysis.detectedRole}</strong> &bull; Level:{' '}
+                      <span className="gq-jd-seniority">{jdAnalysis.seniorityLevel}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {jdAnalysis && (
+                <button
+                  type="button"
+                  className="gq-jd-toggle-btn"
+                  onClick={() => setShowAnalysisDetails((prev) => !prev)}
+                >
+                  {showAnalysisDetails ? (
+                    <>
+                      <span>Hide Insights</span>
+                      <ChevronUp size={15} />
+                    </>
+                  ) : (
+                    <>
+                      <span>View Insights</span>
+                      <ChevronDown size={15} />
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {jdAnalysis && (
+              <>
+                <div className="gq-jd-tags-row">
+                  {(jdAnalysis.technicalSkills || []).slice(0, 7).map((skill) => (
+                    <span key={skill} className="gq-jd-skill-pill">
+                      {skill}
+                    </span>
+                  ))}
+                  {(jdAnalysis.focusAreas || []).slice(0, 3).map((area, idx) => (
+                    <span key={`${area.topic}-${idx}`} className="gq-jd-focus-pill">
+                      <Target size={11} />
+                      {area.topic}
+                    </span>
+                  ))}
+                </div>
+
+                {showAnalysisDetails && (
+                  <div className="gq-jd-details">
+                    {jdAnalysis.summary && <p className="gq-jd-summary">{jdAnalysis.summary}</p>}
+                    {Array.isArray(jdAnalysis.preparationTips) && jdAnalysis.preparationTips.length > 0 && (
+                      <div className="gq-jd-tips">
+                        <div className="gq-jd-tips-title">
+                          <Lightbulb size={14} />
+                          <span>Preparation Tips</span>
+                        </div>
+                        <ul>
+                          {jdAnalysis.preparationTips.map((tip, idx) => (
+                            <li key={idx}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         <div className="interview-mode-toggle">
           <button 
@@ -159,6 +346,9 @@ export default function GeneratedQuestions() {
                     <div className="question-title-group">
                       <div className="title-row">
                         <h3 className="question-title">{q.title}</h3>
+                        {q.topic && (
+                          <span className="topic-badge">{q.topic}</span>
+                        )}
                         <span className={`difficulty-badge ${diffClass}`}>
                           {q.difficulty}
                         </span>

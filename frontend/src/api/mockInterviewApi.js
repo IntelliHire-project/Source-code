@@ -206,6 +206,17 @@ export const updateSelectedRoleJobDescription = async (updateData) => {
   }
 };
 
+/**
+ * Runs AI Job Description Analysis for a mock interview job description.
+ * Returns structured skills, seniority, focus areas, prep tips, and tailored questions.
+ * @param {object} jdData - { jobDescription, roleId, roleTitle, category, skills, jdId }
+ * @returns {Promise<object>}
+ */
+export const analyzeMockInterviewJobDescription = async (jdData) => {
+  const response = await apiInstance.post('/mock-interviews/job-descriptions/analyze', jdData);
+  return response.data;
+};
+
 
 
 

@@ -7,6 +7,7 @@ const {
   validateCreateJobDescription,
   validateUpdateJobDescription,
   validateSaveJobDescription,
+  validateAnalyzeJobDescription,
 } = require('../middlewares/mockInterviewValidation');
 const {
   createJobRoleHandler,
@@ -31,6 +32,7 @@ const {
   getRoleIntegratedJobDescriptionHandler,
   attachJobDescriptionToSelectedRoleHandler,
   updateSelectedRoleJobDescriptionHandler,
+  analyzeJobDescriptionHandler,
 } = require('../controllers/mockInterviewJobDescriptionController');
 
 const router = express.Router();
@@ -84,6 +86,9 @@ router.get('/roles/:roleId/job-description', optionalAuth, getRoleIntegratedJobD
 router.get('/job-descriptions/role/:roleId', optionalAuth, getRoleIntegratedJobDescriptionHandler);
 
 // 4. Job Description endpoints (Must precede parameterized /:id routes)
+router.post('/job-descriptions/analyze', optionalAuth, validateUserRoleAccess, validateAnalyzeJobDescription, analyzeJobDescriptionHandler);
+router.post('/job-description/analyze', optionalAuth, validateUserRoleAccess, validateAnalyzeJobDescription, analyzeJobDescriptionHandler);
+
 router.post('/job-descriptions/save', optionalAuth, validateUserRoleAccess, validateSaveJobDescription, saveMockInterviewJobDescriptionHandler);
 router.post('/job-description/save', optionalAuth, validateUserRoleAccess, validateSaveJobDescription, saveMockInterviewJobDescriptionHandler);
 

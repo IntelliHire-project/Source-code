@@ -18,7 +18,7 @@ const formatJobDescriptionRow = (row) => {
         })()
       : [];
 
-  return {
+  const formatted = {
     id: row.id,
     userId: row.user_id ? Number(row.user_id) : null,
     roleId: row.role_id || null,
@@ -31,6 +31,21 @@ const formatJobDescriptionRow = (row) => {
     createdAt: row.created_at || new Date().toISOString(),
     updatedAt: row.updated_at || new Date().toISOString(),
   };
+
+  if (row.analysis !== undefined && row.analysis !== null) {
+    formatted.analysis =
+      typeof row.analysis === 'string'
+        ? (() => {
+            try {
+              return JSON.parse(row.analysis);
+            } catch {
+              return null;
+            }
+          })()
+        : row.analysis;
+  }
+
+  return formatted;
 };
 
 /**
@@ -526,6 +541,42 @@ const updateSelectedRoleJobDescription = async (data = {}, user = null, executor
   return attachJobDescriptionToSelectedRole(data, user, executor);
 };
 
+/**
+ * Persists AI analysis results onto an existing job description record.
+ */
+const updateJobDescriptionAnalysis = async (id, analysis, user = null, executor = db) => {
+  if (!id || !analysis) return null;
+
+  const existing = await findJobDescriptionById(id, executor);
+  if (!existing) return null;
+
+  const isUserAdmin = user && user.role === 'admin';
+  if (!isUserAdmin && user && existing.userId && Number(existing.userId) !== Number(user.id)) {
+    return null;
+  }
+
+  try {
+    const query = `
+      UPDATE mock_interview_job_descriptions
+      SET analysis = $1::jsonb, updated_at = NOW()
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const result = await executor.query(query, [JSON.stringify(analysis), id]);
+    if (result && result.rows && result.rows.length > 0) {
+      return formatJobDescriptionRow(result.rows[0]);
+    }
+  } catch (err) {
+    console.warn('Database query failed in updateJobDescriptionAnalysis:', err.message);
+  }
+
+  return {
+    ...existing,
+    analysis,
+    updatedAt: new Date().toISOString(),
+  };
+};
+
 module.exports = {
   formatJobDescriptionRow,
   createJobDescription,
@@ -539,5 +590,6 @@ module.exports = {
   getRoleIntegratedJobDescription,
   attachJobDescriptionToSelectedRole,
   updateSelectedRoleJobDescription,
+  updateJobDescriptionAnalysis,
 };
 
