@@ -1,8 +1,8 @@
 /**
- * tests/recruiter/tc-qb-009.spec.js
+ * tests/recruiter/tc-qb-004.spec.js
  *
- * Test Case ID: TC-QB-009
- * Test Scenario: Duplicate Question as Draft
+ * Test Case ID: TC-QB-004
+ * Test Scenario: Question Preview Modal & Edit Redirect
  *
  * Preconditions:
  *  - Application is running at http://localhost:8080
@@ -11,10 +11,11 @@
  *
  * Test Steps:
  *  1. Log in as recruiter and navigate to /recruiter/question-bank (wait for /api/questions)
- *  2. Record the initial live Question Bank row count (.am-table tbody tr)
- *  3. Click the Copy ('Duplicate question') button on the first question row
- *  4. Verify notice banner (.am-notice) displays 'Question duplicated as draft.'
- *  5. Verify Question Bank table row count increases by 1
+ *  2. Click the Eye ('Preview question') action button on the first question row
+ *  3. Verify .am-modal opens with heading 'Question Preview'
+ *  4. Verify question statement (.am-preview-question) and points badge (.am-preview-pts) render
+ *  5. Click 'Edit Question' in modal footer
+ *  6. Verify URL redirects to /recruiter/question-bank/edit/:id and heading displays 'Edit Question'
  */
 
 const { test, expect } = require('@playwright/test');
@@ -22,7 +23,7 @@ const {
   BASE_URL,
   DEMO_RECRUITER_EMAIL,
   DEMO_RECRUITER_PASSWORD,
-} = require('../helpers/api');
+} = require('../../helpers/api');
 
 async function loginAndOpenQuestionBank(page) {
   const waitQuestions = () =>
@@ -67,27 +68,29 @@ async function loginAndOpenQuestionBank(page) {
   await page.waitForTimeout(200);
 }
 
-test.describe('TC-QB-009: Duplicate Question as Draft Suite', () => {
+test.describe('TC-QB-004: Question Preview Modal Suite', () => {
 
-  test('TC-QB-09: Duplicates a question as draft and prepends copy to Question Bank table', async ({ page }) => {
+  test('TC-QB-04: Opens Question Preview modal, inspects content, and navigates to Edit Question page', async ({ page }) => {
     // Step 1: Login and open Question Bank
     await loginAndOpenQuestionBank(page);
 
-    const rows = page.locator('.am-table tbody tr');
-    await expect(rows.first()).toBeVisible({ timeout: 10_000 });
+    const firstRow = page.locator('.am-table tbody tr').first();
+    await expect(firstRow).toBeVisible({ timeout: 10_000 });
 
-    // Step 2: Record initial live row count
-    const initialCount = await rows.count();
-    expect(initialCount).toBeGreaterThanOrEqual(1);
+    // Step 2: Click 'Preview question' button
+    await firstRow.locator('button[title="Preview question"]').click();
 
-    // Step 3: Click 'Duplicate question' on the first row
-    await rows.first().locator('button[title="Duplicate question"]').click();
+    // Step 3 & 4: Verify modal opens with heading, statement, and points
+    const modal = page.locator('.am-modal');
+    await expect(modal).toBeVisible({ timeout: 5_000 });
+    await expect(modal.locator('h2')).toHaveText('Question Preview');
+    await expect(modal.locator('.am-preview-question')).toBeVisible();
+    await expect(modal.locator('.am-preview-pts')).toContainText('points');
 
-    // Step 4 & 5: Verify notice banner and incremented row count
-    const notice = page.locator('.am-notice');
-    await expect(notice).toBeVisible({ timeout: 8_000 });
-    await expect(notice).toContainText('Question duplicated as draft.');
-    await expect(rows).toHaveCount(initialCount + 1);
+    // Step 5 & 6: Click 'Edit Question' and verify redirect
+    await modal.locator('.am-modal__footer button:has-text("Edit Question")').click();
+    await expect(page).toHaveURL(/\/recruiter\/question-bank\/edit\//, { timeout: 10_000 });
+    await expect(page.locator('.aq-page__title')).toHaveText('Edit Question');
   });
 
 });

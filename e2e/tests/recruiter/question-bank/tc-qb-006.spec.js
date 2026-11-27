@@ -23,7 +23,7 @@ const {
   BASE_URL,
   DEMO_RECRUITER_EMAIL,
   DEMO_RECRUITER_PASSWORD,
-} = require('../helpers/api');
+} = require('../../helpers/api');
 
 async function loginAndOpenAddQuestion(page) {
   try {
