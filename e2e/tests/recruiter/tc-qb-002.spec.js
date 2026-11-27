@@ -26,6 +26,12 @@ const {
 } = require('../helpers/api');
 
 async function loginAndOpenQuestionBank(page) {
+  const waitQuestions = () =>
+    page.waitForResponse(
+      (res) => res.url().includes('/api/questions') && res.request().method() === 'GET',
+      { timeout: 10_000 }
+    ).catch(() => null);
+
   try {
     const res = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
@@ -41,7 +47,10 @@ async function loginAndOpenQuestionBank(page) {
         localStorage.setItem('intellihire_token', token);
         localStorage.setItem('intellihire_user', JSON.stringify(user));
       }, { token: data.token, user: data.user });
+      const apiPromise = waitQuestions();
       await page.goto('/recruiter/question-bank', { waitUntil: 'domcontentloaded' });
+      await apiPromise;
+      await page.waitForTimeout(200);
       return;
     }
   } catch (err) {
@@ -53,7 +62,10 @@ async function loginAndOpenQuestionBank(page) {
   await page.locator('#password').fill(DEMO_RECRUITER_PASSWORD);
   await page.locator('button[type="submit"]').click();
   await page.waitForURL('**/recruiter/**', { waitUntil: 'domcontentloaded', timeout: 12_000 });
+  const apiPromise = waitQuestions();
   await page.goto('/recruiter/question-bank', { waitUntil: 'domcontentloaded' });
+  await apiPromise;
+  await page.waitForTimeout(200);
 }
 
 test.describe('TC-QB-002: Question Bank Search & Skill Tag Filtering Suite', () => {
