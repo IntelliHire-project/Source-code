@@ -87,6 +87,31 @@ async function apiPut(path, body, token) {
 }
 
 /**
+ * Makes a JSON GET request to the IntelliHire API.
+ *
+ * @param {string} path
+ * @param {string} [token] - Bearer token
+ */
+async function apiGet(path, token) {
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'GET',
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      `API GET ${path} failed [${response.status}]: ${data?.message || JSON.stringify(data)}`
+    );
+  }
+  return data;
+}
+
+/**
  * Makes a JSON DELETE request to the IntelliHire API.
  *
  * @param {string} path
@@ -213,6 +238,7 @@ module.exports = {
   approveRecruiter,
   deactivateTestUser,
   getAdminToken,
+  apiGet,
   apiPost,
   apiPut,
 };

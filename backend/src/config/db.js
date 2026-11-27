@@ -330,6 +330,32 @@ const initializeDatabase = async () => {
       );
     `);
 
+
+    // ----------------------------------------------------
+    // Assessment Management Tables (SCRUM-96)
+    // ----------------------------------------------------
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS assessments (
+        id SERIAL PRIMARY KEY,
+        assessment_code TEXT UNIQUE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        recruiter_id INTEGER REFERENCES recruiters(id) ON DELETE SET NULL,
+        vacancy_id INTEGER REFERENCES vacancies(id) ON DELETE SET NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        job_role TEXT,
+        difficulty TEXT NOT NULL DEFAULT 'Mid-level',
+        duration INTEGER NOT NULL DEFAULT 60,
+        passing_score INTEGER NOT NULL DEFAULT 70,
+        total_points INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'Draft',
+        questions JSONB DEFAULT '[]'::jsonb,
+        settings JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // ----------------------------------------------------
     // Interview Management Tables (SCRUM-71)
     // ----------------------------------------------------
@@ -346,7 +372,7 @@ const initializeDatabase = async () => {
         end_time TEXT NOT NULL DEFAULT '10:30 AM',
         interview_type TEXT NOT NULL DEFAULT 'Online',
         status TEXT NOT NULL DEFAULT 'AVAILABLE',
-        meeting_location TEXT DEFAULT 'https://meet.google.com/intelli-tech-round',
+        meeting_location TEXT DEFAULT 'https://meet.google.com/new',
         capacity INTEGER NOT NULL DEFAULT 1,
         booked_count INTEGER NOT NULL DEFAULT 0,
         panel_name TEXT,
@@ -409,6 +435,68 @@ const initializeDatabase = async () => {
       );
     `);
 
+    // ----------------------------------------------------
+    // Mock Interview Tables (SCRUM-72)
+    // ----------------------------------------------------
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_interview_roles (
+        id SERIAL PRIMARY KEY,
+        role_id TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        category TEXT NOT NULL DEFAULT 'engineering',
+        icon TEXT DEFAULT 'Sparkles',
+        is_custom BOOLEAN NOT NULL DEFAULT false,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        skills JSONB DEFAULT '[]'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_interview_selected_roles (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        role_id TEXT NOT NULL,
+        role_title TEXT NOT NULL,
+        category TEXT DEFAULT 'engineering',
+        job_description TEXT,
+        interview_mode TEXT DEFAULT 'text',
+        status TEXT DEFAULT 'selected',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mock_interview_job_descriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        role_id TEXT,
+        title TEXT,
+        job_description TEXT NOT NULL,
+        skills JSONB DEFAULT '[]'::jsonb,
+        experience_level TEXT DEFAULT 'mid',
+        company TEXT,
+        source TEXT DEFAULT 'custom',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Seed default roles if not existing
+    await client.query(`
+      INSERT INTO mock_interview_roles (role_id, title, description, category, icon, is_custom, skills)
+      VALUES
+        ('backend', 'Backend Developer', 'System architecture, API design, database management, and server-side logic scaling.', 'engineering', 'Database', false, '["Node.js", "Express", "SQL", "System Design", "REST APIs", "PostgreSQL"]'::jsonb),
+        ('frontend', 'Frontend Developer', 'Building responsive user interfaces, state management, and seamless UX implementation.', 'engineering', 'MonitorPlay', false, '["React", "JavaScript", "CSS", "HTML", "State Management", "Web Performance"]'::jsonb),
+        ('uiux', 'UI/UX Designer', 'Visual storytelling, user research, wireframing, and creating high-fidelity prototypes.', 'design', 'Palette', false, '["Figma", "User Research", "Wireframing", "Prototyping", "Design Systems"]'::jsonb),
+        ('qa', 'QA Engineer', 'Automated testing, quality assurance frameworks, and ensuring bug-free product delivery.', 'qa', 'ShieldCheck', false, '["Automated Testing", "Jest", "Cypress", "Playwright", "Test Planning", "API Testing"]'::jsonb),
+        ('data', 'Data Analyst', 'Statistical modeling, data visualization, and extracting actionable business insights.', 'data', 'BarChart3', false, '["SQL", "Python", "Data Visualization", "Tableau", "Statistical Modeling"]'::jsonb)
+      ON CONFLICT (role_id) DO NOTHING;
+    `);
+
     // Create indices for fast lookups
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_candidates_user_id ON candidates(user_id);
@@ -427,6 +515,11 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
       CREATE INDEX IF NOT EXISTS idx_questions_user_id ON questions(user_id);
       CREATE INDEX IF NOT EXISTS idx_questions_recruiter_id ON questions(recruiter_id);
+      CREATE INDEX IF NOT EXISTS idx_assessments_assessment_code ON assessments(assessment_code);
+      CREATE INDEX IF NOT EXISTS idx_assessments_user_id ON assessments(user_id);
+      CREATE INDEX IF NOT EXISTS idx_assessments_recruiter_id ON assessments(recruiter_id);
+      CREATE INDEX IF NOT EXISTS idx_assessments_vacancy_id ON assessments(vacancy_id);
+      CREATE INDEX IF NOT EXISTS idx_assessments_status ON assessments(status);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_vacancy_id ON interview_slots(vacancy_id);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_status ON interview_slots(status);
       CREATE INDEX IF NOT EXISTS idx_interview_slots_date ON interview_slots(interview_date);
@@ -435,6 +528,15 @@ const initializeDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_interview_evaluations_slot_id ON interview_evaluations(slot_id);
       CREATE INDEX IF NOT EXISTS idx_interview_reschedule_requests_slot_id ON interview_reschedule_requests(slot_id);
       CREATE INDEX IF NOT EXISTS idx_interview_reschedule_requests_status ON interview_reschedule_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_mock_roles_role_id ON mock_interview_roles(role_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_roles_category ON mock_interview_roles(category);
+      CREATE INDEX IF NOT EXISTS idx_mock_roles_user_id ON mock_interview_roles(user_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_roles_is_custom ON mock_interview_roles(is_custom);
+      CREATE INDEX IF NOT EXISTS idx_mock_selected_user_id ON mock_interview_selected_roles(user_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_selected_role_id ON mock_interview_selected_roles(role_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_jd_user_id ON mock_interview_job_descriptions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_jd_role_id ON mock_interview_job_descriptions(role_id);
+      CREATE INDEX IF NOT EXISTS idx_mock_jd_created_at ON mock_interview_job_descriptions(created_at);
     `);
   } finally {
     client.release();

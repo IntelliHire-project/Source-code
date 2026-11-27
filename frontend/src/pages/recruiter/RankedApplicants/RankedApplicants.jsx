@@ -358,35 +358,54 @@ export const enrichCandidateDetails = (candidate) => {
   }
 
   // General fallback for others
-  const matchPct = candidate.score;
+  const matchPct = Number(candidate.score) || 85;
+  const eduStr = typeof candidate.education === 'string' ? candidate.education : '';
+  const eduAligned = eduStr
+    ? (eduStr.includes('B.S.') || eduStr.includes('M.S.') || eduStr.includes('MBA') || eduStr.includes('RISD'))
+    : true;
+
+  const matchedSkills = Array.isArray(candidate.matchedSkills) && candidate.matchedSkills.length > 0
+    ? candidate.matchedSkills
+    : (Array.isArray(candidate.skills) && candidate.skills.length > 0
+        ? candidate.skills
+        : ['React.js', 'TypeScript', 'Node.js', 'System Architecture', 'REST APIs']);
+
+  const missingSkills = Array.isArray(candidate.missingSkills)
+    ? candidate.missingSkills
+    : (candidate.vacancyId === 2 ? ['SQL', 'Python'] : (candidate.vacancyId === 3 ? ['React Native', 'Swift'] : ['Kubernetes', 'Redis']));
 
   return {
     ...candidate,
-    role: candidate.vacancyId === 2 ? 'Product Manager' : (candidate.vacancyId === 3 ? 'UX Designer' : 'Software Engineer'),
-    id: `#492${candidate.score}`,
-    matchedSkills: candidate.skills,
-    missingSkills: candidate.vacancyId === 2 ? ['SQL', 'Python'] : (candidate.vacancyId === 3 ? ['React Native', 'Swift'] : ['Kubernetes', 'Redis']),
-    matchBreakdown: {
+    name: candidate.name || 'Candidate',
+    avatar: candidate.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80',
+    role: candidate.role || (candidate.vacancyId === 2 ? 'Product Manager' : (candidate.vacancyId === 3 ? 'UX Designer' : 'Senior Software Engineer')),
+    id: candidate.id ? String(candidate.id) : `#492${matchPct}`,
+    score: matchPct,
+    matchedSkills,
+    missingSkills,
+    matchBreakdown: candidate.matchBreakdown || {
       skillMatch: Math.min(100, matchPct + 2),
-      experienceMatch: candidate.expMatch === 'Matched' ? 100 : (candidate.expMatch === 'Partial Match' ? 80 : 50),
+      experienceMatch: candidate.expMatch === 'Matched' ? 100 : (candidate.expMatch === 'Partial Match' ? 80 : 75),
       semanticSimilarity: Math.max(50, matchPct - 5),
-      educationAlignment: candidate.education.includes('B.S.') || candidate.education.includes('M.S.') || candidate.education.includes('MBA') || candidate.education.includes('RISD') ? 100 : 70
+      educationAlignment: eduAligned ? 100 : 70
     },
-    requiredExp: candidate.vacancyId === 2 ? '7 Years' : (candidate.vacancyId === 3 ? '5 Years' : '5 Years'),
-    candidateExp: candidate.experience || '3 Years',
-    expInsight: candidate.expMatch === 'Matched'
+    requiredExp: candidate.requiredExp || (candidate.vacancyId === 2 ? '7 Years' : '5 Years'),
+    candidateExp: candidate.candidateExp || candidate.experience || '4 Years',
+    expInsight: candidate.expInsight || (candidate.expMatch === 'Matched'
       ? `The candidate meets and exceeds the requested job experience duration.`
-      : `The candidate is slightly below the target experience but shows strong skills alignment.`,
-    educationDegree: candidate.education ? candidate.education.split(' - ')[0] : 'B.S. Computer Science',
-    educationSchool: candidate.education && candidate.education.includes(' - ') ? candidate.education.split(' - ')[1] : 'State University',
-    jobEducationReq: candidate.vacancyId === 2 ? 'MBA or equivalent business degree' : (candidate.vacancyId === 3 ? 'Design or equivalent degree' : 'B.S. in Computer Science or related field'),
-    engineSummary: candidate.matchReason || 'Candidate possesses relevant foundational knowledge and experience matching the core specifications.'
+      : `The candidate demonstrates strong technical aptitude and domain skills matching the job requirements.`),
+    educationDegree: eduStr ? eduStr.split(' - ')[0] : (candidate.educationDegree || 'B.S. Computer Science'),
+    educationSchool: (eduStr && eduStr.includes(' - ')) ? eduStr.split(' - ')[1] : (candidate.educationSchool || 'State University of Colombo'),
+    jobEducationReq: candidate.jobEducationReq || (candidate.vacancyId === 2 ? 'MBA or equivalent business degree' : (candidate.vacancyId === 3 ? 'Design or equivalent degree' : 'B.S. in Computer Science or related field')),
+    engineSummary: candidate.engineSummary || candidate.matchReason || 'Candidate possesses relevant foundational knowledge and experience matching the core specifications.'
   };
 };
 
 export function CandidateDetailView({ candidate, onBack, onShortlist, onReject, onApprove }) {
+  if (!candidate) return null;
+  const score = Number(candidate.score) || 85;
   const circumference = 263.89;
-  const strokeDashoffset = circumference - (circumference * candidate.score) / 100;
+  const strokeDashoffset = circumference - (circumference * score) / 100;
 
   return (
     <div className="candidate-detail-view">
@@ -464,10 +483,10 @@ export function CandidateDetailView({ candidate, onBack, onShortlist, onReject, 
             <div className="skills-group">
               <h4 className="skills-sub-title matched-title">
                 <CheckCircle2 size={16} style={{ color: 'var(--accent)' }} />
-                MATCHED REQUIREMENTS ({candidate.matchedSkills.length})
+                MATCHED REQUIREMENTS ({(candidate.matchedSkills || []).length})
               </h4>
               <div className="skills-pill-container">
-                {candidate.matchedSkills.map((skill) => (
+                {(candidate.matchedSkills || []).map((skill) => (
                   <span key={skill} className="pill-skill matched-pill">
                     <Check size={12} className="pill-icon" /> {skill}
                   </span>
@@ -478,10 +497,10 @@ export function CandidateDetailView({ candidate, onBack, onShortlist, onReject, 
             <div className="skills-group">
               <h4 className="skills-sub-title missing-title">
                 <XCircle size={16} style={{ color: '#ff6b6b' }} />
-                MISSING SKILLS ({candidate.missingSkills.length})
+                MISSING SKILLS ({(candidate.missingSkills || []).length})
               </h4>
               <div className="skills-pill-container">
-                {candidate.missingSkills.map((skill) => (
+                {(candidate.missingSkills || []).map((skill) => (
                   <span key={skill} className="pill-skill missing-pill">
                     <X size={12} className="pill-icon" /> {skill}
                   </span>
@@ -506,7 +525,7 @@ export function CandidateDetailView({ candidate, onBack, onShortlist, onReject, 
                 <div className="exp-bar-track">
                   <div
                     className="exp-bar-fill required-fill"
-                    style={{ width: `${(parseInt(candidate.requiredExp) / 10) * 100}%` }}
+                    style={{ width: `${((parseInt(candidate.requiredExp) || 5) / 10) * 100}%` }}
                   />
                 </div>
               </div>
@@ -519,7 +538,7 @@ export function CandidateDetailView({ candidate, onBack, onShortlist, onReject, 
                 <div className="exp-bar-track">
                   <div
                     className="exp-bar-fill tenure-fill"
-                    style={{ width: `${(parseInt(candidate.candidateExp) / 10) * 100}%` }}
+                    style={{ width: `${((parseInt(candidate.candidateExp) || 4) / 10) * 100}%` }}
                   />
                 </div>
               </div>

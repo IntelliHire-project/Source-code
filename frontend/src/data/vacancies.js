@@ -56,7 +56,7 @@ export const VACANCIES = [
         id: 'panel-a',
         name: 'Panel A (Technical Leads)',
         meetingType: 'Google Meet',
-        meetingLink: 'https://meet.google.com/intelli-frontend-a',
+        meetingLink: 'https://meet.google.com/new',
         roundLabel: 'Round 1 · Technical / Live Coding',
         members: [
           { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
@@ -219,7 +219,7 @@ export const VACANCIES = [
         id: 'panel-a',
         name: 'Panel A (Technical Assessment)',
         meetingType: 'Google Meet',
-        meetingLink: 'https://meet.google.com/intelli-ba-a',
+        meetingLink: 'https://meet.google.com/new',
         roundLabel: 'Round 1 · Technical / Live Coding',
         members: [
           { id: 'm1', name: 'Saman Tech', role: 'Technical Lead', email: 'saman.tech@company.com' },
@@ -253,7 +253,7 @@ export const VACANCIES = [
         id: 'panel-d',
         name: 'Panel D (Final Cultural Fit)',
         meetingType: 'Google Meet',
-        meetingLink: 'https://meet.google.com/intelli-ba-d',
+        meetingLink: 'https://meet.google.com/new',
         roundLabel: 'Round 3 · Final Cultural Fit',
         members: [
           { id: 'm8', name: 'Amelia Stone', role: 'Design Director', email: 'amelia.stone@company.com' },

@@ -22,12 +22,15 @@ import {
   ShieldCheck,
   Send,
   X,
+  ChevronRight,
+  Check,
 } from 'lucide-react';
 import RecruiterSidebar from '../../../components/common/RecruiterSidebar';
 import TopBar from '../../../components/TopBar/TopBar';
 import AdminToast from '../../../components/common/AdminToast';
 import '../../../style.css';
 import './InterviewTimeSlotManagement.css';
+import '../../../components/common/VacancySelectorModal.css';
 import { VACANCIES } from '../../../data/vacancies';
 import { MOCK_CANDIDATES, enrichCandidateDetails, CandidateDetailView } from '../RankedApplicants/RankedApplicants';
 import {
@@ -38,16 +41,20 @@ import {
   getInterviewSlots,
   saveInterviewSlots,
   getEndTime,
+  DEFAULT_PANEL_MEMBERS,
+  checkPanelMemberAvailability,
+  getPanelAvailabilitySummary,
 } from '../../../services/interviewService';
 import {
   fetchInterviewSlots,
   createInterviewSlot,
+  bulkCreateInterviewSlots,
   updateInterviewSlot,
   deleteInterviewSlot,
 } from '../../../api/interviewApi';
 import { INITIAL_CANDIDATES, INITIAL_ALLOCATIONS, resetToDefaultMockData, formatPanelDisplayName } from '../InterviewAllocation/CandidateInterviewAllocation';
 
-const CLEAN_STORAGE_VERSION = 'v12_fresh_session_defaults';
+const CLEAN_STORAGE_VERSION = 'v28_merge_and_persist_notified';
 (() => {
   try {
     if (typeof window !== 'undefined') {
@@ -120,7 +127,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 5,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/abc-tech-interview',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Focus on React state management and Node.js microservices architecture.',
     bookedCount: 2,
     isPast: true,
@@ -133,9 +140,12 @@ const initialSlots = [
     startTime: '10:30 AM',
     endTime: '11:30 AM',
     interviewType: 'Online',
+    interviewMedia: 'Microsoft Teams',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/fullstack-system-design',
+    meetingLocation: 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_284912049192%40thread.v2/0',
+    meetingId: '284 912 049 192',
+    meetingPasscode: 'inTelli#2026',
     additionalNotes: 'Architecture discussion covering scalability, APIs, and database design.',
     bookedCount: 1,
   },
@@ -161,9 +171,12 @@ const initialSlots = [
     startTime: '09:30 AM',
     endTime: '10:30 AM',
     interviewType: 'Online',
+    interviewMedia: 'Microsoft Teams',
     capacity: 5,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/fullstack-technical-b',
+    meetingLocation: 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_284912049192%40thread.v2/0',
+    meetingId: '284 912 049 192',
+    meetingPasscode: 'inTelli#2026',
     additionalNotes: 'Coding and debugging exercise focused on React and Node.js.',
     bookedCount: 2,
   },
@@ -189,9 +202,12 @@ const initialSlots = [
     startTime: '02:00 PM',
     endTime: '03:00 PM',
     interviewType: 'Online',
+    interviewMedia: 'Zoom',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/frontend-architecture',
+    meetingLocation: 'https://zoom.us/join',
+    meetingId: '948 2710 4912',
+    meetingPasscode: 'intelli2026',
     additionalNotes: 'Frontend architecture, accessibility, performance, and testing discussion.',
     bookedCount: 1,
   },
@@ -247,7 +263,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 6,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/pm-screening-room',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Initial background screening and career roadmap alignment.',
     bookedCount: 2,
   },
@@ -275,7 +291,7 @@ const initialSlots = [
     interviewType: 'Online',
     capacity: 4,
     status: 'AVAILABLE',
-    meetingLocation: 'https://meet.google.com/product-design-review',
+    meetingLocation: 'https://meet.google.com/new',
     additionalNotes: 'Portfolio review, design system critique, and UX problem-solving.',
     bookedCount: 1,
   },
@@ -314,6 +330,52 @@ function getTomorrowInputValue() {
 
 const defaultVacancy = 'Senior Software Engineer';
 
+export const generateMeetingCredentials = (platform = 'Google Meet') => {
+  if (platform === 'Microsoft Teams' || platform === 'MS Teams') {
+    // Generate realistic 12-digit Teams Meeting ID formatted as 3-3-3-3: e.g. "284 912 049 192"
+    const p1 = Math.floor(100 + Math.random() * 900);
+    const p2 = Math.floor(100 + Math.random() * 900);
+    const p3 = Math.floor(100 + Math.random() * 900);
+    const p4 = Math.floor(100 + Math.random() * 900);
+    const meetingId = `${p1} ${p2} ${p3} ${p4}`;
+    const rawId = `${p1}${p2}${p3}${p4}`;
+    const num = Math.floor(1000 + Math.random() * 9000);
+    const meetingPasscode = `inTelli#${num}`;
+    return {
+      meetingLocation: `https://teams.microsoft.com/l/meetup-join/19%3ameeting_${rawId}%40thread.v2/0`,
+      meetingId,
+      meetingPasscode,
+    };
+  }
+  if (platform === 'Zoom') {
+    // Generate realistic 11-digit Zoom Meeting ID formatted as 3-4-4: e.g. "948 2710 4912"
+    const p1 = Math.floor(100 + Math.random() * 900);
+    const p2 = Math.floor(1000 + Math.random() * 9000);
+    const p3 = Math.floor(1000 + Math.random() * 9000);
+    const meetingId = `${p1} ${p2} ${p3}`;
+    const rawId = `${p1}${p2}${p3}`;
+    const meetingPasscode = Math.floor(100000 + Math.random() * 900000).toString();
+    return {
+      meetingLocation: `https://zoom.us/j/${rawId}?pwd=${meetingPasscode}`,
+      meetingId,
+      meetingPasscode,
+    };
+  }
+  // Google Meet - realistic 3-4-3 character format e.g. "vpx-mqzw-tkn"
+  const chars = 'abcdefghijklmnopqrstuvwxyz';
+  const randStr = (len) => Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const code = `${randStr(3)}-${randStr(4)}-${randStr(3)}`;
+  return {
+    meetingLocation: `https://meet.google.com/${code}`,
+    meetingId: code,
+    meetingPasscode: '',
+  };
+};
+
+export const generateValidMeetingUrl = (platform = 'Google Meet') => {
+  return generateMeetingCredentials(platform).meetingLocation;
+};
+
 function isSlotTimeInPast(slotDate, slotTimeStr) {
   if (!slotDate || !slotTimeStr) return false;
   const today = new Date();
@@ -338,7 +400,7 @@ const emptyForm = {
   jobPosition: defaultVacancy,
   interviewRound: 'Technical Interview',
   customRoundName: '',
-  interviewMedia: 'Google Meet',
+  interviewMedia: 'Microsoft Teams',
   interviewType: 'Online',
   interviewDate: new Date().getHours() >= 17 ? getTomorrowInputValue() : getTodayInputValue(),
   startTime: '09:00',
@@ -346,8 +408,14 @@ const emptyForm = {
   capacity: '3',
   panelName: 'Panel A (Technical Leads)',
   panelEmails: 'saman.tech@company.com, nirosha.hr@company.com',
-  meetingLocation: '',
+  meetingLocation: 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_284912049192%40thread.v2/0',
+  meetingId: '284 912 049 192',
+  meetingPasscode: 'inTelli#2026',
   additionalNotes: '',
+  allowDirectReschedule: true,
+  rescheduleNoticeHours: '24',
+  maxReschedulesAllowed: '2',
+  autoNotifyOnReschedule: true,
 };
 
 export const CANDIDATES_BY_ROLE = {
@@ -552,20 +620,39 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   const [slots, setSlots] = useState(() => {
     try {
-      if (!sessionStorage.getItem('intellihire_recruiter_session')) {
+      const isOutdated = typeof window !== 'undefined' && localStorage.getItem('intellihire_clean_version') !== CLEAN_STORAGE_VERSION;
+      if (isOutdated || !sessionStorage.getItem('intellihire_recruiter_session')) {
         if (typeof resetToDefaultMockData === 'function') {
           resetToDefaultMockData();
         }
         return initialSlots;
       }
       const stored = localStorage.getItem('intellihire_interview_slots');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((s, idx) => {
+            const isPhysical = s.interviewType === 'Physical';
+            const loc = s.meetingLocation || '';
+            const isTeams = s.interviewMedia === 'Microsoft Teams' || loc.includes('teams');
+            const isZoom = s.interviewMedia === 'Zoom' || loc.includes('zoom');
+            return {
+              ...s,
+              interviewMedia: isPhysical ? 'In-Person' : (s.interviewMedia || (isTeams ? 'Microsoft Teams' : isZoom ? 'Zoom' : 'Google Meet')),
+              meetingLocation: s.meetingLocation || (isPhysical ? 'Engineering Conference Room, 2nd Floor' : 'https://meet.google.com/new'),
+              meetingId: s.meetingId || (!isPhysical ? 'meet.google.com/new' : ''),
+              meetingPasscode: s.meetingPasscode || (!isPhysical ? 'Direct Video Link' : ''),
+            };
+          });
+        }
+      }
     } catch { }
     return initialSlots;
   });
   const [formData, setFormData] = useState(initialForm);
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [showZohoModal, setShowZohoModal] = useState(false);
+  const [selectedFormatType, setSelectedFormatType] = useState('Google Meet');
   const [showInlineForm, setShowInlineForm] = useState(Boolean(location.state?.openForm));
   const [showPreview, setShowPreview] = useState(false);
   const [showManualAssign, setShowManualAssign] = useState(false);
@@ -601,6 +688,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
         console.warn('Backend fetch fallback:', err.message);
       });
   }, []);
+
+  // Keyboard navigation for Format Selector Modal (Enter to continue, Escape to close)
+  useEffect(() => {
+    if (!showZohoModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowZohoModal(false);
+      } else if (e.key === 'Enter' && selectedFormatType) {
+        handleChooseZohoType(selectedFormatType);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showZohoModal, selectedFormatType]);
 
   // Dynamic candidate list matching the active job position
   const currentShortlisted = useMemo(() => {
@@ -708,6 +809,20 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
   // Dynamic Panels & Time Slots Generator State (Default to tomorrow if today's business hours are past)
   // Only Panel A is created by default. Recruiter can add more panels using "+ Add Panel" if needed.
+  const [bulkModalPanelId, setBulkModalPanelId] = useState(null);
+  const [bulkConfig, setBulkConfig] = useState({
+    startTime: '09:00',
+    endTime: '17:00',
+    slotDuration: 45,
+    bufferDuration: 15,
+    hasLunchBreak: true,
+    lunchStart: '12:00',
+    lunchEnd: '13:00',
+    autoAssignCandidates: true,
+    interviewType: 'Online',
+    replaceExisting: true,
+  });
+
   const [panels, setPanels] = useState(() => {
     const today = getTodayInputValue();
     const tomorrow = getTomorrowInputValue();
@@ -1168,12 +1283,65 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setToast({ type: 'success', message: 'Time slot form reset to default values.' });
   };
 
-  const hasTimeConflict = (panel, slot) => {
-    if (!panel || !slot || !slot.startTime) return false;
+  const checkSlotAvailability = (panel, slot) => {
+    if (!panel || !slot || !slot.startTime) return { available: true, status: 'AVAILABLE', message: 'Ready' };
     const sNorm = toTimeInputValue(slot.startTime);
-    return panel.slots.some(
+    const targetDate = slot.date || panel.selectedDate || formData.interviewDate || getTodayInputValue();
+
+    // 1. Direct duplicate within same panel
+    const hasSamePanelDuplicate = panel.slots.some(
       other => other.id !== slot.id && other.date === slot.date && toTimeInputValue(other.startTime) === sNorm
     );
+    if (hasSamePanelDuplicate) {
+      return {
+        available: false,
+        status: 'CONFLICT',
+        badgeColor: '#EF4444',
+        message: `Time conflict: another slot in ${panel.name || 'this panel'} is set to ${sNorm}`,
+      };
+    }
+
+    // 2. Cross-panel or existing scheduled slots conflict
+    const panelSummary = getPanelAvailabilitySummary(panel.emails, targetDate, sNorm, slots);
+    if (panelSummary.overallStatus === 'CONFLICT') {
+      const conflictMember = panelSummary.membersAvailability.find(m => m.status === 'CONFLICT');
+      return {
+        available: false,
+        status: 'CONFLICT',
+        badgeColor: '#EF4444',
+        message: conflictMember ? conflictMember.message : 'Schedule conflict detected for panel member',
+      };
+    }
+
+    if (panelSummary.overallStatus === 'OUTSIDE_HOURS') {
+      return {
+        available: false,
+        status: 'OUTSIDE_HOURS',
+        badgeColor: '#F0B90B',
+        message: 'Outside standard working hours (09:00 AM – 05:00 PM)',
+      };
+    }
+
+    if (panelSummary.overallStatus === 'OFF_DUTY') {
+      return {
+        available: false,
+        status: 'OFF_DUTY',
+        badgeColor: '#EF4444',
+        message: 'Selected date falls on a weekend / non-working day',
+      };
+    }
+
+    return {
+      available: true,
+      status: 'AVAILABLE',
+      badgeColor: '#22C55E',
+      message: 'Panel member is available at this time',
+    };
+  };
+
+  const hasTimeConflict = (panel, slot) => {
+    const res = checkSlotAvailability(panel, slot);
+    return res.status === 'CONFLICT';
   };
 
   const handlePanelEmailChange = (panelId, emailVal) => {
@@ -1218,12 +1386,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const handleAddPanel = () => {
     const nextId = panels.length + 1;
     const today = getTodayInputValue();
+    let defaultName = `Panel ${String.fromCharCode(64 + nextId)} (Senior Panel)`;
+    let defaultEmails = 'saman.tech@company.com';
+    if (nextId === 2) {
+      defaultName = 'Panel B (Talent Acquisition & Design)';
+      defaultEmails = 'dilhani.w@company.com';
+    } else if (nextId === 3) {
+      defaultName = 'Panel C (Principal Platform Engineering)';
+      defaultEmails = 'ruwan.b@company.com';
+    }
     setPanels(prev => [
       ...prev,
       {
         id: nextId,
-        name: `Panel ${String.fromCharCode(64 + nextId)} (Senior Panel)`,
-        emails: 'evaluator@company.com, hr@company.com',
+        name: defaultName,
+        emails: defaultEmails,
         capacity: 2,
         selectedDate: today,
         slots: [
@@ -1237,6 +1414,131 @@ function RecruiterInterviewTimeSlotManagementPage() {
   const handleRemovePanel = panelId => {
     if (panels.length <= 1) return;
     setPanels(prev => prev.filter(p => p.id !== panelId));
+  };
+
+  const generateBulkSlots = (config, targetDate) => {
+    const toMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const match = timeStr.match(/^(\d{1,2}):(\d{2})/);
+      if (!match) return 0;
+      return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+    };
+
+    const toTimeString = (totalMinutes) => {
+      const h24 = Math.floor(totalMinutes / 60) % 24;
+      const m = totalMinutes % 60;
+      return `${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
+    const startMin = toMinutes(config.startTime);
+    const endMin = toMinutes(config.endTime);
+    const dur = parseInt(config.slotDuration, 10) || 45;
+    const buf = parseInt(config.bufferDuration, 10) || 0;
+    const lunchS = config.hasLunchBreak ? toMinutes(config.lunchStart) : -1;
+    const lunchE = config.hasLunchBreak ? toMinutes(config.lunchEnd) : -1;
+
+    const generated = [];
+    let curr = startMin;
+    let slotCounter = 1;
+
+    while (curr + dur <= endMin) {
+      const sStart = curr;
+      const sEnd = curr + dur;
+
+      const overlapsLunch = config.hasLunchBreak && !(sEnd <= lunchS || sStart >= lunchE);
+      if (!overlapsLunch) {
+        generated.push({
+          id: Date.now() + slotCounter,
+          date: targetDate,
+          startTime: toTimeString(sStart),
+          endTime: toTimeString(sEnd),
+          type: config.interviewType || 'Online',
+          assignedCandidate: null,
+        });
+        slotCounter++;
+        curr = sEnd + buf;
+      } else {
+        curr = Math.max(curr + 15, lunchE);
+      }
+    }
+
+    return generated;
+  };
+
+  const handleApplyBulkSlots = (panelId) => {
+    const targetPanel = panels.find(p => p.id === panelId);
+    if (!targetPanel) return;
+
+    const targetDate = targetPanel.selectedDate || formData.interviewDate || getTodayInputValue();
+    const newSlots = generateBulkSlots(bulkConfig, targetDate);
+
+    if (newSlots.length === 0) {
+      setToast({ type: 'error', message: 'No valid slots could be generated with the given time window and duration.' });
+      return;
+    }
+
+    const panelForCheck = bulkConfig.replaceExisting
+      ? { ...targetPanel, slots: (targetPanel.slots || []).filter(existing => existing.date !== targetDate) }
+      : targetPanel;
+
+    let conflictFound = false;
+    let conflictMsg = '';
+    for (const s of newSlots) {
+      const check = checkSlotAvailability(panelForCheck, s);
+      if (check.status === 'CONFLICT') {
+        conflictFound = true;
+        conflictMsg = check.message;
+        break;
+      }
+    }
+
+    if (conflictFound) {
+      setToast({ type: 'error', message: `Cannot assign slots at once: ${conflictMsg}` });
+      return;
+    }
+
+    if (bulkConfig.autoAssignCandidates) {
+      const alreadyAllocatedNames = new Set();
+      panels.forEach(p => {
+        if (bulkConfig.replaceExisting && p.id === panelId) return;
+        (p.slots || []).forEach(s => {
+          if (s.assignedCandidate?.name) {
+            alreadyAllocatedNames.add(s.assignedCandidate.name.toLowerCase().trim());
+          }
+        });
+      });
+
+      const unallocatedShortlisted = currentShortlisted.filter(c => !alreadyAllocatedNames.has(c.name.toLowerCase().trim()));
+
+      newSlots.forEach((s, idx) => {
+        if (idx < unallocatedShortlisted.length) {
+          s.assignedCandidate = unallocatedShortlisted[idx];
+        }
+      });
+    }
+
+    setPanels(prev => {
+      const next = prev.map(p => {
+        if (p.id !== panelId) return p;
+        const finalSlots = bulkConfig.replaceExisting
+          ? newSlots
+          : [...p.slots.filter(s => s.date !== targetDate), ...newSlots];
+        return {
+          ...p,
+          capacity: Math.max(p.capacity || 1, newSlots.length),
+          slots: finalSlots,
+        };
+      });
+      syncCandidateAllocations(next);
+      return next;
+    });
+
+    const assignedCount = newSlots.filter(s => s.assignedCandidate).length;
+    setToast({
+      type: 'success',
+      message: `Assigned ${newSlots.length} time slots at once for ${targetPanel.name}! ${assignedCount > 0 ? `(${assignedCount} candidates allocated)` : ''}`,
+    });
+    setBulkModalPanelId(null);
   };
 
   const jobPositions = useMemo(
@@ -1298,6 +1600,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
   };
 
   const handleOpenCreateInterview = () => {
+    setSelectedFormatType('Google Meet');
     setShowZohoModal(true);
   };
 
@@ -1315,15 +1618,22 @@ function RecruiterInterviewTimeSlotManagementPage() {
     }
     const resolvedType = isOnline ? 'Online' : (type === 'Log' ? 'Logged' : 'Physical');
     const initialDate = panels[0]?.selectedDate || new Date().toISOString().split('T')[0];
+    const initialCreds = isOnline
+      ? generateMeetingCredentials(selectedMedia)
+      : {
+          meetingLocation: type === 'Log' ? 'Past Session Evaluation Log' : 'Executive Boardroom 3B, 2nd Floor, HQ Tower',
+          meetingId: '',
+          meetingPasscode: '',
+        };
     setFormData({
       ...emptyForm,
       jobPosition: positionFilter,
       interviewMedia: selectedMedia,
       interviewType: resolvedType,
       interviewDate: initialDate,
-      meetingLocation: !isOnline
-        ? 'Executive Boardroom 3B, 2nd Floor, HQ Tower'
-        : (type === 'Google Meet' || isOnline ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Past Session Evaluation Log'),
+      meetingLocation: initialCreds.meetingLocation,
+      meetingId: initialCreds.meetingId,
+      meetingPasscode: initialCreds.meetingPasscode,
     });
     // Immediately synchronize all panel slots with the chosen interview type
     setPanels(prevPanels => {
@@ -1366,18 +1676,35 @@ function RecruiterInterviewTimeSlotManagementPage() {
     setActiveZohoType(media === 'In-Person' ? 'In-Person' : 'Google Meet');
     setFormData(current => {
       let autoLocation = current.meetingLocation;
-      if (media === 'Google Meet' && (!autoLocation || autoLocation.includes('teams') || !autoLocation.includes('http'))) {
-        autoLocation = `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}`;
-      } else if (media === 'MS Teams' && (!autoLocation || autoLocation.includes('meet') || !autoLocation.includes('http'))) {
-        autoLocation = `https://teams.microsoft.com/l/meetup-join/intelli-${Math.random().toString(36).substring(2, 7)}`;
-      } else if (media === 'In-Person' && (autoLocation.includes('http') || !autoLocation)) {
+      let meetingId = current.meetingId || '';
+      let meetingPasscode = current.meetingPasscode || '';
+
+      if (media === 'Google Meet') {
+        autoLocation = 'https://meet.google.com/new';
+        meetingId = '';
+        meetingPasscode = '';
+      } else if (media === 'MS Teams' || media === 'Microsoft Teams') {
+        const creds = generateMeetingCredentials('Microsoft Teams');
+        autoLocation = creds.meetingLocation;
+        meetingId = creds.meetingId;
+        meetingPasscode = creds.meetingPasscode;
+      } else if (media === 'Zoom') {
+        const creds = generateMeetingCredentials('Zoom');
+        autoLocation = creds.meetingLocation;
+        meetingId = creds.meetingId;
+        meetingPasscode = creds.meetingPasscode;
+      } else if (media === 'In-Person') {
         autoLocation = 'Main Engineering Conference Room, 2nd Floor';
+        meetingId = '';
+        meetingPasscode = '';
       }
       return {
         ...current,
         interviewMedia: media,
         interviewType: newType,
         meetingLocation: autoLocation,
+        meetingId,
+        meetingPasscode,
       };
     });
     // Synchronize all panel slots when media type changes
@@ -1420,6 +1747,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
       panelName: slot.panelName || 'Panel A (Technical Leads)',
       panelEmails: slot.panelEmails || 'techlead@company.com, hr@company.com',
       meetingLocation: slot.meetingLocation || '',
+      meetingId: slot.meetingId || '',
+      meetingPasscode: slot.meetingPasscode || '',
       additionalNotes: slot.additionalNotes || '',
     });
     setFormError('');
@@ -1445,6 +1774,18 @@ function RecruiterInterviewTimeSlotManagementPage() {
     const roundSummary = roundTypes.join(', ');
 
     const currentSlotInterviewType = formData.interviewType || (formData.interviewMedia === 'In-Person' || activeZohoType === 'In-Person' ? 'Physical' : 'Online');
+
+    // Mandatory Panel Member Availability Check before assignment/creation
+    for (const p of panels) {
+      for (const s of (p.slots || [])) {
+        const avail = checkSlotAvailability(p, s);
+        if (avail.status === 'CONFLICT') {
+          setToast({ type: 'error', message: `Cannot save: ${avail.message}` });
+          setFormError(`Cannot save: ${avail.message}`);
+          return;
+        }
+      }
+    }
 
     if (editingSlotId) {
       const updatedPayload = {
@@ -1472,6 +1813,8 @@ function RecruiterInterviewTimeSlotManagementPage() {
               panelName: panels[0]?.name || 'Panel A (Technical Leads)',
               panelEmails: panels[0]?.emails || 'techlead@company.com, hr@company.com',
               meetingLocation: formData.meetingLocation,
+              meetingId: formData.meetingId || '',
+              meetingPasscode: formData.meetingPasscode || '',
               additionalNotes: formData.additionalNotes,
             };
           }
@@ -1499,6 +1842,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
       activePanels.forEach(p => {
         p.slots.forEach((sRow, idx) => {
           const slotRawDate = sRow.date || p.selectedDate || effectiveDate;
+          const isOnlineMedia = (formData.interviewMedia || 'Google Meet') !== 'In-Person' && currentSlotInterviewType !== 'Physical';
+          const creds = (idx === 0 || !isOnlineMedia)
+            ? {
+                meetingLocation: formData.meetingLocation || (isOnlineMedia ? generateValidMeetingUrl(formData.interviewMedia || 'Google Meet') : 'Main Office Conference Room'),
+                meetingId: formData.meetingId || '',
+                meetingPasscode: formData.meetingPasscode || '',
+              }
+            : generateMeetingCredentials(formData.interviewMedia || 'Google Meet');
           createdSlots.push({
             id: baseId++,
             rawDate: slotRawDate,
@@ -1513,10 +1864,16 @@ function RecruiterInterviewTimeSlotManagementPage() {
             status: 'AVAILABLE',
             panelName: p.name,
             panelEmails: p.emails,
-            meetingLocation: formData.meetingLocation || (formData.interviewMedia === 'Google Meet' ? `https://meet.google.com/intelli-${Math.random().toString(36).substring(2, 7)}` : 'Main Office Conference Room'),
+            meetingLocation: creds.meetingLocation,
+            meetingId: creds.meetingId,
+            meetingPasscode: creds.meetingPasscode,
             additionalNotes: formData.additionalNotes || 'N/A',
             bookedCount: sRow.assignedCandidate ? 1 : 0,
             assignedCandidate: sRow.assignedCandidate || null,
+            allowDirectReschedule: formData.allowDirectReschedule !== false,
+            rescheduleNoticeHours: formData.rescheduleNoticeHours || '24',
+            maxReschedulesAllowed: formData.maxReschedulesAllowed || '2',
+            autoNotifyOnReschedule: formData.autoNotifyOnReschedule !== false,
           });
         });
       });
@@ -1527,33 +1884,62 @@ function RecruiterInterviewTimeSlotManagementPage() {
         return next;
       });
 
-      // Send to backend PostgreSQL API
-      createdSlots.forEach(s => {
-        const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
-          id: s.assignedCandidate.id,
-          name: s.assignedCandidate.name,
-          email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-          score: s.assignedCandidate.score || 85,
-          avatar: s.assignedCandidate.avatar || '',
-        } : null;
+      // Send to backend PostgreSQL API (supports bulk generation and single slot creation)
+      if (createdSlots.length > 1) {
+        const bulkPayload = createdSlots.map(s => {
+          const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
+            id: s.assignedCandidate.id,
+            name: s.assignedCandidate.name,
+            email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+            score: s.assignedCandidate.score || 85,
+            avatar: s.assignedCandidate.avatar || '',
+          } : null;
+          return {
+            jobPosition: s.jobPosition,
+            round: s.round,
+            interviewDate: s.rawDate || effectiveDate,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            interviewType: s.interviewType,
+            meetingLocation: s.meetingLocation,
+            capacity: s.capacity,
+            panelName: s.panelName,
+            panelEmails: s.panelEmails,
+            additionalNotes: s.additionalNotes,
+            candidate: candidatePayload,
+            status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
+            bookedCount: candidatePayload ? 1 : 0,
+          };
+        });
+        bulkCreateInterviewSlots(bulkPayload).catch(err => console.error('Error bulk saving slots to database:', err));
+      } else {
+        createdSlots.forEach(s => {
+          const candidatePayload = (s.assignedCandidate && s.assignedCandidate.name) ? {
+            id: s.assignedCandidate.id,
+            name: s.assignedCandidate.name,
+            email: s.assignedCandidate.email || `${s.assignedCandidate.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+            score: s.assignedCandidate.score || 85,
+            avatar: s.assignedCandidate.avatar || '',
+          } : null;
 
-        createInterviewSlot({
-          jobPosition: s.jobPosition,
-          round: s.round,
-          interviewDate: s.rawDate || effectiveDate,
-          startTime: s.startTime,
-          endTime: s.endTime,
-          interviewType: s.interviewType,
-          meetingLocation: s.meetingLocation,
-          capacity: s.capacity,
-          panelName: s.panelName,
-          panelEmails: s.panelEmails,
-          additionalNotes: s.additionalNotes,
-          candidate: candidatePayload,
-          status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
-          bookedCount: candidatePayload ? 1 : 0,
-        }).catch(err => console.error('Error saving slot to database:', err));
-      });
+          createInterviewSlot({
+            jobPosition: s.jobPosition,
+            round: s.round,
+            interviewDate: s.rawDate || effectiveDate,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            interviewType: s.interviewType,
+            meetingLocation: s.meetingLocation,
+            capacity: s.capacity,
+            panelName: s.panelName,
+            panelEmails: s.panelEmails,
+            additionalNotes: s.additionalNotes,
+            candidate: candidatePayload,
+            status: candidatePayload ? 'SCHEDULED' : 'AVAILABLE',
+            bookedCount: candidatePayload ? 1 : 0,
+          }).catch(err => console.error('Error saving slot to database:', err));
+        });
+      }
 
       // Synchronize directly with Candidate Interview Allocation
       try {
@@ -1581,6 +1967,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
             panelName: s.panelName,
             panelEmails: s.panelEmails,
             meetingLocation: s.meetingLocation,
+            allowDirectReschedule: s.allowDirectReschedule !== false,
+            rescheduleNoticeHours: s.rescheduleNoticeHours || '24',
+            maxReschedulesAllowed: s.maxReschedulesAllowed || '2',
+            autoNotifyOnReschedule: s.autoNotifyOnReschedule !== false,
             isCustom: true,
           };
         });
@@ -1623,6 +2013,10 @@ function RecruiterInterviewTimeSlotManagementPage() {
               jobPosition: cand.jobPosition || cand.role || s.jobPosition || formData.jobPosition || 'Senior Software Engineer',
               status: 'ALLOCATED',
               score: cand.score || 85,
+              allowDirectReschedule: s.allowDirectReschedule !== false,
+              rescheduleNoticeHours: s.rescheduleNoticeHours || '24',
+              maxReschedulesAllowed: s.maxReschedulesAllowed || '2',
+              autoNotifyOnReschedule: s.autoNotifyOnReschedule !== false,
             };
             const exIdx = currentAllocations.findIndex(a =>
               (a.candidateId && String(a.candidateId) === String(candId)) ||
@@ -1895,7 +2289,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <p style={{ fontSize: '0.9rem', color: '#9599A6', maxWidth: '480px', margin: '0 auto 26px auto', lineHeight: 1.6 }}>
                 Schedule interviews with candidates who have applied for positions. Setup video meetings, in-person rounds, panel assignments, and Google Calendar sync.
               </p>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={handleOpenCreateInterview}
@@ -1911,7 +2305,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                     boxShadow: '0 4px 16px rgba(240, 185, 11, 0.35)',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    justifyContent: 'center',
                     transition: 'all 0.2s ease',
                   }}
                 >
@@ -2229,7 +2623,61 @@ function RecruiterInterviewTimeSlotManagementPage() {
                             </div>
 
                             <div style={{ flex: 1 }}>
-                              <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '8px' }}>PANEL MEMBER EMAILS (ATTENDEES)</label>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  PANEL MEMBER EMAILS (ATTENDEES)
+                                </label>
+                                <span style={{ fontSize: '0.68rem', color: '#6E7079' }}>
+                                  Standard Hours: 09:00 AM – 05:00 PM
+                                </span>
+                              </div>
+
+                              {/* Quick-Assign Predefined Interviewers */}
+                              <div style={{ marginBottom: '10px' }}>
+                                <span style={{ fontSize: '0.68rem', color: '#8E92A0', display: 'block', marginBottom: '5px' }}>
+                                  Quick-Add Panelist:
+                                </span>
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                  {DEFAULT_PANEL_MEMBERS.map(m => {
+                                    const isIncluded = (p.emails || '').toLowerCase().includes(m.email.toLowerCase());
+                                    return (
+                                      <button
+                                        key={m.id}
+                                        type="button"
+                                        onClick={() => {
+                                          const currentEmails = (p.emails ? p.emails.split(',') : []).map(e => e.trim()).filter(Boolean);
+                                          if (isIncluded) {
+                                            const updated = currentEmails.filter(e => e.toLowerCase() !== m.email.toLowerCase());
+                                            handlePanelEmailChange(p.id, updated.join(', '));
+                                          } else {
+                                            currentEmails.push(m.email);
+                                            handlePanelEmailChange(p.id, currentEmails.join(', '));
+                                          }
+                                        }}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          padding: '3px 8px',
+                                          borderRadius: '14px',
+                                          border: isIncluded ? '1px solid #22C55E' : '1px solid rgba(255, 255, 255, 0.15)',
+                                          backgroundColor: isIncluded ? 'rgba(34, 197, 94, 0.15)' : '#16171F',
+                                          color: isIncluded ? '#4ADE80' : '#C5C7D0',
+                                          fontSize: '0.72rem',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.15s ease',
+                                        }}
+                                        title={`${m.name} (${m.role}) — ${m.availableHours}`}
+                                      >
+                                        <img src={m.avatar} alt={m.name} style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }} />
+                                        <span>{m.name.split(' ')[0]}</span>
+                                        {isIncluded && <Check size={11} />}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {(p.emails ? p.emails.split(',') : ['']).map((emailStr, eIdx) => (
                                   <div key={eIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -2285,6 +2733,88 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                   <Plus size={13} style={{ color: '#F0B90B' }} />
                                   <span>Add Email</span>
                                 </button>
+                              </div>
+
+                              {/* Mandatory Panelist Availability Check Status Display */}
+                              <div style={{ marginTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                  <label className="form-label" style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <Users size={12} style={{ color: '#F0B90B' }} />
+                                    <span>PANELIST AVAILABILITY STATUS</span>
+                                  </label>
+                                  <span style={{ fontSize: '0.68rem', color: '#6E7079' }}>Date: {p.selectedDate}</span>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {(p.emails ? p.emails.split(',') : []).map(e => e.trim()).filter(Boolean).map((emailStr, idx) => {
+                                    const avail = checkPanelMemberAvailability(emailStr, p.selectedDate, null, slots);
+                                    return (
+                                      <div
+                                        key={idx}
+                                        style={{
+                                          backgroundColor: '#16171F',
+                                          border: `1px solid ${avail.hasConflict ? '#EF4444' : avail.status === 'AVAILABLE' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                          borderRadius: '8px',
+                                          padding: '8px 10px',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '6px',
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <img
+                                              src={avail.member?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                                              alt={avail.member?.name || emailStr}
+                                              style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
+                                            />
+                                            <div>
+                                              <span style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '0.78rem', display: 'block', lineHeight: 1.2 }}>
+                                                {avail.member?.name || emailStr}
+                                              </span>
+                                              <span style={{ fontSize: '0.67rem', color: '#9599A6' }}>
+                                                {avail.member?.role || 'Interview Panel Member'}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <span
+                                            style={{
+                                              backgroundColor: `${avail.badgeColor}20`,
+                                              color: avail.badgeColor,
+                                              border: `1px solid ${avail.badgeColor}50`,
+                                              borderRadius: '12px',
+                                              padding: '2px 8px',
+                                              fontSize: '0.68rem',
+                                              fontWeight: 700,
+                                              whiteSpace: 'nowrap',
+                                            }}
+                                          >
+                                            {avail.badgeText}
+                                          </span>
+                                        </div>
+
+                                        {/* Working Hours & Capacity Info */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.68rem', color: '#8E92A0', borderTop: '1px dashed rgba(255,255,255,0.06)', paddingTop: '4px' }}>
+                                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            <Clock size={11} style={{ color: '#F0B90B' }} />
+                                            <span>Hours: {avail.availableHours}</span>
+                                          </span>
+                                          <span>
+                                            Capacity: <strong style={{ color: '#FFFFFF' }}>{avail.bookedCount} / {avail.maxDaily}</strong> daily slots
+                                          </span>
+                                        </div>
+
+                                        {/* Conflict or Booking Warnings */}
+                                        {avail.bookedTimeSlots && avail.bookedTimeSlots.length > 0 && (
+                                          <div style={{ fontSize: '0.66rem', color: '#F0B90B', backgroundColor: 'rgba(240, 185, 11, 0.08)', borderRadius: '4px', padding: '3px 6px' }}>
+                                            Booked on this day: {avail.bookedTimeSlots.map(b => `${b.startTime} (${b.candidateName})`).join(', ')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
 
@@ -2431,6 +2961,28 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                     <Plus size={13} />
                                     <span>Add Slot</span>
                                   </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setBulkModalPanelId(p.id)}
+                                    style={{
+                                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                                      color: '#4ADE80',
+                                      border: '1px solid rgba(34, 197, 94, 0.4)',
+                                      borderRadius: '6px',
+                                      padding: '5px 12px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Automatically generate and assign a full batch of non-conflicting time slots at once"
+                                  >
+                                    <Sparkles size={13} style={{ color: '#4ADE80' }} />
+                                    <span>Assign Slots at Once</span>
+                                  </button>
                                 </div>
                               </div>
 
@@ -2455,7 +3007,9 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {p.slots.filter(s => s.date === p.selectedDate).map((s, idx) => {
-                                  const isConflict = hasTimeConflict(p, s);
+                                  const slotAvail = checkSlotAvailability(p, s);
+                                  const isConflict = slotAvail.status === 'CONFLICT';
+                                  const isOutsideHours = slotAvail.status === 'OUTSIDE_HOURS';
                                   const isPastTime = isSlotTimeInPast(s.date, s.startTime);
                                   return (
                                     <div key={s.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -2463,14 +3017,14 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '12px',
-                                        backgroundColor: isConflict ? 'rgba(239, 68, 68, 0.12)' : (isPastTime ? 'rgba(255, 255, 255, 0.03)' : 'rgba(66, 133, 244, 0.1)'),
-                                        borderLeft: `3px solid ${isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4')}`,
+                                        backgroundColor: isConflict ? 'rgba(239, 68, 68, 0.12)' : (isOutsideHours ? 'rgba(240, 185, 11, 0.1)' : (isPastTime ? 'rgba(255, 255, 255, 0.03)' : 'rgba(66, 133, 244, 0.1)')),
+                                        borderLeft: `3px solid ${isConflict ? '#EF4444' : (isOutsideHours ? '#F0B90B' : (isPastTime ? '#6E7079' : '#22C55E'))}`,
                                         padding: '12px 16px',
                                         borderRadius: '6px',
                                         opacity: isPastTime ? 0.6 : 1,
                                         transition: 'all 0.2s'
                                       }}>
-                                        <span style={{ color: isConflict ? '#EF4444' : '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #{idx + 1}</span>
+                                        <span style={{ color: isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : '#9599A6', fontSize: '0.8rem', fontWeight: 600, width: '60px' }}>Slot #${idx + 1}</span>
                                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
                                           <input
                                             type="time"
@@ -2479,7 +3033,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                             style={{
                                               backgroundColor: '#1E222D',
                                               color: '#FFFFFF',
-                                              border: `1px solid ${isConflict ? '#EF4444' : 'rgba(255, 255, 255, 0.15)'}`,
+                                              border: `1px solid ${isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : 'rgba(255, 255, 255, 0.15)'}`,
                                               padding: '6px 32px 6px 12px',
                                               borderRadius: '6px',
                                               fontSize: '0.85rem',
@@ -2488,7 +3042,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                               cursor: 'pointer'
                                             }}
                                           />
-                                          <Clock size={14} style={{ position: 'absolute', right: '12px', color: isConflict ? '#EF4444' : (isPastTime ? '#6E7079' : '#4285F4'), pointerEvents: 'none' }} />
+                                          <Clock size={14} style={{ position: 'absolute', right: '12px', color: isConflict ? '#EF4444' : isOutsideHours ? '#F0B90B' : (isPastTime ? '#6E7079' : '#22C55E'), pointerEvents: 'none' }} />
                                         </div>
                                         {isPastTime && (
                                           <span style={{ color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -2523,7 +3077,7 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                           ×
                                         </button>
                                       </div>
-                                      {isConflict && (
+                                      {isConflict ? (
                                         <div style={{
                                           display: 'flex',
                                           alignItems: 'center',
@@ -2537,9 +3091,42 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                           fontWeight: 600
                                         }}>
                                           <AlertCircle size={13} style={{ flexShrink: 0 }} />
-                                          <span>⚠️ {p.name || 'This Panel'} is already assigned at this time</span>
+                                          <span>⚠️ {slotAvail.message}</span>
                                         </div>
-                                      )}
+                                      ) : isOutsideHours ? (
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          color: '#F0B90B',
+                                          backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                                          border: '1px solid rgba(240, 185, 11, 0.3)',
+                                          borderRadius: '6px',
+                                          padding: '4px 10px',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <Clock size={13} style={{ flexShrink: 0 }} />
+                                          <span>⚠️ Outside standard working hours (09:00 AM – 05:00 PM)</span>
+                                        </div>
+                                      ) : !isPastTime ? (
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          color: '#22C55E',
+                                          backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                                          border: '1px solid rgba(34, 197, 94, 0.2)',
+                                          borderRadius: '6px',
+                                          padding: '3px 8px',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600,
+                                          width: 'fit-content'
+                                        }}>
+                                          <CheckCircle2 size={12} style={{ flexShrink: 0 }} />
+                                          <span>✓ Panel members available at this time</span>
+                                        </div>
+                                      ) : null}
                                     </div>
                                   );
                                 })}
@@ -2579,12 +3166,19 @@ function RecruiterInterviewTimeSlotManagementPage() {
 
                 {/* ── Section 4: Mode-Specific Venue / Link Details ── */}
                 <div style={{ padding: '18px', backgroundColor: '#16171F', border: '1px solid #2A2C38', borderRadius: '12px', marginBottom: '18px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>
                     {activeZohoType === 'Log' ? '4. PAST EVALUATION RATING & RECOMMENDATION' : '4. ADDITIONAL DETAILS & VENUE'}
                   </h4>
+                  <p style={{ margin: '4px 0 14px 0', fontSize: '0.78rem', color: '#9599A6' }}>
+                    {activeZohoType === 'In-Person'
+                      ? 'Specify physical office premises location and candidate entry guidance.'
+                      : (activeZohoType === 'Log'
+                        ? 'Record candidate performance evaluation and hiring committee recommendation.'
+                        : 'Select meeting platform, configure video call links, and provide instructions.')}
+                  </p>
                   <div className="form-grid-2">
                     {activeZohoType === 'In-Person' ? (
-                      <div className="form-group">
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
                         <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>PHYSICAL OFFICE VENUE &amp; ROOM LOCATION</label>
                         <input
                           type="text"
@@ -2623,102 +3217,588 @@ function RecruiterInterviewTimeSlotManagementPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="form-group">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
-                            ONLINE MEETING LINK (GOOGLE MEET / TEAMS)
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                        {/* Interview Platform Selector */}
+                        <div style={{ marginBottom: '14px' }}>
+                          <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                            SELECT INTERVIEW PLATFORM
                           </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const chars = 'abcdefghijklmnopqrstuvwxyz';
-                              const randLetters = Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-                              const randDigits = Math.floor(100 + Math.random() * 900);
-                              const generatedUrl = `https://meet.google.com/intelli-${randLetters}-${randDigits}`;
-                              setFormData(prev => ({ ...prev, meetingLocation: generatedUrl }));
-                              setToast({ type: 'success', message: 'Google Meet link generated and filled!' });
-                            }}
-                            title="Generate a random Google Meet link"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              backgroundColor: 'rgba(240, 185, 11, 0.15)',
-                              border: '1px solid #F0B90B',
-                              color: '#F0B90B',
-                              padding: '3px 10px',
-                              borderRadius: '6px',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <Sparkles size={12} />
-                            <span>⚡ Generate Meet Link</span>
-                          </button>
-                        </div>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <input
-                            type="text"
-                            name="meetingLocation"
-                            placeholder="e.g. https://meet.google.com/intelli-xyz-123"
-                            value={formData.meetingLocation}
-                            onChange={handleFieldChange}
-                            className="form-control"
-                            style={{ backgroundColor: '#1E222D', color: '#FFFFFF', paddingRight: formData.meetingLocation ? '95px' : '12px' }}
-                          />
-                          {formData.meetingLocation && (
-                            <a
-                              href={formData.meetingLocation}
-                              target="_blank"
-                              rel="noreferrer"
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const creds = generateMeetingCredentials('Google Meet');
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Google Meet',
+                                  interviewType: 'Online',
+                                  meetingLocation: creds.meetingLocation,
+                                  meetingId: creds.meetingId,
+                                  meetingPasscode: creds.meetingPasscode,
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Google Meet (Instant Live Call)' });
+                              }}
                               style={{
-                                position: 'absolute',
-                                right: '8px',
-                                backgroundColor: 'rgba(66, 133, 244, 0.15)',
-                                color: '#60A5FA',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.7rem',
-                                fontWeight: 600,
-                                display: 'inline-flex',
+                                display: 'flex',
                                 alignItems: 'center',
-                                gap: '3px',
-                                textDecoration: 'none'
+                                justifyContent: 'center',
+                                gap: '8px',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                                backgroundColor: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? 'rgba(240, 185, 11, 0.15)' : '#1E222D',
+                                color: (formData.interviewMedia || 'Google Meet') === 'Google Meet' ? '#F0B90B' : '#9599A6',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
                               }}
                             >
-                              <ExternalLink size={11} /> Test Link
-                            </a>
-                          )}
+                              <Video size={14} />
+                              <span>Google Meet</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const creds = generateMeetingCredentials('Microsoft Teams');
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Microsoft Teams',
+                                  interviewType: 'Online',
+                                  meetingLocation: creds.meetingLocation,
+                                  meetingId: creds.meetingId,
+                                  meetingPasscode: creds.meetingPasscode,
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Microsoft Teams (Enterprise Meeting)' });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: formData.interviewMedia === 'Microsoft Teams' ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                                backgroundColor: formData.interviewMedia === 'Microsoft Teams' ? 'rgba(240, 185, 11, 0.15)' : '#1E222D',
+                                color: formData.interviewMedia === 'Microsoft Teams' ? '#F0B90B' : '#9599A6',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Video size={14} />
+                              <span>MS Teams</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const creds = generateMeetingCredentials('Zoom');
+                                setFormData(prev => ({
+                                  ...prev,
+                                  interviewMedia: 'Zoom',
+                                  interviewType: 'Online',
+                                  meetingLocation: creds.meetingLocation,
+                                  meetingId: creds.meetingId,
+                                  meetingPasscode: creds.meetingPasscode,
+                                }));
+                                setToast({ type: 'success', message: 'Switched to Zoom' });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: formData.interviewMedia === 'Zoom' ? '1px solid #F0B90B' : '1px solid #2A2C38',
+                                backgroundColor: formData.interviewMedia === 'Zoom' ? 'rgba(240, 185, 11, 0.15)' : '#1E222D',
+                                color: formData.interviewMedia === 'Zoom' ? '#F0B90B' : '#9599A6',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Video size={14} />
+                              <span>Zoom</span>
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Platform Specific Configuration Card */}
+                        {(!formData.interviewMedia || formData.interviewMedia === 'Google Meet') && (
+                          <div style={{
+                            backgroundColor: '#1E222D',
+                            border: '1px solid #2A2C38',
+                            borderRadius: '10px',
+                            padding: '14px 16px',
+                            marginBottom: '10px'
+                          }}>
+                            {/* Google Meet URL with Generate Link and Test Call */}
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <label style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  GOOGLE MEET JOIN URL
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const creds = generateMeetingCredentials('Google Meet');
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      meetingLocation: creds.meetingLocation,
+                                      meetingId: creds.meetingId,
+                                      meetingPasscode: '',
+                                    }));
+                                    setToast({ type: 'success', message: `Generated fresh Google Meet link: ${creds.meetingId}` });
+                                  }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    border: '1px solid rgba(240, 185, 11, 0.35)',
+                                    color: '#F0B90B',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <RefreshCw size={12} />
+                                  <span>Generate Link</span>
+                                </button>
+                              </div>
+                              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  name="meetingLocation"
+                                  value={formData.meetingLocation || 'https://meet.google.com/new'}
+                                  onChange={handleFieldChange}
+                                  className="form-control"
+                                  placeholder="e.g. https://meet.google.com/abc-defg-hij"
+                                  style={{ backgroundColor: '#16171F', color: '#FFFFFF', paddingRight: '100px' }}
+                                />
+                                <a
+                                  href={formData.meetingLocation || 'https://meet.google.com/new'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    border: '1px solid rgba(240, 185, 11, 0.3)',
+                                    color: '#F0B90B',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    textDecoration: 'none'
+                                  }}
+                                >
+                                  <ExternalLink size={11} /> Test Call ↗
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.interviewMedia === 'Microsoft Teams' && (
+                          <div style={{
+                            backgroundColor: '#1E222D',
+                            border: '1px solid #2A2C38',
+                            borderRadius: '10px',
+                            padding: '14px 16px',
+                            marginBottom: '10px'
+                          }}>
+                            {/* Row 1: Teams Meeting Join URL with Generate Credentials */}
+                            <div style={{ marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <label style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  TEAMS MEETING JOIN URL
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const creds = generateMeetingCredentials('Microsoft Teams');
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      meetingLocation: creds.meetingLocation,
+                                      meetingId: creds.meetingId,
+                                      meetingPasscode: creds.meetingPasscode,
+                                    }));
+                                    setToast({ type: 'success', message: 'Generated fresh Enterprise Teams link & credentials!' });
+                                  }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    border: '1px solid rgba(240, 185, 11, 0.35)',
+                                    color: '#F0B90B',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <RefreshCw size={12} />
+                                  <span>Generate Credentials</span>
+                                </button>
+                              </div>
+                              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  name="meetingLocation"
+                                  value={formData.meetingLocation || 'https://teams.microsoft.com'}
+                                  onChange={handleFieldChange}
+                                  className="form-control"
+                                  placeholder="e.g. https://teams.microsoft.com/l/meetup-join/..."
+                                  style={{ backgroundColor: '#16171F', color: '#FFFFFF', paddingRight: '100px' }}
+                                />
+                                <a
+                                  href={formData.meetingLocation || 'https://teams.microsoft.com'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title="Open link in a new tab to test call connectivity"
+                                  style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    border: '1px solid rgba(240, 185, 11, 0.3)',
+                                    color: '#F0B90B',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    textDecoration: 'none'
+                                  }}
+                                >
+                                  <ExternalLink size={11} /> Test Call ↗
+                                </a>
+                              </div>
+                            </div>
+
+                            {/* Row 2: Meeting ID and Passcode */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  TEAMS MEETING ID
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingId"
+                                  value={formData.meetingId || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. 284 912 049 192"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#16171F',
+                                    color: '#FFFFFF',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  MEETING PASSCODE
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingPasscode"
+                                  value={formData.meetingPasscode || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. inTelli#2026"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#16171F',
+                                    color: '#FFFFFF',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {formData.interviewMedia === 'Zoom' && (
+                          <div style={{
+                            backgroundColor: '#1E222D',
+                            border: '1px solid #2A2C38',
+                            borderRadius: '10px',
+                            padding: '14px 16px',
+                            marginBottom: '10px'
+                          }}>
+                            {/* Row 1: Zoom Meeting Link with Generate Credentials */}
+                            <div style={{ marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <label style={{ fontSize: '0.72rem', color: '#9599A6', fontWeight: 600, margin: 0 }}>
+                                  ZOOM MEETING JOIN URL
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const creds = generateMeetingCredentials('Zoom');
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      meetingLocation: creds.meetingLocation,
+                                      meetingId: creds.meetingId,
+                                      meetingPasscode: creds.meetingPasscode,
+                                    }));
+                                    setToast({ type: 'success', message: 'Generated fresh Zoom link & credentials!' });
+                                  }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    border: '1px solid rgba(240, 185, 11, 0.35)',
+                                    color: '#F0B90B',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  <RefreshCw size={12} />
+                                  <span>Generate Credentials</span>
+                                </button>
+                              </div>
+                              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  name="meetingLocation"
+                                  value={formData.meetingLocation || 'https://zoom.us/join'}
+                                  onChange={handleFieldChange}
+                                  className="form-control"
+                                  placeholder="e.g. https://zoom.us/j/94827104912?pwd=..."
+                                  style={{ backgroundColor: '#16171F', color: '#FFFFFF', paddingRight: '100px' }}
+                                />
+                                <a
+                                  href={formData.meetingLocation || 'https://zoom.us/join'}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title="Open link in a new tab to test call connectivity"
+                                  style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                                    border: '1px solid rgba(240, 185, 11, 0.3)',
+                                    color: '#F0B90B',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    textDecoration: 'none'
+                                  }}
+                                >
+                                  <ExternalLink size={11} /> Test Call ↗
+                                </a>
+                              </div>
+                            </div>
+
+                            {/* Row 2: Meeting ID and Passcode */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  ZOOM MEETING ID
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingId"
+                                  value={formData.meetingId || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. 948 2710 4912"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#16171F',
+                                    color: '#FFFFFF',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '0.7rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                                  MEETING PASSCODE
+                                </label>
+                                <input
+                                  type="text"
+                                  name="meetingPasscode"
+                                  value={formData.meetingPasscode || ''}
+                                  onChange={handleFieldChange}
+                                  placeholder="e.g. 482910"
+                                  className="form-control"
+                                  style={{
+                                    backgroundColor: '#16171F',
+                                    color: '#FFFFFF',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.5px'
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    <div className="form-group" style={{ gridColumn: activeZohoType === 'Log' ? 'span 2' : 'auto' }}>
-                      <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600 }}>
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="form-label" style={{ fontSize: '0.74rem', color: '#9599A6', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                         {activeZohoType === 'In-Person'
                           ? 'SECURITY & BUILDING INSTRUCTIONS'
                           : (activeZohoType === 'Log'
                             ? 'PANEL EVALUATION FEEDBACK NOTES & REMARKS'
                             : 'ADDITIONAL INSTRUCTIONS')}
                       </label>
-                      <input
-                        type="text"
+                      <textarea
                         name="additionalNotes"
+                        rows={2}
                         placeholder={
                           activeZohoType === 'In-Person'
-                            ? 'e.g. Show ID at main reception, visitor pass required...'
+                            ? 'e.g. Show ID at main reception, visitor pass required at security desk...'
                             : (activeZohoType === 'Log'
-                              ? 'e.g. Excellent problem solving skills, strong technical depth...'
-                              : 'Instructions for panel members or candidates...')
+                              ? 'e.g. Excellent problem solving skills, strong technical depth, clear communication...'
+                              : 'Instructions for panel members or candidates (e.g. Please join 5 mins early, keep webcam enabled)...')
                         }
                         value={formData.additionalNotes}
                         onChange={handleFieldChange}
                         className="form-control"
-                        style={{ backgroundColor: '#1E222D', color: '#FFFFFF' }}
+                        style={{
+                          backgroundColor: '#1E222D',
+                          color: '#FFFFFF',
+                          width: '100%',
+                          resize: 'vertical',
+                          minHeight: '48px',
+                          fontSize: '0.84rem',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #2A2C38'
+                        }}
                       />
                     </div>
+
+                    {/* Direct System Rescheduling Policy (Configured during Initial Scheduling) */}
+                    {activeZohoType !== 'Log' && (
+                      <div
+                        style={{
+                          gridColumn: 'span 2',
+                          backgroundColor: '#1E222D',
+                          border: '1px solid rgba(107, 140, 255, 0.25)',
+                          borderRadius: '10px',
+                          padding: '14px 16px',
+                          marginTop: '4px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <RefreshCw size={15} style={{ color: '#60A5FA' }} />
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.03em' }}>
+                              RESCHEDULING WORKFLOW &amp; POLICY (INITIAL SCHEDULING SETUP)
+                            </span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '2px 9px',
+                              borderRadius: '10px',
+                              backgroundColor: formData.allowDirectReschedule !== false ? 'rgba(34, 197, 94, 0.15)' : 'rgba(148, 163, 184, 0.15)',
+                              color: formData.allowDirectReschedule !== false ? '#4ADE80' : '#94A3B8',
+                            }}
+                          >
+                            {formData.allowDirectReschedule !== false ? '✓ Direct System Rescheduling Enabled' : 'Rescheduling Locked'}
+                          </span>
+                        </div>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: formData.allowDirectReschedule !== false ? '12px' : 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={formData.allowDirectReschedule !== false}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, allowDirectReschedule: e.target.checked }))}
+                            style={{ accentColor: '#F0B90B', width: '15px', height: '15px', cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: '0.8rem', color: '#E5E7EB', fontWeight: 600 }}>
+                            Enable direct rescheduling through the IntelliHire system for this schedule
+                          </span>
+                        </label>
+
+                        {formData.allowDirectReschedule !== false && (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                                MINIMUM NOTICE WINDOW
+                              </label>
+                              <select
+                                value={formData.rescheduleNoticeHours || '24'}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, rescheduleNoticeHours: e.target.value }))}
+                                className="form-control"
+                                style={{ backgroundColor: '#13141C', color: '#FFFFFF', height: '36px', fontSize: '0.8rem' }}
+                              >
+                                <option value="12">At least 12 Hours Prior</option>
+                                <option value="24">At least 24 Hours Prior</option>
+                                <option value="48">At least 48 Hours Prior</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.7rem', color: '#9599A6', fontWeight: 700, marginBottom: '4px' }}>
+                                MAX RESCHEDULES ALLOWED
+                              </label>
+                              <select
+                                value={formData.maxReschedulesAllowed || '2'}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, maxReschedulesAllowed: e.target.value }))}
+                                className="form-control"
+                                style={{ backgroundColor: '#13141C', color: '#FFFFFF', height: '36px', fontSize: '0.8rem' }}
+                              >
+                                <option value="1">1 Reschedule</option>
+                                <option value="2">Up to 2 Reschedules</option>
+                                <option value="unlimited">Unlimited (Recruiter Approval)</option>
+                              </select>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={formData.autoNotifyOnReschedule !== false}
+                                  onChange={(e) => setFormData((prev) => ({ ...prev, autoNotifyOnReschedule: e.target.checked }))}
+                                  style={{ accentColor: '#22C55E', width: '15px', height: '15px', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '0.76rem', color: '#9CA3AF', lineHeight: 1.35 }}>
+                                  Auto-sync Google Calendar &amp; send email alerts upon reschedule
+                                </span>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -3223,12 +4303,21 @@ function RecruiterInterviewTimeSlotManagementPage() {
                                       <div style={{ color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 600 }}>{formatPanelDisplayName(slot.panelActualName || `Panel ${slot.panelNo}`)}</div>
                                       <div>
                                         <span style={{
-                                          backgroundColor: slot.type === 'Online' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(168, 85, 247, 0.1)',
-                                          color: slot.type === 'Online' ? '#60A5FA' : '#A855F7',
-                                          padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600
+                                          backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                                          color: '#F0B90B',
+                                          border: '1px solid rgba(240, 185, 11, 0.25)',
+                                          padding: '2px 8px',
+                                          borderRadius: '4px',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600
                                         }}>
-                                          {slot.type}
+                                          {(slot.meetingLocation && slot.meetingLocation.includes('teams')) ? 'MS Teams' : (slot.meetingLocation && slot.meetingLocation.includes('zoom')) ? 'Zoom' : (slot.interviewMedia || slot.type)}
                                         </span>
+                                        {slot.meetingId && (
+                                          <div style={{ fontSize: '0.64rem', color: '#9599A6', fontFamily: 'monospace', marginTop: '2px' }}>
+                                            ID: {slot.meetingId}
+                                          </div>
+                                        )}
                                       </div>
                                       <div style={{ textAlign: 'center', color: '#FFFFFF', fontSize: '0.82rem', fontWeight: 700 }}>1</div>
                                       <div style={{ textAlign: 'center', color: '#22C55E', fontSize: '0.82rem', fontWeight: 700 }}>1</div>
@@ -3530,6 +4619,22 @@ function RecruiterInterviewTimeSlotManagementPage() {
                 <span className="detail-label">Location / Link:</span>
                 <span className="detail-val highlight-val">{viewingSlot.meetingLocation || 'N/A'}</span>
               </div>
+              {viewingSlot.interviewType !== 'Physical' && (
+                <>
+                  <div className="modal-detail-row">
+                    <span className="detail-label">Meeting ID:</span>
+                    <span className="detail-val" style={{ fontFamily: 'monospace', color: '#FFFFFF', fontWeight: 700, letterSpacing: '0.5px' }}>
+                      {viewingSlot.meetingId || '284 912 049 192'}
+                    </span>
+                  </div>
+                  <div className="modal-detail-row">
+                    <span className="detail-label">Passcode:</span>
+                    <span className="detail-val" style={{ fontFamily: 'monospace', color: '#FFFFFF', fontWeight: 700, letterSpacing: '0.5px' }}>
+                      {viewingSlot.meetingPasscode || 'inTelli#2026'}
+                    </span>
+                  </div>
+                </>
+              )}
               <div className="modal-detail-row">
                 <span className="detail-label">Additional Notes:</span>
                 <span className="detail-val">{viewingSlot.additionalNotes || 'No notes provided.'}</span>
@@ -3545,7 +4650,24 @@ function RecruiterInterviewTimeSlotManagementPage() {
               <a
                 href={generateGoogleCalendarUrl({
                   title: `IntelliHire Interview: ${viewingSlot.round} (${viewingSlot.jobPosition})`,
-                  description: `📌 INTELLIHIRE INTERVIEW DETAILS:\n• Job Position: ${viewingSlot.jobPosition}\n• Interview Round: ${viewingSlot.round}\n• Scheduled Time Slot: ${viewingSlot.interviewDate} (${viewingSlot.startTime} - ${viewingSlot.endTime})\n• Platform / Media: ${viewingSlot.interviewMedia || viewingSlot.interviewType}\n• Capacity: ${viewingSlot.bookedCount}/${viewingSlot.capacity} Candidates Allocated\n\n👥 ASSIGNED PANEL:\n• Name: ${viewingSlot.panelName || 'Panel A'}\n• Panel Emails: ${viewingSlot.panelEmails || 'N/A'}\n• Venue / Link: ${viewingSlot.meetingLocation || 'N/A'}\n\n📝 NOTES:\n${viewingSlot.additionalNotes || 'N/A'}`,
+                  description: [
+                    `📌 INTELLIHIRE INTERVIEW DETAILS:`,
+                    `• Job Position: ${viewingSlot.jobPosition}`,
+                    `• Interview Round: ${viewingSlot.round}`,
+                    `• Scheduled Time Slot: ${viewingSlot.interviewDate} (${viewingSlot.startTime} - ${viewingSlot.endTime})`,
+                    `• Platform / Media: ${viewingSlot.interviewMedia || viewingSlot.interviewType}`,
+                    viewingSlot.meetingId ? `• Meeting ID: ${viewingSlot.meetingId}` : null,
+                    viewingSlot.meetingPasscode ? `• Passcode: ${viewingSlot.meetingPasscode}` : null,
+                    `• Capacity: ${viewingSlot.bookedCount}/${viewingSlot.capacity} Candidates Allocated`,
+                    ``,
+                    `👥 ASSIGNED PANEL:`,
+                    `• Name: ${viewingSlot.panelName || 'Panel A'}`,
+                    `• Panel Emails: ${viewingSlot.panelEmails || 'N/A'}`,
+                    `• Venue / Link: ${viewingSlot.meetingLocation || 'N/A'}`,
+                    ``,
+                    `📝 NOTES:`,
+                    `${viewingSlot.additionalNotes || 'N/A'}`
+                  ].filter(Boolean).join('\n'),
                   interviewDate: viewingSlot.interviewDate,
                   startTime: viewingSlot.startTime,
                   endTime: viewingSlot.endTime,
@@ -3618,141 +4740,120 @@ function RecruiterInterviewTimeSlotManagementPage() {
         </div>
       )}
 
-      {/* ── Modal 1: Zoho Recruit Style Choice Modal ── */}
+      {/* ── Modal 1: Format Selector Modal (Matches Choose Job Opportunity style) ── */}
       {showZohoModal && (
-        <div className="modal-backdrop" onClick={() => setShowZohoModal(false)}>
+        <div className="vacancy-modal-overlay" onClick={() => setShowZohoModal(false)}>
           <div
-            className="modal-card zoho-modal-card"
+            className="vacancy-modal-container"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: '560px',
-              width: '90%',
-              borderRadius: '16px',
-              backgroundColor: '#16171F',
-              border: '1px solid #2A2C38',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
-              padding: '0',
-              overflow: 'hidden',
-              backgroundColor: '#16171F',
-              border: '1px solid rgba(240, 185, 11, 0.25)',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-            }}
+            style={{ position: 'relative' }}
           >
-            <div className="modal-header border-bottom-header flex-between" style={{ padding: '20px 24px', borderBottom: '1px solid #2A2C38' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '8px', height: '22px', backgroundColor: '#F0B90B', borderRadius: '4px' }} />
-                <h3 className="modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#FFFFFF' }}>
-                  Create Interview
-                </h3>
+            {/* Top Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowZohoModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#9599A6',
+                cursor: 'pointer',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                transition: 'all 0.15s ease',
+                padding: 0,
+                zIndex: 10
+              }}
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header with Circular Gold Icon */}
+            <div className="vacancy-modal-header">
+              <div className="vacancy-modal-icon-wrap">
+                <Video size={24} className="vacancy-modal-icon" />
               </div>
-              <button
-                type="button"
-                className="toast-close"
-                onClick={() => setShowZohoModal(false)}
-                style={{
-                  fontSize: '1.4rem',
-                  color: '#9599A6',
-                  cursor: 'pointer',
-                  background: 'none',
-                  border: 'none',
-                  padding: '4px',
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
+              <h2 className="vacancy-modal-title">Choose Interview Format</h2>
+              <p className="vacancy-modal-subtitle">
+                To set up time slots, assign panel members, and configure candidate invitations, please select an interview format below.
+              </p>
             </div>
 
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Choice 1: Video Interview (Online) */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('Google Meet')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid rgba(66, 133, 244, 0.35)',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
+            {/* Modal Body / Cards List */}
+            <div className="vacancy-modal-body">
+              <div className="vacancy-cards-list">
+                {/* Option 1: Online Video Interview */}
                 <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(66, 133, 244, 0.15)',
-                    color: '#60A5FA',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
+                  className={`vacancy-select-card ${selectedFormatType === 'Google Meet' ? 'is-selected' : ''}`}
+                  onClick={() => setSelectedFormatType('Google Meet')}
+                  onDoubleClick={() => handleChooseZohoType('Google Meet')}
+                  title="Click to select, double-click to continue"
                 >
-                  <Video size={24} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                      Video Interview
-                    </h4>
-                    <span style={{ backgroundColor: 'rgba(66, 133, 244, 0.15)', color: '#60A5FA', border: '1px solid rgba(66, 133, 244, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                      🌐 Online
-                    </span>
+                  {selectedFormatType === 'Google Meet' && (
+                    <div className="vacancy-selected-checkmark">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="vacancy-card-main">
+                    <div className="vacancy-card-info">
+                      <span className="vacancy-card-code">#VIRTUAL</span>
+                      <h3 className="vacancy-card-title">Online Video Interview</h3>
+                    </div>
+                    <div className="vacancy-card-status-wrap">
+                      <span className="vacancy-status-badge status-active">
+                        Remote
+                      </span>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct online video interviews via Google Meet or Microsoft Teams with panel calendar sync.
-                  </p>
                 </div>
-              </div>
 
-              {/* Choice 2: In-person Interview (Physical) */}
-              <div
-                className="zoho-modal-choice-card"
-                onClick={() => handleChooseZohoType('In-Person')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '18px',
-                  padding: '18px 20px',
-                  backgroundColor: '#1E222D',
-                  border: '1px solid rgba(168, 85, 247, 0.35)',
-                  borderRadius: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
+                {/* Option 2: In-Person Physical Interview */}
                 <div
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-                    color: '#C084FC',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                  }}
+                  className={`vacancy-select-card ${selectedFormatType === 'In-Person' ? 'is-selected' : ''}`}
+                  onClick={() => setSelectedFormatType('In-Person')}
+                  onDoubleClick={() => handleChooseZohoType('In-Person')}
+                  title="Click to select, double-click to continue"
                 >
-                  <Building size={24} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', margin: 0 }}>
-                      In-person Interview
-                    </h4>
-                    <span style={{ backgroundColor: 'rgba(168, 85, 247, 0.15)', color: '#C084FC', border: '1px solid rgba(168, 85, 247, 0.35)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
-                      🏢 Physical
-                    </span>
+                  {selectedFormatType === 'In-Person' && (
+                    <div className="vacancy-selected-checkmark">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="vacancy-card-main">
+                    <div className="vacancy-card-info">
+                      <span className="vacancy-card-code">#ON-SITE</span>
+                      <h3 className="vacancy-card-title">In-Person Physical Interview</h3>
+                    </div>
+                    <div className="vacancy-card-status-wrap">
+                      <span className="vacancy-status-badge status-active">
+                        On-Site
+                      </span>
+                    </div>
                   </div>
-                  <p style={{ fontSize: '0.84rem', color: '#9599A6', margin: '6px 0 0 0', lineHeight: 1.45 }}>
-                    Schedule and conduct on-site physical office interviews with room location and panel members.
-                  </p>
                 </div>
               </div>
+            </div>
+
+            {/* Footer with Select & Continue Button */}
+            <div className="vacancy-modal-footer">
+              <button
+                type="button"
+                className="vacancy-confirm-btn"
+                disabled={!selectedFormatType}
+                onClick={() => {
+                  if (selectedFormatType) {
+                    handleChooseZohoType(selectedFormatType);
+                  }
+                }}
+              >
+                Select &amp; Continue
+              </button>
             </div>
           </div>
         </div>
@@ -4141,6 +5242,355 @@ function RecruiterInterviewTimeSlotManagementPage() {
           />
         </div>
       )}
+
+      {/* ── Modal 3: Assign Time Slots at Once (Bulk Generator) ── */}
+      {bulkModalPanelId !== null && (() => {
+        const panel = panels.find(p => p.id === bulkModalPanelId) || panels[0];
+        const targetDate = panel?.selectedDate || formData.interviewDate || getTodayInputValue();
+        const previewSlots = generateBulkSlots(bulkConfig, targetDate);
+        const panelSummary = getPanelAvailabilitySummary(panel?.emails, targetDate, null, slots);
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+            }}
+            onClick={() => setBulkModalPanelId(null)}
+          >
+            <div
+              style={{
+                backgroundColor: '#1E222D',
+                border: '1px solid #F0B90B',
+                borderRadius: '14px',
+                width: '100%',
+                maxWidth: '680px',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+                overflow: 'hidden',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  padding: '18px 24px',
+                  backgroundColor: '#16171F',
+                  borderBottom: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(240, 185, 11, 0.15)',
+                      color: '#F0B90B',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#FFFFFF', fontWeight: 700 }}>
+                      Assign Time Slots at Once
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.74rem', color: '#9599A6' }}>
+                      Batch generate non-conflicting interview slots for <strong>{panel?.name}</strong> on <strong>{targetDate}</strong>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBulkModalPanelId(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9599A6',
+                    cursor: 'pointer',
+                    padding: '6px',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                {/* Panel Availability Status Banner */}
+                <div
+                  style={{
+                    backgroundColor: '#13141C',
+                    border: `1px solid ${panelSummary.overallBadgeColor}40`,
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Users size={16} style={{ color: '#F0B90B' }} />
+                    <span style={{ fontSize: '0.78rem', color: '#FFFFFF', fontWeight: 600 }}>
+                      Panelists: {panel?.emails}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      backgroundColor: `${panelSummary.overallBadgeColor}20`,
+                      color: panelSummary.overallBadgeColor,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {panelSummary.overallBadgeText}
+                  </span>
+                </div>
+
+                {/* Configuration Form */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                      WINDOW START TIME:
+                    </label>
+                    <input
+                      type="time"
+                      value={bulkConfig.startTime}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, startTime: e.target.value }))}
+                      className="form-control"
+                      style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '100%', padding: '8px 12px', borderRadius: '6px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                      WINDOW END TIME:
+                    </label>
+                    <input
+                      type="time"
+                      value={bulkConfig.endTime}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, endTime: e.target.value }))}
+                      className="form-control"
+                      style={{ backgroundColor: '#13141C', color: '#FFFFFF', width: '100%', padding: '8px 12px', borderRadius: '6px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Slot Duration Chips */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                    SLOT DURATION:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[30, 45, 60, 90].map((dur) => (
+                      <button
+                        key={dur}
+                        type="button"
+                        onClick={() => setBulkConfig(c => ({ ...c, slotDuration: dur }))}
+                        style={{
+                          backgroundColor: bulkConfig.slotDuration === dur ? '#F0B90B' : '#13141C',
+                          color: bulkConfig.slotDuration === dur ? '#000000' : '#FFFFFF',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '6px 14px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {dur} Minutes
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Buffer / Break Duration */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#9599A6', fontWeight: 600, marginBottom: '6px' }}>
+                    BREAK / BUFFER BETWEEN SESSIONS:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'No Break (0m)', val: 0 },
+                      { label: '10 mins', val: 10 },
+                      { label: '15 mins', val: 15 },
+                      { label: '30 mins', val: 30 },
+                    ].map((item) => (
+                      <button
+                        key={item.val}
+                        type="button"
+                        onClick={() => setBulkConfig(c => ({ ...c, bufferDuration: item.val }))}
+                        style={{
+                          backgroundColor: bulkConfig.bufferDuration === item.val ? 'rgba(66, 133, 244, 0.2)' : '#13141C',
+                          color: bulkConfig.bufferDuration === item.val ? '#4285F4' : '#FFFFFF',
+                          border: bulkConfig.bufferDuration === item.val ? '1px solid #4285F4' : '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Lunch Break Toggle */}
+                <div style={{ backgroundColor: '#13141C', padding: '12px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkConfig.hasLunchBreak}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, hasLunchBreak: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', color: '#FFFFFF', fontWeight: 600 }}>
+                      Include 1-Hour Lunch Break (12:00 PM – 01:00 PM)
+                    </span>
+                  </label>
+                </div>
+
+                {/* Candidate Allocation & Overwrite Options */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#16171F', padding: '12px 14px', borderRadius: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkConfig.autoAssignCandidates}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, autoAssignCandidates: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#4ADE80', fontWeight: 600 }}>
+                      ⚡ Automatically allocate shortlisted candidates to generated slots at once by rank
+                    </span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={bulkConfig.replaceExisting}
+                      onChange={(e) => setBulkConfig(c => ({ ...c, replaceExisting: e.target.checked }))}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.76rem', color: '#C5C7D0' }}>
+                      Replace previously configured slots for this date
+                    </span>
+                  </label>
+                </div>
+
+                {/* Generated Slots Live Preview */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#9599A6', fontWeight: 700 }}>
+                      LIVE PREVIEW: <strong style={{ color: '#F0B90B' }}>{previewSlots.length} SLOTS</strong> WILL BE CREATED AT ONCE
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#22C55E', fontWeight: 600 }}>
+                      ✓ 09:00 AM – 05:00 PM Compliant
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxHeight: '110px', overflowY: 'auto', padding: '8px', backgroundColor: '#13141C', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    {previewSlots.length === 0 ? (
+                      <span style={{ fontSize: '0.75rem', color: '#EF4444' }}>No slots fit the selected window. Please adjust start/end time.</span>
+                    ) : (
+                      previewSlots.map((s, idx) => (
+                        <span
+                          key={idx}
+                          style={{
+                            backgroundColor: 'rgba(240, 185, 11, 0.12)',
+                            color: '#F0B90B',
+                            border: '1px solid rgba(240, 185, 11, 0.25)',
+                            borderRadius: '4px',
+                            padding: '3px 8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          #{idx + 1}: {s.startTime} – {s.endTime}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  padding: '16px 24px',
+                  backgroundColor: '#16171F',
+                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setBulkModalPanelId(null)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    color: '#FFFFFF',
+                    padding: '8px 18px',
+                    borderRadius: '6px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleApplyBulkSlots(panel.id)}
+                  disabled={previewSlots.length === 0}
+                  style={{
+                    backgroundColor: previewSlots.length > 0 ? '#F0B90B' : '#555',
+                    color: '#000000',
+                    border: 'none',
+                    padding: '9px 24px',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: previewSlots.length > 0 ? 'pointer' : 'not-allowed',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Sparkles size={15} />
+                  <span>⚡ Assign {previewSlots.length} Time Slots at Once</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
