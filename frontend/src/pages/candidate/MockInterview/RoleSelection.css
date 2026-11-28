@@ -10,7 +10,7 @@
 
 .role-selection-content {
   flex: 1;
-  padding: 40px 60px;
+  padding: 40px 60px 130px 60px;
   max-width: 1200px;
 }
 
@@ -605,6 +605,11 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.jd-toolbar-actions button {
+  scroll-margin-bottom: 110px;
 }
 
 .jd-clear-btn {

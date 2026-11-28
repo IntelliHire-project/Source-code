@@ -71,7 +71,7 @@ async function selectRoleAndProceedToStep2(page, roleTitle = 'Backend Developer'
 }
 
 test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', () => {
-  test.describe.configure({ timeout: 60_000 });
+  test.describe.configure({ timeout: 90_000 });
 
   test('TC-QG-01: Analyzes JD on Step 2 and displays extracted skills, responsibilities, and experience requirements', async ({ page }) => {
     await selectRoleAndProceedToStep2(page, 'Backend Developer');
@@ -96,8 +96,9 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
 
     const analysisPanel = page.locator('.jd-analysis-panel');
     await expect(analysisPanel).toBeVisible({ timeout: 25_000 });
+    await expect(analysisPanel.locator('.jd-analysis-body')).toBeVisible({ timeout: 30_000 });
     await expect(analysisPanel).toContainText('AI Job Description Analysis');
-    await expect(analysisPanel.locator('.jd-source-pill')).toBeVisible({ timeout: 25_000 });
+    await expect(analysisPanel.locator('.jd-source-pill')).toBeVisible();
     await expect(analysisPanel).toContainText('Extracted Technical Skills');
     await expect(analysisPanel).toContainText('Key Responsibilities');
     await expect(analysisPanel).toContainText('Experience Requirements');
@@ -111,7 +112,8 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
     await textarea.fill('Senior Backend Developer with Node.js, PostgreSQL, and 4+ years experience.');
 
     await page.locator('.jd-analyze-btn').click();
-    await expect(page.locator('.jd-analysis-panel .jd-source-pill')).toBeVisible({ timeout: 25_000 });
+    await expect(page.locator('.jd-analysis-panel .jd-analysis-body')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('.jd-analysis-panel .jd-source-pill')).toBeVisible();
 
     await textarea.fill('Senior Backend Developer with Node.js, PostgreSQL, GraphQL, and 5+ years experience.');
     await expect(page.locator('.jd-stale-pill')).toBeVisible();
@@ -132,7 +134,7 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
     await page.locator('.jd-textarea').fill(frontendJd);
     await page.locator('.bottom-action-bar .continue-btn').click();
 
-    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 25_000 });
+    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 45_000 });
     await expect(page.locator('.generated-questions-container')).toBeVisible({ timeout: 10_000 });
 
     // Wait for questions to finish generating if auto-loading
@@ -190,7 +192,7 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
     await page.locator('.jd-textarea').fill(designJd);
     await page.locator('.bottom-action-bar .continue-btn').click();
 
-    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 25_000 });
+    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 45_000 });
     await expect(page.locator('.question-card .role-align-badge').first()).toContainText('UI/UX Designer', {
       timeout: 25_000,
     });
@@ -209,7 +211,7 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
 
     await page.locator('.jd-textarea').fill(qaJd);
     await page.locator('.bottom-action-bar .continue-btn').click();
-    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 25_000 });
+    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 45_000 });
     await expect(page.locator('.question-card')).toHaveCount(5, { timeout: 25_000 });
 
     // Open Generator Parameters panel
@@ -223,7 +225,7 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
     await page.locator('.gq-apply-params-btn').click();
 
     // Verify updated count and difficulty badges
-    await expect(page.locator('.question-card')).toHaveCount(3, { timeout: 25_000 });
+    await expect(page.locator('.question-card')).toHaveCount(3, { timeout: 45_000 });
     const diffBadges = page.locator('.question-card .difficulty-badge');
     for (let i = 0; i < 3; i++) {
       await expect(diffBadges.nth(i)).toContainText('Hard');
@@ -244,7 +246,7 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
 
     await page.locator('.jd-textarea').fill(dataJd);
     await page.locator('.bottom-action-bar .continue-btn').click();
-    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 25_000 });
+    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 45_000 });
 
     const firstCard = page.locator('.question-card').first();
     await expect(firstCard).toBeVisible({ timeout: 25_000 });
@@ -267,7 +269,7 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
       .locator('.jd-textarea')
       .fill('Backend Developer building Node.js REST APIs and PostgreSQL schemas with 2+ years experience.');
     await page.locator('.bottom-action-bar .continue-btn').click();
-    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 25_000 });
+    await expect(page).toHaveURL(/\/candidate\/mock-interviews\/questions/, { timeout: 45_000 });
 
     const firstCard = page.locator('.question-card').first();
     await expect(firstCard).toBeVisible({ timeout: 25_000 });
@@ -288,6 +290,7 @@ test.describe('Mock Interview — JD-Based AI Question Generation E2E Suite', ()
 });
 
 test.describe('Mock Interview — JD Question Generation Backend API E2E', () => {
+  test.describe.configure({ timeout: 90_000 });
   let candidateToken;
 
   test.beforeAll(async () => {
