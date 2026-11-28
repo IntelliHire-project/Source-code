@@ -66,6 +66,7 @@ export default function GeneratedQuestions() {
 
   const roleId = location.state?.roleId || null;
   const roleName = location.state?.roleTitle || 'Selected Role';
+  const roleDescription = location.state?.roleDescription || '';
   const roleCategory = location.state?.category || null;
   const roleSkills = location.state?.skills || [];
   const jobDescription =
@@ -98,9 +99,10 @@ export default function GeneratedQuestions() {
         typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('mock_interview_generated_questions') : null;
       if (cachedRaw) {
         const parsed = JSON.parse(cachedRaw);
+        const matchesCurrentRole = !roleId || !parsed?.roleId || parsed.roleId === roleId;
         const matchesCurrentJd =
           !jobDescription.trim() || !parsed?.jobDescription || parsed.jobDescription === jobDescription.trim();
-        if (matchesCurrentJd && Array.isArray(parsed?.questions) && parsed.questions.length > 0) {
+        if (matchesCurrentRole && matchesCurrentJd && Array.isArray(parsed?.questions) && parsed.questions.length > 0) {
           return {
             questions: parsed.questions,
             source: parsed.generationSource || null,
@@ -179,6 +181,7 @@ export default function GeneratedQuestions() {
         jdAnalysis: jdAnalysis || undefined,
         roleId,
         roleTitle: roleName !== 'Selected Role' ? roleName : undefined,
+        roleDescription: roleDescription || undefined,
         category: roleCategory || undefined,
         skills: Array.isArray(roleSkills) ? roleSkills : undefined,
         questionCount: effectiveCount,
@@ -218,6 +221,7 @@ export default function GeneratedQuestions() {
         jdAnalysis: jdAnalysis || undefined,
         roleId,
         roleTitle: roleName !== 'Selected Role' ? roleName : undefined,
+        roleDescription: roleDescription || undefined,
         category: roleCategory || undefined,
         skills: Array.isArray(roleSkills) ? roleSkills : undefined,
         questionCount,
@@ -265,6 +269,7 @@ export default function GeneratedQuestions() {
           jdAnalysis: jdAnalysis || undefined,
           roleId,
           roleTitle: roleName !== 'Selected Role' ? roleName : undefined,
+          roleDescription: roleDescription || undefined,
           category: roleCategory || undefined,
           skills: Array.isArray(roleSkills) ? roleSkills : undefined,
           questionCount: 1,
@@ -610,6 +615,11 @@ export default function GeneratedQuestions() {
                     <div className="question-title-group">
                       <div className="title-row">
                         <h3 className="question-title">{q.title}</h3>
+                        {q.roleAlignment && (
+                          <span className="role-align-badge" title="Target Role Alignment">
+                            {q.roleAlignment}
+                          </span>
+                        )}
                         {q.topic && (
                           <span className="topic-badge">{q.topic}</span>
                         )}

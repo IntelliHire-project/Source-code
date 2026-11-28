@@ -473,7 +473,7 @@ export default function MockInterviewRoleSelection() {
       skills: ['Domain Expertise', 'Problem Solving', 'Communication'],
     };
     setCustomRoles(prev => [...prev, newRole]);
-    setSelectedRole(tempId);
+    handleSelectRole(tempId);
     setCustomInput('');
     setShowCustomModal(false);
 
@@ -487,6 +487,22 @@ export default function MockInterviewRoleSelection() {
     } catch (err) {
       console.warn('Could not persist custom role to backend:', err.message);
     }
+  };
+
+  const handleSelectRole = (nextRoleId) => {
+    if (nextRoleId === selectedRole) return;
+    setSelectedRole(nextRoleId);
+    setJobDescription('');
+    setSavedJdId(null);
+    setLastUpdated(null);
+    setJdAnalysis(null);
+    setAnalyzedJdText('');
+    setUpdateNotice(null);
+    try {
+      sessionStorage.removeItem('mock_interview_job_description');
+      sessionStorage.removeItem('mock_interview_jd_analysis');
+      sessionStorage.removeItem('mock_interview_generated_questions');
+    } catch {}
   };
 
   const handleContinue = async () => {
@@ -594,6 +610,7 @@ export default function MockInterviewRoleSelection() {
                 jdAnalysis: resolvedAnalysis || undefined,
                 roleId: selectedRole,
                 roleTitle: currentRole?.title,
+                roleDescription: currentRole?.description,
                 category: currentRole?.category,
                 skills: currentRole?.skills,
                 questionCount: 5,
@@ -643,6 +660,7 @@ export default function MockInterviewRoleSelection() {
         state: {
           roleId: selectedRole,
           roleTitle: currentRole?.title,
+          roleDescription: currentRole?.description,
           category: currentRole?.category,
           skills: currentRole?.skills,
           jobDescription: cleanJd,
@@ -726,7 +744,7 @@ export default function MockInterviewRoleSelection() {
               <div 
                 key={role.id} 
                 className={`role-card ${isSelected ? 'selected' : ''}`}
-                onClick={() => setSelectedRole(role.id)}
+                onClick={() => handleSelectRole(role.id)}
               >
                 {isSelected && (
                   <div className="selected-check">

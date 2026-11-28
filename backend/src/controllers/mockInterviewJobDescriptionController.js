@@ -302,6 +302,7 @@ const generateQuestionsFromJobDescriptionHandler = async (req, res) => {
       {
         questions: result.questions,
         analysis: result.analysis,
+        roleProfile: result.roleProfile,
         generationSource: result.generationSource,
         parameters: result.parameters,
         generatedAt: result.generatedAt,
