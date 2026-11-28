@@ -71,7 +71,7 @@ export default function MockInterviewSession() {
   const interviewMode = location.state?.interviewMode || 'text';
 
   const questionsList = location.state?.questionsList || DEFAULT_SESSION_QUESTIONS;
-  const initialIndex = location.state?.startIndex || 1; // Default to question 2 if wanted or index 0
+  const initialIndex = location.state?.startIndex ?? 0;
 
   const [currentIndex, setCurrentIndex] = useState(
     initialIndex < questionsList.length ? initialIndex : 0

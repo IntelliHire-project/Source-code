@@ -12,6 +12,7 @@ const {
   updateJobDescriptionAnalysis,
 } = require('../models/mockInterviewJobDescriptionModel');
 const { analyzeJobDescription } = require('../services/mockInterviewJdAnalysisService');
+const { generateQuestionsFromJobDescription } = require('../services/mockInterviewQuestionGeneratorService');
 const { successResponse, errorResponse } = require('../utils/response');
 
 /**
@@ -282,6 +283,39 @@ const analyzeJobDescriptionHandler = async (req, res) => {
   }
 };
 
+/**
+ * Generates tailored mock interview questions integrated with a job description
+ * and its AI analysis (skills, responsibilities, and experience requirements).
+ * POST /api/mock-interviews/questions/generate or POST /api/mock-interviews/job-descriptions/generate-questions
+ */
+const generateQuestionsFromJobDescriptionHandler = async (req, res) => {
+  try {
+    const result = await generateQuestionsFromJobDescription(req.body || {});
+    const targetJdId = req.body?.jdId || req.body?.id;
+    if (targetJdId && result.analysis && typeof updateJobDescriptionAnalysis === 'function') {
+      await updateJobDescriptionAnalysis(targetJdId, result.analysis, req.user).catch(() => {});
+    }
+
+    return successResponse(
+      res,
+      'Mock interview questions generated successfully.',
+      {
+        questions: result.questions,
+        analysis: result.analysis,
+        roleProfile: result.roleProfile,
+        generationSource: result.generationSource,
+        parameters: result.parameters,
+        generatedAt: result.generatedAt,
+      },
+      200
+    );
+  } catch (error) {
+    console.error('Error generating mock interview questions:', error);
+    const statusCode = error.statusCode || error.status || 500;
+    return errorResponse(res, error.message || 'Failed to generate mock interview questions.', statusCode);
+  }
+};
+
 module.exports = {
   createJobDescriptionHandler,
   getJobDescriptionsHandler,
@@ -294,5 +328,6 @@ module.exports = {
   attachJobDescriptionToSelectedRoleHandler,
   updateSelectedRoleJobDescriptionHandler,
   analyzeJobDescriptionHandler,
+  generateQuestionsFromJobDescriptionHandler,
 };
 

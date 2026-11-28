@@ -217,6 +217,16 @@ export const analyzeMockInterviewJobDescription = async (jdData) => {
   return response.data;
 };
 
+/**
+ * Generates mock interview questions integrated with a job description and its AI analysis.
+ * @param {object} payload - { jobDescription, jdAnalysis, roleId, roleTitle, category, skills, questionCount, focusType, difficulty, excludeDescriptions, variantSeed, jdId }
+ * @returns {Promise<object>}
+ */
+export const generateMockInterviewQuestions = async (payload) => {
+  const response = await apiInstance.post('/mock-interviews/questions/generate', payload);
+  return response.data;
+};
+
 
 
 

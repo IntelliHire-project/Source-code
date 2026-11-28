@@ -441,6 +441,99 @@ const validateAnalyzeJobDescription = (req, res, next) => {
   return next();
 };
 
+/**
+ * Validates the payload for AI question generation integrated with a job description.
+ */
+const validateGenerateQuestions = (req, res, next) => {
+  const {
+    jobDescription,
+    description,
+    content,
+    jdAnalysis,
+    roleId,
+    roleTitle,
+    title,
+    questionCount,
+    focusType,
+    difficulty,
+    skills,
+  } = req.body || {};
+
+  const rawDescription =
+    jobDescription !== undefined ? jobDescription : description !== undefined ? description : content;
+
+  const hasJdText = typeof rawDescription === 'string' && rawDescription.trim().length > 0;
+  const resolvedTitle = roleTitle !== undefined ? roleTitle : title;
+  const hasRoleContext =
+    (typeof resolvedTitle === 'string' && resolvedTitle.trim().length > 0) ||
+    (jdAnalysis && typeof jdAnalysis === 'object');
+
+  if (rawDescription !== undefined && rawDescription !== null && typeof rawDescription !== 'string') {
+    return errorResponse(res, 'Job description must be a string.', 400);
+  }
+
+  if (hasJdText) {
+    const trimmed = rawDescription.trim();
+    if (trimmed.length < 5) {
+      return errorResponse(res, 'Job description must be at least 5 characters long.', 400);
+    }
+    if (trimmed.length > 50000) {
+      return errorResponse(res, 'Job description cannot exceed 50,000 characters.', 400);
+    }
+    req.body.jobDescription = trimmed;
+  } else if (!hasRoleContext) {
+    return errorResponse(res, 'Job description or role context is required to generate questions.', 400);
+  }
+
+  if (roleId !== undefined && roleId !== null && typeof roleId !== 'string') {
+    return errorResponse(res, 'Role identifier (roleId) must be a string.', 400);
+  }
+
+  if (questionCount !== undefined && questionCount !== null) {
+    const parsedCount = Number(questionCount);
+    if (!Number.isInteger(parsedCount) || parsedCount < 1 || parsedCount > 10) {
+      return errorResponse(res, 'Question count must be an integer between 1 and 10.', 400);
+    }
+  }
+
+  if (focusType !== undefined && focusType !== null) {
+    const allowedFocus = ['balanced', 'technical', 'behavioral', 'system_design'];
+    if (typeof focusType !== 'string' || !allowedFocus.includes(focusType.trim().toLowerCase())) {
+      return errorResponse(
+        res,
+        `Invalid focusType. Allowed values are: ${allowedFocus.join(', ')}.`,
+        400
+      );
+    }
+    req.body.focusType = focusType.trim().toLowerCase();
+  }
+
+  if (difficulty !== undefined && difficulty !== null) {
+    const allowedDiff = ['mixed', 'easy', 'medium', 'hard'];
+    if (typeof difficulty !== 'string' || !allowedDiff.includes(difficulty.trim().toLowerCase())) {
+      return errorResponse(
+        res,
+        `Invalid difficulty. Allowed values are: ${allowedDiff.join(', ')}.`,
+        400
+      );
+    }
+    req.body.difficulty = difficulty.trim().toLowerCase();
+  }
+
+  if (skills !== undefined && skills !== null) {
+    let parsedSkills = skills;
+    if (typeof parsedSkills === 'string') {
+      parsedSkills = parsedSkills.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (!Array.isArray(parsedSkills)) {
+      return errorResponse(res, 'Skills must be an array of strings or a comma-separated string.', 400);
+    }
+    req.body.skills = parsedSkills.map((s) => String(s).trim()).filter(Boolean);
+  }
+
+  return next();
+};
+
 module.exports = {
   ALLOWED_CATEGORIES,
   validateCreateRole,
@@ -450,5 +543,6 @@ module.exports = {
   validateUpdateJobDescription,
   validateSaveJobDescription,
   validateAnalyzeJobDescription,
+  validateGenerateQuestions,
 };
 
